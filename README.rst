@@ -38,7 +38,7 @@ How do I learn more?
 
 * Documentation: https://hpc.github.io/charliecloud
 
-* GitHub repository: https://github.com/hpc/charliecloud
+* GitLab repository: https://gitlab.com/charliecloud/main
 
 * Low-traffic mailing list for announcements: https://groups.io/g/charliecloud
 
@@ -77,7 +77,7 @@ Contributors:
 How can I participate?
 ----------------------
 
-Use our GitHub page: https://github.com/hpc/charliecloud
+Use our GitLab page: https://gitlab.com/charliecloud
 
 Bug reports and feature requests should be filed as “Issues”. Questions,
 comments, support requests, and everything else should use our “Discussions”.
