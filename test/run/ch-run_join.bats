@@ -462,6 +462,11 @@ unset_vars () {
 }
 
 @test 'ch-run --join-pid: errors' {
+    # This test doesn’t work in a container; see issue #1937.
+    # https://unix.stackexchange.com/a/284938
+    if [[ $(ps -o user= -p 1) != root ]]; then
+        skip 'PID 1 not owned by root (#1937)'
+    fi
 
     # Can’t join namespaces of processes we don’t own.
     run ch-run -v --join-pid=1 "$ch_timg" -- true

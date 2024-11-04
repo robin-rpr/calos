@@ -1,0 +1,63 @@
+#!/bin/bash
+
+# Build the Charliecloud source code in $1, install it to prefix $2, and do
+# some basic validations.
+
+
+. "$(dirname "$0")"/base.bash
+
+prefox=$(realpath "$2")  # I like this typo and rolling with it. 😂
+cd "$1" || exit 1        # satisfy ShellCheck
+
+
+# Configure.
+
+if [[ $CH_TEST_PACK_FMT = squash-mount ]]; then
+    libsquashfuse=yes
+else
+    libsquashfuse=no
+fi
+
+./configure --prefix="$prefox" --with-libsquashfuse=$libsquashfuse
+
+
+# Validate configure output.
+
+clrequire 'documentation: yes'
+
+if [[ $CH_TEST_BUILDER = ch-image ]]; then
+    clrequire 'with ch-image(1): yes'
+fi
+
+clrequire 'recommended tests, tar-unpack mode: yes'
+clrequire 'recommended tests, squash-unpack mode: yes'
+
+if [[ $CH_TEST_PACK_FMT = squash-mount ]]; then
+    clrequire 'recommended tests, squash-mount mode: yes'
+    clrequire 'internal SquashFS mounting ... yes'
+else
+    clrequire 'recommended tests, squash-mount mode: no'
+    clrequire 'internal SquashFS mounting ... no'
+fi
+
+if [[ $CH_TEST_BUILDER = ch-image ]]; then
+    clrequire '"lark" module ... bundled'
+    test -f ./lib/lark/lark.py
+fi
+
+
+# Build.
+make -j"$(nproc)"
+ldd bin/ch-run
+bin/ch-run --version
+
+# Make tarball.
+rm -f charliecloud-*.tar.gz
+make dist
+ls -lh charliecloud-*.tar.gz
+
+# Install.
+sudo make install
+echo "$prefox"
+ldd "$prefox"/bin/ch-run
+"$prefox"/bin/ch-run --version

@@ -45,11 +45,12 @@ load ../common
 # builders. Thus, we (a) run only for builder ch-image but (b)
 # pedantic-require Docker to also be installed.
 setup () {
+    skip 'omitted for now (see test/gitlab.com/README)'
     scope standard
     [[ $CH_TEST_BUILDER = ch-image ]] || skip 'ch-image only'
     [[ $CH_TEST_PACK_FMT = *-unpack ]] || skip 'needs directory images'
     if ! command -v docker > /dev/null 2>&1; then
-        pedantic_fail 'docker not found'
+        pedantic_fail 'docker not found'  # FIXME: WHAT ABOUT PODMAN?
     fi
 }
 

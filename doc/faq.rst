@@ -1087,25 +1087,45 @@ One fix is to configure your :code:`.bashrc` or equivalent to:
      export NO_PROXY='localhost,127.0.0.1,.example.com'
      export no_proxy=$NO_PROXY
 
-2. Configure a :code:`docker build` wrapper:
+2. Configure a :code:`docker` wrapper, e.g. this one for `fish
+   <https://fishshell.com>`_:
 
-   .. code-block:: sh
+   .. code-block:: fish
 
-     # Run "docker build" with specified arguments, adding proxy variables if
-     # set. Assumes "sudo" is needed to run "docker".
-     function docker-build () {
-         if [[ -z $HTTP_PROXY ]]; then
-             sudo docker build "$@"
-         else
-             sudo docker build --build-arg HTTP_PROXY="$HTTP_PROXY" \
-                               --build-arg HTTPS_PROXY="$HTTPS_PROXY" \
-                               --build-arg NO_PROXY="$NO_PROXY" \
-                               --build-arg http_proxy="$http_proxy" \
-                               --build-arg https_proxy="$https_proxy" \
-                               --build-arg no_proxy="$no_proxy" \
-                               "$@"
-         fi
-     }
+      # This file defines a docker(1) wrapper that (unconditionally) pre-pends
+      # sudo(8) and also sets proxy environment variables if needed. Save it as
+      # “~/.config/fish/functions.docker.fish”. I think it’s better than configuring
+      # a proxy in config.json [1] because it’s easier to switch between the proxy
+      # and no-proxy states.
+
+      # List of environment variables we want to pass through to Docker.
+      set -g _docker_vars HTTP_PROXY HTTPS_PROXY NO_PROXY
+      set -a _docker_vars (string lower $_docker_vars)
+
+      function docker \
+               -d 'docker(1) wrapper with auto-sudo and proxy variables'
+         set cmd $argv[1]
+         set -e argv[1]
+         # Build pass-thru arguments if needed.
+         if set -q HTTP_PROXY
+           switch $cmd
+             case build
+               set ea --build-arg
+             case run
+               set ea --env
+           end
+         if set -q ea
+           set_color da1884
+           echo "note: proxy variables found; passing through with $ea"
+           set_color normal
+           for v in $_docker_vars
+             set -a evs "$ea=$v=$$v"
+           end
+         end
+       end
+       # Run Docker.
+       sudo docker $cmd $evs $argv
+    end
 
 How can I build images for a foreign architecture?
 --------------------------------------------------

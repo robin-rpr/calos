@@ -1,10 +1,6 @@
 SUBDIRS = lib bin doc examples misc packaging test
 
-# The CI stuff isn't really relevant for the tarballs, but they should
-# have complete source code.
-EXTRA_DIST = .github/PERUSEME .github/workflows/main.yml
-
-EXTRA_DIST += LICENSE README.rst VERSION autogen.sh
+EXTRA_DIST = LICENSE README.rst VERSION autogen.sh
 
 # Embedded paths are in the source code suitable for running from the source
 # directory (i.e., without install). When installing, those paths are often

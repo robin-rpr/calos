@@ -126,12 +126,14 @@ exclude_patterns += ["*_desc.rst", "_*.rst", "bugs.rst", "py_env.rst",
 # a list of builtin themes.
 html_theme = 'sphinx_rtd_theme'
 
-# FIXME: Workaround for older versions of Sphinx. This is not needed in 1.8.5,
-# but it is needed in 1.2.3. I don't know where the boundary is. We embed it
-# in try/except so that "docs-sane" can import the file too.
+# FIXME: Workaround for older versions of Sphinx. Not needed in 1.8.5, but it
+# is needed in 1.2.3. I don’t know where the boundary is. RHEL8 has 1.7.6? We
+# embed it in try/except so that “docs-sane” can import the file too.
 try:
-   import sphinx_rtd_theme
-   html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
+   import sphinx
+   if (sphinx.version_info < (1, 8, 5)):
+      import sphinx_rtd_theme
+      html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
 except ImportError:
    pass  # error caught elsewhere
 

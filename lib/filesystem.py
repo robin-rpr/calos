@@ -1070,10 +1070,6 @@ class Storage:
 
    @staticmethod
    def root_default():
-      # FIXME: Perhaps we should use getpass.getch.user() instead of the $USER
-      # environment variable? It seems a lot more robust. But, (1) we’d have
-      # to match it in some scripts and (2) it makes the documentation less
-      # clear becase we have to explain the fallback behavior.
       return Path("/var/tmp/%s.ch" % ch.user())
 
    @staticmethod

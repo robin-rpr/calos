@@ -40,7 +40,7 @@ ls_dump () {
     out_basename=$2
 
     (    cd "$target_parent" \
-      && ls -oghR "$target_basename" > "${BATS_TMPDIR}/rsync_${out_basename}" )
+      && /bin/ls -oghR "$target_basename" > "${BATS_TMPDIR}/rsync_${out_basename}" )
 }
 
 

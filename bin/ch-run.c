@@ -138,6 +138,7 @@ int main(int argc, char *argv[])
    T_ (warnings != MAP_FAILED);
 
    privs_verify_invoking();
+   username_set();
 
    Z_ (atexit(warnings_reprint));
 
@@ -145,9 +146,6 @@ int main(int argc, char *argv[])
    syslog(LOG_USER|LOG_INFO, "uid=%u args=%d: %s", getuid(), argc,
           argv_to_string(argv));
 #endif
-
-   username = getenv("USER");
-   Te (username != NULL, "$USER not set");
 
    verbose = LL_INFO;  // in ch_misc.c
    args = (struct args){

@@ -102,7 +102,7 @@ load ../common
     # For awk program, see: https://unix.stackexchange.com/a/66099
     while IFS= read -r i; do
         echo "shellcheck: ${i}"
-        shellcheck -x -P "$ch_lib" -e SC1112,SC2002 "$i"
+        shellcheck -x -P "$ch_lib" -P SCRIPTDIR -e SC1112,SC2002 "$i"
     done < <( find "$ch_base" \
                    \(    -name .git \
                       -o -name build-aux \) -prune \

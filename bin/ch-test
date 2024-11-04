@@ -720,6 +720,11 @@ win () {
 
 ### Body of script
 
+# Set $USER. Do this unconditionally to have the same username-finding logic
+# as the main programs. See #1162.
+USER=$(id -un)
+export USER
+
 # Ensure ch-run has been compiled (issue #329).
 if ! "${ch_bin}/ch-run" --version > /dev/null 2>&1; then
     fatal "no working ch-run found in $ch_bin"

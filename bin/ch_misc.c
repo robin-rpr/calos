@@ -6,6 +6,7 @@
 #include <fcntl.h>
 #include <fnmatch.h>
 #include <libgen.h>
+#include <pwd.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -40,7 +41,7 @@ enum log_level verbose;
 /* Path to host temporary directory. Set during command line processing. */
 char *host_tmp = NULL;
 
-/* Username of invoking users. Set during command line processing. */
+/* Username of invoking users. Set during early initialization. */
 char *username = NULL;
 
 /* List of warnings to be re-printed on exit. This is a buffer of shared memory
@@ -830,12 +831,6 @@ void split(char **a, char **b, const char *str, char del)
       *a = NULL;
 }
 
-/* Report the version number. */
-void version(void)
-{
-   fprintf(stderr, "%s\n", VERSION);
-}
-
 /* Append null-terminated string “str” to the memory buffer “offset” bytes after
    from the address pointed to by “addr”. Buffer length is “size” bytes. Return
    the number of bytes written. If there isn’t enough room for the string, do
@@ -848,6 +843,25 @@ size_t string_append(char *addr, char *str, size_t size, size_t offset)
       memcpy(addr + offset, str, written);
 
    return written;
+}
+
+/* Set the username global by looking up EUID in the password database. Logic
+   musc match ch.user(). Formerly, we used $USER, but that’s not reliably set.
+   See #1162. This approach does require that EUID *have* a corresponding
+   username. */
+void username_set(void)
+{
+   struct passwd *pw;
+
+   errno = 0;
+   Tf (pw = getpwuid(geteuid()), "can't get username for EUID %d", geteuid());
+   username = pw->pw_name;
+}
+
+/* Report the version number. */
+void version(void)
+{
+   fprintf(stderr, "%s\n", VERSION);
 }
 
 /* Reprint messages stored in “warnings” memory buffer. */

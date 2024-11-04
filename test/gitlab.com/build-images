@@ -1,0 +1,128 @@
+#!/bin/sh
+
+# If needed, build the image for the distribution specified in $1 and upload
+# it to the project registry. (Note this is used by CI jobs, not a
+# Charliecloud test suite image.)
+#
+# Because of this bootstrap context, we need to run *this* job using an image
+# available somewhere else. It also needs to have some image builder
+# installed. GitLab recommends images provided by Docker that are very bare
+# bones (Alpine with no programming language other than Busybox) [1], which is
+# why this is a POSIX shell script.
+#
+# An alternative would be Podman images, which are Fedora based and do have a
+# recent Python 3 [2].
+#
+# The gotcha here is that the local image builder does not know if the correct
+# image is already in the registry, and it doesn’t even know the layer digests
+# without building the layers, which we want to avoid. Therefore, we tag the
+# images with the MD5 of the Dockerfile plus the base image digest, and build
+# a new image if either is not in the registry.
+#
+# PREREQUISITES:
+#
+#   1. Log in to the gitlab.com container registry. For testing, do a manual
+#      “docker login” with your username and a personal access token (PAT)
+#      [3]. While your username/password will work, don’t do that because
+#      Docker stores it in a plaintext file.
+#
+#   2. Set $CI_REGISTRY_IMAGE [4] if the default below isn’t appropriate.
+#
+# [1]: https://docs.gitlab.com/ee/ci/docker/using_docker_build.html#use-docker-in-docker
+# [2]: https://quay.io/repository/podman/stable
+# [3]: https://docs.gitlab.com/ee/user/packages/container_registry/authenticate_with_container_registry.html
+# [4]: https://docs.gitlab.com/ee/ci/variables/predefined_variables.html
+
+set -e  # needs to be POSIX so can’t use our fancy traps
+
+distro=$1
+cd "$(dirname "$0")"  # directory containing this script
+
+# Convenience function for computing MD5 of a file.
+md5 () {
+    md5sum "$1" | cut -d' ' -f1
+}
+
+# Set up docker(1) alias if needed.
+if ! docker info > /dev/null 2>&1; then
+    alias docker='sudo docker'
+fi
+alias docker || true
+
+# Function to pass through proxy variables if needed.
+build () {
+    if [ -z "$HTTP_PROXY" ]; then
+        docker build "$@"
+    else
+        docker build --build-arg HTTP_PROXY="${HTTP_PROXY:?}" \
+                     --build-arg HTTPS_PROXY="${HTTPS_PROXY:?}" \
+                     --build-arg NO_PROXY="${NO_PROXY:?}" \
+                     --build-arg http_proxy="${http_proxy:?}" \
+                     --build-arg https_proxy="${https_proxy:?}" \
+                     --build-arg no_proxy="${no_proxy:?}" \
+                     "$@"
+    fi
+}
+
+# Registry path.
+if [ -n "$CI_REGISTRY_IMAGE" ]; then
+    regy=$CI_REGISTRY_IMAGE
+else
+    regy=registry.gitlab.com/charliecloud/main
+fi
+echo "registry:     $regy"
+
+# Architecture. Don’t we love how uname(1) and Docker disagree on arch names?
+case $(uname -m) in
+    x86_64)
+        arch=amd64
+        ;;
+    aarch64)
+        arch=arm64
+        ;;
+    *)
+        echo "error: unknown architecture: $(uname -m)" 1>&2
+        exit 1
+        ;;
+esac
+echo "architecture: $arch"
+
+echo
+echo "distro:       $distro"
+df=$distro.df
+echo "file:         $df"
+df_hash=$(md5 "$df")
+echo "file digest:  $df_hash"
+df_base=$(sed -En 's/^FROM (.+)/\1/p' "$df")
+echo "base:         $df_base"
+# sed(1) drama because we don’t have any JSON parsing available.
+printf "base digest:  "
+out=$(docker manifest inspect "$df_base")
+base_hash=$(  echo "$out" \
+            | tr -d '"[:space:]' \
+            | sed -E "s/^(.+)(digest:sha256:([0-9a-f]+),platform:\{architecture:${arch},)(.+)$/\3/")
+echo "$base_hash"
+tag=$(printf '%s%s' "$df_hash" "$base_hash" | md5 -)
+echo "full digest:  $tag"
+name=ci_$distro
+echo "image name:   $name"
+# Check if image exists in our registry, and declare victory if it does.
+ref=$regy/$name:$tag
+printf "exists:       "
+if out=$(docker manifest inspect "$ref" 2>&1); then
+    echo "yes, skipping"
+else
+    if ! ( echo "$out" | grep -Eq '^no such manifest:' ); then
+        echo "bad response:" "$out" 1>&2
+        exit 1
+    fi
+    echo "no, will build"
+    latest=$regy/$name:latest
+    build -t "$ref" -f "$df" .
+    docker tag "$ref" "${name}:latest"  # for local use
+    docker tag "$ref" "$latest"
+    docker push "$ref"
+    docker push "$latest"
+    echo "pushed: $ref"
+    echo "pushed: $latest"
+fi

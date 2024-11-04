@@ -1,0 +1,80 @@
+stages:
+  - bootstrap
+  - ch
+
+variables:
+  # https://docs.gitlab.com/runner/configuration/feature-flags.html
+  FF_DISABLE_UMASK_FOR_DOCKER_EXECUTOR: true      # fix permissions
+  FF_SCRIPT_SECTIONS: true                        # tidier logs?
+  FF_TIMESTAMPS: true                             # timestamps on log lines
+  FF_USE_FASTZIP: true                            # faster archive creation
+
+default:
+  # Default values for all the jobs.
+  image: $CI_REGISTRY_IMAGE/ci_debian:latest
+  artifacts:
+    expire_in: 1 week
+    name: ${CI_JOB_NAME}_${CI_COMMIT_SHORT_SHA}
+  before_script:
+    - export LC_ALL=C  # boring and consistent
+    - ./test/gitlab.com/info.sh
+
+ci-images:
+  # Build the images used for the rest of the pipeline, if needed [1]. Notes:
+  #
+  # 1. This uses a second “service” container for the Docker daemon, which
+  #    seems unnecessary to me, but I couldn’t figure out how to start the
+  #    Docker daemon in a tidy way otherwise. It’s also how the examples in
+  #    the docs do it.
+  #
+  # 2. We enable TLS, which also seems unnecessary but the docs encourage it
+  #    and the Docker daemon yells if you don’t.
+  #
+  # [1]: https://docs.gitlab.com/ee/ci/docker/using_docker_build.html
+  stage: bootstrap
+  image: docker:27-cli       # client tools only?
+  tags: ["saas-linux-medium-${ci_arch}"]
+  parallel:
+    matrix:
+      - ci_arch: [amd64]
+        ci_distro: [debian]
+  variables:
+    # DOCKER_HOST set automatically
+    DOCKER_TLS_CERTDIR: "/certs"
+  services:
+    - name: docker:27-dind
+      alias: daemon
+  script:
+    -   echo "$CI_REGISTRY_PASSWORD"
+      | docker login $CI_REGISTRY -u $CI_REGISTRY_USER --password-stdin
+    - ./test/gitlab.com/build-images $ci_distro
+
+loc:
+  stage: ch
+  tags: [saas-linux-small-amd64]
+  script:
+    - misc/loc
+
+test:
+  stage: ch
+  tags: ["saas-linux-medium-${ci_arch}"]
+  parallel:
+    matrix:
+      # Core tests with everything turned on.
+      - CH_TEST_BUILDER: [ch-image]
+        CH_IMAGE_CACHE: [enabled]
+        CH_TEST_PACK_FMT: [squash-mount, squash-unpack, tar-unpack]
+        ci_arch: [amd64]
+        ci_distro: [debian]
+        ci_sudo: [sudo_yes]
+  artifacts:
+    when: always
+    untracked: true
+  script:
+    # Set up a tmpfs to hold the storage directory (to make it all faster).
+    - sudo mount -t tmpfs tmpfs /mnt
+    # Run the tests
+    - test/gitlab.com/testjob.bash
+    # Move target directory into Git WD so it’s included in the artifact.
+    - sudo mv /ch .
+

@@ -152,6 +152,7 @@ bool path_subdir_p(const char *base, const char *path);
 char *realpath_(const char *path, bool fail_ok);
 void replace_char(char *str, char old, char new);
 void split(char **a, char **b, const char *str, char del);
-void version(void);
 size_t string_append(char *addr, char *str, size_t size, size_t offset);
+void username_set(void);
+void version(void);
 void warnings_reprint(void);

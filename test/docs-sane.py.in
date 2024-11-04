@@ -100,7 +100,7 @@ def check_man():
    # Check for synopses that don’t match the expectation provided in
    # “man_targets”.
    lose_lots("bad synopsis in man page",
-             {     "%s: %s (expected: %s)" % (p, man_targets[p]["synopsis"])
+             {     "%s: %s (expected: %s)" % (p, man_targets[p]["synopsis"], s)
                for (p, s) in man_synopses.items()
                if (    p in man_targets
                    and summary_unrest(s) != man_targets[p]["synopsis"])

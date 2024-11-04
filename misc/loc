@@ -223,8 +223,9 @@ find ./bin ./lib -type f -a \( \
 countem "PROGRAM" /tmp/loc.program
 
 # test suite
-find ./.github ./examples ./test -type f -a \( \
-        -name '*.bats' \
+find ./examples ./test -type f -a \( \
+        -name '*.bash' \
+     -o -name '*.bats' \
      -o -name '*.bats.in' \
      -o -name '*.c' \
      -o -name '*.df' \
@@ -241,11 +242,11 @@ find ./.github ./examples ./test -type f -a \( \
      -o -name Dockerfile \
      -o -name Makefile \
      -o -name README \
-     -o -path ./test/fixtures/README \
-     -o -path ./.github/PERUSEME \
      -o -path ./examples/chtest/printns \
      -o -path ./examples/spack/packages.yaml \
      -o -path ./examples/spack/libfuse.patch \
+     -o -path ./test/fixtures/README \
+     -o -path ./test/gitlab.com/build-images \
      -o -path ./test/approved-trailing-whitespace \
      -o -path ./test/common.bash \
      -o -path ./test/doctest-auto \

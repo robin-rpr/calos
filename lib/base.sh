@@ -146,7 +146,7 @@ version () {
 #   $6: string:   human readable description for stdout
 #   $7: boolean:  if true, suppress chatter
 #
-# FIXME: Shouldn't export the variable, and no Bash indirection available.
+# FIXME: Shouldn't export the variable, and no POSIX sh indirection available.
 # There are safe eval solution out there, but I was too lazy to deal with it.
 vset () {
     var_name=$1

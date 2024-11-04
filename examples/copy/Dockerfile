@@ -263,11 +263,11 @@ RUN mkdir dir19 \
 #
 # The directories should be o-rwx so we can see if the permissions were from
 # the old or new version.
-RUN test $(stat -c '%A' dir19/dir19a2 | cut -c8-) = 'rwx' \
- && stat -c '%n: %A' dir19/dir19a2
+RUN stat -c '%n: %A' dir19/dir19a2 \
+ && test $(stat -c '%A' dir19/dir19a2 | cut -c8-) = 'rwx'
 COPY dirF dir19/
-RUN test $(stat -c '%A' dir19/dir19a2 | cut -c8-) != 'rwx' \
- && stat -c '%n: %A' dir19/dir19a2
+RUN stat -c '%n: %A' dir19/dir19a2 \
+ && test $(stat -c '%A' dir19/dir19a2 | cut -c8-) != 'rwx'
 
 
 ## Destination: Symlink, 2nd level.

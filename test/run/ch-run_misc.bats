@@ -124,17 +124,6 @@ EOF
     [[ $status -eq $CH_ERR_MISC ]]
     # shellcheck disable=SC2016
     [[ $output = *'--home failed: $HOME not set'* ]]
-
-    # puke if $USER not set
-    user_tmp=$USER
-    unset USER
-    # shellcheck disable=SC2016
-    run ch-run --home "$ch_timg" -- /bin/sh -c 'echo $HOME'
-    export USER=$user_tmp
-    echo "$output"
-    [[ $status -eq $CH_ERR_MISC ]]
-    # shellcheck disable=SC2016
-    [[ $output = *'$USER not set'* ]]
 }
 
 

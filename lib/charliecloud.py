@@ -12,6 +12,7 @@ import locale
 import os
 import platform
 import pstats
+import pwd
 import re
 import shlex
 import shutil
@@ -881,11 +882,15 @@ def sigterm(signum, frame):
    FATAL("received %s" % signame)
 
 def user():
-   "Return the current username; exit with error if it can’t be obtained."
+   """Return the current username; exit with error if it can’t be obtained.
+      See #1162. Logic must match username_set() in the C code."""
+   euid = os.geteuid()
    try:
-      return os.environ["USER"]
-   except KeyError:
-      FATAL("can’t get username: $USER not set")
+      return pwd.getpwuid(euid).pw_name
+   except KeyError as x:
+      # AFAICT the “pwd” module does not interpret errno on getpwuid(3), so we
+      # can’t get any meaningful error reason.
+      FATAL("can’t get username for EUID %d" % euid)
 
 def variables_sub(s, variables):
    if (s is None):
