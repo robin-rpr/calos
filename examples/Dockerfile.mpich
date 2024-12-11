@@ -13,7 +13,7 @@ WORKDIR /usr/local/src
 # allows us to launch parallel jobs with slurm using PMIx or PMI2. As a
 # consequence, the mpiexec exectuable is no longer compiled or installed;
 # thus, single-node guest launch using mpiexec inside container is not
-# poassible.
+# possible.
 #
 # Slingshot CXI requires MPICH version 4.1 or greater.
 ARG MPI_VERSION=4.1.1
