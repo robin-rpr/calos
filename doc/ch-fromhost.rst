@@ -316,7 +316,7 @@ libfabric at host path :code:`/opt/cray-libfabric/lib64/libfabric.so`.
   $ ch-fromhost -v --path /opt/cray-libfabric/lib64/libfabric.so /tmp/ompi
   [ debug ] queueing files
   [ debug ]    cray libfabric: /opt/cray-libfabric/lib64/libfabric.so
-  [ debug ] searching image for inferred libfabric destiation
+  [ debug ] searching image for inferred libfabric destination
   [ debug ]    found /tmp/ompi/usr/local/lib/libfabric.so
   [ debug ] adding cray libfabric libraries
   [ debug ]    skipping /lib64/libcom_err.so.2

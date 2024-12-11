@@ -294,7 +294,7 @@ fi
 if [ -n "$cray_fi_found" ]; then
     # There is no Slingshot provider CXI; to leverage slingshot we need to
     # replace the image libfabric.so with Cray's.
-    VERBOSE "searching image for inferred libfabric destiation"
+    VERBOSE "searching image for inferred libfabric destination"
     img_libfabric=$(find "$image" -name  "libfabric.so")
     [ -n "$img_libfabric" ] || FATAL "libfabric.so not found in $image"
     DEBUG "found $img_libfabric"
