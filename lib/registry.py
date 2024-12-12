@@ -326,8 +326,7 @@ class HTTP:
       """Log the headers."""
       # All headers first.
       for h in hs:
-         h = h.lower()
-         if (h == "www-authenticate"):
+         if (h.lower() == "www-authenticate"):
             f = ch.VERBOSE
          else:
             f = ch.DEBUG
@@ -470,8 +469,8 @@ class HTTP:
       # manifest to a v1 manifest, which currently fails for images
       # Charliecloud pushes. The error in the test registry is “empty history
       # when trying to create schema1 manifest”.
-      accept = "%s;q=0.5" % ",".join(  list(TYPES_INDEX.values())
-                                     + list(TYPES_MANIFEST.values()))
+      accept = ",".join(  list(TYPES_INDEX.values())
+                        + list(TYPES_MANIFEST.values()))
       res = self.request("GET", url, out=pw, statuses={200, 401, 404, 429},
                          headers={ "Accept" : accept })
       pw.close()
@@ -494,20 +493,37 @@ class HTTP:
       ch.close_(fp)
 
    def manifest_to_file(self, path, msg, digest=None):
-      """GET manifest for the image and save it at path. If digest is given,
-         use that to fetch the appropriate architecture; otherwise, fetch the
-         default manifest using the exising image reference."""
+      """GET skinny manifest for the image and save it at path. If digest is
+         given, use that to fetch the appropriate architecture; otherwise,
+         fetch the default manifest using the exising image reference."""
       if (digest is None):
          digest = self.ref.version
       else:
          digest = "sha256:" + digest
       url = self._url_of("manifests", digest)
       pw = ch.Progress_Writer(path, msg)
-      accept = "%s;q=0.5" % ",".join(TYPES_MANIFEST.values())
+      accept = ",".join(TYPES_MANIFEST.values())
       res = self.request("GET", url, out=pw, statuses={200, 401, 404},
                          headers={ "Accept" : accept })
       pw.close()
-      if (res.status_code != 200):
+      if (res.status_code == 200):
+         # Some registries give us a fat manifest when we ask for a skinny
+         # one, i.e., we get back a Content-Type not in our Accept header.
+         # This appears to RFC 9110 conformant [1], though I think that
+         # reflects both a mistake in the standard and an error in judgement
+         # by Docker Hub. “HTTP 406 Not Acceptable” would be a much better
+         # response here IMO.
+         #
+         # We try to work around this, but if that fails, better to give a
+         # clear error message rather than crashing later when we try to parse
+         # it. See MR !1938.
+         #
+         # [1]: https://datatracker.ietf.org/doc/html/rfc9110#section-12.1
+         if (res.headers["Content-Type"] not in TYPES_MANIFEST.values()):
+            ch.FATAL("invalid Content-Type for manifest: %s"
+                     % res.headers["Content-Type"],
+                     hint="likely a registry bug; try a different arch?")
+      else:
          ch.DEBUG(res.content)
          raise ch.Image_Unavailable_Error()
 
@@ -577,6 +593,8 @@ class HTTP:
          object’s stored authentication if initialized; otherwise, use no
          authentication."""
       ch.VERBOSE("%s: %s" % (method, url))
+      if ("headers" in kwargs):
+         self.headers_log(kwargs["headers"])
       if (auth is None):
          auth = self.auth
       try:

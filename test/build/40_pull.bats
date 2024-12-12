@@ -496,9 +496,10 @@ EOF
 @test 'pull by arch' {
     # Has fat manifest; requested arch exists. There’s not much simple to look
     # for in the output, so just see if it works. NOTE: As a temporary fix for
-    # some test suite problems, I’m changing all instances of alpine:latest here
-    # to alpine:3.15. We really need a more permanent solution for this (see #1485)
-    ch-image --arch=yolo pull alpine:3.15
+    # some test suite problems, I’m changing all instances of alpine:latest
+    # here to alpine:3.15. We really need a more permanent solution for this
+    # (see #1485)
+    #ch-image --arch=yolo pull alpine:3.15  # see #1953
     ch-image --arch=host pull alpine:3.15
     ch-image --arch=amd64 pull alpine:3.15
     ch-image --arch=arm64/v8 pull alpine:3.15
