@@ -247,6 +247,7 @@ find ./examples ./test -type f -a \( \
      -o -path ./examples/spack/libfuse.patch \
      -o -path ./test/fixtures/README \
      -o -path ./test/gitlab.com/build-images \
+     -o -path ./test/gitlab.com/reviews-email \
      -o -path ./test/approved-trailing-whitespace \
      -o -path ./test/common.bash \
      -o -path ./test/doctest-auto \

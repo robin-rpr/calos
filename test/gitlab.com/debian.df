@@ -15,7 +15,7 @@ FROM debian:stable-slim
 # GCC’s C++ libraries.
 
 # The first group is for CI itself (i.e., this image), and the second is to
-# build Charliecloud.
+# build and test Charliecloud.
 #
 # See: #1933
 RUN apt-get update \
@@ -93,7 +93,7 @@ RUN pip3 install --break-system-package python-dateutil \
  && git2dot.py --version
 
 # Misc pip
-RUN pip3 install --break-system-packages lark
+RUN pip3 install --break-system-packages lark python-gitlab
 
 
 ### Environment setup (privileged)

@@ -67,6 +67,15 @@ Misc useful things to know
 
     3. Artifacts kind of don’t work with “parallel:matrix”. See below.
 
+* A “pipeline” is a DAG of jobs. A project has one pipeline unless you use
+  “downstream pipelines” [11], which seemed overly complicated to me.
+  Therefore we only have one pipeline.yaml, but we have a MODE variable that
+  gates some of the jobs.
+
+* The “workflow” keyword controls whether the pipeline is created at all,
+  while “rules” keywords within each job control whether that job is added to
+  the pipeline.
+
 * Within the ephemeral VM, each job *also* runs inside a Docker container
   using an image you select. Notably, this is “--privileged” Docker, so
   “Docker-In-Docker” (DIND) works, as does Charliecloud [4].
@@ -171,6 +180,7 @@ References
  [8]: https://stackoverflow.com/a/65920577 [
  [9]: https://docs.gitlab.com/ee/ci/runners/hosted_runners/linux.html
 [10]: https://docs.gitlab.com/ee/ci/yaml/needs.html
+[11]: https://docs.gitlab.com/ee/ci/pipelines/downstream_pipelines.html
 
 --
 LocalWords:  parallelmatrix FMT ci needsparallelmatrix readonly dst testjob
