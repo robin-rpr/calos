@@ -5,6 +5,7 @@ import os
 import re
 import types
 import urllib
+import urllib.parse
 
 import charliecloud as ch
 
@@ -421,7 +422,7 @@ class HTTP:
       # content in a single PUT request) as opposed to a “chunked” upload
       # (i.e., send data in multiple PATCH requests followed by a PUT request
       # with no body).
-      url = res.headers["Location"]
+      url = self.location_parse(res)
       res = self.request("PUT", url, {201}, data=data,
                          params={ "digest": "sha256:%s" % digest })
       if (isinstance(data, ch.Progress_Reader)):
@@ -491,6 +492,18 @@ class HTTP:
       fp = path.open("rb")  # open file avoids reading it all into memory
       self.blob_upload(digest, fp, note)
       ch.close_(fp)
+
+   def location_parse(self, response):
+      (res_scheme, res_domain, res_path, res_query, res_fragment) \
+         = urllib.parse.urlsplit(response.url)
+      (loc_scheme, loc_domain, loc_path, loc_query, loc_fragment) \
+         = urllib.parse.urlsplit(response.headers["Location"])
+      if not loc_scheme:
+         loc_scheme = res_scheme
+      if not loc_domain:
+         loc_domain = res_domain
+      return urllib.parse.urlunsplit((loc_scheme, loc_domain,
+                                      loc_path, loc_query, loc_fragment))
 
    def manifest_to_file(self, path, msg, digest=None):
       """GET skinny manifest for the image and save it at path. If digest is
