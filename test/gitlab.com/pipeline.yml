@@ -1,6 +1,7 @@
 stages:
   - bootstrap
   - ch
+  - deploy
 
 variables:
   # https://docs.gitlab.com/runner/configuration/feature-flags.html
@@ -38,6 +39,16 @@ workflow:
 .when-always: &when-always
   rules:
     - when: always
+.when-main: &when-main
+# Stuff we only want to happen on “main”, e.g. on a merge.
+  rules:
+    # Looks like we want “CI_COMMIT_REF_NAME” to be “main”:
+    # https://docs.gitlab.com/ee/ci/variables/predefined_variables.html#predefined-variables
+    #
+    # Some relevant forum posts:
+    # https://stackoverflow.com/a/50504985
+    # https://forum.gitlab.com/t/gitlab-ci-only-run-on-merge-request-on-master-or-development/46972/2
+    - if: '$CI_COMMIT_REF_NAME == "main"'
 
 default:
   # Default values for all the jobs.
@@ -115,6 +126,8 @@ test:
   artifacts:
     when: always
     untracked: true
+    paths:
+      - doc/html
   script:
     # Set up a tmpfs to hold the storage directory (to make it all faster).
     - sudo mount -t tmpfs tmpfs /mnt
@@ -123,3 +136,15 @@ test:
     # Move target directory into Git WD so it’s included in the artifact.
     - sudo mv /ch .
 
+deploy-pages:
+  stage: deploy
+  <<: *when-main
+  script:
+    - ls doc/html
+    - mkdir public
+    - cp -r doc/html/* public/
+  pages:  # specifies that this is a Pages job
+    expire_in: never
+  artifacts:
+    paths:
+      - public
