@@ -94,7 +94,7 @@ To specify which files to inject
   :code:`--cray-cxi`
     Inject cray-libfabric for slingshot. This is equivalent to
     :code:`--path $CH_FROMHOST_OFI_CXI`, where :code:`$CH_FROMHOST_OFI_CXI` is
-    the path the Cray host libfabric :code:`libfabric.so`.
+    the path to the Cray host libfabric :code:`libfabric.so`.
 
   :code:`--cray-gni`
     Inject cray gemini/aries GNI libfabric provider :code:`libgnix-fi.so`. This
