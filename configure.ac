@@ -431,6 +431,23 @@ AC_CHECK_DECL(FNM_EXTMATCH,
               [[#define _GNU_SOURCE
                 #include <fnmatch.h>]])
 
+# strerrorname_np(3), in glibc but not e.g. musl
+AC_MSG_CHECKING([for strerrorname_np in libc])
+AC_COMPILE_IFELSE([AC_LANG_SOURCE([[
+    #define _GNU_SOURCE
+    #include <string.h>
+
+    int main(void)
+    {
+      strerrorname_np(0);
+      return 0;
+    }
+  ]])],
+  [AC_MSG_RESULT([yes])
+   have_strerrorname_np=yes],
+  [AC_MSG_RESULT([no])
+   have_strerrorname_np=no])
+
 # Should we build seccomp?
 AC_MSG_CHECKING([for seccomp filter support])
 AC_RUN_IFELSE([AC_LANG_SOURCE([[
@@ -798,7 +815,8 @@ AS_IF([test $have_seccomp = yes],
 AM_CONDITIONAL([HAVE_LIBSQUASHFUSE], [test $have_libsquashfuse = yes])
 AS_IF([test $have_libsquashfuse = yes],
       [AC_DEFINE([HAVE_LIBSQUASHFUSE], [1], [link with libsquashfuse])])
-
+AS_IF([test $have_strerrorname_np = yes],
+      [AC_DEFINE([HAVE_STRERRORNAME_NP], [1], [C errno constants in errors])])
 
 
 ### Prepare report ###########################################################
@@ -950,6 +968,7 @@ Building Charliecloud
 
   optional:
     extended glob patterns in --unset-env ... ${have_fnm_extmatch}
+    C errno constants in errors ... ${have_strerrorname_np}
 
   ch-run(1) internal SquashFS mounting: ${have_libsquashfuse}
     enabled ... ${want_libsquashfuse}

@@ -26,6 +26,7 @@
 #include <sys/prctl.h>
 #include <sys/stat.h>
 #include <sys/syscall.h>
+#include <sys/sysmacros.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -93,6 +94,11 @@ struct bind BINDS_DEFAULT[] = {
 #define NR_NON -1  // syscall does not exist on architecture
 #define NR_END -2  // end of table
 
+/* Sentinel file descriptor for testing the seccomp filter with mknodat(2).
+   This must always be a successful no-op, even if we grow stateful emulation.
+   See: https://www.kernel.org/doc/Documentation/admin-guide/devices.txt */
+#define FD_TEST_NOOP (AT_FDCWD - 1)
+
 /* Architectures that we support for seccomp. Order matches the
    corresponding table below.
 
@@ -147,7 +153,6 @@ int FAKE_SYSCALL_NRS[][6] = {
    {      54,    325,    298,    289,    291,    260 },  // fchownat
    {  NR_NON,     16,     16,     16,    198,     94 },  // lchown
    {  NR_NON,    198,    198, NR_NON, NR_NON, NR_NON },  // lchown32
-   {     104,    347,    283,    268,    277,    246 },  // kexec_load
    {     152,    139,    139,    139,    216,    123 },  // setfsgid
    {  NR_NON,    216,    216, NR_NON, NR_NON, NR_NON },  // setfsgid32
    {     151,    138,    138,    138,    215,    122 },  // setfsuid
@@ -688,6 +693,9 @@ void seccomp_install(void)
    iw(&p, ii++, BPF_LD|BPF_W|BPF_ABS,
                 offsetof(struct seccomp_data, args[2]), 0, 0);
    // jump to fake return if trying to create a device.
+   // WARNING: If you are here to add stateful emulation for mknodat(2), make
+   // sure that file descriptor FD_TEST_NOOP remains a successful no-op, to
+   // avoid silently invalidating the filter test below.
    iw(&p, ii++, BPF_ALU|BPF_AND|BPF_K, S_IFMT, 0, 0);   // file type only
    iw(&p, ii++, BPF_JMP|BPF_JEQ|BPF_K, S_IFCHR, 2, 0);
    iw(&p, ii++, BPF_JMP|BPF_JEQ|BPF_K, S_IFBLK, 1, 0);
@@ -702,13 +710,22 @@ void seccomp_install(void)
    Z_ (prctl(PR_SET_SECCOMP, SECCOMP_MODE_FILTER, &p));
    DEBUG("note: see FAQ to disassemble the above")
 
-   // Test filter. This will fail if the kernel executes the call (because we
-   // are not really privileged and the arguments are bogus) or succeed if
-   // filter handles it. We selected it over something more naturally in the
-   // filter, e.g. setuid(2), because (1) no container process should ever use
-   // it and (2) it’s unlikely to be emulated by a smarter filter in the
-   // future, i.e., it won’t silently start doing something.
-   Zf (syscall(SYS_kexec_load, 0, 0, NULL, 0),
+   // Test filter with mknodat(2) on a sentinel file descriptor. If the kernel
+   // actually executes the call, it will fail with EBADF due to the fake file
+   // descriptor. The filter will instead do a successful no-op. See #1771.
+   //
+   // Other rejected options include:
+   //
+   //   1. Anything other than a no-op if the kernel executes it, even if this
+   //      process is privileged for some reason, because we don’t want to
+   //      make a mess if the filter doesn’t work.
+   //
+   //   2. Syscalls an application is unlikely to use and that are unlikely to
+   //      grow stateful emulation, e.g. kexec_load(2), run afoul of common
+   //      allow/deny-lists (see #1955).
+   //
+   //   3. Passing a NULL path to mknod(2) gives a compiler warning.
+   Zf (mknodat(FD_TEST_NOOP, ".", S_IFCHR | 0600, makedev(1, 3)),
        "seccomp root emulation failed (is your architecture supported?)");
 }
 #endif

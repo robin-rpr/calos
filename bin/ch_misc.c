@@ -367,6 +367,20 @@ struct env_var env_var_parse(const char *line, const char *path, size_t lineno)
    return (struct env_var){ name, value };
 }
 
+/* Return a string describing the given errno_ in a nerdly fashion, i.e.,
+   numeric value and also C constant name if available. */
+char *errno_nerd_str(int errno_)
+{
+   char *ret;
+
+   T_ (1 <= asprintf(&ret, "%d", errno_));
+#ifdef HAVE_STRERRORNAME_NP
+   T_ (1 <= asprintf(&ret, "%s %s", ret, strerrorname_np(errno_)));
+#endif
+
+   return ret;
+}
+
 /* Copy the buffer of size size pointed to by new into the last position in
    the zero-terminated array of elements with the same size on the heap
    pointed to by *ar, reallocating it to hold one more element and setting
@@ -645,8 +659,8 @@ void msgv(enum log_level level, const char *file, int line, int errno_,
 
    T_ (1 <= vasprintf(&ap_msg, fmt, ap));
    if (errno_) {
-      T_ (1 <= asprintf(&message, "%s%s: %s (%s:%d %d)", message, ap_msg,
-                        strerror(errno_), file, line, errno_));
+      T_ (1 <= asprintf(&message, "%s%s: %s (%s:%d %s)", message, ap_msg,
+                        strerror(errno_), file, line, errno_nerd_str(errno_)));
    } else {
       T_ (1 <= asprintf(&message, "%s%s (%s:%d)", message, ap_msg, file, line));
    }

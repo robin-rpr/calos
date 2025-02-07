@@ -132,6 +132,7 @@ struct env_var *env_file_read(const char *path, int delim);
 void env_set(const char *name, const char *value, const bool expand);
 void env_unset(const char *glob);
 struct env_var env_var_parse(const char *line, const char *path, size_t lineno);
+char *errno_nerd_str(int errno_);
 void list_append(void **ar, void *new, size_t size);
 void *list_new(size_t size, size_t ct);
 void log_ids(const char *func, int line);
