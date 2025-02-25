@@ -25,7 +25,6 @@ image_ref_parse () {
     diff -u -I '^hint: https://' -I '^trace:' - <(echo "$out")
 }
 
-
 @test 'image ref parsing' {
     # simplest
     cat <<'EOF' | image_ref_parse name 0
@@ -555,4 +554,16 @@ EOF
     echo "$output"
     [[ $status -eq 1 ]]
     [[ $output = *'registry-1.docker.io:443/charliecloud/metadata:doesnotexist'* ]]
+}
+
+# See issue #1925
+@test 'remove part_ files' {
+    # Create a problematic file and list images to provoke it
+    touch "$CH_IMAGE_STORAGE"/dlcache/part_PROBLEM
+    run ch-image list
+    echo "$output"
+    [[ $status -eq 0 ]]
+
+    # Remove the problematic file to clean up
+    rm -f "$CH_IMAGE_STORAGE"/dlcache/part_PROBLEM
 }
