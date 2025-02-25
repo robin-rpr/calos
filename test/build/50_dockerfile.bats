@@ -1299,3 +1299,26 @@ EOF
     [[ $status -eq 1 ]]
     [[ ${lines[-3]} = 'error: image ref syntax, char 1: /alpine:3.17' ]]
 }
+
+# Test for Lark issue #237: lark.exceptions.UnexpectedEOF if file doesn't end in newline.
+@test 'Dockerfile: Lark parsing without newline EOF' {
+    scope standard
+    [[ $CH_TEST_BUILDER == ch-image ]] || skip 'ch-image only'
+
+    cp ../examples/Dockerfile.mpich Dockerfile.tmp
+
+    truncate -s -1 Dockerfile.tmp
+
+    run ch-image build -t tmpimg -f Dockerfile.tmp .
+
+    # Clean up tmp file
+    rm Dockerfile.tmp
+
+    # Ignore the "unauthorized" error
+    if [[ $output =~ "unauthorized" ]]; then
+        return 0
+    fi
+
+    echo "$output"
+    [[ $status -eq 0 ]]
+}

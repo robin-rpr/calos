@@ -12,6 +12,7 @@ import build
 import build_cache as bu
 import force
 import image as im
+import irtree
 
 lark = im.lark
 
@@ -124,7 +125,7 @@ def main(cli_):
       # FIXME: pretty printing should prob go here, see issue #1908.
       image_ct = sum(1 for i in tree.children_("from_"))
 
-      build.parse_tree_traverse(tree, image_ct, cli)
+      irtree.parse_tree_traverse(tree, image_ct, cli)
 
 def modify_tree_make(src_img, cmds):
    """Construct a parse tree corresponding to a set of “ch-image modify”

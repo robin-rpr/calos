@@ -19,7 +19,7 @@ import filesystem as fs
 #
 # [1]: https://github.com/lark-parser/lark/issues/505
 import lark
-LARK_MIN = (0,  7, 1)
+LARK_MIN = (1, 1, 9)
 LARK_MAX = (99, 0, 0)
 lark_version = tuple(int(i) for i in lark.__version__.split("."))
 if (not LARK_MIN <= lark_version <= LARK_MAX):
