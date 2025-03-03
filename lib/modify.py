@@ -122,7 +122,8 @@ def main(cli_):
       else:
          assert False, "unreachable code reached"
 
-      # FIXME: pretty printing should prob go here, see issue #1908.
+      ch.VERBOSE(tree.pretty()[:-1])  # rm trailing newline
+
       image_ct = sum(1 for i in tree.children_("from_"))
 
       irtree.parse_tree_traverse(tree, image_ct, cli)
@@ -159,6 +160,7 @@ def modify_tree_make(src_img, cmds):
    # attribute a debug value of -1 to avoid said errors.
    meta = lark.tree.Meta()
    meta.line = -1
+   meta.column = -1
    df_children.append(im.Tree(lark.Token('RULE', 'from_'),
                       [im.Tree(lark.Token('RULE', 'image_ref'),
                         [lark.Token('IMAGE_REF', str(src_img))],
@@ -175,7 +177,7 @@ def modify_tree_make(src_img, cmds):
                            [lark.Token('LINE_CHUNK', cmd)],
                            meta)
                          ], meta))
-   return im.Tree(lark.Token('RULE', 'start'), [im.Tree(lark.Token('RULE','dockerfile'), df_children)], meta)
+   return im.Tree(lark.Token('RULE', 'start'), [im.Tree(lark.Token('RULE','dockerfile'), df_children, meta)], meta)
 
 def modify_tree_make_script(src_img, path):
    """Temporary(?) analog of “modify_tree_make” for the non-interactive version
@@ -206,6 +208,7 @@ def modify_tree_make_script(src_img, path):
    # attribute a debug value of -1 to avoid said errors.
    meta = lark.tree.Meta()
    meta.line = -1
+   meta.column = -1
    df_children.append(im.Tree(lark.Token('RULE', 'from_'),
                       [im.Tree(lark.Token('RULE', 'image_ref'),
                         [lark.Token('IMAGE_REF', str(src_img))],
@@ -223,4 +226,4 @@ def modify_tree_make_script(src_img, path):
                         [lark.Token('LINE_CHUNK', '%s /ch/script.sh' % cli.shell)],
                         meta)
                       ], meta))
-   return im.Tree(lark.Token('RULE', 'start'), [im.Tree(lark.Token('RULE','dockerfile'), df_children)], meta)
+   return im.Tree(lark.Token('RULE', 'start'), [im.Tree(lark.Token('RULE','dockerfile'), df_children, meta)], meta)
