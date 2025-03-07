@@ -40,7 +40,7 @@ How do I learn more?
 
 * GitLab repository: https://gitlab.com/charliecloud/main
 
-* Low-traffic mailing list for announcements: https://groups.io/g/charliecloud
+* Mailing lists: https://lists.charliecloud.io
 
 * We wrote an article for USENIX's magazine *;login:* that explains in more
   detail the motivation for Charliecloud and the technology upon which it is
@@ -84,7 +84,8 @@ comments, support requests, and everything else should use our “Discussions”
 Don't worry if you put something in the wrong place; we’ll be more than happy
 to help regardless.
 
-We also have a mailing list for announcements: https://groups.io/g/charliecloud
+We also have mailing lists for users and developers:
+https://lists.charliecloud.io
 
 Patches are much appreciated on the software itself as well as documentation.
 Optionally, please include in your first patch a credit for yourself in the
