@@ -1,6 +1,7 @@
 stages:
-  - bootstrap
-  - ch
+  - bootstrap    # set up container images for CI
+  - ch           # actual CI
+  - downstream   # run dependent pipelines in other projects
 
 variables:
   # https://docs.gitlab.com/runner/configuration/feature-flags.html
@@ -17,11 +18,9 @@ variables:
 
 workflow:
   name: "$CI_PIPELINE_SOURCE/$CI_COMMIT_BRANCH$CI_MERGE_REQUEST_IID/$CH_PIPELINE_MODE $CI_COMMIT_SHORT_SHA $CI_COMMIT_TITLE"
-  # This clause is mostly to prevent duplicate pipelines for merge requests.
-  # https://docs.gitlab.com/ee/ci/jobs/job_rules.html#avoid-duplicate-pipelines
   rules:
-    - if: (    $CI_PIPELINE_SOURCE == "push"
-            && $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH )
+    # Exclude branch pipelines for MRs.
+    - if: $CI_PIPELINE_SOURCE == "push" && $CI_OPEN_MERGE_REQUESTS
       when: never
     - when: always
 
@@ -30,6 +29,18 @@ workflow:
 .when-ci: &when-ci
   rules:
     - if: $CH_PIPELINE_MODE == "ci"
+      when: always
+.when-ci-main: &when-ci-main
+  # This anchor is to trigger downstream pipelines that use the main branch.
+  # It runs for any of (a) manually triggered pipelines, (b) pushes to main,
+  # and (c) MR pushes if the MR is labelled “ci-downstream”. Triggering the
+  # downstream pipelines when they shouldn’t be should have no effect other
+  # than wasting resources.
+  rules:
+    - if:    $CI_PIPELINE_SOURCE == "web"
+          || (    $CH_PIPELINE_MODE == "ci"
+               && (    $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
+                    || $CI_MERGE_REQUEST_LABELS =~ /ci-downstream/ ) )
       when: always
 .when-daily: &when-daily
   rules:
@@ -124,3 +135,10 @@ test:
     # Move target directory into Git WD so it’s included in the artifact.
     - sudo mv /ch .
 
+website:
+  # Re-deploy the website by triggering a pipeline in the website project,
+  # i.e. https://gitlab.com/charliecloud/website.
+  stage: downstream
+  <<: *when-ci-main
+  trigger:
+    project: charliecloud/website

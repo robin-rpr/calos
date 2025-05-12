@@ -38,8 +38,16 @@ date +'%c %Z'
 # What’s the Git version?
 git --version
 
-# Key environment variables.
-env | grep -E '^(ch|CH_|ci|LC_|PATH|USER)' | sort
+# Print the complete environment, except only the first line of multi-line
+# values. It’s quite verbose but helpful for debugging and eliminates the need
+# to edit the pipeline to print specific variable(s).
+#
+# See also: https://docs.gitlab.com/ci/variables/predefined_variables
+export -p | grep -E '^(export|declare)'
+# FAIL: # Busybox sed(1) doesn’t support -z, so we use tr(1) to ludicrously
+# swap bytes around via vertical tab instead.
+#
+#printenv -0 | tr '\n' '\v' | tr '\000' '\n' | sed -r "s/$(printf '\v').*$//"
 
 # What locales are installed?
 command -v locale > /dev/null && locale -av

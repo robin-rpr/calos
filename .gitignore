@@ -58,6 +58,9 @@ __pycache__
 # Vim crap.
 *.swp
 
+# VSCode crap.
+.vscode
+
 # Autotools crap. Coordinate with autogen.sh. Note negations.
 Makefile
 !/examples/*/Makefile
