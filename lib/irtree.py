@@ -460,13 +460,16 @@ class Copy(Instruction):
          for m in matches:
             self.srcs.append(m)
             ch.VERBOSE("source: %s" % m)
-            # Validate source is within context directory. (We need the source
-            # as given later, so don’t canonicalize persistently.) There is no
-            # clear subsitute for commonpath() in pathlib.
-            mc = m.resolve()
-            if (not os.path.commonpath([mc, self.srcs_base])
-                           .startswith(self.srcs_base)):
-               ch.FATAL("can’t copy from outside context: %s" % src)
+            self.src_context_validate(m, src)
+
+   def src_context_validate(self, m, src):
+      """Validate source is within context directory. (We need the source as
+         given later, so don’t canonicalize persistently.) There is no clear
+         subsitute for `commonpath()` in `pathlib`."""
+      mc = m.resolve()
+      if (not os.path.commonpath([mc, self.srcs_base])
+                     .startswith(self.srcs_base)):
+         ch.FATAL("can’t copy from outside context: %s" % src)
 
    def srcs_base_set(self):
       "Set self.srcs_base according to context and --from."
@@ -1226,6 +1229,11 @@ class Rsync_G(Copy):
       for o in self.rsync_options:
          if (o in bad):
             ch.FATAL("disallowed option: %s" % o)
+
+   def src_context_validate(self, *args):
+      """We let rsync(1) enforce in-contextness because in some cases it
+         actually can reach outside the context directory."""
+      pass
 
 
 class Run(Instruction):

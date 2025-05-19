@@ -1137,7 +1137,7 @@ for a group of :code:`rsync(1)` options. This single option is one of:
       <https://unix.stackexchange.com/questions/215271>`_).
 
   :code:`+l` (default)
-    Like :code:`+u`, but *silently skips* “unsafe” symlinks whose target is
+    Like :code:`+m`, but *silently skips* “unsafe” symlinks whose target is
     outside the top-of-transfer directory. Preserves:
 
     * Metadata.

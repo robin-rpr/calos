@@ -254,6 +254,99 @@ EOF
 }
 
 
+@test "${tag}: source: symlink(s)" {  # issue #1985
+    # Base Dockerfile. Note file types:
+    #
+    #   - file-out_rel is an “unsafe” symlink
+    #   - file-sym1 is a regular file
+    #   - file-sym1_direct is a “safe” symlink
+    df=$(cat <<EOF
+FROM alpine:3.17
+RUN mkdir /dst
+
+RSYNC %ARG% sym1/file-out_rel sym1/file-sym1 sym1/file-sym1_direct /dst
+EOF
+    )
+
+    # +m: noisily skip both symlinks
+    echo "$df" | sed -E 's/%ARG%/+m/' > "$ch_tmpimg_df"
+    run ch-image build --rebuild -f "$ch_tmpimg_df" "$context"
+    echo "$output"
+    [[ $status -eq 0 ]]
+    [[ $output = *'skipping non-regular file "file-out_rel"'* ]]
+    [[ $output = *'skipping non-regular file "file-sym1_direct"'* ]]
+    ls_dump "$dst" dir-root
+    run ls_ "$dst"
+    echo "$output"
+    [[ $status -eq -0 ]]
+    cat <<EOF | diff -u - <(echo "$output")
+-rw-rw---- 1  10  file-sym1
+EOF
+
+    # default (+l): silently skip the unsafe symlink
+    echo "$df" | sed -E 's/%ARG%//' > "$ch_tmpimg_df"
+    run ch-image build --rebuild -f "$ch_tmpimg_df" "$context"
+    echo "$output"
+    [[ $status -eq 0 ]]
+    [[ $output != *skipping* ]]
+    ls_dump "$dst" dir-root
+    run ls_ "$dst"
+    echo "$output"
+    [[ $status -eq -0 ]]
+    cat <<EOF | diff -u - <(echo "$output")
+-rw-rw---- 1  10  file-sym1
+lrwxrwxrwx 1      file-sym1_direct -> file-sym1
+EOF
+
+    # +u: silently replace unsafe symlink with regular file
+    echo "$df" | sed -E 's/%ARG%/+u/' > "$ch_tmpimg_df"
+    run ch-image build --rebuild -f "$ch_tmpimg_df" "$context"
+    echo "$output"
+    [[ $status -eq 0 ]]
+    [[ $output != *skipping* ]]
+    ls_dump "$dst" dir-root
+    run ls_ "$dst"
+    echo "$output"
+    [[ $status -eq -0 ]]
+    cat <<EOF | diff -u - <(echo "$output")
+-rw-rw---- 1   9  file-out_rel
+-rw-rw---- 1  10  file-sym1
+lrwxrwxrwx 1      file-sym1_direct -> file-sym1
+EOF
+
+    # +z: noisily skip both symlinks
+    echo "$df" | sed -E 's/%ARG%/+z/' > "$ch_tmpimg_df"
+    run ch-image build --rebuild -f "$ch_tmpimg_df" "$context"
+    echo "$output"
+    [[ $status -eq 0 ]]
+    [[ $output = *'skipping non-regular file "file-out_rel"'* ]]
+    [[ $output = *'skipping non-regular file "file-sym1_direct"'* ]]
+    ls_dump "$dst" dir-root
+    run ls_ "$dst"
+    echo "$output"
+    [[ $status -eq -0 ]]
+    cat <<EOF | diff -u - <(echo "$output")
+-rw-rw---- 1  10  file-sym1
+EOF
+
+    # +z --links: silently keep both symlinks, leaving the unsafe one dangling
+    echo "$df" | sed -E 's/%ARG%/+z --links/' > "$ch_tmpimg_df"
+    run ch-image build --rebuild -f "$ch_tmpimg_df" "$context"
+    echo "$output"
+    [[ $status -eq 0 ]]
+    [[ $output != *skipping* ]]
+    ls_dump "$dst" dir-root
+    run ls_ "$dst"
+    echo "$output"
+    [[ $status -eq -0 ]]
+    cat <<EOF | diff -u - <(echo "$output")
+lrwxrwxrwx 1      file-out_rel -> ../../file-out
+-rw-rw---- 1  10  file-sym1
+lrwxrwxrwx 1      file-sym1_direct -> file-sym1
+EOF
+}
+
+
 @test "${tag}: source: /" {
     cat <<EOF > "$ch_tmpimg_df"
 FROM alpine:3.17
