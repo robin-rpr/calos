@@ -623,7 +623,7 @@ CH_CHECK_VERSION([GIT2DOT], [$vmin_git2dot], [--version | cut -d' ' -f3])
 vmin_rsync=3.1.0  # NOTE: keep in sync with lib/charliecloud.py
 AC_CHECK_PROG([RSYNC], [rsync], [rsync])
 CH_CHECK_VERSION([RSYNC], [$vmin_rsync],
-  [-V | sed -En 's/rsync +version (@<:@0-9@:>@+\.@<:@0-9@:>@+\.@<:@0-9@:>@+).*$/\1/p'])
+  [--version | sed -En 's/rsync +version (@<:@0-9@:>@+\.@<:@0-9@:>@+\.@<:@0-9@:>@+).*$/\1/p'])
 
 
 ### Docs #####################################################################
