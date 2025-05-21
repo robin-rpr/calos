@@ -145,8 +145,6 @@ if ENABLE_HTML
 	touch html/command-usage.html
 #       Build.
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
-#       Avoid GitHub messing things up with Jekyll.
-	touch html/.nojekyll
 #       Some output files are copies with same timestamp as source; fix. Note
 #       we need all the HTML output files, not just the one picked in $@.
 	touch --no-create $(nobase_html_DATA)
