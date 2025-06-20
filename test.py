@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Test script for Charliecloud Daemon
+Test script for Clearstack Daemon
 """
 
 import json
@@ -9,7 +9,7 @@ import time
 import sys
 
 # Configuration
-DAEMON_URL = "http://localhost:8080"
+DAEMON_URL = "http://localhost:4242"
 TEST_IMAGE_PATH = "/tmp/test-image"  # You'll need to create this or use an existing image
 
 def test_health():
@@ -126,7 +126,7 @@ def create_test_image():
         
         # Create a simple bash script
         script_content = """#!/bin/bash
-echo "Hello from Charliecloud container!"
+echo "Hello from Clearstack container!"
 echo "Container ID: $CONTAINER_ID"
 echo "Current directory: $(pwd)"
 echo "Environment:"
@@ -145,13 +145,13 @@ echo "Container finished"
 
 def main():
     """Main test function"""
-    print("Charliecloud Daemon Test Suite")
+    print("Clearstack Daemon Test Suite")
     print("=" * 40)
     
     # Check if daemon is running
     if not test_health():
         print("❌ Daemon is not running. Please start the daemon first.")
-        print("Run: systemctl start charliecloud-daemon.service")
+        print("Run: systemctl start clearstack.service")
         sys.exit(1)
     
     # Create test image

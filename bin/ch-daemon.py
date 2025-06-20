@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Simple Charliecloud Daemon
-A lightweight REST API daemon for managing Charliecloud containers.
+Clearstack Daemon
+A lightweight daemon for managing Clearstack containers.
 """
 
 import json
@@ -23,14 +23,14 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('/var/log/charliecloud-daemon.log'),
+        logging.FileHandler('/var/log/clearstack.log'),
         logging.StreamHandler()
     ]
 )
 logger = logging.getLogger(__name__)
 
 class ContainerManager:
-    """Manages Charliecloud containers"""
+    """Manages Clearstack containers"""
     
     def __init__(self):
         self.containers = {}  # container_id -> container_info
@@ -39,7 +39,7 @@ class ContainerManager:
         os.makedirs(self.temp_dir, exist_ok=True)
     
     def start_container(self, container_id, image_path, command=None, env_vars=None):
-        """Start a Charliecloud container"""
+        """Start a Clearstack container"""
         try:
             with self.lock:
                 if container_id in self.containers:
@@ -50,20 +50,20 @@ class ContainerManager:
                 os.makedirs(container_dir, exist_ok=True)
                 
                 # Prepare command
-                ch_run_cmd = ["ch-run", image_path]
+                cmd = ["charlie", "run", image_path]
                 
                 if env_vars:
                     for key, value in env_vars.items():
-                        ch_run_cmd.extend(["--env", f"{key}={value}"])
+                        cmd.extend(["--env", f"{key}={value}"])
                 
                 if command:
-                    ch_run_cmd.extend(["--"] + command)
+                    cmd.extend(["--"] + command)
                 else:
-                    ch_run_cmd.extend(["--", "/bin/bash", "-c", "sleep infinity"])
+                    cmd.extend(["--", "/bin/bash", "-c", "sleep infinity"])
                 
                 # Start container process
                 process = subprocess.Popen(
-                    ch_run_cmd,
+                    cmd,
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE,
                     text=True,
@@ -102,7 +102,7 @@ class ContainerManager:
             return {"error": str(e)}
     
     def stop_container(self, container_id):
-        """Stop a Charliecloud container"""
+        """Stop a Clearstack container"""
         try:
             with self.lock:
                 if container_id not in self.containers:
@@ -196,8 +196,8 @@ class ContainerManager:
         except Exception as e:
             logger.error(f"Error collecting logs for container {container_id}: {e}")
 
-class CharliecloudRequestHandler(BaseHTTPRequestHandler):
-    """HTTP request handler for Charliecloud daemon"""
+class ClearstackRequestHandler(BaseHTTPRequestHandler):
+    """HTTP request handler for Clearstack daemon"""
     
     def __init__(self, *args, container_manager=None, **kwargs):
         self.container_manager = container_manager
@@ -305,7 +305,7 @@ class CharliecloudRequestHandler(BaseHTTPRequestHandler):
         """Override to use our logger"""
         logger.info(f"{self.address_string()} - {format % args}")
 
-class CharliecloudDaemon:
+class ClearstackDaemon:
     """Main daemon class"""
     
     def __init__(self, host='0.0.0.0', port=8080, max_workers=10):
@@ -326,19 +326,19 @@ class CharliecloudDaemon:
         try:
             # Create custom request handler with container manager
             def handler(*args, **kwargs):
-                return CharliecloudRequestHandler(*args, container_manager=self.container_manager, **kwargs)
+                return ClearstackRequestHandler(*args, container_manager=self.container_manager, **kwargs)
             
             self.server = HTTPServer((self.host, self.port), handler)
             self.running = True
             
-            logger.info(f"Charliecloud daemon starting on {self.host}:{self.port}")
+            logger.info(f"Clearstack daemon starting on {self.host}:{self.port}")
             logger.info(f"Thread pool size: {self.max_workers}")
             
             # Start server in a separate thread
             server_thread = threading.Thread(target=self.server.serve_forever, daemon=True)
             server_thread.start()
             
-            logger.info("Charliecloud daemon started successfully")
+            logger.info("Clearstack daemon started successfully")
             
             # Keep main thread alive
             while self.running:
@@ -350,7 +350,7 @@ class CharliecloudDaemon:
     
     def stop(self):
         """Stop the daemon"""
-        logger.info("Stopping Charliecloud daemon...")
+        logger.info("Stopping Clearstack daemon...")
         self.running = False
         
         if self.server:
@@ -365,7 +365,7 @@ class CharliecloudDaemon:
         # Shutdown thread pool
         self.executor.shutdown(wait=True)
         
-        logger.info("Charliecloud daemon stopped")
+        logger.info("Clearstack daemon stopped")
     
     def _signal_handler(self, signum, frame):
         """Handle shutdown signals"""
@@ -378,7 +378,7 @@ def main():
     try:
         # Parse command line arguments
         import argparse
-        parser = argparse.ArgumentParser(description='Charliecloud Daemon')
+        parser = argparse.ArgumentParser(description='Clearstack Daemon')
         parser.add_argument('--host', default='0.0.0.0', help='Host to bind to')
         parser.add_argument('--port', type=int, default=4242, help='Port to bind to')
         parser.add_argument('--max-workers', type=int, default=10, help='Maximum thread pool workers')
@@ -387,7 +387,7 @@ def main():
         args = parser.parse_args()
         
         # Create and start daemon
-        daemon = CharliecloudDaemon(
+        daemon = ClearstackDaemon(
             host=args.host,
             port=args.port,
             max_workers=args.max_workers
