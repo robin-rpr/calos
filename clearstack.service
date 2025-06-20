@@ -8,7 +8,9 @@ Wants=network.target
 Type=simple
 User=root
 Group=root
-ExecStart=/usr/local/bin/charlie daemon --host 0.0.0.0 --port 8080 --max-workers 10
+ExecStartPre=/bin/mkdir -p /tmp/clearstack
+ExecStartPre=/bin/mkdir -p /var/log
+ExecStart=/usr/local/bin/charlie daemon --host 0.0.0.0 --port 4242 --max-workers 10
 ExecReload=/bin/kill -HUP $MAINPID
 KillMode=mixed
 KillSignal=SIGTERM
@@ -21,10 +23,9 @@ SyslogIdentifier=clearstack
 
 # Security settings
 NoNewPrivileges=true
-PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=true
-ReadWritePaths=/tmp/clearstack /var/log/clearstack.log
+ReadWritePaths=/tmp/clearstack /var/log
 ProtectKernelTunables=true
 ProtectKernelModules=true
 ProtectControlGroups=true

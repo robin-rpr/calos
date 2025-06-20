@@ -380,7 +380,7 @@ def main():
         import argparse
         parser = argparse.ArgumentParser(description='Charliecloud Daemon')
         parser.add_argument('--host', default='0.0.0.0', help='Host to bind to')
-        parser.add_argument('--port', type=int, default=8080, help='Port to bind to')
+        parser.add_argument('--port', type=int, default=4242, help='Port to bind to')
         parser.add_argument('--max-workers', type=int, default=10, help='Maximum thread pool workers')
         parser.add_argument('--daemon', action='store_true', help='Run as daemon')
         
