@@ -27,8 +27,9 @@ install-exec-hook:
 		sed 's|@bindir@|$(bindir)|g' clearstack.service > /tmp/clearstack.service.tmp; \
 		cp /tmp/clearstack.service.tmp /etc/systemd/system/clearstack.service; \
 		rm /tmp/clearstack.service.tmp; \
-		touch /var/log/ch-daemon.log; \
-		chmod 644 /var/log/ch-daemon.log; \
+		mkdir -p /tmp/clearstack; \
+		touch /var/log/clearstack.log; \
+		chmod 644 /var/log/clearstack.log; \
 		systemctl daemon-reload; \
 		systemctl enable clearstack.service; \
 		systemctl start clearstack.service; \
@@ -41,5 +42,6 @@ uninstall-hook:
 		systemctl disable clearstack.service || true; \
 		rm -f /etc/systemd/system/clearstack.service; \
 		systemctl daemon-reload; \
-		rm -f /var/log/ch-daemon.log; \
+		rm -f /var/log/clearstack.log; \
+		rm -rf /tmp/clearstack; \
 	fi

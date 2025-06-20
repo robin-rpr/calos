@@ -35,7 +35,7 @@ class ContainerManager:
     def __init__(self):
         self.containers = {}  # container_id -> container_info
         self.lock = threading.Lock()
-        self.temp_dir = "/tmp/charliecloud-daemon"
+        self.temp_dir = "/tmp/clearstack"
         os.makedirs(self.temp_dir, exist_ok=True)
     
     def start_container(self, container_id, image_path, command=None, env_vars=None):
