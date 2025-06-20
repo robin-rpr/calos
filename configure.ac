@@ -11,7 +11,7 @@
 
 ### Prologue #################################################################
 
-AC_INIT([Clearstack], [m4_esyscmd_s([misc/version])],
+AC_INIT([clearstack], [m4_esyscmd_s([misc/version])],
         [https://github.com/hpc/charliecloud])
 AC_PREREQ([2.69])
 AC_CONFIG_SRCDIR([bin/ch-run.c])
