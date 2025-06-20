@@ -45,7 +45,7 @@ Requires:      python%{python3_pkgversion}-requests
 Provides:      bundled(python%{python3_pkgversion}-lark-parser) = 1.1.9
 
 %description builder
-This package provides ch-image, Clearstack's completely unprivileged container
+This package provides clearstack image, Clearstack's completely unprivileged container
 image manipulation tool.
 
 %package       doc
@@ -125,26 +125,26 @@ ln -s "${sphinxdir}/js"    %{buildroot}%{_pkgdocdir}/html/_static/js
 %files
 %license LICENSE
 %doc README.rst %{?el7:README.EL7}
-%{_bindir}/ch-checkns
-%{_bindir}/ch-convert
+%{_bindir}/checkns
+%{_bindir}/convert
 %{_bindir}/ch-fromhost
 %{_bindir}/ch-run
 %{_bindir}/ch-run-oci
-%{_mandir}/man1/ch-checkns.1*
-%{_mandir}/man1/ch-convert.1*
+%{_mandir}/man1/checkns.1*
+%{_mandir}/man1/convert.1*
 %{_mandir}/man1/ch-fromhost.1*
 %{_mandir}/man1/ch-run.1*
 %{_mandir}/man1/ch-run-oci.1*
 %{_mandir}/man7/charliecloud.7*
-%{_mandir}/man7/ch-completion.bash.7*
+%{_mandir}/man7/completion.bash.7*
 %{_prefix}/lib/%{name}/base.sh
 %{_prefix}/lib/%{name}/contributors.bash
 %{_prefix}/lib/%{name}/version.sh
 %{_prefix}/lib/%{name}/version.txt
 
 %files builder
-%{_bindir}/ch-image
-%{_mandir}/man1/ch-image.1*
+%{_bindir}/image
+%{_mandir}/man1/image.1*
 %{_prefix}/lib/%{name}/build.py
 %{_prefix}/lib/%{name}/build_cache.py
 %{_prefix}/lib/%{name}/charliecloud.py

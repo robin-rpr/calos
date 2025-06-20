@@ -135,7 +135,7 @@ int SECCOMP_ARCHS[] = { AUDIT_ARCH_AARCH64,   // arm64
    must be somewhat less than 256. I haven’t computed the exact limit. There
    will be an assertion failure at runtime if this is exceeded.
 
-   WARNING: Keep this list consistent with the ch-image(1) man page!
+   WARNING: Keep this list consistent with the clearstack image(1) man page!
 
    [1]: https://chromium.googlesource.com/chromiumos/docs/+/HEAD/constants/syscalls.md#Cross_arch-Numbers
    [2]: https://github.com/strace/strace/blob/v4.26/linux/powerpc64/syscallent.h
@@ -302,7 +302,7 @@ void containerize(struct container *c)
 
    Note that pivot_root(2) requires a complex dance to work, i.e., to avoid
    multiple undocumented error conditions. This dance is explained in detail
-   in bin/ch-checkns.c. */
+   in bin/checkns.c. */
 void enter_udss(struct container *c)
 {
    char *nr_parent, *nr_base, *mkdir_scratch;
@@ -818,8 +818,8 @@ void setup_passwd(const struct container *c)
          Tf (0, "getpwuid(3) failed");
       } else {
          VERBOSE("UID %d not found; using dummy info", c->container_uid);
-         T_ (1 <= dprintf(fd, "%s:x:%u:%u:%s:/:/bin/sh\n", "charlie",
-                          c->container_uid, c->container_gid, "Charlie"));
+         T_ (1 <= dprintf(fd, "%s:x:%u:%u:%s:/:/bin/sh\n", "clearstack",
+                          c->container_uid, c->container_gid, "Clearstack"));
       }
    }
    Z_ (close(fd));

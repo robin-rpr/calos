@@ -116,7 +116,7 @@ def import_(cli):
    bu.cache.adopt(dst)
    if (dst.metadata["history"] == []):
       dst.metadata["history"].append({ "empty_layer": False,
-                                       "command":     "ch-image import"})
+                                       "command":     "clearstack image import"})
    dst.metadata_save()
    ch.done_notify()
 

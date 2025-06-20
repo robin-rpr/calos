@@ -5,7 +5,7 @@
 #include <unistd.h>
 
 #ifndef LIBEXECDIR
-#  define LIBEXECDIR "/usr/local/libexec/charlie"
+#  define LIBEXECDIR "/usr/local/libexec/clearstack"
 #endif
 
 int main(int argc, char *argv[])
@@ -19,7 +19,7 @@ int main(int argc, char *argv[])
 	}
 
 	subcommand = argv[1];
-	if (asprintf(&exec_path, "%s/ch-%s", LIBEXECDIR, subcommand) < 0) {
+	if (asprintf(&exec_path, "%s/%s", LIBEXECDIR, subcommand) < 0) {
 		perror("asprintf");
 		exit(EXIT_FAILURE);
 	}

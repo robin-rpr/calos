@@ -50,7 +50,7 @@ class ContainerManager:
                 os.makedirs(container_dir, exist_ok=True)
                 
                 # Prepare command
-                cmd = ["charlie", "run", image_path]
+                cmd = ["clearstack", "run", image_path]
                 
                 if env_vars:
                     for key, value in env_vars.items():

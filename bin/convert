@@ -21,12 +21,12 @@ below yields the inferred format. Paths need not exist in the filesystem.
   /* ./* (i.e., absolute path or relative with explicit dot)  dir
 
 If no glob matches, then the inferred format is the first installed of
-ch-image, podman, and docker. If none are installed, there is no inference.
+image, podman, and docker. If none are installed, there is no inference.
 
 Example:
 
-  $ ch-convert foo/bar:latest /var/tmp/foobar.sqfs
-  input:   ch-image  foo/bar:latest
+  $ clearstack convert foo/bar:latest /var/tmp/foobar.sqfs
+  input:   image  foo/bar:latest
   output:  squashfs  /var/tmp/foobar.sqfs
   copying ...
   done
@@ -89,7 +89,7 @@ cv_dir_chimage () {
     # “ch-image” recognizes “-q” as an argument, but we choose to quiet it with
     # “quiet” instead here because doing so is simpler from the perspective of
     # “ch-convert”.
-    quiet ch-image import "$1" "$2"  # FIXME: no progress meter
+    quiet image import "$1" "$2"  # FIXME: no progress meter
 }
 
 cv_dir_docker () {
@@ -284,7 +284,7 @@ cv_tar_chimage () {
     tar_in_validate "$1"
     chimage_out_validate "$2"
     INFO 'importing ...'
-    quiet ch-image import "$1" "$2"  # FIXME: no progress meter
+    quiet image import "$1" "$2"  # FIXME: no progress meter
 }
 
 cv_tar_dir () {
@@ -470,16 +470,16 @@ EOF
 
 chimage_in_validate () {
     img=$(chimage_path "$1")
-    [ -d "$img" ] || FATAL "source image not found in ch-image storage: $1"
+    [ -d "$img" ] || FATAL "source image not found in image storage: $1"
 }
 
 chimage_out_validate () {
     img=$(chimage_path "$1")
     if [ -d "$img" ] && [ -n "$no_clobber" ]; then
-        FATAL "exists in ch-image storage, not deleting per --no-clobber: ${1}"
+        FATAL "exists in image storage, not deleting per --no-clobber: ${1}"
     fi
     if [ -n "$xattrs" ]; then
-        WARNING -- "--xattrs unsupported for out format \"ch-image\""
+        WARNING -- "--xattrs unsupported for out format \"image\""
     fi
 }
 
@@ -557,10 +557,10 @@ tar_out_validate () {
 
 ## supporting functions ######################################################
 
-# Return the path to image $1 in ch-image storage.
+# Return the path to image $1 in image storage.
 chimage_path () {
     if [ -z "$cli_storage" ]; then
-        echo "$(ch-image gestalt storage-path)/img/$(tag_to_path "$1")"
+        echo "$(clearstack image gestalt storage-path)/img/$(tag_to_path "$1")"
     else
         echo "$cli_storage/img/$(tag_to_path "$1")"
     fi
@@ -576,7 +576,7 @@ desc_base () {
         dir)
             basename "$dsc"
             ;;
-        ch-image|docker|podman)
+        image|docker|podman)
             tag_to_path "$dsc"
             ;;
         squash)
@@ -626,8 +626,8 @@ fmt_validate () {
                 fmt=dir
                 ;;
             *)
-                if [ -n "$have_ch_image" ]; then
-                    fmt=ch-image
+                if [ -n "$have_image" ]; then
+                    fmt=image
 		elif [ -n "$have_podman" ]; then
 		    fmt=podman
                 elif [ -n "$have_docker" ]; then
@@ -639,9 +639,9 @@ fmt_validate () {
         esac
     fi
     case $fmt in
-        ch-image)
-            if [ -z "$have_ch_image" ]; then
-                FATAL "format ch-image invalid: ch-image not found"
+        image)
+            if [ -z "$have_image" ]; then
+                FATAL "format image invalid: image not found"
             fi
             ;;
         docker)
@@ -825,7 +825,7 @@ tmpdir_setup () {
             FATAL "temp dir must be absolute: ${tmpdir}"
             ;;
     esac
-    tmpdir=$(mktemp -d --tmpdir="$tmpdir" ch-convert.XXXXXX)
+    tmpdir=$(mktemp -d --tmpdir="$tmpdir" convert.XXXXXX)
 }
 
 # Error out if “--xattrs” and “--no-xattrs” are specified in the same command
@@ -902,11 +902,11 @@ in_desc=$1
 out_desc=$2
 VERBOSE "verbose level: ${log_level}"
 
-if command -v ch-image > /dev/null 2>&1; then
-    have_ch_image=yes
-    VERBOSE 'ch-image: found'
+if command -v image > /dev/null 2>&1; then
+    have_image=yes
+    VERBOSE 'image: found'
 else
-    VERBOSE 'ch-image: not found'
+    VERBOSE 'image: not found'
 fi
 if command -v docker > /dev/null 2>&1; then
     have_docker=yes

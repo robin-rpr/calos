@@ -18,8 +18,8 @@ cd "$(dirname "$0")"/..
 find . \(    -path ./.git \
           -o -path ./autom4te.cache \
           -o -path ./doc/doctrees \
-          -o -path ./bin/ch-checkns \
-          -o -path ./bin/ch-image \
+          -o -path ./bin/checkns \
+          -o -path ./bin/image \
           -o -path ./bin/ch-run \
           -o -path ./bin/ch-run-oci \
           -o -path ./doc/html \

@@ -4,7 +4,7 @@
 
 set -e
 
-# Set the locale so we have predictable sorting. However, ch-image crashes on
+# Set the locale so we have predictable sorting. However, image crashes on
 # Python 3.6 in locale “C” (see issues #970 and #1262), which is the only
 # locale guaranteed to be available, so use a UTF-8 locale if available. This
 # means tests will fail on Python 3.6 systems without this UTF-8 locale.
@@ -14,10 +14,10 @@ else
     export LC_ALL=C
 fi
 
-# Set environment variable for ch-image --debug flag
+# Set environment variable for image --debug flag
 export CH_IMAGE_DEBUG=true
 
-# Set environment variable for ch-convert and ch-image --xattrs flag
+# Set environment variable for convert and image --xattrs flag
 export CH_XATTRS=true
 
 ### Functions we need right away
@@ -94,11 +94,11 @@ bats_vmin=1.2.0  # FIXME: get from configure somehow?
 builder_check () {
     printf 'checking builder ...\n'
     case $CH_TEST_BUILDER in
-    ch-image)
-        if ! "${ch_bin}/ch-image" --dependencies; then
-            fatal 'builder: ch-image: missing dependencies'
+    image)
+        if ! "${ch_bin}/image" --dependencies; then
+            fatal 'builder: image: missing dependencies'
         fi
-        bl=$(readlink -f "${ch_bin}/ch-image")
+        bl=$(readlink -f "${ch_bin}/image")
         bv=$("$bl" --version)
         ;;
     buildah)
@@ -140,13 +140,13 @@ builder_set () {
     elif [[ -n $CH_TEST_BUILDER ]]; then
         method='environment'
     else
-        CH_TEST_BUILDER=ch-image
+        CH_TEST_BUILDER=image
         method='default'
     fi
     printf "%-*s %s (%s)\n" "$width" 'builder:' "$CH_TEST_BUILDER" "$method"
-    if [[ $CH_TEST_BUILDER == ch-image ]]; then
+    if [[ $CH_TEST_BUILDER == image ]]; then
         vset CH_IMAGE_STORAGE '' "$CH_IMAGE_STORAGE" "/var/tmp/${USER}.ch" \
-                              "$width" 'ch-image storage'
+                              "$width" 'image storage'
     fi
     export CH_TEST_BUILDER
 }
@@ -671,11 +671,11 @@ test_one_file () {
 }
 
 test_rootemu () {
-    if command -v ch-image > /dev/null 2>&1; then
+    if command -v image > /dev/null 2>&1; then
         bats force-auto.bats
         echo yes > "$TMP_/rootemu"
     elif [[ -n "$1" ]]; then
-        printf "error: ch-image required, not found\n"
+        printf "error: image required, not found\n"
         exit 1
     fi
 }
@@ -1076,8 +1076,8 @@ fi
 
 # Ensure namespaces are configured properly.
 printf 'checking namespaces ...\n'
-if ! "${ch_bin}/ch-checkns"; then
-    fatal 'namespace sanity check (ch-checkns) failed'
+if ! "${ch_bin}/checkns"; then
+    fatal 'namespace sanity check (clearstack checkns) failed'
 fi
 printf '\n'
 
@@ -1204,7 +1204,7 @@ case $phase in
         done
         ;;
     rootemu)
-        test_rootemu optional # ch-image optional
+        test_rootemu optional # image optional
         ;;
     run)
         dir_img_mk

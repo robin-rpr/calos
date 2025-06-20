@@ -51,7 +51,7 @@ FAKEROOT_DEFAULT_CONFIGS = {
    #                Item 2: Command to do the init step.
    #
    #                I.e., to perform each fakeroot initialization step,
-   #                ch-image does roughly:
+   #                clearstack image does roughly:
    #
    #                  if ( ! $CMD_1 ); then
    #                      $CMD_2

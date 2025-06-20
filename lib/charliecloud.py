@@ -111,12 +111,12 @@ ARCH_MAP = { "armv5l":    "arm/v5",
 ARCH_MAP_FALLBACK = { "arm/v7": ("arm",),
                       "arm64/v8": ("arm64",) }
 
-# Incompatible option pairs for the ch-image command line
+# Incompatible option pairs for the image command line
 CLI_INCOMPATIBLE_OPTS = [("quiet", "verbose"),
                          ("xattrs", "no_xattrs")]
 
 # String to use as hint when we throw an error that suggests a bug.
-BUG_REPORT_PLZ = "please report this bug: https://github.com/hpc/charliecloud/issues"
+BUG_REPORT_PLZ = "please report this bug: https://clearstackhq.com/report"
 
 # Maximum filename (path component) length, in *characters*. All Linux
 # filesystems of note that I could identify support at least 255 *bytes*. The
@@ -146,7 +146,7 @@ Path = fs.Path
 arch = None       # requested by user
 arch_host = None  # of host
 
-# FIXME: currently set in ch-image :P
+# FIXME: currently set in clearstack image :P
 CH_BIN = None
 CH_RUN = None
 
@@ -481,7 +481,7 @@ def ERROR(msg, hint=None, trace=None, **kwargs):
 def FATAL(msg, hint=None, **kwargs):
    if (trace_fatal):
       # One-line traceback, skipping top entry (which is always bootstrap code
-      # calling ch-image.main()) and last entry (this function).
+      # calling image.main()) and last entry (this function).
       tr = ", ".join("%s:%d:%s" % (os.path.basename(f.filename),
                                    f.lineno, f.name)
                      for f in reversed(traceback.extract_stack()[1:-1]))
@@ -534,7 +534,7 @@ def bytes_hash(data):
 
 def ch_run_modify(img, args, env, workdir="/", binds=[], ch_run_args=[],
                   fail_ok=False):
-   # Note: If you update these arguments, update the ch-image(1) man page too.
+   # Note: If you update these arguments, update the clearstack image(1) man page too.
    args = (  [CH_BIN + "/ch-run"]
            + ch_run_args
            + ["-w", "-u0", "-g0", "--no-passwd", "--cd", workdir, "--unsafe"]

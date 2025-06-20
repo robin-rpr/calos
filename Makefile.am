@@ -9,7 +9,7 @@ EXTRA_DIST = LICENSE README.rst VERSION autogen.sh clearstack.service
 # others are just sh.
 install-exec-hook:
 	@echo '### re-writing embedded paths ###'
-	for i in $(DESTDIR)@bindir@/ch-convert \
+	for i in $(DESTDIR)@bindir@/convert \
 	         $(DESTDIR)@bindir@/ch-fromhost \
 	         $(DESTDIR)@bindir@/ch-test \
 	         $(DESTDIR)@libdir@/charliecloud/base.sh \

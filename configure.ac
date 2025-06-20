@@ -96,10 +96,10 @@ AC_ARG_ENABLE([bundled-lark],
                  [use system Lark (not recommended; see docs!)]),
   [], [enable_bundled_lark=yes])
 
-AC_ARG_ENABLE([ch-image],
-  AS_HELP_STRING([--disable-ch-image],
-                 [ch-image unprivileged builder & image manager]),
-  [], [enable_ch_image=yes])
+AC_ARG_ENABLE([image],
+  AS_HELP_STRING([--disable-image],
+                 [unprivileged builder & image manager]),
+  [], [enable_image=yes])
 
 AC_ARG_ENABLE([html],
   AS_HELP_STRING([--disable-html], [HTML documentation]),
@@ -555,7 +555,7 @@ AS_IF([   test -n "$SQUASHFUSE" \
       [have_any_squashfuse=no])
 
 
-### ch-image #################################################################
+### image #################################################################
 
 # Python
 vmin_python=3.6  # NOTE: Keep in sync with lib/charliecloud.py
@@ -811,7 +811,7 @@ CH_CHECK_VERSION([WGET], [$vmin_wget], [--version | head -1 | cut -d' ' -f3])
 #
 # Below are all the variables we want available outside configure.
 
-AM_CONDITIONAL([ENABLE_CH_IMAGE], [test $enable_ch_image = yes])
+AM_CONDITIONAL([ENABLE_CH_IMAGE], [test $enable_image = yes])
 AM_CONDITIONAL([ENABLE_HTML], [test $enable_html = yes])
 AM_CONDITIONAL([ENABLE_LARK], [test $enable_bundled_lark = yes])
 AM_CONDITIONAL([ENABLE_MAN], [test $enable_man = yes])
@@ -850,39 +850,39 @@ AS_IF([   test $have_userns = yes],
 
 # image builders
 
-AS_IF([   test $enable_ch_image = yes \
+AS_IF([   test $enable_image = yes \
        && test -n "$PYTHON" \
        && test -n "$REQUESTS" \
        && test -n "$CYTHON" \
        && test $have_ch_run = yes],
-      [have_ch_image=yes],
-      [have_ch_image=no])
+      [have_image=yes],
+      [have_image=no])
 
-AS_IF([   test $have_ch_image = yes \
+AS_IF([   test $have_image = yes \
        && test -n "$GIT"],
-      [have_ch_image_bu=yes],
-      [have_ch_image_bu=no])
+      [have_image_bu=yes],
+      [have_image_bu=no])
 
-AS_IF([   test $have_ch_image = yes \
+AS_IF([   test $have_image = yes \
        && test -n "$RSYNC"],
-      [have_ch_image_rsync=yes],
-      [have_ch_image_rsync=no])
+      [have_image_rsync=yes],
+      [have_image_rsync=no])
 
 # managing container images
 
-AS_IF([   test $have_ch_image = yes],
+AS_IF([   test $have_image = yes],
       [have_any_builder=yes],
       [have_any_builder=no])
 
-AS_IF([   test $have_ch_image = yes],
+AS_IF([   test $have_image = yes],
       [have_dockerfile_build=yes],
       [have_dockerfile_build=no])
 
-AS_IF([   test $have_ch_image = yes],
+AS_IF([   test $have_image = yes],
       [have_builder_to_tar=yes],
       [have_builder_to_tar=no])
 
-AS_IF([   test $have_ch_image = yes \
+AS_IF([   test $have_image = yes \
        && test -n "$MKSQUASHFS"],
       [have_pack_squash=yes],
       [have_pack_squash=no])
@@ -898,7 +898,7 @@ AS_IF([   test -n "$NVIDIA_CLI" \
 
 AS_IF([   test $enable_test = yes \
        && test $have_ch_run = yes \
-       && test $have_ch_image = yes \
+       && test $have_image = yes \
        && test -n "$_BASH" \
        && test -n "$BATS" \
        && test -n "$WGET"],         # assume access to Docker Hub or mirror
@@ -976,7 +976,7 @@ Building Clearstack
 ~~~~~~~~~~~~~~~~~~~~~
 
   will build and install:
-    ch-image(1) ... ${enable_ch_image}
+    image(1) ... ${enable_image}
     HTML documentation ... ${enable_html}
     man pages ... ${enable_man}
     syslog ... ${enable_syslog}
@@ -1004,33 +1004,33 @@ Building Clearstack
 Building images
 ~~~~~~~~~~~~~~~
 
-  with ch-image(1): ${have_ch_image}
-    enabled ... ${enable_ch_image}
+  with image(1): ${have_image}
+    enabled ... ${enable_image}
     Python in shebang ≥ $vmin_python ... ${PYTHON_VERSION_NOTE}
     "lark" module ... ${lark_status}
     "requests" module ≥ $vmin_requests ... ${REQUESTS_VERSION_NOTE}
     ch-run(1) ... ${have_ch_run}
 
-  with ch-image(1) using build cache: ${have_ch_image_bu}
-    ch-image(1): ... ${have_ch_image}
+  with image(1) using build cache: ${have_image_bu}
+    image(1): ... ${have_image}
     Git ≥ $vmin_git ... ${GIT_VERSION_NOTE}
 
-  with ch-image(1) using RSYNC instruction: ${have_ch_image_rsync}
-    ch-image(1): ... ${have_ch_image}
+  with image(1) using RSYNC instruction: ${have_image_rsync}
+    image(1): ... ${have_image}
     rsync ≥ $vmin_rsync ... ${RSYNC_VERSION_NOTE}
 
 Managing container images
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
   build from Dockerfile: ${have_dockerfile_build}
-    ch-image(1) builder ... ${have_ch_image}
+    image(1) builder ... ${have_image}
     access to an image repository ... assumed yes
 
   pack images from builder storage to tarball: ${have_builder_to_tar}
-    ch-image(1) builder ... ${have_ch_image}
+    image(1) builder ... ${have_image}
 
   pack images from builder storage to SquashFS: ${have_pack_squash}
-    ch-image(1) builder ... ${have_ch_image}
+    image(1) builder ... ${have_image}
     mksquashfs(1) ≥ $vmin_mksquashfs ... ${MKSQUASHFS_VERSION_NOTE}
 
   Note: Pulling/pushing images from/to a repository is currently done using
@@ -1063,7 +1063,7 @@ Test suite
   basic tests, all stages: ${have_tests_basic}
     test suite enabled ... ${enable_test}
     ch-run(1) ... ${have_ch_run}
-    any builder above ... ${have_ch_image}
+    any builder above ... ${have_image}
     access to Docker Hub or mirror ... assumed yes
     Bats ≥ $vmin_bats ... ${BATS_VERSION_NOTE}
     Bash ≥ $vmin_bash ... ${_BASH_VERSION_NOTE}

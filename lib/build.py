@@ -1,4 +1,4 @@
-# Implementation of "ch-image build".
+# Implementation of "clearstack image build".
 
 import os
 import os.path

@@ -27,7 +27,7 @@ module load friendly-testing
 module load charliecloud
 
 # Unpack image.
-srun ch-convert -o dir "$tar" "$imgdir"
+srun clearstack convert -o dir "$tar" "$imgdir"
 
 # MPI version in container.
 printf 'container: '

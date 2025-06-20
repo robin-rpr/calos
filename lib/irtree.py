@@ -1023,7 +1023,7 @@ class From__G(Instruction):
       # FIXME: shouldn’t know or care whether build cache is enabled here.
       if (self.miss):
          if (unpack_no_git):
-            # Use case is mostly images built by old ch-image still in storage.
+            # Use case is mostly images built by old version still in storage.
             if (not isinstance(bu.cache, bu.Disabled_Cache)):
                ch.WARNING("base image only exists non-cached; adding to cache")
             (self.sid, self.git_hash) = bu.cache.adopt(self.base_image)

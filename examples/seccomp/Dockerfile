@@ -1,5 +1,5 @@
 # ch-test-scope: standard
-# ch-test-builder-include: ch-image
+# ch-test-builder-include: image
 FROM alpine:3.17
 RUN apk add gcc musl-dev strace
 RSYNC / /

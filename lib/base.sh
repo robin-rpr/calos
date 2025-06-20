@@ -119,7 +119,7 @@ quiet () {
 # Convert container registry path to filesystem compatible path.
 #
 # NOTE: This is used both to name user-visible stuff like tarballs as well as
-# dig around in the ch-image storage directory.
+# dig around in the image storage directory.
 tag_to_path () {
     echo "$1" | tr '/:' '%+'
 }

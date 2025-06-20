@@ -46,8 +46,8 @@ Requires:      python%{python3_pkgversion}-requests
 Provides:      bundled(python%{python3_pkgversion}-lark-parser) = 0.11.3
 
 %description builder
-This package provides ch-image, Clearstack's completely unprivileged container
-image manipulation tool.
+This package provides clearstack image, Clearstack's completely unprivileged
+container image manipulation tool.
 
 %package       doc
 Summary:       Clearstack html documentation
@@ -128,13 +128,13 @@ ln -s "${sphinxdir}/js"    %{buildroot}%{_pkgdocdir}/html/_static/js
 %files
 %license LICENSE
 %doc README.rst %{?el7:README.EL7}
-%{_bindir}/ch-checkns
-%{_bindir}/ch-convert
+%{_bindir}/checkns
+%{_bindir}/convert
 %{_bindir}/ch-fromhost
 %{_bindir}/ch-run
 %{_bindir}/ch-run-oci
-%{_mandir}/man1/ch-checkns.1*
-%{_mandir}/man1/ch-convert.1*
+%{_mandir}/man1/checkns.1*
+%{_mandir}/man1/convert.1*
 %{_mandir}/man1/ch-fromhost.1*
 %{_mandir}/man1/ch-run.1*
 %{_mandir}/man1/ch-run-oci.1*
@@ -145,8 +145,8 @@ ln -s "${sphinxdir}/js"    %{buildroot}%{_pkgdocdir}/html/_static/js
 %{_prefix}/lib/%{name}/version.txt
 
 %files builder
-%{_bindir}/ch-image
-%{_mandir}/man1/ch-image.1*
+%{_bindir}/image
+%{_mandir}/man1/image.1*
 %{_prefix}/lib/%{name}/build.py
 %{_prefix}/lib/%{name}/charliecloud.py
 %{_prefix}/lib/%{name}/fakeroot.py
@@ -173,7 +173,7 @@ ln -s "${sphinxdir}/js"    %{buildroot}%{_pkgdocdir}/html/_static/js
 %changelog
 * Mon Jan 24 2022 Jordan Ogas <jogas@lanl.gov 0.26-1
 - add printf patch for 32-bit
-- add ch-convert script
+- add convert script
 - new version 0.26
 
 * Wed Jan 19 2022 Fedora Release Engineering <releng@fedoraproject.org> - 0.25-2
@@ -247,7 +247,7 @@ ln -s "${sphinxdir}/js"    %{buildroot}%{_pkgdocdir}/html/_static/js
 - (Build)Require python3-lark-parser, python3-requests
 
 * Wed Feb 3 2021 <jogas@lanl.gov> - 0.21-2
-- Fix lib64.patch path for ch-image
+- Fix lib64.patch path for clearstack image
 
 * Tue Jan 05 2021 <loveshack@fedoraproject.org> <jogas@lanl.gov> - 0.21-1
 - New version

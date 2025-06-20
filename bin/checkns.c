@@ -54,13 +54,13 @@
 
 const char usage[] = "\
 \n\
-Usage: ch-checkns\n\
+Usage: clearstack checkns\n\
 \n\
 Check \"ch-run\" prerequisites, e.g., namespaces and \"pivot_root(2)\".\n\
 \n\
 Example:\n\
 \n\
-  $ ch-checkns\n\
+  $ clearstack checkns\n\
   ok\n";
 
 #define TRY(x) if (x) fatal_(__FILE__, __LINE__, errno, #x)
@@ -68,9 +68,8 @@ Example:\n\
 
 void fatal_(const char *file, int line, int errno_, const char *str)
 {
-   char *url = "https://github.com/hpc/charliecloud/blob/master/bin/ch-checkns.c";
    printf("error: %s: %d: %s\n", file, line, str);
-   printf("errno: %d\nsee: %s\n", errno_, url);
+   printf("errno: %d\n", errno_);
    exit(EXIT_MISC_ERR);
 }
 

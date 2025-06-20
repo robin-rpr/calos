@@ -117,8 +117,8 @@ GIT_CONFIG = {
    # Our Git repo is purely local, so it doesn’t really matter who owns the
    # commits. Set these in case the user hasn’t configured them and they can’t
    # be guessed. (Issue #1535.)
-   "user.email":             "charlie@localhost",
-   "user.name":              "Charlie",
+   "user.email":             "clearstack@localhost",
+   "user.name":              "Clearstack",
    # Always fail if Git doesn’t know who the user is, rather than guessing if
    # possible. Makes #1535 happen for everyone.
    "user.useConfigOnly":     "true",

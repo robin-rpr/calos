@@ -1,4 +1,4 @@
-# implementation of ch-image modify
+# implementation of clearstack image modify
 
 import enum
 import os
@@ -108,7 +108,7 @@ def main(cli_):
       # FIXME: metadata history stuff? See misc.import_.
       if (out_image.metadata["history"] == []):
          out_image.metadata["history"].append({ "empty_layer": False,
-                                                "command":     "ch-image import"})
+                                                "command":     "clearstack image import"})
       out_image.metadata_save()
       bu.cache.commit(out_image.unpack_path, fake_sid, "MODIFY interactive", [])
    else:
@@ -129,13 +129,13 @@ def main(cli_):
       irtree.parse_tree_traverse(tree, image_ct, cli)
 
 def modify_tree_make(src_img, cmds):
-   """Construct a parse tree corresponding to a set of “ch-image modify”
+   """Construct a parse tree corresponding to a set of “clearstack image modify”
       commands, as though the commands had been specified in a Dockerfile. Note
-      that because “ch-image modify” simply executes one or more commands inside
+      that because “clearstack image modify” simply executes one or more commands inside
       a container, the only Dockerfile instructions we need to consider are
       “FROM” and “RUN”. E.g. for the command line
 
-         $ ch-image modify -c 'echo foo' -c 'echo bar' -- foo foo2
+         $ clearstack image modify -c 'echo foo' -c 'echo bar' -- foo foo2
 
       this function produces the following parse tree
 
@@ -183,7 +183,7 @@ def modify_tree_make_script(src_img, path):
    """Temporary(?) analog of “modify_tree_make” for the non-interactive version
       of “modify” using a script. For the command line:
 
-         $ ch-image modify foo foo2 /path/to/script
+         $ clearstack image modify foo foo2 /path/to/script
 
       this function produces the following parse tree
 

@@ -1197,13 +1197,13 @@ class Storage:
       else:                         # can’t upgrade
          ch.FATAL("incompatible storage directory v%d: %s"
                   % (v_found, self.root),
-                  "you can delete and re-initialize with “ch-image reset”")
+                  "you can delete and re-initialize with “clearstack image reset”")
       self.validate_strict()
       self.cleanup()
 
    def lock(self):
       """Lock the storage directory. Clearstack does not at present support
-         concurrent use of ch-image(1) against the same storage directory."""
+         concurrent use of clearstack image(1) against the same storage directory."""
       # File locking on Linux is a disaster [1, 2]. Currently, we use POSIX
       # fcntl(2) locking, which has major pitfalls but should be fine for our
       # use case. It apparently works on NFS [3] and does not require
@@ -1220,7 +1220,7 @@ class Storage:
       except OSError as x:
          if (x.errno in { errno.EACCES, errno.EAGAIN }):
             ch.FATAL("storage directory is already in use",
-                     "concurrent instances of ch-image cannot share the same storage directory")
+                     "concurrent instances of one image cannot share the same storage directory")
          else:
             ch.FATAL("can’t lock storage directory: %s" % x.strerror)
 

@@ -50,7 +50,7 @@ def main():
    # subcommands for consistency with other commands.
    #
    # These are also accepted *after* the subcommand, as it makes wrapping
-   # ch-image easier and possibly improve the UX. There are multiple ways to
+   # image easier and possibly improve the UX. There are multiple ways to
    # do this, though no tidy ones unfortunately. Here, we build up a
    # dictionary of options we want, and pass it to both main and subcommand
    # parsers; this works because both go into the same Namespace object. There
@@ -62,7 +62,7 @@ def main():
    #   2. We suppress defaults in the subcommand [1]. Without this, the
    #      subcommand option value wins even it it’s the default. :P Currently,
    #      if specified in both places, the subcommand value wins and the
-   #      before value is not considered at all, e.g. "ch-image -vv foo -v"
+   #      before value is not considered at all, e.g. "clearstack image -vv foo -v"
    #      gives verbosity 1, not 3. This oddity seemed acceptable.
    #
    # Alternate approaches include:
@@ -331,7 +331,7 @@ def main():
                    help="destination image reference (default: IMAGE_REF)")
 
    # reset
-   sp = ap.add_parser("reset", "delete everything in ch-image builder storage")
+   sp = ap.add_parser("reset", "delete everything in image builder storage")
    add_opts(sp, misc.reset, deps_check=True, stog_init=False)
 
    # undelete

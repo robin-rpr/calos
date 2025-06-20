@@ -101,7 +101,7 @@ bash_vmin=4.3.0
 # Check Bash version
 bash_v=$(bash --version | head -1 | grep -Eo "[0-9\.]{2,}[0-9]")
 if [[ $(printf "%s\n%s\n" "$bash_vmin" "$bash_v" | sort -V | head -1) != "$bash_vmin" ]]; then
-    echo "ch-completion.bash: unsupported bash version ($bash_v < $bash_vmin)"
+    echo "completion.bash: unsupported bash version ($bash_v < $bash_vmin)"
     return 1
 fi
 
@@ -112,7 +112,7 @@ if [[ -z "$(declare -f -F _get_comp_words_by_ref)" ]]; then
     elif [[ -f /etc/bash_completion ]]; then
         . /etc/bash_completion
     else
-        echo "ch-completion.bash: dependency \"bash_completion\" not found, exiting"
+        echo "completion.bash: dependency \"bash_completion\" not found, exiting"
         return 1
     fi
 fi
@@ -121,30 +121,30 @@ fi
 _ch_completion_dir=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 _ch_completion_version="$("$_ch_completion_dir"/../misc/version)"
 
-_ch_completion_log="/tmp/ch-completion.log"
+_ch_completion_log="/tmp/completion.log"
 
 # Record file being sourced.
 if [[ -n "$CH_COMPLETION_DEBUG" ]]; then
-    printf "ch-completion.bash sourced\n\n" >> "$_ch_completion_log"
+    printf "completion.bash sourced\n\n" >> "$_ch_completion_log"
 fi
 
-_ch_completable_executables="ch-image ch-run ch-convert"
+_ch_completable_executables="image ch-run convert"
 
 
-## ch-convert ##
+## convert ##
 
 # Valid formats
-_convert_fmts="ch-image dir docker podman squash tar"
+_convert_fmts="image dir docker podman squash tar"
 
-# Options for ch-convert that accept args
+# Options for convert that accept args
 _convert_arg_opts="-i --in-fmt -o --out-fmt -s --storage --tmp"
 
-# All options for ch-convert
+# All options for convert
 _convert_opts="-h --help -n --dry-run --no-clobber --no-xattrs -v --verbose
                $_convert_arg_opts"
 
 
-# Completion function for ch-convert
+# Completion function for convert
 #
 _ch_convert_complete () {
     local prev
@@ -205,7 +205,7 @@ _ch_convert_complete () {
     if [[ ($opts_end == -1) ]]; then
         # Input image not yet specified, complete potential input images.
         case "$fmt_in" in
-        ch-image)
+        image)
             COMPREPLY+=( $(compgen -W "$(_ch_list_images "$strg_dir")" -- "$cur") )
             __ltrim_colon_completions "$cur"
             ;;
@@ -241,7 +241,7 @@ _ch_convert_complete () {
         # Input image has been specified and current word appears after it in
         # the command line. Assume we’re completing output image. If output
         # format COULD be dir, tar, or squash, complete valid directory paths.
-        if ! _is_subword "$fmt_out" "ch-image docker podman"; then
+        if ! _is_subword "$fmt_out" "image docker podman"; then
             compopt -o nospace
             COMPREPLY+=( $(compgen -d -S / -- "$cur") )
         fi
@@ -251,9 +251,9 @@ _ch_convert_complete () {
     return 0
 }
 
-## ch-image ##
+## image ##
 
-# Subcommands and options for ch-image
+# Subcommands and options for image
 #
 
 _image_build_opts="-b --bind --build-arg -f --file --force
@@ -273,9 +273,9 @@ _image_subcommands="build build-cache delete gestalt import
 # archs taken from ARCH_MAP in charliecloud.py
 _archs="amd64 arm/v5 arm/v6 arm/v7 arm64/v8 386 mips64le ppc64le s390x"
 
-# Completion function for ch-image
+# Completion function for image
 #
-_ch_image_complete () {
+_image_complete () {
     local prev
     local cur
     local cword
@@ -285,7 +285,7 @@ _ch_image_complete () {
     local extras=
     _get_comp_words_by_ref -n : cur prev words cword
 
-    sub_cmd=$(_ch_image_subcmd_get "$cword" "${words[@]}")
+    sub_cmd=$(_image_subcmd_get "$cword" "${words[@]}")
     # To find the storage directory, we want to look at all the words in the
     # current command line except for the current word (“${words[$cword]}”
     # here). We do this to prevent unexpected behavior resulting from the
@@ -545,7 +545,7 @@ _ch_run_complete () {
         # No image found in command line, complete dirs, tarfiles, and sqfs
         # archives
         COMPREPLY=( $(_compgen_filepaths -X "!*.sqfs" "$cur") )
-        # Complete images in storage. Note we don't use “ch-image list” here
+        # Complete images in storage. Note we don't use “clearstack image list” here
         # because it can initialize an empty storage directory and we don't want
         # this script to have any such side effects.
         COMPREPLY+=( $(compgen -W "$(_ch_list_images "$strg_dir")" -- "$cur") )
@@ -560,7 +560,7 @@ _ch_run_complete () {
 
 ## Helper functions ##
 
-_ch_completion_help="Usage: ch-completion [ OPTION ]
+_ch_completion_help="Usage: clearstack completion [ OPTION ]
 
 Utility function for Clearstack tab completion.
 
@@ -580,12 +580,12 @@ _DEBUG () {
 }
 
 # Utility function for Clearstack tab completion that’s available to users.
-ch-completion () {
+completion () {
     while true; do
         case $1 in
             --disable)
-                complete -r ch-convert
-                complete -r ch-image
+                complete -r convert
+                complete -r image
                 complete -r ch-run
                 ;;
             --help)
@@ -596,12 +596,12 @@ ch-completion () {
                 printf "%s\n" "$_ch_completion_version" 1>&2
                 ;;
             --version-ok)
-                if _version_ok_ch_completion "ch-image"; then
+                if _version_ok_ch_completion "image"; then
                     printf "version ok\n" 1>&2
                     return 0
                 else
-                    printf "ch-image:      %s\n" "$(ch-image --version)" 1>&2
-                    printf "ch-completion: %s\n" "$_ch_completion_version" 1>&2
+                    printf "image:      %s\n" "$(image --version)" 1>&2
+                    printf "completion: %s\n" "$_ch_completion_version" 1>&2
                     printf "version incompatible!\n" 1>&2
                     return 1
                 fi
@@ -626,7 +626,7 @@ _ch_completion_complete () {
     return 0
 }
 
-# Parser for ch-convert command line. Takes 6 arguments:
+# Parser for convert command line. Takes 6 arguments:
 #
 #   1.) A string representing the path to the storage directory.
 #
@@ -695,11 +695,11 @@ _ch_convert_parse () {
                 # to figure it out from available information.
                 if _is_subword "${words[$ct]}" "$images"; then
                     # Check for storage images first because this is what
-                    # ch-convert seems to default to in the case of a name
+                    # convert seems to default to in the case of a name
                     # collision between different image formats (e.g. if “foo”
                     # is an image in storage and “./foo/” is in the working
                     # directory).
-                    in_fmt="ch-image"
+                    in_fmt="image"
                 elif [[ -d "$word" ]]; then
                     in_fmt="dir"
                 elif [[ -f "$word" ]]; then
@@ -736,12 +736,12 @@ _ch_find_storage () {
 # It's worth noting that the double for loop doesn't take that much time, since
 # the Clearstack command line, even in the wost case, is relatively short.
 #
-# Usage: _ch_image_subcmd_get [words]
+# Usage: _image_subcmd_get [words]
 #
 # Example:
-#   >> _ch_image_subcmd_get "ch-image [...] build [...]"
+#   >> _image_subcmd_get "clearstack image [...] build [...]"
 #   build
-_ch_image_subcmd_get () {
+_image_subcmd_get () {
     local cword="$1"
     shift 1
     local subcmd
@@ -978,7 +978,7 @@ _version_ok_ch_completion () {
     fi
 }
 
-complete -F _ch_completion_complete ch-completion
-complete -F _ch_convert_complete ch-convert
-complete -F _ch_image_complete ch-image
+complete -F _ch_completion_complete completion
+complete -F _ch_convert_complete convert
+complete -F _image_complete image
 complete -F _ch_run_complete ch-run
