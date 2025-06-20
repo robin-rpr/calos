@@ -1,12 +1,15 @@
 # Derived files (no Autotools stuff).
 *.o
 a.out
+/bin/charlie
 /bin/ch-checkns
 /bin/ch-image
 /bin/ch-run
 /bin/ch-run-oci
+/bin/ch-daemon
 /bin/ch-image.c
 /bin/ch-run-oci.c
+/bin/ch-daemon.c
 /examples/copy/dirCa/symlink-to-dirCb
 /examples/copy/dirD/symlink-to-fileDa
 /examples/copy/dirEa/symlink-to-dirEb

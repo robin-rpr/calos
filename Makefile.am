@@ -1,6 +1,6 @@
 SUBDIRS = lib bin doc examples misc packaging test
 
-EXTRA_DIST = LICENSE README.rst VERSION autogen.sh
+EXTRA_DIST = LICENSE README.rst VERSION autogen.sh ch-daemon.service
 
 # Embedded paths are in the source code suitable for running from the source
 # directory (i.e., without install). When installing, those paths are often
@@ -22,3 +22,24 @@ install-exec-hook:
                 $$i; \
 	  fi \
 	done
+	@echo '### installing systemd service ###'
+	@if [ -z "$(DESTDIR)" ]; then \
+		sed 's|@bindir@|$(bindir)|g' ch-daemon.service > /tmp/ch-daemon.service.tmp; \
+		cp /tmp/ch-daemon.service.tmp /etc/systemd/system/ch-daemon.service; \
+		rm /tmp/ch-daemon.service.tmp; \
+		touch /var/log/ch-daemon.log; \
+		chmod 644 /var/log/ch-daemon.log; \
+		systemctl daemon-reload; \
+		systemctl enable ch-daemon.service; \
+		systemctl start ch-daemon.service; \
+	fi
+
+uninstall-hook:
+	@echo '### uninstalling systemd service ###'
+	@if [ -z "$(DESTDIR)" ]; then \
+		systemctl stop ch-daemon.service || true; \
+		systemctl disable ch-daemon.service || true; \
+		rm -f /etc/systemd/system/ch-daemon.service; \
+		systemctl daemon-reload; \
+		rm -f /var/log/ch-daemon.log; \
+	fi

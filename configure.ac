@@ -62,6 +62,7 @@ AM_MAINTAINER_MODE([disable])
 MKDIR_P=${MKDIR_P:-install -d -m 0755}
 
 AM_INIT_AUTOMAKE([1.13 -Wall -Werror foreign subdir-objects])
+AC_SUBST([libexecdir], ['${datadir}/${PACKAGE_NAME}'])
 
 AC_CONFIG_HEADERS([bin/config.h])
 AC_CONFIG_FILES([Makefile
