@@ -25,7 +25,7 @@ import warnings
 
 
 # List of dependency problems. This variable needs to be created before we
-# import any other Charliecloud stuff to avoid #806.
+# import any other Clearstack stuff to avoid #806.
 depfails = []  # 👻
 
 

@@ -51,7 +51,7 @@ fi
 export ch_docker_nosudo
 
 usage=$(cat <<EOF
-Run some or all of the Charliecloud test suite.
+Run some or all of the Clearstack test suite.
 
 Usage:
 
@@ -1032,7 +1032,7 @@ if [[ -z $CHTEST_INSTALLED ]]; then
     if [[ $ch_version != "$cf_version" ]]; then
         warning "inconsistent configure version: ${cf_version}"
     fi
-    # Charliecloud version. Prefer git; otherwise use simple version.
+    # Clearstack version. Prefer git; otherwise use simple version.
     src_version=$(   "${ch_base}/misc/version" 2> /dev/null \
                   || cat "${ch_base}/VERSION")
     if [[ $ch_version != "$src_version" ]]; then

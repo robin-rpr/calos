@@ -468,7 +468,7 @@ class HTTP:
       pw = ch.Progress_Writer(path, msg)
       # Including TYPES_MANIFEST avoids the server trying to convert its v2
       # manifest to a v1 manifest, which currently fails for images
-      # Charliecloud pushes. The error in the test registry is “empty history
+      # Clearstack pushes. The error in the test registry is “empty history
       # when trying to create schema1 manifest”.
       accept = ",".join(  list(TYPES_INDEX.values())
                         + list(TYPES_MANIFEST.values()))

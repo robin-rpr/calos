@@ -505,7 +505,7 @@ class Image:
    def unpack_init(self):
       """Initialize the unpack directory, which must exist. Any setup already
          present will be left unchanged. After this, self.unpack_path is a
-         valid Charliecloud image directory."""
+         valid Clearstack image directory."""
       # Metadata directory.
       (self.unpack_path // "ch").mkdir()
       (self.unpack_path // "ch/environment").file_ensure_exists()

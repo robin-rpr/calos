@@ -1,4 +1,4 @@
-# Completion script for Charliecloud
+# Completion script for Clearstack
 
 # SC2207 pops up whenever we do “COMPREPLY=( $(compgen [...]) )”. This seems to
 # be standard for implementations of bash completion, and we didn't like the
@@ -562,12 +562,12 @@ _ch_run_complete () {
 
 _ch_completion_help="Usage: ch-completion [ OPTION ]
 
-Utility function for Charliecloud tab completion.
+Utility function for Clearstack tab completion.
 
-    --disable     disable tab completion for all Charliecloud executables
+    --disable     disable tab completion for all Clearstack executables
     --help        show this help message
     --version     check tab completion script version
-    --version-ok  check version compatibility between tab completion and Charliecloud
+    --version-ok  check version compatibility between tab completion and Clearstack
                   executables
 "
 
@@ -579,7 +579,7 @@ _DEBUG () {
     fi
 }
 
-# Utility function for Charliecloud tab completion that’s available to users.
+# Utility function for Clearstack tab completion that’s available to users.
 ch-completion () {
     while true; do
         case $1 in
@@ -734,7 +734,7 @@ _ch_find_storage () {
 # Print the subcommand in an array of words; if there is not one, print an empty
 # string. This feels a bit kludge-y, but it's the best I could come up with.
 # It's worth noting that the double for loop doesn't take that much time, since
-# the Charliecloud command line, even in the wost case, is relatively short.
+# the Clearstack command line, even in the wost case, is relatively short.
 #
 # Usage: _ch_image_subcmd_get [words]
 #

@@ -91,7 +91,7 @@ class Path(os.PathLike):
            This is contrary to long-standing UNIX/POSIX, where extra slashes
            in a path are ignored, e.g. “/foo//bar” is equivalent to
            “/foo/bar”. os.path.join() behaves the same way. This behavior
-           caused quite a few Charliecloud bugs. IMO it’s too error-prone to
+           caused quite a few Clearstack bugs. IMO it’s too error-prone to
            manually manage whether paths are absolute or relative.
 
            Thus, the operator to join instances of this class is “//”, which
@@ -1127,7 +1127,7 @@ class Storage:
       """Return True if storage present and seems valid, even if old, False
          otherwise. This answers “is the storage directory real”, not “can
          this storage directory be used”; it should return True for more or
-         less any Charliecloud storage directory we might feasibly come
+         less any Clearstack storage directory we might feasibly come
          across, even if it can’t be upgraded."""
       return (os.path.isdir(self.unpack_base) and
               os.path.isdir(self.download_cache) and
@@ -1170,7 +1170,7 @@ class Storage:
          op = "upgrading"  # not used unless upgrading
          if (not self.valid_p):
             if (os.path.exists(self.root) and not self.root.listdir()):
-               hint = "let Charliecloud create %s; see FAQ" % self.root.name
+               hint = "let Clearstack create %s; see FAQ" % self.root.name
             else:
                hint = None
             ch.FATAL("storage directory seems invalid: %s" % self.root, hint)
@@ -1202,7 +1202,7 @@ class Storage:
       self.cleanup()
 
    def lock(self):
-      """Lock the storage directory. Charliecloud does not at present support
+      """Lock the storage directory. Clearstack does not at present support
          concurrent use of ch-image(1) against the same storage directory."""
       # File locking on Linux is a disaster [1, 2]. Currently, we use POSIX
       # fcntl(2) locking, which has major pitfalls but should be fine for our

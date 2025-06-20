@@ -2,7 +2,7 @@
 FROM centos:7
 
 # This image has two purposes: (1) demonstrate we can build a CentOS 7 image
-# and (2) provide a build environment for Charliecloud EPEL 7 RPMs.
+# and (2) provide a build environment for Clearstack EPEL 7 RPMs.
 
 # Install our dependencies, ensuring we fail out if any are missing.
 RUN yum install -y epel-release \

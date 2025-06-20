@@ -1,3 +1,72 @@
+Clearstack HQ Enterprise License
+Version 1.0, 2025
+
+Copyright (c) 2025 Clearstack HQ and its affiliates.
+All rights reserved.
+
+This software and associated documentation files (the "Software") 
+are proprietary and confidential information of Clearstack HQ. 
+The Software is licensed, not sold, to you subject to the terms 
+and conditions of this license agreement.
+
+By using, copying, modifying, or distributing the Software, you 
+agree to be bound by the terms of this license. If you do not 
+agree to these terms, do not use the Software.
+
+TERMS AND CONDITIONS:
+
+1. LICENSE GRANT
+   Subject to the terms of this license, Clearstack HQ grants 
+   you a limited, non-exclusive, non-transferable license to 
+   use the Software solely for your internal business purposes.
+
+2. RESTRICTIONS
+   You may not:
+   - Copy, modify, or create derivative works of the Software
+   - Reverse engineer, decompile, or disassemble the Software
+   - Distribute, sublicense, or transfer the Software to third parties
+   - Remove or alter any proprietary notices or labels on the Software
+   - Use the Software for any illegal or unauthorized purpose
+
+3. OWNERSHIP
+   The Software and all intellectual property rights therein 
+   are and shall remain the exclusive property of Clearstack HQ. 
+   This license does not transfer any ownership rights to you.
+
+4. CONFIDENTIALITY
+   The Software contains trade secrets and confidential information 
+   of Clearstack HQ. You agree to maintain the confidentiality 
+   of the Software and not disclose it to any third party.
+
+5. TERMINATION
+   This license is effective until terminated. Your rights under 
+   this license will terminate automatically if you fail to comply 
+   with any of its terms and conditions.
+
+6. DISCLAIMER OF WARRANTIES
+   THE SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, 
+   EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES 
+   OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND 
+   NON-INFRINGEMENT.
+
+7. LIMITATION OF LIABILITY
+   IN NO EVENT SHALL CLEARSTACK HQ BE LIABLE FOR ANY CLAIM, 
+   DAMAGES, OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, 
+   TORT, OR OTHERWISE, ARISING FROM, OUT OF, OR IN CONNECTION 
+   WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+8. GOVERNING LAW
+   This license shall be governed by and construed in accordance 
+   with the laws of the jurisdiction in which Clearstack HQ is 
+   incorporated, without regard to its conflict of law provisions.
+
+For licensing inquiries, contact: legal@clearstackhq.com
+
+===
+
+The following Apache License 2.0 applies only to code originating from the 
+Charliecloud project (https://gitlab.com/charliecloud/main), which has been 
+incorporated into this software:
 
                                  Apache License
                            Version 2.0, January 2004

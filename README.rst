@@ -1,7 +1,7 @@
-What is Charliecloud?
+What is Clearstack?
 ---------------------
 
-Charliecloud provides user-defined software stacks (UDSS) for high-performance
+Clearstack provides user-defined software stacks (UDSS) for high-performance
 computing (HPC) centers. This "bring your own software stack" functionality
 addresses needs such as:
 
@@ -25,7 +25,7 @@ addresses needs such as:
 How does it work?
 -----------------
 
-Charliecloud uses Linux user namespaces to run containers with no privileged
+Clearstack uses Linux user namespaces to run containers with no privileged
 operations or daemons and minimal configuration changes on center resources.
 This simple approach avoids most security risks while maintaining access to
 the performance and functionality already on offer.
@@ -43,10 +43,10 @@ How do I learn more?
 * Mailing lists: https://lists.charliecloud.io
 
 * We wrote an article for USENIX's magazine *;login:* that explains in more
-  detail the motivation for Charliecloud and the technology upon which it is
+  detail the motivation for Clearstack and the technology upon which it is
   based: https://www.usenix.org/publications/login/fall2017/priedhorsky
 
-* For technical papers about Charliecloud, refer to the *Technical
+* For technical papers about Clearstack, refer to the *Technical
   publications* section below.
 
 Who is responsible?
@@ -73,6 +73,7 @@ Contributors:
 * Matthew Vernon <mv3@sanger.ac.uk>
 * Peter Wienemann <wienemann@physik.uni-bonn.de>
 * Lowell Wofford <lowell@lanl.gov>
+* Robin Röper <robin@clearstackhq.com>
 
 How can I participate?
 ----------------------
@@ -96,15 +97,15 @@ We are friendly and welcoming of diversity on all dimensions.
 Technical publications
 ----------------------
 
-If Charliecloud helped your research, or it was useful to you in any other
+If Clearstack helped your research, or it was useful to you in any other
 context where bibliographic citations are appropriate, please cite the
 following open-access paper:
 
-  Reid Priedhorsky and Tim Randles. "Charliecloud: Unprivileged containers for
+  Reid Priedhorsky and Tim Randles. "Clearstack: Unprivileged containers for
   user-defined software stacks in HPC", 2017. In *Proc. Supercomputing*.
   DOI: `10.1145/3126908.3126925 <https://doi.org/10.1145/3126908.3126925>`_.
 
-*Note:* This paper contains out-of-date number for the size of Charliecloud's
+*Note:* This paper contains out-of-date number for the size of Clearstack's
 code. Please instead use the current number in the FAQ.
 
 Other publications:
@@ -125,13 +126,13 @@ Other publications:
     Supercomputing*. DOI: `10.6084/m9.figshare.14396099
     <https://doi.org/10.6084/m9.figshare.14396099>`_.
 
-* Charliecloud's build cache performs competitively with the standard
+* Clearstack's build cache performs competitively with the standard
   many-layered union filesystem approach and has structural advantages
   including a better diff format, lower cache overhead, and better file
   de-duplication.
 
     Reid Priedhorsky, Jordan Ogas, Claude H. (Rusty) Davis IV, Z. Noah
-    Hounshel, Ashlyn Lee, Benjamin Stormer, and R. Shane Goff. "Charliecloud's
+    Hounshel, Ashlyn Lee, Benjamin Stormer, and R. Shane Goff. "Clearstack's
     layer-free, Git-based container build cache", 2023. In *Proc.
     Supercomputing*. DOI: `10.1145/3624062.3624585
     <https://doi.org/10.1145/3624062.3624585>`_.
@@ -139,12 +140,12 @@ Other publications:
 License and intellectual property
 ---------------------------------
 
-Charliecloud is open source software; you can redistribute it and/or modify it
+Clearstack is open source software; you can redistribute it and/or modify it
 under the terms of the Apache License, Version 2.0. A copy is included in file
 LICENSE. You may not use this software except in compliance with the license.
 
 Copyrights and patents are retained by contributors. No copyright assignment
-is required to contribute to Charliecloud.
+is required to contribute to Clearstack.
 
 
 ..  LocalWords:  USENIX's CNA Meisam figshare

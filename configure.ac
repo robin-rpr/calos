@@ -5,13 +5,13 @@
 #    See: https://www.gnu.org/software/autoconf/manual/autoconf-2.69/html_node/Quadrigraphs.html
 #
 # 2. Booleans. The convention for Autoconf variables, which we follow, is
-#    “yes” for true and “no” for false. This differs from the Charliecloud
+#    “yes” for true and “no” for false. This differs from the Clearstack
 #    convention of non-empty for true and empty for false.
 
 
 ### Prologue #################################################################
 
-AC_INIT([Charliecloud], [m4_esyscmd_s([misc/version])],
+AC_INIT([Clearstack], [m4_esyscmd_s([misc/version])],
         [https://github.com/hpc/charliecloud])
 AC_PREREQ([2.69])
 AC_CONFIG_SRCDIR([bin/ch-run.c])
@@ -964,7 +964,7 @@ Below is a summary of configure's findings.
 Caveats
 ~~~~~~~
 
-Charliecloud's run-time dependencies are lazy; features just try to use their
+Clearstack's run-time dependencies are lazy; features just try to use their
 dependencies and error if there's a problem. This report summarizes what
 configure found on *this system*, because that's often useful, but none of the
 run-time findings change what is built and installed.
@@ -972,7 +972,7 @@ run-time findings change what is built and installed.
 Listed versions are minimums. These are a bit fuzzy. Try it even if configure
 thinks a version is too old, and please report back to us.
 
-Building Charliecloud
+Building Clearstack
 ~~~~~~~~~~~~~~~~~~~~~
 
   will build and install:

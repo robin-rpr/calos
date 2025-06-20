@@ -21,7 +21,7 @@ if [[ -z $imgdir ]]; then
 fi
 printf 'image:     %s\n' "$img"
 
-# Make Charliecloud available (varies by site).
+# Make Clearstack available (varies by site).
 module purge
 module load friendly-testing
 module load charliecloud

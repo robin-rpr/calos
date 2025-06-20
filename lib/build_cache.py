@@ -4,7 +4,7 @@
 # various configuration files [1] as well as environment variables [2]. We do
 # our best to use a fully-isolated Git that brings along no external
 # configuration the user or system may have, by excluding configuration files
-# other than Charliecloud’s and clearing the environment.
+# other than Clearstack’s and clearing the environment.
 #
 # Another gotcha that is not (yet?) documented is $PATH. git(1) re-executes
 # itself in the same way that it was invoked; e.g., if you invoke it with

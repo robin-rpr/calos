@@ -1,7 +1,7 @@
 /* Copyright © Triad National Security, LLC, and others.
 
    This interface contains miscellaneous utility features. It is separate so
-   that peripheral Charliecloud C programs don't have to link in the extra
+   that peripheral Clearstack C programs don't have to link in the extra
    libraries that ch_core requires. */
 
 #define _GNU_SOURCE

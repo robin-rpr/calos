@@ -27,7 +27,7 @@ img=${img}/spark
 dev=$3
 conf=${HOME}/slurm-${SLURM_JOB_ID}.spark
 
-# Make Charliecloud available (varies by site)
+# Make Clearstack available (varies by site)
 module purge
 module load friendly-testing
 module load charliecloud

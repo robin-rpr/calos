@@ -62,7 +62,7 @@ class Image_Pusher:
       # FIXME: tidy blank/empty fields?
       return { "architecture": ch.arch_host_get(),
                "charliecloud_version": version.VERSION,
-               "comment": "pushed with Charliecloud",
+               "comment": "pushed with Clearstack",
                "config": {},
                "container_config": {},
                "created": ch.now_utc_iso8601(),
@@ -139,7 +139,7 @@ class Image_Pusher:
       # This type of error checking is odd as the empty_layer key is optional
       # (https://github.com/opencontainers/image-spec/blob/main/config.md).
       #
-      # Thus, to push images built (or pulled) with Charliecloud we ensure the
+      # Thus, to push images built (or pulled) with Clearstack we ensure the
       # the total number of non-empty layers always totals one (1). To do this
       # we iterate over the history entires backward searching for the first
       # non-empty entry and preserve it; all others are set to empty.

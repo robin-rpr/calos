@@ -1,4 +1,4 @@
-# Charliecloud fedora package spec file
+# Clearstack fedora package spec file
 #
 # Contributors:
 #    Dave Love           @loveshack
@@ -21,7 +21,7 @@ Requires:      squashfuse squashfs-tools
 Patch1:        el7-pkgdir.patch
 
 %description
-Charliecloud uses Linux user namespaces to run containers with no privileged
+Clearstack uses Linux user namespaces to run containers with no privileged
 operations or daemons and minimal configuration changes on center resources.
 This simple approach avoids most security risks while maintaining access to
 the performance and functionality already on offer.
@@ -32,7 +32,7 @@ a standard Linux filesystem tree.
 For more information: https://hpc.github.io/charliecloud
 
 %package builder
-Summary:       Charliecloud container image building tools
+Summary:       Clearstack container image building tools
 License:       ASL 2.0 and MIT
 BuildArch:     noarch
 BuildRequires: python3-devel
@@ -45,11 +45,11 @@ Requires:      python%{python3_pkgversion}-requests
 Provides:      bundled(python%{python3_pkgversion}-lark-parser) = 1.1.9
 
 %description builder
-This package provides ch-image, Charliecloud's completely unprivileged container
+This package provides ch-image, Clearstack's completely unprivileged container
 image manipulation tool.
 
 %package       doc
-Summary:       Charliecloud html documentation
+Summary:       Clearstack html documentation
 License:       BSD and ASL 2.0
 BuildArch:     noarch
 Obsoletes:     %{name}-doc < %{version}-%{release}
@@ -61,7 +61,7 @@ Requires:      python%{python3_pkgversion}-sphinx_rtd_theme
 Html and man page documentation for %{name}.
 
 %package   test
-Summary:   Charliecloud test suite
+Summary:   Clearstack test suite
 License:   ASL 2.0
 Requires:  %{name} %{name}-builder /usr/bin/bats
 Obsoletes: %{name}-test < %{version}-%{release}

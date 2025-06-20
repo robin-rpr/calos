@@ -6,10 +6,10 @@ setup () {
 }
 
 @test "${ch_tag}/hello" {
-    run ch-run "$ch_img" -- hello -g 'Hello, Charliecloud!'
+    run ch-run "$ch_img" -- hello -g 'Hello, Clearstack!'
     echo "$output"
     [[ $status -eq 0 ]]
-    [[ $output = 'Hello, Charliecloud!' ]]
+    [[ $output = 'Hello, Clearstack!' ]]
 }
 
 @test "${ch_tag}/man hello" {
