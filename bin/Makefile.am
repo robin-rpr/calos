@@ -10,11 +10,11 @@ libexec_PROGRAMS = ch-checkns ch-run
 charlie_SOURCES = charlie.c
 charlie_CFLAGS = -DLIBEXECDIR="\"$(libexecdir)\""
 
-ch_checkns_SOURCES = ch-checkns.c ch_misc.h ch_misc.c
+ch_checkns_SOURCES = ch-checkns.c misc.h misc.c
 
-ch_run_SOURCES = ch-run.c ch_core.h ch_core.c ch_misc.h ch_misc.c
+ch_run_SOURCES = ch-run.c core.h core.c misc.h misc.c
 if HAVE_LIBSQUASHFUSE
-ch_run_SOURCES += ch_fuse.h ch_fuse.c
+ch_run_SOURCES += fuse.h fuse.c
 endif
 
 # additional build flags for ch-run

@@ -2,7 +2,7 @@
 
    This interface contains miscellaneous utility features. It is separate so
    that peripheral Clearstack C programs don't have to link in the extra
-   libraries that ch_core requires. */
+   libraries that core requires. */
 
 #define _GNU_SOURCE
 #include <dirent.h>

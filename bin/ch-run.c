@@ -13,8 +13,8 @@
 #include <unistd.h>
 
 #include "config.h"
-#include "ch_core.h"
-#include "ch_misc.h"
+#include "core.h"
+#include "misc.h"
 
 
 /** Constants and macros **/
@@ -147,7 +147,7 @@ int main(int argc, char *argv[])
           argv_to_string(argv));
 #endif
 
-   verbose = LL_INFO;  // in ch_misc.c
+   verbose = LL_INFO;  // in misc.c
    args = (struct args){
       .c = (struct container){ .binds = list_new(sizeof(struct bind), 0),
                                .container_gid = getegid(),

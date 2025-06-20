@@ -18,7 +18,7 @@
 #include <unistd.h>
 
 #include "config.h"
-#include "ch_misc.h"
+#include "misc.h"
 
 
 /** Macros **/

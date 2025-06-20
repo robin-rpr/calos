@@ -42,7 +42,7 @@ class Build_Mode(enum.Enum):
    DISABLED = "disabled"
    REBUILD = "rebuild"
 
-# ch-run exit codes (see also: bin/ch_misc.h)
+# ch-run exit codes (see also: bin/misc.h)
 class Ch_Run_Retcode(enum.Enum):
    EXIT_MISC_ERR = 31
    EXIT_CMD = 49
