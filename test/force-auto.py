@@ -1,4 +1,4 @@
-#!%PYTHON_SHEBANG%
+#!/usr/bin/env python3
 
 # This script generates a BATS file to exercise “ch-image build --force”
 # across a variety of distributions. It’s used by Makefile.am.

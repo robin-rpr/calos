@@ -104,17 +104,17 @@ uninstall-hook:
 endif
 EXTRA_DIST = $(testfiles) \
              $(testfiles_exec) \
-             docs-sane.py.in \
-             doctest.py.in \
-             force-auto.py.in \
-	     make-perms-test.py.in \
-             order-py.py.in
+             docs-sane.py \
+             doctest.py \
+             force-auto.py \
+	     make-perms-test.py \
+             order-py.py
 EXTRA_SCRIPTS = $(sobuilts)
 
 ## Python scripts - need text processing
-docs-sane doctest force-auto make-perms-test order-py: %: %.py.in
+docs-sane doctest force-auto make-perms-test order-py: %: %.py
 	rm -f $@
-	sed -E 's|%PYTHON_SHEBANG%|@PYTHON_SHEBANG@|' < $< > $@
+	cp $< $@
 	chmod +rx,-w $@  # respects umask
 
 sotest/sotest: sotest/sotest.c sotest/libsotest.so.1.0 sotest/libsotest.so sotest/libsotest.so.1

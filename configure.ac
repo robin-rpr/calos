@@ -158,13 +158,6 @@ AS_CASE([$with_libsquashfuse],
      lib_libsquashfuse=$with_libsquashfuse/lib
      inc_libsquashfuse=$with_libsquashfuse/include])
 
-AC_ARG_WITH([python],
-  AS_HELP_STRING(
-    [--with-python=SHEBANG],
-    [Python shebang to use for scripts (default: "/usr/bin/env python3")]),
-  [PYTHON_SHEBANG="$withval"],
-  [PYTHON_SHEBANG='/usr/bin/env python3'])
-
 # Can’t deduce shebang from Gentoo “sphinx-python”; allow override. See #629.
 AC_ARG_WITH([sphinx-python],
   AS_HELP_STRING(
@@ -238,7 +231,11 @@ AC_DEFUN([CH_CHECK_VERSION], [
 AC_PROG_CC
 
 # Set up CFLAGS.
-ch_cflags='-std=c99 -Wall'
+PYTHON_CFLAGS=`python3-config --includes`
+PYTHON_VER=`python3 -V 2>&1 | cut -d' ' -f2 | cut -d. -f1,2`
+PYTHON_LDFLAGS=`python3-config --ldflags`
+PYTHON_LIB="-lpython$PYTHON_VER"
+ch_cflags="-std=c99 -Wall $PYTHON_CFLAGS"
 AS_IF([test -n "$lib_libsquashfuse"],
       [ch_cflags="$ch_cflags -I$inc_libsquashfuse -L$lib_libsquashfuse"
        # Without this, clang fails with “error: argument unused during
@@ -249,6 +246,7 @@ AS_IF([test $use_werror = yes],
 
 AX_CHECK_COMPILE_FLAG([$ch_cflags], [
   CFLAGS="$CFLAGS $ch_cflags"
+  LDFLAGS="$LDFLAGS $PYTHON_LDFLAGS $PYTHON_LIB"
 ], [
   AC_MSG_ERROR([no suitable C99 compiler found])
 ])
@@ -560,12 +558,6 @@ AS_IF([   test -n "$SQUASHFUSE" \
 
 # Python
 vmin_python=3.6  # NOTE: Keep in sync with lib/charliecloud.py
-AC_MSG_CHECKING([if "$PYTHON_SHEBANG" starts with slash])
-AS_CASE([$PYTHON_SHEBANG],
-  [/*], [AC_MSG_RESULT([ok])],
-  [*],  [AC_MSG_RESULT([no])
-         AC_MSG_ERROR([--with-python: must start with slash])])
-python="${PYTHON_SHEBANG#/usr/bin/env }"                # use shell to find it
 AS_CASE([$python],
   [/*], [PYTHON="$python"],                              # absolute
   [*],  [AC_CHECK_PROG([PYTHON], [$python], [$python])]  # verify it's in $PATH
@@ -577,7 +569,7 @@ CH_CHECK_VERSION([PYTHON], [$vmin_python],
 vmin_requests=2.6.0  # CentOS 7; FIXME: haven’t actually tested this
 AS_IF([test -n "$PYTHON"], [
   AC_MSG_CHECKING([for requests module])
-  cat <<EOF | $PYTHON_SHEBANG
+  cat <<EOF | #!/usr/bin/env python3
 import sys
 try:
    import requests
@@ -591,6 +583,32 @@ EOF
   CH_CHECK_VERSION([REQUESTS], [$vmin_requests],
     [-c 'import requests; print(requests.__version__)'])
 ])
+
+# Python module “cython”
+vmin_cython=3.1.0  # FIXME: haven't actually tested this
+AS_IF([test -n "$PYTHON"], [
+  AC_MSG_CHECKING([for Cython module])
+  cat <<EOF | $PYTHON
+import sys
+try:
+   import cython
+except Exception:
+   sys.exit(1)
+EOF
+  AS_IF([test $? -eq 0],
+    [CYTHON=$PYTHON; have_cython=yes],
+    [CYTHON=;         have_cython=no])
+  AC_MSG_RESULT($have_cython)
+  CH_CHECK_VERSION([CYTHON], [$vmin_cython],
+    [-c 'import cython; print(Cython.__version__)'])
+])
+
+# Check for C compiler (needed for Cython compilation)
+AC_MSG_CHECKING([for C compiler for Cython])
+AS_IF([test -n "$CC"],
+  [AC_MSG_RESULT([yes ($CC)])],
+  [AC_MSG_RESULT([no])
+   AC_MSG_ERROR([C compiler required for Cython compilation])])
 
 # Check for bundled Lark; we do not verify or report version. Note this
 # assumes that $PWD is the top of the source tree. I don’t believe anything
@@ -801,8 +819,8 @@ AS_IF([test $enable_syslog = yes],
 AM_CONDITIONAL([ENABLE_TEST], [test $enable_test = yes])
 
 AC_SUBST([CH_RUN_LIBS])
-AC_SUBST([PYTHON_SHEBANG])
 AC_SUBST([SPHINX])
+AC_SUBST([CYTHON_VERSION])
 
 AS_IF([test $have_overlayfs = yes],
       [AC_DEFINE([HAVE_OVERLAYFS], [1], [unprivileged overlayfs])])
@@ -833,8 +851,8 @@ AS_IF([   test $have_userns = yes],
 
 AS_IF([   test $enable_ch_image = yes \
        && test -n "$PYTHON" \
-       && test -n "$PYTHON_SHEBANG" \
        && test -n "$REQUESTS" \
+       && test -n "$CYTHON" \
        && test $have_ch_run = yes],
       [have_ch_image=yes],
       [have_ch_image=no])
@@ -987,7 +1005,6 @@ Building images
 
   with ch-image(1): ${have_ch_image}
     enabled ... ${enable_ch_image}
-    Python shebang line ... ${PYTHON_SHEBANG:-none}
     Python in shebang ≥ $vmin_python ... ${PYTHON_VERSION_NOTE}
     "lark" module ... ${lark_status}
     "requests" module ≥ $vmin_requests ... ${REQUESTS_VERSION_NOTE}

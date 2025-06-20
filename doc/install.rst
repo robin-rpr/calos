@@ -51,7 +51,8 @@ common distributions should be sufficient.
 
   * Automake
   * Autoconf
-  * Python’s :code:`pip3` package installer and its :code:`wheel` extension
+  * Python’s :code:`pip3` package installer and its :code:`wheel` extension,
+    and the :code:`Cython` which requires the :code:`python3-devel` package.
 
 Create :code:`configure` with::
 
@@ -418,7 +419,9 @@ Python
 ~~~~~~
 
 We use Python for scripts that would be really hard to do in Bash, when we
-think Python is likely to be available.
+think Python is likely to be available. Python code is compiled to C using
+Cython for improved performance and source protection. This requires Python
+3.6 or later and the Cython module.
 
 ShellCheck
 ~~~~~~~~~~

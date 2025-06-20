@@ -25,20 +25,24 @@ dist_bin_SCRIPTS = ch-convert \
                    ch-test
 
 
-## Python scripts - need text processing
+# Build Python scripts as C extensions using Cython
+bin_PROGRAMS += ch-image ch-run-oci
 
-bin_SCRIPTS = ch-run-oci  # scripts to build
-EXTRA_SCRIPTS = ch-image  # more scripts that *may* be built
-if ENABLE_CH_IMAGE
-bin_SCRIPTS += ch-image
-endif
-EXTRA_DIST = ch-image.py.in ch-run-oci.py.in
-CLEANFILES = $(bin_SCRIPTS) $(EXTRA_SCRIPTS)
+ch_image_SOURCES = ch-image.c
+ch_run_oci_SOURCES = ch-run-oci.c
+ch_run_oci_CFLAGS = -Wno-unused-function
 
-ch-image: ch-image.py.in
-ch-run-oci: ch-run-oci.py.in
-
-$(bin_SCRIPTS): %: %.py.in
+# Cython compilation rules
+ch-image.c: ch-image.py
 	rm -f $@
-	sed -E 's|%PYTHON_SHEBANG%|@PYTHON_SHEBANG@|' < $< > $@
+	cython ch-image.py --embed -3 -o ch-image.c --module-name ch_image
 	chmod +rx,-w $@  # respects umask
+
+ch-run-oci.c: ch-run-oci.py
+	rm -f $@
+	cython ch-run-oci.py --embed -3 -o ch-run-oci.c --module-name ch_run_oci
+	chmod +rx,-w $@  # respects umask
+
+# Link with Python libraries
+ch_image_LDADD = $(PYTHON_LIB)
+ch_run_oci_LDADD = $(PYTHON_LIB)

@@ -2,7 +2,7 @@ What is Charliecloud?
 ---------------------
 
 Charliecloud provides user-defined software stacks (UDSS) for high-performance
-computing (HPC) centers. This “bring your own software stack” functionality
+computing (HPC) centers. This "bring your own software stack" functionality
 addresses needs such as:
 
 * software dependencies that are numerous, complex, unusual, differently
@@ -79,9 +79,9 @@ How can I participate?
 
 Use our GitLab page: https://gitlab.com/charliecloud
 
-Bug reports and feature requests should be filed as “Issues”. Questions,
-comments, support requests, and everything else should use our “Discussions”.
-Don't worry if you put something in the wrong place; we’ll be more than happy
+Bug reports and feature requests should be filed as "Issues". Questions,
+comments, support requests, and everything else should use our "Discussions".
+Don't worry if you put something in the wrong place; we'll be more than happy
 to help regardless.
 
 We also have mailing lists for users and developers:
@@ -100,11 +100,11 @@ If Charliecloud helped your research, or it was useful to you in any other
 context where bibliographic citations are appropriate, please cite the
 following open-access paper:
 
-  Reid Priedhorsky and Tim Randles. “Charliecloud: Unprivileged containers for
-  user-defined software stacks in HPC”, 2017. In *Proc. Supercomputing*.
-  DOI: `10.1145/3126908.3126925 <https://doi.org/10.1145/3126908.3126925>`_.
+  Reid Priedhorsky and Tim Randles. "Charliecloud: Unprivileged containers for
+  user-defined software stacks in HPC", 2017. In *Proc. Supercomputing*.
+  DOI: `10.1145/3126908.3126925 <https://doi.org/10.1145/3126908.3126925>`_.
 
-*Note:* This paper contains out-of-date number for the size of Charliecloud’s
+*Note:* This paper contains out-of-date number for the size of Charliecloud's
 code. Please instead use the current number in the FAQ.
 
 Other publications:
@@ -112,8 +112,8 @@ Other publications:
 * We compare the performance of three HPC-specific container technologies
   against bare metal, finding no concerns about performance degradation.
 
-    Alfred Torrez, Tim Randles, and Reid Priedhorsky. “HPC container runtimes
-    have minimal or no performance impact”, 2019. In *Proc. CANOPIE HPC
+    Alfred Torrez, Tim Randles, and Reid Priedhorsky. "HPC container runtimes
+    have minimal or no performance impact", 2019. In *Proc. CANOPIE HPC
     Workshop @ SC*. DOI: `10.1109/CANOPIE-HPC49598.2019.00010
     <https://ieeexplore.ieee.org/document/8950978>`_.
 
@@ -121,17 +121,17 @@ Other publications:
   software flexibility.
 
     Reid Priedhorsky, R. Shane Canon, Timothy Randles, and Andrew J. Younge.
-    “Minimizing privilege for building HPC containers”, 2021. In *Proc.
+    "Minimizing privilege for building HPC containers", 2021. In *Proc.
     Supercomputing*. DOI: `10.6084/m9.figshare.14396099
     <https://doi.org/10.6084/m9.figshare.14396099>`_.
 
-* Charliecloud’s build cache performs competitively with the standard
+* Charliecloud's build cache performs competitively with the standard
   many-layered union filesystem approach and has structural advantages
   including a better diff format, lower cache overhead, and better file
   de-duplication.
 
     Reid Priedhorsky, Jordan Ogas, Claude H. (Rusty) Davis IV, Z. Noah
-    Hounshel, Ashlyn Lee, Benjamin Stormer, and R. Shane Goff. "Charliecloud’s
+    Hounshel, Ashlyn Lee, Benjamin Stormer, and R. Shane Goff. "Charliecloud's
     layer-free, Git-based container build cache", 2023. In *Proc.
     Supercomputing*. DOI: `10.1145/3624062.3624585
     <https://doi.org/10.1145/3624062.3624585>`_.

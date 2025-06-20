@@ -1,4 +1,4 @@
-#!%PYTHON_SHEBANG%
+#!/usr/bin/env python3
 
 # This script sets up a test directory for testing filesystem permissions
 # enforcement in UDSS such as virtual machines and containers. It must be run

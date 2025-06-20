@@ -11,8 +11,6 @@ install-exec-hook:
 	@echo '### re-writing embedded paths ###'
 	for i in $(DESTDIR)@bindir@/ch-convert \
 	         $(DESTDIR)@bindir@/ch-fromhost \
-	         $(DESTDIR)@bindir@/ch-image \
-	         $(DESTDIR)@bindir@/ch-run-oci \
 	         $(DESTDIR)@bindir@/ch-test \
 	         $(DESTDIR)@libdir@/charliecloud/base.sh \
 	         $(DESTDIR)@libexecdir@/charliecloud/doctest; \
