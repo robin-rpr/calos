@@ -1,6 +1,6 @@
 SUBDIRS = lib bin doc examples misc packaging test
 
-EXTRA_DIST = LICENSE README.rst VERSION autogen.sh ch-daemon.service
+EXTRA_DIST = LICENSE README.rst VERSION autogen.sh clearstack.service
 
 # Embedded paths are in the source code suitable for running from the source
 # directory (i.e., without install). When installing, those paths are often
@@ -24,22 +24,22 @@ install-exec-hook:
 	done
 	@echo '### installing systemd service ###'
 	@if [ -z "$(DESTDIR)" ]; then \
-		sed 's|@bindir@|$(bindir)|g' ch-daemon.service > /tmp/ch-daemon.service.tmp; \
-		cp /tmp/ch-daemon.service.tmp /etc/systemd/system/ch-daemon.service; \
-		rm /tmp/ch-daemon.service.tmp; \
+		sed 's|@bindir@|$(bindir)|g' clearstack.service > /tmp/clearstack.service.tmp; \
+		cp /tmp/clearstack.service.tmp /etc/systemd/system/clearstack.service; \
+		rm /tmp/clearstack.service.tmp; \
 		touch /var/log/ch-daemon.log; \
 		chmod 644 /var/log/ch-daemon.log; \
 		systemctl daemon-reload; \
-		systemctl enable ch-daemon.service; \
-		systemctl start ch-daemon.service; \
+		systemctl enable clearstack.service; \
+		systemctl start clearstack.service; \
 	fi
 
 uninstall-hook:
 	@echo '### uninstalling systemd service ###'
 	@if [ -z "$(DESTDIR)" ]; then \
-		systemctl stop ch-daemon.service || true; \
-		systemctl disable ch-daemon.service || true; \
-		rm -f /etc/systemd/system/ch-daemon.service; \
+		systemctl stop clearstack.service || true; \
+		systemctl disable clearstack.service || true; \
+		rm -f /etc/systemd/system/clearstack.service; \
 		systemctl daemon-reload; \
 		rm -f /var/log/ch-daemon.log; \
 	fi

@@ -1,6 +1,6 @@
 [Unit]
-Description=Charliecloud Daemon
-Documentation=https://github.com/hpc/charliecloud
+Description=Clearstack Daemon
+Documentation=https://clearstackhq.com/docs
 After=network.target
 Wants=network.target
 
@@ -8,7 +8,7 @@ Wants=network.target
 Type=simple
 User=root
 Group=root
-ExecStart=@bindir@/ch-daemon.py --host 0.0.0.0 --port 8080 --max-workers 10
+ExecStart=@bindir@/charlie daemon --host 0.0.0.0 --port 8080 --max-workers 10
 ExecReload=/bin/kill -HUP $MAINPID
 KillMode=mixed
 KillSignal=SIGTERM
@@ -17,14 +17,14 @@ Restart=on-failure
 RestartSec=5
 StandardOutput=journal
 StandardError=journal
-SyslogIdentifier=ch-daemon
+SyslogIdentifier=clearstack
 
 # Security settings
 NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=true
-ReadWritePaths=/tmp/ch-daemon /var/log/ch-daemon.log
+ReadWritePaths=/tmp/clearstack /var/log/clearstack.log
 ProtectKernelTunables=true
 ProtectKernelModules=true
 ProtectControlGroups=true

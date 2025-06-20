@@ -3,8 +3,8 @@
 a.out
 /bin/charlie
 /bin/ch-checkns
-/bin/ch-image
 /bin/ch-run
+/bin/ch-image
 /bin/ch-run-oci
 /bin/ch-daemon
 /bin/ch-image.c

@@ -33,6 +33,7 @@ libexec_PROGRAMS += ch-image ch-daemon ch-run-oci
 
 ch_image_SOURCES = ch-image.c
 ch_run_oci_SOURCES = ch-run-oci.c
+ch_daemon_SOURCES = ch-daemon.c
 ch_run_oci_CFLAGS = -Wno-unused-function
 
 # Cython compilation rules
@@ -54,3 +55,6 @@ ch-daemon.c: ch-daemon.py
 # Link with Python libraries
 ch_image_LDADD = $(PYTHON_LIB)
 ch_run_oci_LDADD = $(PYTHON_LIB)
+ch_daemon_LDADD = $(PYTHON_LIB)
+
+CLEANFILES = ch-image.c ch-daemon.c ch-run-oci.c
