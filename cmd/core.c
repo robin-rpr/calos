@@ -135,7 +135,7 @@ int SECCOMP_ARCHS[] = { AUDIT_ARCH_AARCH64,   // arm64
    must be somewhat less than 256. I haven’t computed the exact limit. There
    will be an assertion failure at runtime if this is exceeded.
 
-   WARNING: Keep this list consistent with the clearstack image(1) man page!
+   WARNING: Keep this list consistent with the clearly image(1) man page!
 
    [1]: https://chromium.googlesource.com/chromiumos/docs/+/HEAD/constants/syscalls.md#Cross_arch-Numbers
    [2]: https://github.com/strace/strace/blob/v4.26/linux/powerpc64/syscallent.h
@@ -458,8 +458,8 @@ void join_begin(const char *join_tag)
 {
    int fd;
 
-   join.sem_name = cat("/ch-run_sem-", join_tag);
-   join.shm_name = cat("/ch-run_shm-", join_tag);
+   join.sem_name = cat("/run_sem-", join_tag);
+   join.shm_name = cat("/run_shm-", join_tag);
 
    // Serialize.
    join.sem = sem_open(join.sem_name, O_CREAT, 0600, 1);
@@ -802,7 +802,7 @@ void setup_passwd(const struct container *c)
    struct passwd *p;
 
    // /etc/passwd
-   T_ (path = cat(host_tmp, "/ch-run_passwd.XXXXXX"));
+   T_ (path = cat(host_tmp, "/run_passwd.XXXXXX"));
    T_ (-1 != (fd = mkstemp(path)));  // mkstemp(3) writes path
    if (c->container_uid != 0)
       T_ (1 <= dprintf(fd, "root:x:0:0:root:/root:/bin/sh\n"));
@@ -818,7 +818,7 @@ void setup_passwd(const struct container *c)
          Tf (0, "getpwuid(3) failed");
       } else {
          VERBOSE("UID %d not found; using dummy info", c->container_uid);
-         T_ (1 <= dprintf(fd, "%s:x:%u:%u:%s:/:/bin/sh\n", "clearstack",
+         T_ (1 <= dprintf(fd, "%s:x:%u:%u:%s:/:/bin/sh\n", "clearly",
                           c->container_uid, c->container_gid, "Clearstack"));
       }
    }
@@ -827,7 +827,7 @@ void setup_passwd(const struct container *c)
    Z_ (unlink(path));
 
    // /etc/group
-   T_ (path = cat(host_tmp, "/ch-run_group.XXXXXX"));
+   T_ (path = cat(host_tmp, "/run_group.XXXXXX"));
    T_ (-1 != (fd = mkstemp(path)));
    if (c->container_gid != 0)
       T_ (1 <= dprintf(fd, "root:x:0:\n"));

@@ -44,7 +44,7 @@ check_process_ct () {
 @test "${ch_tag}/pingpong (guest launch)" {
     openmpi_or_skip
     # shellcheck disable=SC2086
-    run ch-run $ch_unslurm "$ch_img" -- \
+    run clearly run $ch_unslurm "$ch_img" -- \
                "$ch_mpi_exe" $ch_mpirun_np "$imb_mpi1" $imb_args PingPong
     echo "$output"
     [[ $status -eq 0 ]]
@@ -57,7 +57,7 @@ check_process_ct () {
 @test "${ch_tag}/sendrecv (guest launch)" {
     openmpi_or_skip
     # shellcheck disable=SC2086
-    run ch-run $ch_unslurm "$ch_img" -- \
+    run clearly run $ch_unslurm "$ch_img" -- \
                "$ch_mpi_exe" $ch_mpirun_np "$imb_mpi1" $imb_args Sendrecv
     echo "$output"
     [[ $status -eq 0 ]]
@@ -70,7 +70,7 @@ check_process_ct () {
 @test "${ch_tag}/allreduce (guest launch)" {
     openmpi_or_skip
     # shellcheck disable=SC2086
-    run ch-run $ch_unslurm "$ch_img" -- \
+    run clearly run $ch_unslurm "$ch_img" -- \
                "$ch_mpi_exe" $ch_mpirun_np "$imb_mpi1" $imb_args Allreduce
     echo "$output"
     [[ $status -eq 0 ]]
@@ -81,7 +81,7 @@ check_process_ct () {
 
 @test "${ch_tag}/inject cray mpi ($cray_prov)" {
     cray_ofi_or_skip "$ch_img"
-    run ch-run "$ch_img" -- fi_info
+    run clearly run "$ch_img" -- fi_info
     echo "$output"
     [[ $output == *"provider: $cray_prov"* ]]
     [[ $output == *"fabric: $cray_prov"* ]]
@@ -104,13 +104,13 @@ check_process_ct () {
         pedantic_fail "no high speed network detected"
     fi
     # shellcheck disable=SC2086
-    hsn_enabled_bw=$($ch_mpirun_2_2node ch-run \
+    hsn_enabled_bw=$($ch_mpirun_2_2node clearly run \
                        "$ch_img" -- "$imb_mpi1" $imb_perf_args Sendrecv \
                      | tail -n +35 | sort -nrk6 | head -1 | awk '{print $6}')
     # Configure network transport plugins to TCP only.
     # shellcheck disable=SC2086
     hsn_disabled_bw=$(OMPI_MCA_pml=ob1 OMPI_MCA_btl=tcp,self \
-                      $ch_mpirun_2_2node ch-run "$ch_img" -- \
+                      $ch_mpirun_2_2node clearly run "$ch_img" -- \
                       "$imb_mpi1" $imb_perf_args Sendrecv | tail -n +35 \
                       | sort -nrk6 | head -1 | awk '{print $6}')
     echo "Max bandwidth with high speed network: $hsn_enabled_bw MB/s"
@@ -121,7 +121,7 @@ check_process_ct () {
 @test "${ch_tag}/pingpong (host launch)" {
     multiprocess_ok
     # shellcheck disable=SC2086
-    run $ch_mpirun_core ch-run --join "$ch_img" -- \
+    run $ch_mpirun_core clearly run --join "$ch_img" -- \
                                "$imb_mpi1" $imb_args PingPong
     echo "$output"
     [[ $status -eq 0 ]]
@@ -133,7 +133,7 @@ check_process_ct () {
 @test "${ch_tag}/sendrecv (host launch)" {
     multiprocess_ok
     # shellcheck disable=SC2086
-    run $ch_mpirun_core ch-run --join "$ch_img" -- \
+    run $ch_mpirun_core clearly run --join "$ch_img" -- \
                                "$imb_mpi1" $imb_args Sendrecv
     echo "$output"
     [[ $status -eq 0 ]]
@@ -145,7 +145,7 @@ check_process_ct () {
 @test "${ch_tag}/allreduce (host launch)" {
     multiprocess_ok
     # shellcheck disable=SC2086
-    run $ch_mpirun_core ch-run --join "$ch_img" -- \
+    run $ch_mpirun_core clearly run --join "$ch_img" -- \
                                "$imb_mpi1" $imb_args Allreduce
     echo "$output"
     [[ $status -eq 0 ]]

@@ -34,7 +34,7 @@ warning () {
 
 ### Setup
 
-ch_lib=$(cd "$(dirname "$0")" && pwd)/../lib
+ch_lib=$(cd "$(dirname "$0")" && pwd)/../../lib
 if [[ ! -f ${ch_lib}/base.sh ]]; then
     fatal "install or build problem: not found: ${ch_lib}/base.sh"
 fi
@@ -235,7 +235,7 @@ pack_fmt_set () {
     else
         have_mksquashfs=
     fi
-    if [[ $(ldd "${ch_bin}/ch-run") = *"libsquashfuse"* ]]; then
+    if [[ $(ldd "${ch_bin}/run") = *"libsquashfuse"* ]]; then
         have_libsquashfuse=yes
     else
         have_libsquashfuse=
@@ -272,7 +272,7 @@ pack_fmt_set () {
                 fatal "format invalid: ${CH_TEST_PACK_FMT}: no mksquashfs"
             fi
             if [[ -z $have_libsquashfuse ]]; then
-                fatal "format invalid: ${CH_TEST_PACK_FMT}: ch-run not linked with libsquashfuse"
+                fatal "format invalid: ${CH_TEST_PACK_FMT}: run not linked with libsquashfuse"
             fi
             ;;
         tar-unpack)
@@ -692,7 +692,7 @@ test_run () {
                 export GUEST_USER=$guest_user
                 export GUEST_GROUP=$guest_group
                 echo "testing as $GUEST_USER $GUEST_GROUP"
-                bats run/ch-run_uidgid.bats
+                bats run/run_uidgid.bats
             done
         done
     fi
@@ -725,13 +725,13 @@ win () {
 USER=$(id -un)
 export USER
 
-# Ensure ch-run has been compiled (issue #329).
-if ! "${ch_bin}/ch-run" --version > /dev/null 2>&1; then
-    fatal "no working ch-run found in $ch_bin"
+# Ensure run has been compiled (issue #329).
+if ! "${ch_bin}/run" --version > /dev/null 2>&1; then
+    fatal "no working run found in $ch_bin"
 fi
 
 # Some tests have specific libc requirements.
-case $(readelf -p .interp "${ch_bin}/ch-run") in
+case $(readelf -p .interp "${ch_bin}/run") in
     *musl*)            # e.g. /lib/ld-musl-x86_64.so.1
         export ch_libc=musl
         ;;
@@ -951,7 +951,7 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-printf 'ch-run:       %s (%s)\n' "${ch_bin}/ch-run" "$ch_libc"
+printf 'run:       %s (%s)\n' "${ch_bin}/run" "$ch_libc"
 printf 'bats:         %s (%s)\n' "$bats" "$bats_version"
 if [[    $(printf "%s\n%s" "$bats_version" "$bats_vmin" | sort -V | head -1) \
       != "$bats_vmin" ]]; then
@@ -1023,9 +1023,9 @@ fi
 
 # Check that different sources of version number are consistent.
 printf 'ch-test version: %s\n' "$ch_version"
-ch_run_version=$("${ch_bin}/ch-run" --version 2>&1)
-if [[ $ch_version != "$ch_run_version" ]]; then
-    warning "inconsistent ch-run version: ${ch_run_version}"
+run_version=$("${ch_bin}/run" --version 2>&1)
+if [[ $ch_version != "$run_version" ]]; then
+    warning "inconsistent run version: ${run_version}"
 fi
 if [[ -z $CHTEST_INSTALLED ]]; then
     cf_version=$("${ch_base}/configure" --version | head -1 | cut -d' ' -f3)
@@ -1077,7 +1077,7 @@ fi
 # Ensure namespaces are configured properly.
 printf 'checking namespaces ...\n'
 if ! "${ch_bin}/checkns"; then
-    fatal 'namespace sanity check (clearstack checkns) failed'
+    fatal 'namespace sanity check (clearly checkns) failed'
 fi
 printf '\n'
 

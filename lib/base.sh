@@ -5,7 +5,7 @@ ch_bin="$(cd "$(dirname "$0")" && pwd)"
 # shellcheck disable=SC2034
 ch_base=${ch_bin%/*}
 
-ch_lib=${ch_bin}/../lib
+ch_lib=${ch_bin}/../../lib
 . "${ch_lib}/version.sh"
 
 

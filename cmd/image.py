@@ -7,7 +7,7 @@ import inspect
 import os.path
 import sys
 
-ch_lib = os.path.dirname(os.path.abspath(__file__)) + "/../lib"
+ch_lib = os.path.dirname(os.path.abspath(__file__)) + "/../../lib"
 sys.path.insert(0, ch_lib)
 import charliecloud as ch
 import build
@@ -22,11 +22,11 @@ import push
 
 ## Constants ##
 
-# FIXME: It’s currently easy to get the ch-run path from another script, but
+# FIXME: It’s currently easy to get the run path from another script, but
 # hard from something in lib. So, we set it here for now.
 ch.CH_BIN = os.path.dirname(os.path.abspath(
                  inspect.getframeinfo(inspect.currentframe()).filename))
-ch.CH_RUN = ch.CH_BIN + "/ch-run"
+ch.CH_RUN = ch.CH_BIN + "/run"
 
 
 ## Main ##
@@ -62,7 +62,7 @@ def main():
    #   2. We suppress defaults in the subcommand [1]. Without this, the
    #      subcommand option value wins even it it’s the default. :P Currently,
    #      if specified in both places, the subcommand value wins and the
-   #      before value is not considered at all, e.g. "clearstack image -vv foo -v"
+   #      before value is not considered at all, e.g. "clearly image -vv foo -v"
    #      gives verbosity 1, not 3. This oddity seemed acceptable.
    #
    # Alternate approaches include:

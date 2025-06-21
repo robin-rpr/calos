@@ -67,7 +67,7 @@ set -x
 rm -Rf Makefile.in \
        ./*/Makefile.in \
        aclocal.m4 \
-       bin/config.h.in \
+       cmd/config.h.in \
        build-aux \
        configure
 # Remove Lark if requested or the installed version does not match.

@@ -1263,8 +1263,8 @@ class Run(Instruction):
    def execute(self):
       rootfs = self.image.unpack_path
       cmd = forcer.run_modified(self.cmd, self.env_build)
-      exit_code = ch.ch_run_modify(rootfs, cmd, self.env_build, self.workdir,
-                                   cli.bind, forcer.ch_run_args, fail_ok=True)
+      exit_code = ch.run_modify(rootfs, cmd, self.env_build, self.workdir,
+                                   cli.bind, forcer.run_args, fail_ok=True)
       if (exit_code != 0):
          ch.FATAL("build failed: RUN command exited with %d" % exit_code)
 

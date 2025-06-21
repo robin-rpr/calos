@@ -45,7 +45,7 @@ Requires:      python%{python3_pkgversion}-requests
 Provides:      bundled(python%{python3_pkgversion}-lark-parser) = 1.1.9
 
 %description builder
-This package provides clearstack image, Clearstack's completely unprivileged container
+This package provides clearly image, Clearstack's completely unprivileged container
 image manipulation tool.
 
 %package       doc
@@ -128,13 +128,13 @@ ln -s "${sphinxdir}/js"    %{buildroot}%{_pkgdocdir}/html/_static/js
 %{_bindir}/checkns
 %{_bindir}/convert
 %{_bindir}/ch-fromhost
-%{_bindir}/ch-run
-%{_bindir}/ch-run-oci
+%{_bindir}/run
+%{_bindir}/run-oci
 %{_mandir}/man1/checkns.1*
 %{_mandir}/man1/convert.1*
 %{_mandir}/man1/ch-fromhost.1*
-%{_mandir}/man1/ch-run.1*
-%{_mandir}/man1/ch-run-oci.1*
+%{_mandir}/man1/run.1*
+%{_mandir}/man1/run-oci.1*
 %{_mandir}/man7/charliecloud.7*
 %{_mandir}/man7/completion.bash.7*
 %{_prefix}/lib/%{name}/base.sh

@@ -39,7 +39,7 @@ Run a command in a Clearstack container.\n\
 \v\
 Example:\n\
 \n\
-  $ ch-run /data/foo -- echo hello\n\
+  $ clearly run /data/foo -- echo hello\n\
   hello\n\
 \n\
 You cannot use this program to actually change your UID.\n";
@@ -56,7 +56,7 @@ const struct argp_option options[] = {
    { "feature",       -11, "FEAT", 0, "exit successfully if FEAT is enabled" },
    { "gid",           'g', "GID",  0, "run as GID within container" },
    { "home",          -12, 0,      0, "mount host $HOME at guest /home/$USER" },
-   { "join",          'j', 0,      0, "use same container as peer ch-run" },
+   { "join",          'j', 0,      0, "use same container as peer clearly run" },
    { "join-pid",       -5, "PID",  0, "join a namespace using a PID" },
    { "join-ct",        -3, "N",    0, "number of join peers (implies --join)" },
    { "join-tag",       -4, "TAG",  0, "label for peer group (implies --join)" },
@@ -186,7 +186,7 @@ int main(int argc, char *argv[])
       Z_ (unsetenv("ARGP_HELP_FMT"));
 
    if (arg_next >= argc - 1) {
-      printf("usage: ch-run [OPTION...] IMAGE -- COMMAND [ARG...]\n");
+      printf("usage: clearly run [OPTION...] IMAGE -- COMMAND [ARG...]\n");
       FATAL(0, "IMAGE and/or COMMAND not specified");
    }
    args.c.img_ref = argv[arg_next++];
@@ -208,7 +208,7 @@ int main(int argc, char *argv[])
       break;
    case IMG_SQUASH:
 #ifndef HAVE_LIBSQUASHFUSE
-      FATAL(0, "this ch-run does not support internal SquashFS mounts");
+      FATAL(0, "this run does not support internal SquashFS mounts");
 #endif
       break;
    case IMG_NONE:

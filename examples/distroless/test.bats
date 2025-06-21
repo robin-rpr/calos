@@ -7,7 +7,7 @@ setup () {
 }
 
 @test "${ch_tag}/hello" {
-    run ch-run "$ch_img" -- /hello.py
+    run clearly run "$ch_img" -- /hello.py
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = 'Hello, World!' ]]

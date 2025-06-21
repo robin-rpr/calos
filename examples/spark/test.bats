@@ -84,7 +84,7 @@ EOF
     # remove old master logs so new one has predictable name
     rm -Rf --one-file-system "$spark_log"
     # start the master
-    ch-run -b "$confbind" "$ch_img" -- /opt/spark/sbin/start-master.sh
+    clearly run -b "$confbind" "$ch_img" -- /opt/spark/sbin/start-master.sh
     sleep 15
     # shellcheck disable=SC2086
     cat $master_log
@@ -92,7 +92,7 @@ EOF
     grep -Fq 'New state: ALIVE' $master_log
     # start the workers
     # shellcheck disable=SC2086
-    $pernode ch-run -b "$confbind" "$ch_img" -- \
+    $pernode clearly run -b "$confbind" "$ch_img" -- \
                     /opt/spark/sbin/start-worker.sh "$master_url"
     sleep 15
 }
@@ -114,7 +114,7 @@ EOF
 
 
 @test "${ch_tag}/pi" {
-    run ch-run -b "$confbind" "$ch_img" -- \
+    run clearly run -b "$confbind" "$ch_img" -- \
                /opt/spark/bin/spark-submit --master "$master_url" \
                /opt/spark/examples/src/main/python/pi.py 64
     echo "$output"
@@ -126,8 +126,8 @@ EOF
 
 
 @test "${ch_tag}/stop" {
-    $pernode ch-run -b "$confbind" "$ch_img" -- /opt/spark/sbin/stop-worker.sh
-    ch-run -b "$confbind" "$ch_img" -- /opt/spark/sbin/stop-master.sh
+    $pernode clearly run -b "$confbind" "$ch_img" -- /opt/spark/sbin/stop-worker.sh
+    clearly run -b "$confbind" "$ch_img" -- /opt/spark/sbin/stop-master.sh
     sleep 2
     # Any Spark processes left?
     # (Use egrep instead of fgrep so we don’t match the grep process.)

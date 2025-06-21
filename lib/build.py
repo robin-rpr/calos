@@ -1,4 +1,4 @@
-# Implementation of "clearstack image build".
+# Implementation of "clearly image build".
 
 import os
 import os.path
@@ -118,9 +118,9 @@ def cli_process_common(cli):
       for (cmd, args) in cli.force_cmd.items():
          ch.VERBOSE("force command: %s" % ch.argv_to_string([cmd] + args))
    if (    cli.force == ch.Force_Mode.SECCOMP
-       and ch.cmd([ch.CH_BIN + "/ch-run", "--feature=seccomp"],
+       and ch.cmd([ch.CH_BIN + "/run", "--feature=seccomp"],
                   fail_ok=True) != 0):
-      ch.FATAL("ch-run was not built with seccomp(2) support")
+      ch.FATAL("run was not built with seccomp(2) support")
 
    # Deal with build arguments.
    def build_arg_get(arg):

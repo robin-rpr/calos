@@ -53,6 +53,7 @@ common distributions should be sufficient.
   * Autoconf
   * Python’s :code:`pip3` package installer and its :code:`wheel` extension,
     and the :code:`Cython` which requires the :code:`python3-devel` package.
+  * Bats, which is used for testing.
 
 Create :code:`configure` with::
 

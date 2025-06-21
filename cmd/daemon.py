@@ -23,7 +23,7 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('/var/log/clearstack.log'),
+        logging.FileHandler('/var/log/clearly.log'),
         logging.StreamHandler()
     ]
 )
@@ -35,7 +35,7 @@ class ContainerManager:
     def __init__(self):
         self.containers = {}  # container_id -> container_info
         self.lock = threading.Lock()
-        self.temp_dir = "/tmp/clearstack"
+        self.temp_dir = "/tmp/clearly"
         os.makedirs(self.temp_dir, exist_ok=True)
     
     def start_container(self, container_id, image_path, command=None, env_vars=None):
@@ -50,7 +50,7 @@ class ContainerManager:
                 os.makedirs(container_dir, exist_ok=True)
                 
                 # Prepare command
-                cmd = ["clearstack", "run", image_path]
+                cmd = ["clearly", "run", image_path]
                 
                 if env_vars:
                     for key, value in env_vars.items():

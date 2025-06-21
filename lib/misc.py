@@ -100,7 +100,7 @@ def import_(cli):
    if (not os.path.exists(cli.path)):
       ch.FATAL("can’t copy: not found: %s" % cli.path)
    if (ch.xattrs_save):
-      ch.WARNING("--xattrs unsupported by “ch-image import” (see FAQ)")
+      ch.WARNING("--xattrs unsupported by “clearly image import” (see FAQ)")
    pathstr = im.Reference.ref_to_pathstr(cli.image_ref)
    if (cli.bucache == ch.Build_Mode.ENABLED):
       # Un-tag previously deleted branch, if it exists.
@@ -116,7 +116,7 @@ def import_(cli):
    bu.cache.adopt(dst)
    if (dst.metadata["history"] == []):
       dst.metadata["history"].append({ "empty_layer": False,
-                                       "command":     "clearstack image import"})
+                                       "command":     "clearly image import"})
    dst.metadata_save()
    ch.done_notify()
 

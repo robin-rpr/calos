@@ -2,7 +2,7 @@
 # comprehensiveness of Dockerfile feature support.
 #
 # FIXME: That focus is a bit out of date. I think really what is here is the
-# ways we want to exercise `clearstack image` in ways we care about the resulting image.
+# ways we want to exercise `clearly image` in ways we care about the resulting image.
 # Exercises where we don’t care are in test/build/50_dockerfile.bats. But, I
 # don't want to do the refactoring right now.
 #
@@ -26,7 +26,7 @@ RUN ["echo", "hello \n${chse_2} \${chse_2} ${NOTSET}"]
 RUN echo 'a -${chse_2}-' "b -${chse_2}-" "c -${NOTSET:-c}-" "d -${chse_2:+d}-"
 RUN env
 
-# WORKDIR. See test/build/50_ch-image.bats where we validate this all worked OK.
+# WORKDIR. See test/build/50_image.bats where we validate this all worked OK.
 # FIXME: test with variable
 #
 # filesystem root

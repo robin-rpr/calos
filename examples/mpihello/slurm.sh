@@ -27,11 +27,11 @@ module load friendly-testing
 module load charliecloud
 
 # Unpack image.
-srun clearstack convert -o dir "$tar" "$imgdir"
+srun clearly convert -o dir "$tar" "$imgdir"
 
 # MPI version in container.
 printf 'container: '
-ch-run "$img" -- mpirun --version | grep -E '^mpirun'
+clearly run "$img" -- mpirun --version | grep -E '^mpirun'
 
 # Run the app.
-srun --cpus-per-task=1 ch-run "$img" -- /hello/hello
+srun --cpus-per-task=1 clearly run "$img" -- /hello/hello

@@ -30,7 +30,7 @@ def main(cli):
       print(src_ref.as_verbose_str)
       ch.exit(0)
    if (ch.xattrs_save):
-      ch.WARNING("--xattrs unsupported for “clearstack image pull” (see FAQ)")
+      ch.WARNING("--xattrs unsupported for “clearly image pull” (see FAQ)")
    dst_img = im.Image(dst_ref)
    ch.INFO("pulling image:    %s" % src_ref)
    if (src_ref != dst_ref):
@@ -241,7 +241,7 @@ class Image_Puller:
             digest = k.get('digest')
       if (digest is None):
          ch.FATAL("arch not found for image: %s" % arch,
-                  'try "clearstack image list IMAGE_REF"')
+                  'try "clearly image list IMAGE_REF"')
       return digest
 
    def manifest_load(self, have_skinny=False):

@@ -25,7 +25,7 @@ rel2
 file
 EOF
 )
-    run ch-run "$ch_img" -- ls -R /workdir
+    run clearly run "$ch_img" -- ls -R /workdir
     echo "$output"
     [[ $status -eq 0 ]]
     diff -u <(echo "$output_expected") <(echo "$output")

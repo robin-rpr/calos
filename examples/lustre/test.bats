@@ -28,7 +28,7 @@ clean_dir () {
 }
 
 tidy_run () {
-    ch-run -b "$binds" "$ch_img" -- "$@"
+    clearly run -b "$binds" "$ch_img" -- "$@"
 }
 
 binds=${CH_TEST_LUSTREDIR}:/mnt/0

@@ -51,7 +51,7 @@ FAKEROOT_DEFAULT_CONFIGS = {
    #                Item 2: Command to do the init step.
    #
    #                I.e., to perform each fakeroot initialization step,
-   #                clearstack image does roughly:
+   #                clearly image does roughly:
    #
    #                  if ( ! $CMD_1 ); then
    #                      $CMD_2
@@ -142,7 +142,7 @@ FAKEROOT_DEFAULT_CONFIGS = {
    #    * grep the same file for each distro: No standardized file for this.
    #      [FIXME: This may be wrong; see issue #1292.]
    #
-   #    * Ask lsb_release(1): Not always installed, requires executing ch-run.
+   #    * Ask lsb_release(1): Not always installed, requires executing run.
 
    # Fedora notes:
    #
@@ -329,8 +329,8 @@ class Base:
       self.run_modified_ct = 0
 
    @property
-   def ch_run_args(self):
-      "Extra arguments for ch-run."
+   def run_args(self):
+      "Extra arguments for run."
       return []
 
    def run_modified(self, args, env):
@@ -381,14 +381,14 @@ class Fakeroot(Base):
          ch.INFO("--force=fakeroot: init step %s: checking: $ %s"
                  % (i, test_cmd))
          args = ["/bin/sh", "-c", test_cmd]
-         exit_code = ch.ch_run_modify(img_path, args, env, fail_ok=True)
+         exit_code = ch.run_modify(img_path, args, env, fail_ok=True)
          if (exit_code == 0):
             ch.INFO("--force=fakeroot: init step %d: exit %d, step not needed"
                     % (i, exit_code))
          else:
             ch.INFO("--force=fakeroot: init step %d: $ %s" % (i, init_cmd))
             args = ["/bin/sh", "-c", init_cmd]
-            ch.ch_run_modify(img_path, args, env)
+            ch.run_modify(img_path, args, env)
 
    def needs_inject(self, args):
       """Return True if the command in args seems to need fakeroot injection,
@@ -424,8 +424,8 @@ class Seccomp(Base):
       self.force_cmds = force_cmds
 
    @property
-   def ch_run_args(self):
-      return super().ch_run_args + ["--seccomp"]
+   def run_args(self):
+      return super().run_args + ["--seccomp"]
 
    def run_modified_(self, args, env):
       args = args.copy()

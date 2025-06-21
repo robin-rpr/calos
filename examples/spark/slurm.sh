@@ -48,7 +48,7 @@ else
 fi
 
 # Unpack image
-srun clearstack convert -o dir "$tar" "$img"
+srun clearly convert -o dir "$tar" "$img"
 
 # Make Spark configuration
 mkdir "$conf"
@@ -69,13 +69,13 @@ EOF
 chmod 600 "${conf}/spark-defaults.sh"
 
 # Start the Spark master
-ch-run -b "$conf" "$img" -- /spark/sbin/start-master.sh
+clearly run -b "$conf" "$img" -- /spark/sbin/start-master.sh
 sleep 10
 tail -7 /tmp/spark/log/*master*.out
 grep -Fq 'New state: ALIVE' /tmp/spark/log/*master*.out
 
 # Start the Spark workers
-srun sh -c "   ch-run -b '${conf}' '${img}' -- \
+srun sh -c "   clearly run -b '${conf}' '${img}' -- \
                       /spark/sbin/start-slave.sh ${master_url} \
             && sleep infinity" &
 sleep 10
@@ -83,7 +83,7 @@ grep -F worker /tmp/spark/log/*master*.out
 tail -3 /tmp/spark/log/*worker*.out
 
 # Compute pi
-ch-run -b "$conf" "$img" -- \
+clearly run -b "$conf" "$img" -- \
        /spark/bin/spark-submit --master "$master_url" \
        /spark/examples/src/main/python/pi.py 1024
 # Let Slurm kill the workers and master

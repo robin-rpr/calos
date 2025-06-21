@@ -69,7 +69,7 @@ void msgv(enum log_level level, const char *file, int line, int errno_,
 /* Serialize the null-terminated vector of arguments argv and return the
    result as a newly allocated string. The purpose is to provide a
    human-readable reconstruction of a command line where each argument can
-   also be recovered byte-for-byte; see ch-run(1) for details. */
+   also be recovered byte-for-byte; see run(1) for details. */
 char *argv_to_string(char **argv)
 {
    char *s = NULL;

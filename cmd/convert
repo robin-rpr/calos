@@ -2,7 +2,7 @@
 
 ## preamble ##################################################################
 
-ch_lib=$(cd "$(dirname "$0")" && pwd)/../lib
+ch_lib=$(cd "$(dirname "$0")" && pwd)/../../lib
 . "${ch_lib}/base.sh"
 PATH=${ch_bin}:$PATH
 
@@ -25,7 +25,7 @@ image, podman, and docker. If none are installed, there is no inference.
 
 Example:
 
-  $ clearstack convert foo/bar:latest /var/tmp/foobar.sqfs
+  $ clearly convert foo/bar:latest /var/tmp/foobar.sqfs
   input:   image  foo/bar:latest
   output:  squashfs  /var/tmp/foobar.sqfs
   copying ...
@@ -86,9 +86,9 @@ cv_dir_chimage () {
     dir_in_validate "$1"
     chimage_out_validate "$2"
     INFO 'importing ...'
-    # “ch-image” recognizes “-q” as an argument, but we choose to quiet it with
+    # “clearly image” recognizes “-q” as an argument, but we choose to quiet it with
     # “quiet” instead here because doing so is simpler from the perspective of
-    # “ch-convert”.
+    # “clearly convert”.
     quiet image import "$1" "$2"  # FIXME: no progress meter
 }
 
@@ -560,7 +560,7 @@ tar_out_validate () {
 # Return the path to image $1 in image storage.
 chimage_path () {
     if [ -z "$cli_storage" ]; then
-        echo "$(clearstack image gestalt storage-path)/img/$(tag_to_path "$1")"
+        echo "$(clearly image gestalt storage-path)/img/$(tag_to_path "$1")"
     else
         echo "$cli_storage/img/$(tag_to_path "$1")"
     fi
@@ -663,7 +663,7 @@ fmt_validate () {
     echo "$fmt"
 }
 
-# Ensure mount points needed by ch-run exist in directory $1. Do nothing if
+# Ensure mount points needed by run exist in directory $1. Do nothing if
 # something already exists, without dereferencing, in case it's a symlink,
 # which will work for bind-mount later but won't resolve correctly now outside
 # the container (e.g. linuxcontainers.org images; issue #1015).

@@ -151,7 +151,7 @@ def main():
     # Check if daemon is running
     if not test_health():
         print("❌ Daemon is not running. Please start the daemon first.")
-        print("Run: systemctl start clearstack.service")
+        print("Run: systemctl start clearly.service")
         sys.exit(1)
     
     # Create test image

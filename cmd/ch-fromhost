@@ -34,7 +34,7 @@
 #   3. Here string, e.g. 'while IFS= read -r FILE; do ... done <<< "$FILES"'.
 #      This is a bashism.
 
-ch_lib=$(cd "$(dirname "$0")" && pwd)/../lib
+ch_lib=$(cd "$(dirname "$0")" && pwd)/../../lib
 . "${ch_lib}/base.sh"
 
 set -e
@@ -341,7 +341,7 @@ if [ -n "$lib_found" ]; then
     else                             # DEBUG or higher
         stderr_filter=weird_al_yankovic_will_not_appear_in_ldconfig_output
     fi
-    lib_dest=$( { "${ch_bin}/ch-run" "$image" -- /sbin/ldconfig -Nv \
+    lib_dest=$( { "${ch_bin}/run" "$image" -- /sbin/ldconfig -Nv \
                   2>&1 1>&3 3>&- | grep -Ev "$stderr_filter" ; } \
                 3>&1 1>&2 | grep -E '^/' | cut -d: -f1 | head -1 )
     [ -n "$lib_dest" ] || FATAL 'empty path from ldconfig'
@@ -391,26 +391,26 @@ fi
 
 if [ -f /etc/opt/cray/release/cle-release ]; then
     # Cray needs a pile of hugetlbfs filesystems mounted at
-    # /var/lib/hugetlbfs/global. Create mount point for ch-run.
+    # /var/lib/hugetlbfs/global. Create mount point for run.
     queue_mkdir /var/lib/hugetlbfs
     # UGNI
     if [ ! -L /etc/opt/cray/release/cle-release ]; then
         # ALPS libraries require the contents of this directory to be present
         # at the same path as the host. Create the mount point here, then
-        # ch-run bind-mounts it later.
+        # run bind-mounts it later.
         queue_mkdir /var/opt/cray/alps/spool
 
         # The cray-ugni provider will link against cray’s libwlm_detect so.
-        # Create the mount point for ch-run.
+        # Create the mount point for run.
         queue_mkdir /opt/cray/wlm_detect
 
         # libwlm_detect.so requires file(s) to present at the same path as the
-        # host. Create mount point for ch-run.
+        # host. Create mount point for run.
         queue_mkdir /etc/opt/cray/wlm_detect
 
         # OFI uGNI provider, libgnix-fi.so, links against the Cray host’s
         # libxpmem, libudreg, libalpsutil, libalpslli, and libugni; create
-        # mount points for ch-run to use later.
+        # mount points for run to use later.
         queue_mkdir /opt/cray/udreg
         queue_mkdir /opt/cray/xpmem
         queue_mkdir /opt/cray/ugni
@@ -420,7 +420,7 @@ if [ -f /etc/opt/cray/release/cle-release ]; then
     if [ -f /opt/cray/etc/release/cos ]; then
         # Newer Cray Shasta environments require the contents of this
         # directory to be present at the same path as the host. Create mount
-        # points for ch-run to use later.
+        # points for run to use later.
         queue_mkdir /var/spool/slurmd
     fi
 fi
@@ -509,13 +509,13 @@ if       [ -z "$no_ldconfig" ] \
          || [ "$fi_prov_found" ] \
          || [ "$cray_fi_found" ] ;} then
     VERBOSE "running ldconfig"
-    "${ch_bin}/ch-run" -w "$image" -- /sbin/ldconfig 2> /dev/null \
+    "${ch_bin}/run" -w "$image" -- /sbin/ldconfig 2> /dev/null \
         || FATAL 'ldconfig error'
     if [ -n "$fi_prov_found" ] || [ -n "$cray_fi_found" ]; then
         VERBOSE "validating ldconfig cache"
         for file in $inject_files; do
             f="$(basename "${file%%:*}")"
-            f=$(   "${ch_bin}/ch-run" "$image" \
+            f=$(   "${ch_bin}/run" "$image" \
                 -- find / \
                         -not \( -path /proc -prune \) \
                         -not \( -path /dev -prune \) \
@@ -524,8 +524,8 @@ if       [ -z "$no_ldconfig" ] \
                         -not \( -path /var/opt/cray -prune \) \
                         -not \( -path /etc/opt/cray -prune \) \
                         -name  "$f")
-            if [ "$("${ch_bin}/ch-run" "$image" -- ldd "$f" | grep -c 'not found ')" -ne 0 ]; then
-                FATAL "ldconfig: '${ch_bin}/ch-run $image -- ldd $f' failed"
+            if [ "$("${ch_bin}/run" "$image" -- ldd "$f" | grep -c 'not found ')" -ne 0 ]; then
+                FATAL "ldconfig: '${ch_bin}/run $image -- ldd $f' failed"
             fi
         done
     fi

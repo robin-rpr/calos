@@ -1,6 +1,6 @@
 /* This example program walks through the complete namespace / pivot_root(2)
    dance to enter a Clearstack container, with each step documented. If you
-   can compile it and run it without error as a normal user, ch-run will work
+   can compile it and run it without error as a normal user, run will work
    too (if not, that's a bug). If not, this will hopefully help you understand
    more clearly what went wrong.
 
@@ -54,13 +54,13 @@
 
 const char usage[] = "\
 \n\
-Usage: clearstack checkns\n\
+Usage: clearly checkns\n\
 \n\
-Check \"ch-run\" prerequisites, e.g., namespaces and \"pivot_root(2)\".\n\
+Check \"clearly run\" prerequisites, e.g., namespaces and \"pivot_root(2)\".\n\
 \n\
 Example:\n\
 \n\
-  $ clearstack checkns\n\
+  $ clearly checkns\n\
   ok\n";
 
 #define TRY(x) if (x) fatal_(__FILE__, __LINE__, errno, #x)

@@ -1,4 +1,4 @@
-testdir = $(pkglibexecdir)
+testdir = $(pkgdatadir)
 
 # These test files require no special handling.
 testfiles = \
@@ -20,7 +20,7 @@ bucache/from.df \
 bucache/rsync.df \
 build/10_sanity.bats \
 build/40_pull.bats \
-build/50_ch-image.bats \
+build/50_image.bats \
 build/50_dockerfile.bats \
 build/50_localregistry.bats \
 build/50_misc.bats \
@@ -100,7 +100,7 @@ install-data-hook:
 uninstall-hook:
 	rm -f $(DESTDIR)$(testdir)/fixtures/symlink-to-tmp
 	rmdir $(DESTDIR)$(testdir)/fixtures || true
-	rmdir $$(find $(pkglibexecdir) -type d | sort -r)
+	rmdir $$(find $(pkgdatadir) -type d | sort -r)
 endif
 EXTRA_DIST = $(testfiles) \
              $(testfiles_exec) \

@@ -47,14 +47,14 @@
    Examples:
 
      Z_ (chdir("/does/not/exist"));
-       -> ch-run: error: No such file or directory (ch-run.c:138 2)
+       -> run: error: No such file or directory (run.c:138 2)
      Zf (chdir("/does/not/exist"), "foo");
-       -> ch-run: foo: No such file or directory (ch-run.c:138 2)
+       -> run: foo: No such file or directory (run.c:138 2)
      Ze (chdir("/does/not/exist"), "foo");
-       -> ch-run: foo (ch-run.c:138)
+       -> run: foo (run.c:138)
      errno = 0;
      Zf (0, "foo");
-       -> ch-run: foo (ch-run.c:138)
+       -> run: foo (run.c:138)
 
    Typically, Z_ and Zf are used to check system and standard library calls,
    while T_ and Tf are used to assert developer-specified conditions.

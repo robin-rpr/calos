@@ -6,7 +6,7 @@
 # shellcheck disable=SC2207
 
 # SC2034 complains about modifying variables by reference in
-# _ch_run_parse. Disable it.
+# _run_parse. Disable it.
 # shellcheck disable=SC2034
 
 # Permissions for this file:
@@ -128,7 +128,7 @@ if [[ -n "$CH_COMPLETION_DEBUG" ]]; then
     printf "completion.bash sourced\n\n" >> "$_ch_completion_log"
 fi
 
-_ch_completable_executables="image ch-run convert"
+_ch_completable_executables="image run convert"
 
 
 ## convert ##
@@ -435,9 +435,9 @@ _image_complete () {
 }
 
 
-## ch-run ##
+## run ##
 
-# Options for ch-run
+# Options for run
 #
 
 _run_opts="-b --bind -c --cd --env-no-expand --feature -g --gid
@@ -448,9 +448,9 @@ _run_opts="-b --bind -c --cd --env-no-expand --feature -g --gid
 
 _run_features="extglob seccomp squash" # args for the --feature option
 
-# Completion function for ch-run
+# Completion function for run
 #
-_ch_run_complete () {
+_run_complete () {
     local prev
     local cur
     local cword
@@ -464,7 +464,7 @@ _ch_run_complete () {
     strg_dir=$(_ch_find_storage "${words[@]::$cword}" "${words[@]:$cword+1:${#array[@]}-1}")
     local cli_image
     local cmd_index=-1
-   _ch_run_parse "$strg_dir" "$cword" cli_image cmd_index "${words[@]}"
+   _run_parse "$strg_dir" "$cword" cli_image cmd_index "${words[@]}"
 
     # Populate debug log
     _DEBUG "\$ ${words[*]}"
@@ -475,7 +475,7 @@ _ch_run_complete () {
     _DEBUG " cli image: $cli_image"
 
     # Currently, we don’t try to suggest completions if you’re in the “command”
-    # part of the ch-run CLI (i.e. entering commands to be run inside the
+    # part of the run CLI (i.e. entering commands to be run inside the
     # container). Implementing this *may* be possible, but doing so would likely
     # be absurdly complicated, so we don’t plan on it.
     if [[ $cmd_index != -1 && $cmd_index -lt $cword ]]; then
@@ -545,7 +545,7 @@ _ch_run_complete () {
         # No image found in command line, complete dirs, tarfiles, and sqfs
         # archives
         COMPREPLY=( $(_compgen_filepaths -X "!*.sqfs" "$cur") )
-        # Complete images in storage. Note we don't use “clearstack image list” here
+        # Complete images in storage. Note we don't use “clearly image list” here
         # because it can initialize an empty storage directory and we don't want
         # this script to have any such side effects.
         COMPREPLY+=( $(compgen -W "$(_ch_list_images "$strg_dir")" -- "$cur") )
@@ -560,7 +560,7 @@ _ch_run_complete () {
 
 ## Helper functions ##
 
-_ch_completion_help="Usage: clearstack completion [ OPTION ]
+_ch_completion_help="Usage: clearly completion [ OPTION ]
 
 Utility function for Clearstack tab completion.
 
@@ -586,7 +586,7 @@ completion () {
             --disable)
                 complete -r convert
                 complete -r image
-                complete -r ch-run
+                complete -r run
                 ;;
             --help)
                 printf "%s" "$_ch_completion_help" 1>&2
@@ -639,7 +639,7 @@ _ch_completion_complete () {
 #       that “_ch_convert_parse” can determine the input image format:
 #           i.) If “-i” or “--in-fmt” is specified and is followed by a valid
 #               image format, the out parameter will be set to a that format.
-#               E.g. “ch-image”.
+#               E.g. “image”.
 #           ii.) If the parser detects that an input image has been specified,
 #                it will try to determine the format of that image. This does
 #                not work for Docker or Podman images, and never will.
@@ -739,7 +739,7 @@ _ch_find_storage () {
 # Usage: _image_subcmd_get [words]
 #
 # Example:
-#   >> _image_subcmd_get "clearstack image [...] build [...]"
+#   >> _image_subcmd_get "clearly image [...] build [...]"
 #   build
 _image_subcmd_get () {
     local cword="$1"
@@ -771,7 +771,7 @@ _ch_list_images () {
     fi
 }
 
-# Horrible, disgusting function to find an image or image ref in the ch-run
+# Horrible, disgusting function to find an image or image ref in the run
 # command line. This function takes five arguments:
 #
 #   1.) A string representing the path to the storage directory.
@@ -780,7 +780,7 @@ _ch_list_images () {
 #       representing the command line (index starting at 0).
 #
 #   3.) An out parameter (see explanation above “_ch_convert_parse”). If
-#       “_ch_run_parse” finds the name of an image in storage (e.g.
+#       “_run_parse” finds the name of an image in storage (e.g.
 #       “alpine:latest”) or something that looks like an image path (i.e. a
 #       directory, tarball or file named like a squash archive) in the command
 #       line, the value of the variable will be updated to the image name or
@@ -789,7 +789,7 @@ _ch_list_images () {
 #
 #   4.) Another out parameter. If this function finds “--” in the current
 #       command line and it doesn't seem like the user is trying to complete
-#       that “--” to an option, “_ch_run_parse” will assume that this is the
+#       that “--” to an option, “_run_parse” will assume that this is the
 #       point beyond which the user specifies commands to be run inside the
 #       container and will give the variable the index value of the “--”. Our
 #       criterion for deciding that the user isn't trying to complete “--” to an
@@ -800,7 +800,7 @@ _ch_list_images () {
 #   5.) A string representing the expanded command line array (i.e.
 #       "${array[@]}").
 #
-_ch_run_parse () {
+_run_parse () {
     # The essential purpose of this function is to try to find an image in the
     # current command line. If it finds one, it passes the “name” of the image
     # back to the caller in the form of an out parameter (see above). If it
@@ -981,4 +981,4 @@ _version_ok_ch_completion () {
 complete -F _ch_completion_complete completion
 complete -F _ch_convert_complete convert
 complete -F _image_complete image
-complete -F _ch_run_complete ch-run
+complete -F _run_complete run

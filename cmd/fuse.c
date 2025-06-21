@@ -232,7 +232,7 @@ void sq_mount(const char *img_path, char *mountpt)
    T_ (sq.chan = malloc(sizeof(sqfs_ll_chan)));
 
    sq.ll = sqfs_ll_open(img_path, 0);
-   Te (sq.ll != NULL, "can't open SquashFS: %s; try ch-run -vv?", img_path);
+   Te (sq.ll != NULL, "can't open SquashFS: %s; try clearly run -vv?", img_path);
 
    // sqfs_ll_mount() is squirrely for a couple reasons:
    //

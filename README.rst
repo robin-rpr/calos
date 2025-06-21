@@ -73,7 +73,7 @@ Contributors:
 * Matthew Vernon <mv3@sanger.ac.uk>
 * Peter Wienemann <wienemann@physik.uni-bonn.de>
 * Lowell Wofford <lowell@lanl.gov>
-* Robin Röper <robin@clearstackhq.com>
+* Robin Röper <rr@linux.com>
 
 How can I participate?
 ----------------------

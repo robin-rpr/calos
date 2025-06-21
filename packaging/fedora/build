@@ -18,7 +18,7 @@ import sys
 import time
 
 CH_BASE = os.path.abspath(os.path.dirname(__file__) + "/../..")
-CH_RUN  = [CH_BASE + "/bin/ch-run"]
+CH_RUN  = [CH_BASE + "/cmd/run"]
 PACKAGES = ["charliecloud",
             "charliecloud-builder",
             "charliecloud-debuginfo",
@@ -183,7 +183,7 @@ rpmbuild root:      %(rpmbuild)s
    rpm_sources    = "/usr/local/src/SOURCES"
    rpmbuild_args += ["--define", "_topdir /usr/local/src"]
    rpmlint_args  += ["--file", "%s/charliecloud.rpmlintrc" % rpm_specs]
-   container     += [CH_BASE + "/bin/ch-run", "-w",
+   container     += [CH_BASE + "/cmd/run", "-w",
                      "-b", "%s:/usr/local/src" % args.rpmbuild,
                      args.image, "--"]
 

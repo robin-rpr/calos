@@ -46,12 +46,12 @@ setup () {
 lammps_try () {
     # These examples cd because some (not all) of the LAMMPS tests expect to
     # find things based on $CWD.
-    infiles=$(ch-run --cd "/lammps/examples/${1}" "$ch_img" -- \
+    infiles=$(clearly run --cd "/lammps/examples/${1}" "$ch_img" -- \
                      bash -c "ls in.*")
     for i in $infiles; do
         printf '\n\n%s\n' "$i"
         # shellcheck disable=SC2086
-        $ch_mpirun_core ch-run --join --cd /lammps/examples/$1 "$ch_img" -- \
+        $ch_mpirun_core clearly run --join --cd /lammps/examples/$1 "$ch_img" -- \
                         lmp_mpi -log none -in "$i"
     done
 
@@ -59,7 +59,7 @@ lammps_try () {
 
 @test "${ch_tag}/inject host cray mpi ($cray_prov)" {
     cray_ofi_or_skip "$ch_img"
-    run ch-run "$ch_img" -- fi_info
+    run clearly run "$ch_img" -- fi_info
     echo "$output"
     [[ $output == *"provider: $cray_prov"* ]]
     [[ $output == *"fabric: $cray_prov"* ]]
@@ -68,7 +68,7 @@ lammps_try () {
 
 @test "${ch_tag}/using all cores" {
     # shellcheck disable=SC2086
-    run $ch_mpirun_core ch-run --join "$ch_img" -- \
+    run $ch_mpirun_core clearly run --join "$ch_img" -- \
                         lmp_mpi -log none -in /lammps/examples/melt/in.melt
     echo "$output"
     [[ $status -eq 0 ]]
@@ -88,7 +88,7 @@ lammps_try () {
 @test "${ch_tag}/melt"     { lammps_try melt; }
 
 @test "${ch_tag}/mpi4py simple" {
-    $ch_mpirun_core ch-run --join --cd /lammps/python/examples "$ch_img" -- \
+    $ch_mpirun_core clearly run --join --cd /lammps/python/examples "$ch_img" -- \
                     ./simple.py in.simple
 }
 

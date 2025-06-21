@@ -36,7 +36,7 @@ setup () {
 
 @test "${ch_tag}/inject cray mpi ($cray_prov)" {
     cray_ofi_or_skip "$ch_img"
-    run ch-run "$ch_img" -- fi_info
+    run clearly run "$ch_img" -- fi_info
     echo "$output"
     [[ $output == *"provider: $cray_prov"* ]]
     [[ $output == *"fabric: $cray_prov"* ]]
@@ -46,7 +46,7 @@ setup () {
 @test "${ch_tag}/cone serial" {
     [[ -z $ch_cray ]] || skip 'serial launches unsupported on Cray'
     # shellcheck disable=SC2086
-    ch-run $ch_unslurm -b "$inbind" -b "$outbind" "$ch_img" -- \
+    clearly run $ch_unslurm -b "$inbind" -b "$outbind" "$ch_img" -- \
            pvbatch /mnt/0/cone.py /mnt/1
     mv "$outdir"/cone.png "$outdir"/cone.serial.png
     ls -l "$outdir"/cone*
@@ -62,7 +62,7 @@ setup () {
 @test "${ch_tag}/cone ranks=2" {
     multiprocess_ok
     # shellcheck disable=SC2086
-    $ch_mpirun_2 ch-run --join -b "$inbind" -b "$outbind" "$ch_img" -- \
+    $ch_mpirun_2 clearly run --join -b "$inbind" -b "$outbind" "$ch_img" -- \
               pvbatch /mnt/0/cone.py /mnt/1
     mv "$outdir"/cone.png "$outdir"/cone.2ranks.png
     ls -l "$outdir"/cone*
@@ -78,7 +78,7 @@ setup () {
 @test "${ch_tag}/cone ranks=N" {
     multiprocess_ok
     # shellcheck disable=SC2086
-    $ch_mpirun_core ch-run --join -b "$inbind" -b "$outbind" "$ch_img" -- \
+    $ch_mpirun_core clearly run --join -b "$inbind" -b "$outbind" "$ch_img" -- \
                  pvbatch /mnt/0/cone.py /mnt/1
     mv "$outdir"/cone.png "$outdir"/cone.nranks.png
     ls -l "$outdir"/cone*

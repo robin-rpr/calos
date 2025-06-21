@@ -11,10 +11,10 @@
 
 ### Prologue #################################################################
 
-AC_INIT([clearstack], [m4_esyscmd_s([misc/version])],
+AC_INIT([clearly], [m4_esyscmd_s([misc/version])],
         [https://github.com/hpc/charliecloud])
 AC_PREREQ([2.69])
-AC_CONFIG_SRCDIR([bin/ch-run.c])
+AC_CONFIG_SRCDIR([cmd/run.c])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIRS([misc/m4])
 
@@ -62,11 +62,11 @@ AM_MAINTAINER_MODE([disable])
 MKDIR_P=${MKDIR_P:-install -d -m 0755}
 
 AM_INIT_AUTOMAKE([1.13 -Wall -Werror foreign subdir-objects])
-AC_SUBST([libexecdir], ['${datadir}/${PACKAGE_NAME}'])
 
-AC_CONFIG_HEADERS([bin/config.h])
+AC_CONFIG_HEADERS([cmd/config.h])
 AC_CONFIG_FILES([Makefile
                  bin/Makefile
+                 cmd/Makefile
                  doc/Makefile
                  examples/Makefile
                  lib/Makefile
@@ -255,9 +255,9 @@ AS_IF([test "$CC" = icc],
       [AC_MSG_ERROR([icc not supported (see PR @%:@481)])])
 
 
-### ch-run required ##########################################################
+### run required ##########################################################
 
-# Only ch-run needs any kind of interesting library stuff; this variable holds
+# Only run needs any kind of interesting library stuff; this variable holds
 # the library arguments we need. This also requires us to use AC_CHECK_LIB
 # instead of the (recommended by docs) AC_SEARCH_LIBS, because that adds
 # things to LIBS, which we don’t want because it’s applied to all executables.
@@ -305,7 +305,7 @@ AC_LINK_IFELSE([AC_LANG_SOURCE([[
      [CH_RUN_LIBS="-largp $CH_RUN_LIBS"],
      [AC_MSG_ERROR([argp_parse(3) not found; please report this bug])])])
 
-# pthreads; needed for “ch-run --join”.
+# pthreads; needed for “clearly run --join”.
 AX_PTHREAD
 
 # POSIX IPC lives in librt.
@@ -421,7 +421,7 @@ AS_IF([test $enable_impolite_checks = yes],
 AC_MSG_RESULT($have_tmpfs_xattrs)
 
 
-### ch-run optional ##########################################################
+### run optional ##########################################################
 
 # FNM_EXTMATCH is a GNU extension to support extended globs in fnmatch(3).
 AC_CHECK_DECL(FNM_EXTMATCH,
@@ -842,11 +842,11 @@ AS_IF([test $have_strerrorname_np = yes],
 
 # FIXME: Should replace all these with macros?
 
-# ch-run (needed below)
+# run (needed below)
 
 AS_IF([   test $have_userns = yes],
-      [have_ch_run=yes],
-      [have_ch_run=no])
+      [have_run=yes],
+      [have_run=no])
 
 # image builders
 
@@ -854,7 +854,7 @@ AS_IF([   test $enable_image = yes \
        && test -n "$PYTHON" \
        && test -n "$REQUESTS" \
        && test -n "$CYTHON" \
-       && test $have_ch_run = yes],
+       && test $have_run = yes],
       [have_image=yes],
       [have_image=no])
 
@@ -897,7 +897,7 @@ AS_IF([   test -n "$NVIDIA_CLI" \
 # test suite
 
 AS_IF([   test $enable_test = yes \
-       && test $have_ch_run = yes \
+       && test $have_run = yes \
        && test $have_image = yes \
        && test -n "$_BASH" \
        && test -n "$BATS" \
@@ -989,7 +989,7 @@ Building Clearstack
     extended glob patterns in --unset-env ... ${have_fnm_extmatch}
     C errno constants in errors ... ${have_strerrorname_np}
 
-  ch-run(1) internal SquashFS mounting: ${have_libsquashfuse}
+  run(1) internal SquashFS mounting: ${have_libsquashfuse}
     enabled ... ${want_libsquashfuse}
     libfuse3 ... ${have_libfuse3} ${fuse3_CFLAGS:-}
     libsquashfuse_ll ... ${have_libsquashfuse_ll}
@@ -1009,7 +1009,7 @@ Building images
     Python in shebang ≥ $vmin_python ... ${PYTHON_VERSION_NOTE}
     "lark" module ... ${lark_status}
     "requests" module ≥ $vmin_requests ... ${REQUESTS_VERSION_NOTE}
-    ch-run(1) ... ${have_ch_run}
+    run(1) ... ${have_run}
 
   with image(1) using build cache: ${have_image_bu}
     image(1): ... ${have_image}
@@ -1039,7 +1039,7 @@ Managing container images
 Running containers
 ~~~~~~~~~~~~~~~~~~
 
-  ch-run(1): ${have_ch_run}
+  run(1): ${have_run}
     user+mount namespaces ... ${have_userns}$chroot_warning
 
   run SquashFS images: ${have_any_squashfuse}
@@ -1062,7 +1062,7 @@ Test suite
 
   basic tests, all stages: ${have_tests_basic}
     test suite enabled ... ${enable_test}
-    ch-run(1) ... ${have_ch_run}
+    run(1) ... ${have_run}
     any builder above ... ${have_image}
     access to Docker Hub or mirror ... assumed yes
     Bats ≥ $vmin_bats ... ${BATS_VERSION_NOTE}

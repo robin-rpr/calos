@@ -20,7 +20,7 @@ count_ranks () {
 @test "${ch_tag}/guest starts ranks" {
     openmpi_or_skip
     # shellcheck disable=SC2086
-    run ch-run $ch_unslurm "$ch_img" -- mpirun $ch_mpirun_np /hello/hello
+    run clearly run $ch_unslurm "$ch_img" -- mpirun $ch_mpirun_np /hello/hello
     echo "$output"
     [[ $status -eq 0 ]]
     rank_ct=$(count_ranks "$output")
@@ -32,7 +32,7 @@ count_ranks () {
 
 @test "${ch_tag}/inject cray mpi ($cray_prov)" {
     cray_ofi_or_skip "$ch_img"
-    run ch-run "$ch_img" -- fi_info
+    run clearly run "$ch_img" -- fi_info
     echo "$output"
     [[ $output == *"provider: $cray_prov"* ]]
     [[ $output == *"fabric: $cray_prov"* ]]
@@ -42,7 +42,7 @@ count_ranks () {
 @test "${ch_tag}/validate $cray_prov injection" {
     [[ -n "$ch_cray" ]] || skip "host is not cray"
     [[ -n "$CH_TEST_OFI_PATH" ]] || skip "--fi-provider not set"
-    run $ch_mpirun_node ch-run --join "$ch_img" -- sh -c \
+    run $ch_mpirun_node clearly run --join "$ch_img" -- sh -c \
                     "FI_PROVIDER=$cray_prov FI_LOG_LEVEL=info /hello/hello 2>&1"
     echo "$output"
     [[ $status -eq 0 ]]
@@ -58,7 +58,7 @@ count_ranks () {
 @test "${ch_tag}/MPI version" {
     [[ -z $ch_cray ]] || skip 'serial launches unsupported on Cray'
     # shellcheck disable=SC2086
-    run ch-run $ch_unslurm "$ch_img" -- /hello/hello
+    run clearly run $ch_unslurm "$ch_img" -- /hello/hello
     echo "$output"
     [[ $status -eq 0 ]]
     if [[ $ch_mpi = openmpi ]]; then
@@ -75,7 +75,7 @@ count_ranks () {
 
 @test "${ch_tag}/empty stderr" {
    multiprocess_ok
-   output=$($ch_mpirun_core ch-run --join "$ch_img" -- \
+   output=$($ch_mpirun_core clearly run --join "$ch_img" -- \
                             /hello/hello 2>&1 1>/dev/null)
    echo "$output"
    [[ -z "$output" ]]
@@ -86,7 +86,7 @@ count_ranks () {
     # This seems to start up the MPI infrastructure (daemons, etc.) within the
     # guest even though there's no mpirun.
     # shellcheck disable=SC2086
-    run ch-run $ch_unslurm "$ch_img" -- /hello/hello
+    run clearly run $ch_unslurm "$ch_img" -- /hello/hello
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = *' 1 ranks'* ]]
@@ -98,11 +98,11 @@ count_ranks () {
     multiprocess_ok
     echo "starting ranks with: ${ch_mpirun_core}"
 
-    guest_mpi=$(ch-run "$ch_img" -- mpirun --version | head -1)
+    guest_mpi=$(clearly run "$ch_img" -- mpirun --version | head -1)
     echo "guest MPI: ${guest_mpi}"
 
     # shellcheck disable=SC2086
-    run $ch_mpirun_core ch-run --join "$ch_img" -- /hello/hello 2>&1
+    run $ch_mpirun_core clearly run --join "$ch_img" -- /hello/hello 2>&1
     echo "$output"
     [[ $status -eq 0 ]]
     rank_ct=$(count_ranks "$output")
@@ -115,11 +115,11 @@ count_ranks () {
 @test "${ch_tag}/Cray bind mounts" {
     [[ $ch_cray ]] || skip 'host is not a Cray'
 
-    ch-run "$ch_img" -- mount | grep -F /dev/hugepages
+    clearly run "$ch_img" -- mount | grep -F /dev/hugepages
     if [[ $cray_prov == 'gni' ]]; then
-        ch-run "$ch_img" -- mount | grep -F /var/opt/cray/alps/spool
+        clearly run "$ch_img" -- mount | grep -F /var/opt/cray/alps/spool
     else
-        ch-run "$ch_img" -- mount | grep -F /var/spool/slurmd
+        clearly run "$ch_img" -- mount | grep -F /var/spool/slurmd
     fi
 }
 

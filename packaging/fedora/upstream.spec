@@ -46,7 +46,7 @@ Requires:      python%{python3_pkgversion}-requests
 Provides:      bundled(python%{python3_pkgversion}-lark-parser) = 0.11.3
 
 %description builder
-This package provides clearstack image, Clearstack's completely unprivileged
+This package provides clearly image, Clearstack's completely unprivileged
 container image manipulation tool.
 
 %package       doc
@@ -131,13 +131,13 @@ ln -s "${sphinxdir}/js"    %{buildroot}%{_pkgdocdir}/html/_static/js
 %{_bindir}/checkns
 %{_bindir}/convert
 %{_bindir}/ch-fromhost
-%{_bindir}/ch-run
-%{_bindir}/ch-run-oci
+%{_bindir}/run
+%{_bindir}/run-oci
 %{_mandir}/man1/checkns.1*
 %{_mandir}/man1/convert.1*
 %{_mandir}/man1/ch-fromhost.1*
-%{_mandir}/man1/ch-run.1*
-%{_mandir}/man1/ch-run-oci.1*
+%{_mandir}/man1/run.1*
+%{_mandir}/man1/run-oci.1*
 %{_mandir}/man7/charliecloud.7*
 %{_prefix}/lib/%{name}/base.sh
 %{_prefix}/lib/%{name}/contributors.bash
@@ -247,7 +247,7 @@ ln -s "${sphinxdir}/js"    %{buildroot}%{_pkgdocdir}/html/_static/js
 - (Build)Require python3-lark-parser, python3-requests
 
 * Wed Feb 3 2021 <jogas@lanl.gov> - 0.21-2
-- Fix lib64.patch path for clearstack image
+- Fix lib64.patch path for clearly image
 
 * Tue Jan 05 2021 <loveshack@fedoraproject.org> <jogas@lanl.gov> - 0.21-1
 - New version

@@ -11,7 +11,7 @@ import sys
 import time
 import types
 
-ch_lib = os.path.dirname(os.path.abspath(__file__)) + "/../lib"
+ch_lib = os.path.dirname(os.path.abspath(__file__)) + "/../../lib"
 sys.path.insert(0, ch_lib)
 import charliecloud as ch
 import misc
@@ -48,7 +48,7 @@ def main():
 
 def args_parse():
 
-   ap = argparse.ArgumentParser(description='OCI wrapper for "ch-run".')
+   ap = argparse.ArgumentParser(description='OCI wrapper for "run".')
    ap.add_argument("-v", "--verbose", action="count", default=0,
                    help="print extra chatter (can be repeated)")
    ap.add_argument("--debug", action="store_true",
@@ -232,7 +232,7 @@ def op_start():
          print(line, file=fp)
 
    # Build command line.
-   cmd = CH_BIN + "/ch-run"
+   cmd = CH_BIN + "/run"
    ca = [cmd,
          "--cd", c["process"]["cwd"],
          "--no-passwd",

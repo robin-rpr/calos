@@ -42,7 +42,7 @@ class Build_Mode(enum.Enum):
    DISABLED = "disabled"
    REBUILD = "rebuild"
 
-# ch-run exit codes (see also: bin/misc.h)
+# run exit codes (see also: bin/misc.h)
 class Ch_Run_Retcode(enum.Enum):
    EXIT_MISC_ERR = 31
    EXIT_CMD = 49
@@ -116,7 +116,7 @@ CLI_INCOMPATIBLE_OPTS = [("quiet", "verbose"),
                          ("xattrs", "no_xattrs")]
 
 # String to use as hint when we throw an error that suggests a bug.
-BUG_REPORT_PLZ = "please report this bug: https://clearstackhq.com/report"
+BUG_REPORT_PLZ = "please report this bug: https://clearly.run/report"
 
 # Maximum filename (path component) length, in *characters*. All Linux
 # filesystems of note that I could identify support at least 255 *bytes*. The
@@ -146,7 +146,7 @@ Path = fs.Path
 arch = None       # requested by user
 arch_host = None  # of host
 
-# FIXME: currently set in clearstack image :P
+# FIXME: currently set in clearly image :P
 CH_BIN = None
 CH_RUN = None
 
@@ -532,11 +532,11 @@ def bytes_hash(data):
    h.update(data)
    return h.hexdigest()
 
-def ch_run_modify(img, args, env, workdir="/", binds=[], ch_run_args=[],
+def run_modify(img, args, env, workdir="/", binds=[], run_args=[],
                   fail_ok=False):
-   # Note: If you update these arguments, update the clearstack image(1) man page too.
-   args = (  [CH_BIN + "/ch-run"]
-           + ch_run_args
+   # Note: If you update these arguments, update the clearly image(1) man page too.
+   args = (  [CH_BIN + "/run"]
+           + run_args
            + ["-w", "-u0", "-g0", "--no-passwd", "--cd", workdir, "--unsafe"]
            + sum([["-b", i] for i in binds], [])
            + [img, "--"] + args)

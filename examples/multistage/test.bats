@@ -6,14 +6,14 @@ setup () {
 }
 
 @test "${ch_tag}/hello" {
-    run ch-run "$ch_img" -- hello -g 'Hello, Clearstack!'
+    run clearly run "$ch_img" -- hello -g 'Hello, Clearstack!'
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = 'Hello, Clearstack!' ]]
 }
 
 @test "${ch_tag}/man hello" {
-    ch-run "$ch_img" -- man hello > /dev/null
+    clearly run "$ch_img" -- man hello > /dev/null
 }
 
 @test "${ch_tag}/files seem OK" {
@@ -35,7 +35,7 @@ setup () {
 
 @test "${ch_tag}/no first-stage stuff present" {
     # Can’t run GCC.
-    run ch-run "$ch_img" -- gcc --version
+    run clearly run "$ch_img" -- gcc --version
     echo "$output"
     [[ $status -eq $CH_ERR_CMD ]]
     [[ $output = *'gcc: No such file or directory'* ]]

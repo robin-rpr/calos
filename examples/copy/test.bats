@@ -6,7 +6,7 @@ load "${CHTEST_DIR}/common.bash"
     prerequisites_ok copy
 
     # “ls -F” trailing symbol list: https://unix.stackexchange.com/a/82358
-    diff -u - <(ch-run --cd /test "$ch_img" -- ls -1FR .) <<EOF
+    diff -u - <(clearly run --cd /test "$ch_img" -- ls -1FR .) <<EOF
 .:
 dir01a/
 dir01b/
@@ -221,7 +221,7 @@ EOF
     scope standard
     prerequisites_ok copy
 
-    diff -u - <(ch-run --cd /test "$ch_img" \
+    diff -u - <(clearly run --cd /test "$ch_img" \
                 --   find . -type f -printf '%y: %p: ' -a -exec cat {} \; \
                    | sort) <<EOF
 f: ./dir01a/fileA: fileA
@@ -296,7 +296,7 @@ EOF
     scope standard
     prerequisites_ok copy
 
-    diff -u - <(ch-run --cd /test "$ch_img" \
+    diff -u - <(clearly run --cd /test "$ch_img" \
                 -- find . -type l -printf '%y: %p -> %l\n' | sort) <<EOF
 l: ./dir14/symlink-to-fileDa -> fileDa
 l: ./dir15/symlink-to-fileDa -> fileDa

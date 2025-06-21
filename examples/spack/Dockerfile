@@ -89,8 +89,8 @@ RUN source /spack/share/spack/setup-env.sh \
     && spack env depfile -o Makefile \
     && make -j $(nproc) SPACK_COLOR=always \
     && spack load charliecloud \
-    && ch-run --version \
-    && ldd $(which ch-run)
+    && clearly run --version \
+    && ldd $(which clearly)
 
 # Clean up.
 RUN /spack/bin/spack clean --all
