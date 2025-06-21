@@ -12,11 +12,13 @@ install-exec-hook:
 	for i in $(DESTDIR)@libexecdir@/clearly/convert \
 	         $(DESTDIR)@libexecdir@/clearly/ch-fromhost \
 	         $(DESTDIR)@libexecdir@/clearly/ch-test \
+			 $(DESTDIR)@datadir@/clearly/common.bash \
 	         $(DESTDIR)@datadir@/clearly/doctest \
 			 $(DESTDIR)@libdir@/clearly/base.sh; \
 	do \
 	  if [ -e $$i ]; then \
-	    sed -Ei -e 's|^(ch_lib ?= ?).+/lib"?$$|\1"@libdir@/clearly"|'\
+	    sed -Ei -e 's|^(ch_lib ?= ?).+/lib"?$$|\1"@libdir@/clearly"|' \
+				-e 's|^(ch_libexec ?= ?).+/libexec"?$$|\1"@libexecdir@/clearly"|' \
 	            -e 's|^(CHTEST_DIR=).+$$|\1@datadir@/clearly|' \
 	            -e 's|^(CHTEST_EXAMPLES_DIR=).+$$|\1@docdir@/examples|' \
                 $$i; \

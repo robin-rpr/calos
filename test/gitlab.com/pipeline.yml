@@ -118,7 +118,7 @@ test:
   parallel:
     matrix:
       # Core tests with everything turned on.
-      - CH_TEST_BUILDER: [ch-image]
+      - CH_TEST_BUILDER: [image]
         CH_IMAGE_CACHE: [enabled]
         CH_TEST_PACK_FMT: [squash-mount, squash-unpack, tar-unpack]
         ci_arch: [amd64]

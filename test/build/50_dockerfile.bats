@@ -12,33 +12,33 @@ setup () {
     export CH_IMAGE_CACHE=disabled
 
     scope standard
-    [[ $CH_TEST_BUILDER = ch-image ]] || skip 'ch-image only' # FIXME: other builders?
+    [[ $CH_TEST_BUILDER = image ]] || skip 'image only' # FIXME: other builders?
 
     # No newline at end of file.
       printf 'FROM alpine:3.17\nRUN echo hello' \
-    | ch-image build -t tmpimg -f - .
+    | clearly image build -t tmpimg -f - .
 
     # Newline before FROM.
-    ch-image build -t tmpimg -f - . <<'EOF'
+    clearly image build -t tmpimg -f - . <<'EOF'
 
 FROM alpine:3.17
 RUN echo hello
 EOF
 
     # Comment before FROM.
-    ch-image build -t tmpimg -f - . <<'EOF'
+    clearly image build -t tmpimg -f - . <<'EOF'
 # foo
 FROM alpine:3.17
 RUN echo hello
 EOF
 
     # Single instruction.
-    ch-image build -t tmpimg -f - . <<'EOF'
+    clearly image build -t tmpimg -f - . <<'EOF'
 FROM alpine:3.17
 EOF
 
     # Whitespace around comment hash.
-    run ch-image -v build -t tmpimg -f - . <<'EOF'
+    run clearly image -v build -t tmpimg -f - . <<'EOF'
 FROM alpine:3.17
 #no whitespace
  #before only
@@ -53,7 +53,7 @@ EOF
     [[ $(echo "$output" | grep -Fc 'comment') -eq 6 ]]
 
     # Whitespace and newlines (turn on whitespace highlighting in your editor):
-    run ch-image build -t tmpimg -f - . <<'EOF'
+    run clearly image build -t tmpimg -f - . <<'EOF'
 FROM alpine:3.17
 
 # trailing whitespace: shell sees it verbatim
@@ -171,10 +171,10 @@ EOF
 
 @test 'Dockerfile: syntax errors' {
     scope standard
-    [[ $CH_TEST_BUILDER = ch-image ]] || skip 'ch-image only'
+    [[ $CH_TEST_BUILDER = image ]] || skip 'image only'
 
     # Bad instruction. Also, -v should give interal blabber about the grammar.
-    run ch-image -v build -t tmpimg -f - . <<'EOF'
+    run clearly image -v build -t tmpimg -f - . <<'EOF'
 FROM alpine:3.17
 WEIRDAL
 EOF
@@ -186,7 +186,7 @@ EOF
     [[ $output = *'No terminal'*"'W'"*'at line 2 col 1'* ]]
 
     # Bad long option.
-    run ch-image build -t tmpimg -f - . <<'EOF'
+    run clearly image build -t tmpimg -f - . <<'EOF'
 FROM alpine:3.17
 COPY --chown= foo bar
 EOF
@@ -195,13 +195,13 @@ EOF
     [[ $output = *"can"?"t parse: -:2,14"* ]]
 
     # Empty input.
-    run ch-image build -t tmpimg -f /dev/null .
+    run clearly image build -t tmpimg -f /dev/null .
     echo "$output"
     [[ $status -eq 1 ]]
     [[ $output = *'no instructions found: /dev/null'* ]]
 
     # Newline only.
-    run ch-image build -t tmpimg -f - . <<'EOF'
+    run clearly image build -t tmpimg -f - . <<'EOF'
 
 EOF
     echo "$output"
@@ -209,7 +209,7 @@ EOF
     [[ $output = *'no instructions found: -'* ]]
 
     # Comment only.
-    run ch-image build -t tmpimg -f - . <<'EOF'
+    run clearly image build -t tmpimg -f - . <<'EOF'
 # foo
 EOF
     echo "$output"
@@ -217,7 +217,7 @@ EOF
     [[ $output = *'no instructions found: -'* ]]
 
     # Only newline, then comment.
-    run ch-image build -t tmpimg -f - . <<'EOF'
+    run clearly image build -t tmpimg -f - . <<'EOF'
 
 # foo
 EOF
@@ -226,7 +226,7 @@ EOF
     [[ $output = *'no instructions found: -'* ]]
 
     # Non-ARG instruction before FROM
-    run ch-image build -t tmpimg -f - . <<'EOF'
+    run clearly image build -t tmpimg -f - . <<'EOF'
 RUN echo uh oh
 FROM alpine:3.17
 EOF
@@ -238,10 +238,10 @@ EOF
 
 @test 'Dockerfile: semantic errors' {
     scope standard
-    [[ $CH_TEST_BUILDER = ch-image ]] || skip 'ch-image only'
+    [[ $CH_TEST_BUILDER = image ]] || skip 'image only'
 
     # Repeated instruction option.
-    run ch-image build -t tmpimg -f - . <<'EOF'
+    run clearly image build -t tmpimg -f - . <<'EOF'
 FROM alpine:3.17
 COPY --chown=foo --chown=bar fixtures/empty-file .
 EOF
@@ -250,7 +250,7 @@ EOF
     [[ $output = *'  2 COPY: repeated option --chown'* ]]
 
     # COPY invalid option.
-    run ch-image build -t tmpimg -f - . <<'EOF'
+    run clearly image build -t tmpimg -f - . <<'EOF'
 FROM alpine:3.17
 COPY --foo=foo fixtures/empty-file .
 EOF
@@ -259,7 +259,7 @@ EOF
     [[ $output = *'COPY: invalid option --foo'* ]]
 
     # FROM invalid option.
-    run ch-image build -t tmpimg -f - . <<'EOF'
+    run clearly image build -t tmpimg -f - . <<'EOF'
 FROM --foo=bar alpine:3.17
 EOF
     echo "$output"
@@ -272,10 +272,10 @@ EOF
     # This test also creates images we don’t care about.
 
     scope standard
-    [[ $CH_TEST_BUILDER = ch-image ]] || skip 'ch-image only'
+    [[ $CH_TEST_BUILDER = image ]] || skip 'image only'
 
     # FROM --platform
-    run ch-image build -t tmpimg -f - . <<'EOF'
+    run clearly image build -t tmpimg -f - . <<'EOF'
 FROM --platform=foo alpine:3.17
 EOF
     echo "$output"
@@ -283,7 +283,7 @@ EOF
     [[ $output = *'error: not yet supported: issue #778: FROM --platform'* ]]
 
     # other instructions
-    run ch-image build -t tmpimg -f - . <<'EOF'
+    run clearly image build -t tmpimg -f - . <<'EOF'
 FROM alpine:3.17
 ADD foo
 CMD foo
@@ -299,7 +299,7 @@ EOF
     [[ $output = *'warning: not yet supported, ignored: issue #788: ONBUILD instruction'* ]]
 
     # .dockerignore files
-    run ch-image build -t tmpimg -f - . <<'EOF'
+    run clearly image build -t tmpimg -f - . <<'EOF'
 FROM alpine:3.17
 EOF
     echo "$output"
@@ -307,14 +307,14 @@ EOF
     [[ $output = *'warning: not yet supported, ignored: issue #777: .dockerignore file'* ]]
 
     # URL (Git repo) contexts
-    run ch-image build -t not-yet-supported -f - \
+    run clearly image build -t not-yet-supported -f - \
         git@github.com:hpc/charliecloud.git <<'EOF'
 FROM alpine:3.17
 EOF
     echo "$output"
     [[ $status -eq 1 ]]
     [[ $output = *'error: not yet supported: issue #773: URL context'* ]]
-    run ch-image build -t tmpimg -f - \
+    run clearly image build -t tmpimg -f - \
         https://github.com/hpc/charliecloud.git <<'EOF'
 FROM alpine:3.17
 EOF
@@ -323,7 +323,7 @@ EOF
     [[ $output = *'error: not yet supported: issue #773: URL context'* ]]
 
     # variable expansion modifiers
-    run ch-image build -t tmpimg -f - . <<'EOF'
+    run clearly image build -t tmpimg -f - . <<'EOF'
 FROM alpine:3.17
 ARG foo=README
 COPY fixtures/${foo:+bar} .
@@ -332,7 +332,7 @@ EOF
     [[ $status -eq 1 ]]
     # shellcheck disable=SC2016
     [[ $output = *'error: modifiers ${foo:+bar} and ${foo:-bar} not yet supported (issue #774)'* ]]
-    run ch-image build -t tmpimg -f - . <<'EOF'
+    run clearly image build -t tmpimg -f - . <<'EOF'
 FROM alpine:3.17
 ARG foo=README
 COPY fixtures/${foo:-bar} .
@@ -348,10 +348,10 @@ EOF
     # This test also creates images we don’t care about.
 
     scope standard
-    [[ $CH_TEST_BUILDER = ch-image ]] || skip 'ch-image only'
+    [[ $CH_TEST_BUILDER = image ]] || skip 'image only'
 
     # parser directives
-    run ch-image build -t tmpimg -f - . <<'EOF'
+    run clearly image build -t tmpimg -f - . <<'EOF'
 # escape=foo
 # syntax=foo
 #syntax=foo
@@ -367,7 +367,7 @@ EOF
     [[ $(echo "$output" | grep -Fc 'parser directives') -eq 10 ]]
 
     # COPY --from
-    run ch-image build -t tmpimg -f - . <<'EOF'
+    run clearly image build -t tmpimg -f - . <<'EOF'
 FROM alpine:3.17
 COPY --chown=foo fixtures/empty-file .
 EOF
@@ -376,7 +376,7 @@ EOF
     [[ $output = *'warning: not supported, ignored: COPY --chown'* ]]
 
     # Unsupported instructions
-    run ch-image build -t tmpimg -f - . <<'EOF'
+    run clearly image build -t tmpimg -f - . <<'EOF'
 FROM alpine:3.17
 EXPOSE foo
 HEALTHCHECK foo
@@ -482,7 +482,7 @@ EOF
 @test 'Dockerfile: LABEL parsing' {
 
     scope standard
-    [[ $CH_TEST_BUILDER = ch-image ]] || skip 'ch-image only'
+    [[ $CH_TEST_BUILDER = image ]] || skip 'image only'
 
     label_expected=$(cat <<'EOF'
 ('chsl_0a', 'value 0a')
@@ -552,7 +552,7 @@ RUN print("hello")
 EOF
    echo "$output"
    [[ $status -eq 1 ]]
-   if [[ $CH_TEST_BUILDER = ch-image ]]; then
+   if [[ $CH_TEST_BUILDER = image ]]; then
       [[ $output = *"/doesnotexist: No such file or directory"* ]]
    else
       [[ $output = *"/doesnotexist: no such file or directory"* ]]
@@ -583,11 +583,11 @@ EOF
 
 
 @test 'Dockerfile: ARG and ENV values' {
-    # We use full scope for builders other than ch-image because (1) with
-    # ch-image, we are responsible for --build-arg being implemented correctly
+    # We use full scope for builders other than clearly image because (1) with
+    # clearly image, we are responsible for --build-arg being implemented correctly
     # and (2) Docker and Buildah take a full minute for this test, vs. three
-    # seconds for ch-image.
-    if [[ $CH_TEST_BUILDER = ch-image ]]; then
+    # seconds for clearly image.
+    if [[ $CH_TEST_BUILDER = image ]]; then
         scope standard
     else
         scope full
@@ -602,7 +602,7 @@ EOF
 
     # Note that this test illustrates a number of behavior differences between
     # the builders. For most of these, but not all, Docker and Buildah have
-    # the same behavior and ch-image differs.
+    # the same behavior and clearly image differs.
 
     echo '*** default (no --build-arg)'
     env_expected=$(cat <<'EOF'
@@ -652,7 +652,7 @@ EOF
     diff -u <(echo "$env_expected") <(echo "$env_actual")
 
     echo '*** one --build-arg from environment'
-    if [[ $CH_TEST_BUILDER == ch-image ]]; then
+    if [[ $CH_TEST_BUILDER == image ]]; then
         env_expected=$(cat <<'EOF'
 chse_arg1_df=foo1
 chse_arg2_df=arg2
@@ -736,7 +736,7 @@ EOF
     diff -u <(echo "$env_expected") <(echo "$env_actual")
 
     echo '*** two --build-arg with substitution'
-    if [[ $CH_TEST_BUILDER == ch-image ]]; then
+    if [[ $CH_TEST_BUILDER == image ]]; then
         env_expected=$(cat <<'EOF'
 chse_arg2_df=bar2
 chse_arg3_df=bar3 bar2
@@ -770,7 +770,7 @@ EOF
     run build_ --build-arg chse_doesnotexist=foo \
                --no-cache -t tmpimg -f ./Dockerfile.argenv .
     echo "$output"
-    if [[ $CH_TEST_BUILDER = ch-image ]]; then
+    if [[ $CH_TEST_BUILDER = image ]]; then
         [[ $status -eq 1 ]]
         [[ $output = *'not consumed'* ]]
         [[ $output = *'chse_doesnotexist'* ]]
@@ -783,7 +783,7 @@ EOF
     run build_ --build-arg chse_arg1_df \
                --no-cache -t tmpimg -f ./Dockerfile.argenv .
     echo "$output"
-    if [[ $CH_TEST_BUILDER = ch-image ]]; then
+    if [[ $CH_TEST_BUILDER = image ]]; then
         [[ $status -eq 1 ]]
         [[ $output = *'--build-arg: chse_arg1_df: no value and not in environment'* ]]
     else
@@ -889,7 +889,7 @@ RUN true
 FROM b
 RUN true
 EOF
-    # We only care that other builders return 0; we only check ch-image output.
+    # We only care that other builders return 0; we only check clearly image output.
     echo "$output"
     [[ $status -eq 0 ]]
     # There is a distinction between the image tag, displayed base/alias text,
@@ -903,7 +903,7 @@ EOF
     #
     #  3. checkout stage_1 as image tag and display correct base text, (alias
     #     'b', not 'a' or ARG).
-    if [[ $CH_TEST_BUILDER = ch-image ]]; then
+    if [[ $CH_TEST_BUILDER = image ]]; then
         [[ $output = *"ARG BASEIMG='alpine:3.17'"* ]]
         [[ $output = *'FROM alpine:3.17 AS a'* ]]
         [[ $output = *'RUN.S true'* ]]
@@ -911,7 +911,7 @@ EOF
         [[ $output = *'RUN.S true'* ]]
         [[ $output = *'FROM b'* ]]
         [[ $output = *'RUN.S true'* ]]
-        run ch-image list
+        run clearly image list
         echo "$output"
         [[ $status -eq 0 ]]
         [[ $output = *'alpine:3.17'* ]]
@@ -924,10 +924,10 @@ EOF
 
 @test 'Dockerfile: FROM --arg' {
     scope standard
-    [[ $CH_TEST_BUILDER = ch-image ]] || skip 'ch-image only'
+    [[ $CH_TEST_BUILDER = image ]] || skip 'image only'
 
     # --arg present but not used in image name
-    run ch-image build --no-cache -t tmpimg -f - . <<'EOF'
+    run clearly image build --no-cache -t tmpimg -f - . <<'EOF'
 FROM --arg=foo=bar alpine:3.17
 RUN echo "1: foo=$foo"
 EOF
@@ -937,7 +937,7 @@ EOF
     [[ $output = *'1: foo=bar'* ]]
 
     # --arg used in image name
-    run ch-image build --no-cache -t tmpimg -f - . <<'EOF'
+    run clearly image build --no-cache -t tmpimg -f - . <<'EOF'
 FROM --arg=os=alpine:3.17 $os
 RUN echo "1: os=$os"
 EOF
@@ -947,7 +947,7 @@ EOF
     [[ $output = *'1: os=alpine:3.17'* ]]
 
     # multiple --arg
-    run ch-image build --no-cache -t tmpimg -f - . <<'EOF'
+    run clearly image build --no-cache -t tmpimg -f - . <<'EOF'
 FROM --arg=foo=bar --arg=os=alpine:3.17 $os
 RUN echo "1: foo=$foo os=$os"
 EOF
@@ -959,10 +959,10 @@ EOF
 
 @test 'Dockerfile: COPY list form' {
     scope standard
-    [[ $CH_TEST_BUILDER == ch-image ]] || skip 'ch-image only'
+    [[ $CH_TEST_BUILDER == image ]] || skip 'image only'
 
     # single source
-    run ch-image build -t tmpimg -f - . <<'EOF'
+    run clearly image build -t tmpimg -f - . <<'EOF'
 FROM alpine:3.17
 COPY ["fixtures/empty-file", "."]
 EOF
@@ -972,7 +972,7 @@ EOF
     test -f "$CH_IMAGE_STORAGE"/img/tmpimg/empty-file
 
     # multiple source
-    run ch-image build -t tmpimg -f - . <<'EOF'
+    run clearly image build -t tmpimg -f - . <<'EOF'
 FROM alpine:3.17
 COPY ["fixtures/empty-file", "fixtures/README", "."]
 EOF
@@ -1116,7 +1116,7 @@ COPY .
 EOF
     echo "$output"
     [[ $status -ne 0 ]]
-    if [[ $CH_TEST_BUILDER = ch-image ]]; then
+    if [[ $CH_TEST_BUILDER = image ]]; then
         [[ $output = *"error: can"?"t parse: -:2,7"* ]]
     else
         [[ $output = *'COPY requires at least two arguments'* ]]
@@ -1127,7 +1127,7 @@ COPY ["."]
 EOF
     echo "$output"
     [[ $status -ne 0 ]]
-    if [[ $CH_TEST_BUILDER = ch-image ]]; then
+    if [[ $CH_TEST_BUILDER = image ]]; then
         [[ $output = *'error: source or destination missing'* ]]
     else
         [[ $output = *'COPY requires at least two arguments'* ]]
@@ -1260,9 +1260,9 @@ EOF
     # it’s from a previous stage, it should work. See issue #1381.
 
     scope standard
-    [[ $CH_TEST_BUILDER == ch-image ]] || skip 'ch-image only'
+    [[ $CH_TEST_BUILDER == image ]] || skip 'image only'
 
-    run ch-image build --no-cache -t foo - <<'EOF'
+    run clearly image build --no-cache -t foo - <<'EOF'
 FROM alpine:3.16
 FROM alpine:3.17
 COPY --from=0 /etc/os-release /
@@ -1274,13 +1274,13 @@ EOF
 
 @test 'Dockerfile: FROM scratch' {
     scope standard
-    [[ $CH_TEST_BUILDER = ch-image ]] || skip 'ch-image only'
+    [[ $CH_TEST_BUILDER = image ]] || skip 'image only'
 
     # remove if it exists
-    ch-image delete scratch || true
+    clearly image delete scratch || true
 
     # pull and validate special handling
-    run ch-image pull -v scratch
+    run clearly image pull -v scratch
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = *'manifest: using internal library'* ]]
@@ -1290,9 +1290,9 @@ EOF
 
 @test 'Dockerfile: bad image reference' {
     scope standard
-    [[ $CH_TEST_BUILDER == ch-image ]] || skip 'ch-image only'
+    [[ $CH_TEST_BUILDER == image ]] || skip 'image only'
 
-    run ch-image build -t tmpimg - <<'EOF'
+    run clearly image build -t tmpimg - <<'EOF'
 FROM /alpine:3.17
 EOF
     echo "$output"
@@ -1303,13 +1303,13 @@ EOF
 # Test for Lark issue #237: lark.exceptions.UnexpectedEOF if file doesn't end in newline.
 @test 'Dockerfile: Lark parsing without newline EOF' {
     scope standard
-    [[ $CH_TEST_BUILDER == ch-image ]] || skip 'ch-image only'
+    [[ $CH_TEST_BUILDER == image ]] || skip 'image only'
 
     cp ../examples/Dockerfile.mpich Dockerfile.tmp
 
     truncate -s -1 Dockerfile.tmp
 
-    run ch-image build -t tmpimg -f Dockerfile.tmp .
+    run clearly image build -t tmpimg -f Dockerfile.tmp .
 
     # Clean up tmp file
     rm Dockerfile.tmp
@@ -1323,12 +1323,12 @@ EOF
     [[ $status -eq 0 ]]
 }
 
-@test 'Dockerfile: ch-image modify -c: validate tree' {
+@test 'Dockerfile: clearly image modify -c: validate tree' {
     scope standard
-    [[ $CH_TEST_BUILDER == ch-image ]] || skip 'ch-image only'
+    [[ $CH_TEST_BUILDER == image ]] || skip 'image only'
 
     # Non-interactive mode using -c
-    run ch-image -v modify -c 'echo foo' -c 'echo bar' -- foo foo2
+    run clearly image -v modify -c 'echo foo' -c 'echo bar' -- foo foo2
 
     # Get pretty-printed tree structure
     tree=$(echo "$output" | grep '^  -1  -1')
@@ -1358,7 +1358,7 @@ EOF
 
     # Non-interactive mode using a shell script
     echo 'echo hello world' > "/tmp/tmp_script.sh"
-    run ch-image -v modify foo bar /tmp/tmp_script.sh
+    run clearly image -v modify foo bar /tmp/tmp_script.sh
 
     # Get pretty-printed tree structure
     tree=$(echo "$output" | grep '^  -1  -1')

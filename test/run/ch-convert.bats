@@ -11,10 +11,10 @@ load ../common
 # row i. This approach does each conversion exactly once.
 #
 #               output ->
-#               | dir      | ch-image | docker   | squash   | tar     |
+#               | dir      | image    | docker   | squash   | tar     |
 # input         +----------+----------+----------+----------+---------+
 #   |  dir      |    —     |    a     |    a     |    a     |    a    |
-#   v  ch-image |    b     |    —     |          |          |         |
+#   v  image    |    b     |    —     |          |          |         |
 #      docker   |    b     |          |    —     |          |         |
 #      squash   |    b     |          |          |    —     |         |
 #      tar      |    b     |          |          |          |    —    |
@@ -42,12 +42,12 @@ load ../common
 
 
 # This is a little goofy, because several of the tests need *all* the
-# builders. Thus, we (a) run only for builder ch-image but (b)
+# builders. Thus, we (a) run only for builder image but (b)
 # pedantic-require Docker to also be installed.
 setup () {
     skip 'omitted for now (see test/gitlab.com/README)'
     scope standard
-    [[ $CH_TEST_BUILDER = ch-image ]] || skip 'ch-image only'
+    [[ $CH_TEST_BUILDER = image ]] || skip 'image only'
     [[ $CH_TEST_PACK_FMT = *-unpack ]] || skip 'needs directory images'
     if ! command -v docker > /dev/null 2>&1; then
         pedantic_fail 'docker not found'  # FIXME: WHAT ABOUT PODMAN?
@@ -103,7 +103,7 @@ compare () {
 #
 # sed(1) modifications (-e in order below):
 #
-#   1. Because ch-image changes absolute symlinks to relative using a sequence
+#   1. Because image changes absolute symlinks to relative using a sequence
 #      of up-dirs (“..”), remove these sequences.
 #
 #   2. For the same reason, remove symlink file sizes (symlinks contain the
@@ -144,7 +144,7 @@ convert-img () {
     in_fmt=$2
     out_fmt=$3;
     case $in_fmt in
-        ch-image)
+        image)
             in_desc=tmpimg
             ;;
         dir)
@@ -168,7 +168,7 @@ convert-img () {
             ;;
     esac
     case $out_fmt in
-        ch-image)
+        image)
             out_desc=tmpimg
             ;;
         dir)
@@ -194,10 +194,10 @@ convert-img () {
     echo
     echo "CONVERT ${ct}: ${in_desc} ($in_fmt) -> ${out_desc} (${out_fmt})"
     delete "$out_fmt" "$out_desc"
-    if [[ $in_fmt = ch-image && $CH_IMAGE_CACHE = enabled ]]; then
+    if [[ $in_fmt = image && $CH_IMAGE_CACHE = enabled ]]; then
         # round-trip the input image through Git
-        ch-image delete "$in_desc"
-        ch-image undelete "$in_desc"
+        clearly image delete "$in_desc"
+        clearly image undelete "$in_desc"
     fi
     ch-convert --no-clobber -v -i "$in_fmt" -o "$out_fmt" "$in_desc" "$out_desc"
     # Doing it twice doubles the time but also tests that both new conversions
@@ -211,8 +211,8 @@ delete () {
     fmt=$1
     desc=$2
     case $fmt in
-        ch-image)
-            ch-image delete "$desc" || true
+        image)
+            image delete "$desc" || true
             ;;
         dir)
             rm -Rf --one-file-system "$desc"
@@ -246,7 +246,7 @@ test_from () {
     end=${BATS_TMPDIR}/convert.dir
     ct=1
     convert-img "$ct" dir "$1"
-    for j in ch-image docker podman squash tar; do
+    for j in image docker podman squash tar; do
         if [[ $1 != "$j" ]]; then
             ct=$((ct+1))
             convert-img "$ct" "$1" "$j"
@@ -298,9 +298,9 @@ test_from () {
     # builders
     run ch-convert -n foo out.tar
     echo "$output"
-    if command -v ch-image > /dev/null 2>&1; then
+    if command -v image > /dev/null 2>&1; then
         [[ $status -eq 0 ]]
-        [[ $output = *'input:   ch-image'* ]]
+        [[ $output = *'input:   image'* ]]
     elif command -v docker > /dev/null 2>&1; then
         [[ $status -eq 0 ]]
         [[ $output = *'input:   docker'* ]]
@@ -332,15 +332,15 @@ test_from () {
 
 
 @test 'ch-convert: --no-clobber' {
-    # ch-image
-    printf 'FROM alpine:3.17\n' | ch-image build -t tmpimg -f - "$BATS_TMPDIR"
-    run ch-convert --no-clobber -o ch-image "$BATS_TMPDIR" tmpimg
+    # image
+    printf 'FROM alpine:3.17\n' | clearly image build -t tmpimg -f - "$BATS_TMPDIR"
+    run ch-convert --no-clobber -o image "$BATS_TMPDIR" tmpimg
     echo "$output"
     [[ $status -eq 1 ]]
-    [[ $output = *"error: exists in ch-image storage, not deleting per --no-clobber: tmpimg" ]]
+    [[ $output = *"error: exists in image storage, not deleting per --no-clobber: tmpimg" ]]
 
-    # convert ch_timg into ch-image format
-    ch-image delete timg || true
+    # convert ch_timg into image format
+    clearly image delete timg || true
     if [[ $(stat -c %F "$ch_timg") = 'symbolic link' ]]; then
         # symlink to squash archive
         fmt="squash"
@@ -348,11 +348,11 @@ test_from () {
         # directory
         fmt="dir"
     fi
-    ch-convert -i "$fmt" -o ch-image "$ch_timg" timg
+    ch-convert -i "$fmt" -o image "$ch_timg" timg
 
     # dir
-    ch-convert -i ch-image -o dir timg "$BATS_TMPDIR/timg"
-    run ch-convert --no-clobber -i ch-image -o dir timg "$BATS_TMPDIR/timg"
+    ch-convert -i image -o dir timg "$BATS_TMPDIR/timg"
+    run ch-convert --no-clobber -i image -o dir timg "$BATS_TMPDIR/timg"
     echo "$output"
     [[ $status -eq 1 ]]
     [[ $output = *"error: exists, not deleting per --no-clobber: ${BATS_TMPDIR}/timg" ]]
@@ -374,7 +374,7 @@ test_from () {
 
     # squash
     touch "${BATS_TMPDIR}/timg.sqfs"
-    run ch-convert --no-clobber -i ch-image -o squash timg "$BATS_TMPDIR/timg.sqfs"
+    run ch-convert --no-clobber -i image -o squash timg "$BATS_TMPDIR/timg.sqfs"
     echo "$output"
     [[ $status -eq 1 ]]
     [[ $output = *"error: exists, not deleting per --no-clobber: ${BATS_TMPDIR}/timg.sqfs" ]]
@@ -382,7 +382,7 @@ test_from () {
 
     # tar
     touch "${BATS_TMPDIR}/timg.tar.gz"
-    run ch-convert --no-clobber -i ch-image -o tar timg "$BATS_TMPDIR/timg.tar.gz"
+    run ch-convert --no-clobber -i image -o tar timg "$BATS_TMPDIR/timg.tar.gz"
     echo "$output"
     [[ $status -eq 1 ]]
     [[ $output = *"error: exists, not deleting per --no-clobber: ${BATS_TMPDIR}/timg.tar.gz" ]]
@@ -395,8 +395,8 @@ test_from () {
 
     ## setup source images ##
 
-    # ch-image
-    printf 'FROM alpine:3.17\n' | ch-image build -t tmpimg -f - "$BATS_TMPDIR"
+    # image
+    printf 'FROM alpine:3.17\n' | image build -t tmpimg -f - "$BATS_TMPDIR"
 
     # docker
     printf 'FROM alpine:3.17\n' | docker_ build -t tmpimg -
@@ -406,16 +406,16 @@ test_from () {
 
     # squash
     touch "${BATS_TMPDIR}/tmpimg.sqfs"
-    ch-convert -i ch-image -o squash tmpimg "$BATS_TMPDIR/tmpimg.sqfs"
+    ch-convert -i image -o squash tmpimg "$BATS_TMPDIR/tmpimg.sqfs"
 
     # tar
-    ch-convert -i ch-image -o tar tmpimg "$BATS_TMPDIR/tmpimg.tar.gz"
+    ch-convert -i image -o tar tmpimg "$BATS_TMPDIR/tmpimg.tar.gz"
 
     ## run test ##
 
-    # ch-image
+    # image
     empty_dir_init "$empty"
-    run ch-convert -i ch-image -o dir tmpimg "$empty"
+    run ch-convert -i image -o dir tmpimg "$empty"
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = *"using empty directory: $empty"* ]]
@@ -506,7 +506,7 @@ test_from () {
     # b0rked: (adj) broken, messed up
     #
     # In this test, we create a tarball with “unusual” xattrs that we don’t want
-    # to restore (i.e. a borked tarball), and try to convert it into a ch-image.
+    # to restore (i.e. a borked tarball), and try to convert it into a image.
     [[ -n $CH_TEST_SUDO ]] || skip 'sudo required'
 
     cd "$BATS_TMPDIR"
@@ -518,13 +518,13 @@ test_from () {
 
     rm -rf "$borked_img" "$borked_tar" "$borked_out"
 
-    ch-image build -t tmpimg - <<'EOF'
+    clearly image build -t tmpimg - <<'EOF'
 FROM alpine:3.17
 RUN touch /home/foo
 EOF
 
     # convert image to dir and actually bork it
-    ch-convert -i ch-image -o dir tmpimg "$borked_img"
+    ch-convert -i image -o dir tmpimg "$borked_img"
     setfattr -n user.foo -v bar "$borked_file"
     sudo setfattr -n security.foo -v bar "$borked_file"
     sudo setfattr -n trusted.foo -v bar "$borked_file"
@@ -566,8 +566,8 @@ EOF
     [[ $output = *"user:$USER:r--"* ]]
 }
 
-@test 'ch-convert: dir -> ch-image -> X' {
-    test_from ch-image
+@test 'ch-convert: dir -> image -> X' {
+    test_from image
 }
 
 @test 'ch-convert: dir -> docker -> X' {

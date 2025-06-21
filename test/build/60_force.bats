@@ -1,8 +1,8 @@
 load ../common
-tag='ch-image --force'
+tag='clearly image --force'
 
 setup () {
-    [[ $CH_TEST_BUILDER = ch-image ]] || skip 'ch-image only'
+    [[ $CH_TEST_BUILDER = image ]] || skip 'image only'
     export CH_IMAGE_CACHE=disabled
 }
 
@@ -10,7 +10,7 @@ setup () {
     scope standard
 
     # with --force
-    run ch-image -v build --force=fakeroot -t tmpimg -f - . <<'EOF'
+    run clearly image -v build --force=fakeroot -t tmpimg -f - . <<'EOF'
 FROM hello-world:latest
 EOF
     echo "$output"
@@ -21,7 +21,7 @@ EOF
 @test "${tag}: misc errors" {
     scope standard
 
-    run ch-image build --force=fakeroot --force-cmd=foo,bar .
+    run clearly image build --force=fakeroot --force-cmd=foo,bar .
     echo "$output"
     [[ $status -eq 1 ]]
     [[ $output = *'are incompatible'* ]]
@@ -32,7 +32,7 @@ EOF
 
     # 1. List form of RUN.
     # 2. apt-get not at beginning.
-    run ch-image -v build --force -t tmpimg -f - . <<'EOF'
+    run clearly image -v build --force -t tmpimg -f - . <<'EOF'
 FROM debian:buster
 RUN true
 RUN true && apt-get update
@@ -52,7 +52,7 @@ EOF
 
     # NOTE: This produces a broken system because we ignore openssh-client’s
     # dependencies, but it’s good enough to test --force.
-    ch-image -v build --force -t tmpimg -f - . <<'EOF'
+    clearly image -v build --force -t tmpimg -f - . <<'EOF'
 FROM debian:buster
 RUN apt-get update && apt install -y wget
 RUN wget -nv https://snapshot.debian.org/archive/debian/20230213T151507Z/pool/main/o/openssh/openssh-client_8.4p1-5%2Bdeb11u1_amd64.deb
@@ -65,7 +65,7 @@ EOF
     scope standard
     [[ $(uname -m) = x86_64 ]] || skip 'amd64 only'
 
-    ch-image -v build --force -t tmpimg -f - . <<'EOF'
+    clearly image -v build --force -t tmpimg -f - . <<'EOF'
 FROM almalinux:8
 RUN curl -sSOL https://vault.almalinux.org/8.6/BaseOS/x86_64/os/Packages/openssh-8.0p1-13.el8.x86_64.rpm
 RUN rpm --install *.rpm
@@ -75,7 +75,7 @@ EOF
 @test "${tag}: list form" {
     scope standard
 
-    ch-image -v build --force -t tmpimg -f - . <<'EOF'
+    clearly image -v build --force -t tmpimg -f - . <<'EOF'
 FROM debian:buster
 RUN ["apt-get", "update"]
 RUN ["apt-get", "install", "-y", "openssh-client"]

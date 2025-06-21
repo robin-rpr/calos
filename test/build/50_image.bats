@@ -2,42 +2,42 @@ load ../common
 
 setup () {
     scope standard
-    [[ $CH_TEST_BUILDER = ch-image ]] || skip 'ch-image only'
+    [[ $CH_TEST_BUILDER = image ]] || skip 'image only'
 }
 
 tmpimg_build () {
   for img in "$@"; do
-    ch-image build -t "$img" -f - . << 'EOF'
+    clearly image build -t "$img" -f - . << 'EOF'
 FROM alpine:3.17
 EOF
-    run ch-image list
+    run clearly image list
     [[ $status -eq 0 ]]
     [[ $output == *"$img"* ]]
   done
 }
 
 
-@test 'ch-image common options' {
+@test 'clearly image common options' {
     # no common options
-    run ch-image list
+    run clearly image list
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output != *'verbose level'* ]]
 
     # before only
-    run ch-image -vv list
+    run clearly image -vv list
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = *'verbose level: 2'* ]]
 
     # after only
-    run ch-image list -vv
+    run clearly image list -vv
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = *'verbose level: 2'* ]]
 
     # before and after; after wins
-    run ch-image -vv list -v
+    run clearly image -vv list -v
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = *'verbose level: 1'* ]]
@@ -46,7 +46,7 @@ EOF
     unset CH_IMAGE_DEBUG
 
     # test gestalt logging
-    run ch-image gestalt logging
+    run clearly image gestalt logging
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = *"info"* ]]
@@ -54,7 +54,7 @@ EOF
     [[ $output = *'error: error'* ]]
 
     # quiet level 1
-    run ch-image gestalt -q logging
+    run clearly image gestalt -q logging
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output != *"info"* ]]
@@ -62,7 +62,7 @@ EOF
     [[ $output = *'error: error'* ]]
 
     # quiet level 2
-    run ch-image build --rebuild -t tmpimg -qq -f - . << 'EOF'
+    run clearly image build --rebuild -t tmpimg -qq -f - . << 'EOF'
 FROM alpine:3.17
 RUN echo 'this is stdout'
 RUN echo 'this is stderr' 1>&2
@@ -75,7 +75,7 @@ EOF
     [[ $output != *'grown in 4 instructions: tmpimg'* ]]
 
     # quiet level 3
-    run ch-image gestalt logging -qqq
+    run clearly image gestalt logging -qqq
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output != *'info'* ]]
@@ -83,7 +83,7 @@ EOF
     [[ $output = *'error: error'* ]]
 
     # failure at quiet level 3
-    run ch-image gestalt logging -qqq --fail
+    run clearly image gestalt logging -qqq --fail
     echo "$output"
     [[ $status -eq 1 ]]
     [[ $output != *'info'* ]]
@@ -92,22 +92,22 @@ EOF
 }
 
 
-@test 'ch-image delete' {
+@test 'clearly image delete' {
     # Verify image doesn’t exist.
-    run ch-image list
+    run clearly image list
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output != *"delete/test"* ]]
 
     # Build image. It’s called called delete/test to check ref parsing with
     # slash present.
-    ch-image build -t delete/test -f - . << 'EOF'
+    clearly image build -t delete/test -f - . << 'EOF'
 FROM alpine:3.17
 FROM alpine:3.17
 FROM alpine:3.17
 FROM alpine:3.17
 EOF
-    run ch-image list
+    run clearly image list
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = *"delete/test"* ]]
@@ -116,8 +116,8 @@ EOF
     [[ $output = *"delete/test_stage2"* ]]
 
     # Delete image.
-    ch-image delete delete/test
-    run ch-image list
+    clearly image delete delete/test
+    run clearly image list
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output != *"delete/test"* ]]
@@ -126,8 +126,8 @@ EOF
     [[ $output != *"delete/test_stage2"* ]]
 
     tmpimg_build tmpimg1 tmpimg2
-    ch-image delete tmpimg1 tmpimg2
-    run ch-image list
+    clearly image delete tmpimg1 tmpimg2
+    run clearly image list
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output != *"tmpimg1"* ]]
@@ -135,7 +135,7 @@ EOF
 
     # Delete list of images with invalid image
     tmpimg_build tmpimg1 tmpimg2
-    run ch-image delete tmpimg1 doesnotexist tmpimg2
+    run clearly image delete tmpimg1 doesnotexist tmpimg2
     echo "$output"
     [[ $status -eq 1 ]]
     [[ $output == *"deleting image: tmpimg1"* ]]
@@ -145,7 +145,7 @@ EOF
 
     # Delete list of images with multiple invalid images
     tmpimg_build tmpimg1 tmpimg2
-    run ch-image delete tmpimg1 doesnotexist tmpimg2 doesnotexist2
+    run clearly image delete tmpimg1 doesnotexist tmpimg2 doesnotexist2
     echo "$output"
     [[ $status -eq 1 ]]
     [[ $output == *"deleting image: tmpimg1"* ]]
@@ -158,16 +158,16 @@ EOF
 
 @test 'broken image delete' {
     # Verify image doesn’t exist.
-    run ch-image list
+    run clearly image list
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output != *"deletetest"* ]]
 
     # Build image.
-    ch-image build -t deletetest -f - . << 'EOF'
+    clearly image build -t deletetest -f - . << 'EOF'
 FROM alpine:3.17
 EOF
-    run ch-image list
+    run clearly image list
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = *"deletetest"* ]]
@@ -176,8 +176,8 @@ EOF
     rmdir "$CH_IMAGE_STORAGE"/img/deletetest/dev
 
     # Delete image.
-    ch-image delete deletetest
-    run ch-image list
+    clearly image delete deletetest
+    run clearly image list
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output != *"deletetest"* ]]
@@ -186,7 +186,7 @@ EOF
 
 @test 'broken image overwrite' {
     # Build image.
-    ch-image build -t tmpimg -f - . << 'EOF'
+    clearly image build -t tmpimg -f - . << 'EOF'
 FROM alpine:3.17
 EOF
 
@@ -194,17 +194,17 @@ EOF
     rmdir "$CH_IMAGE_STORAGE"/img/tmpimg/dev
 
     # Rebuild image.
-    ch-image build -t tmpimg -f - . << 'EOF'
+    clearly image build -t tmpimg -f - . << 'EOF'
 FROM alpine:3.17
 EOF
-    run ch-image list
+    run clearly image list
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = *"tmpimg"* ]]
 }
 
 
-@test 'ch-image import' {
+@test 'clearly image import' {
     # Note: We don’t test importing a real image because (1) when this is run
     # during the build phase there aren’t any unpacked images and (2) I can’t
     # think of a way import could fail that would be real image-specific.
@@ -236,93 +236,93 @@ EOF
 
     # tarbomb
     (cd "${fixtures}/nonempty" && tar czvf ../bomb.tar.gz .)
-    run ch-image import -v "${fixtures}/bomb.tar.gz" imptest
+    run clearly image import -v "${fixtures}/bomb.tar.gz" imptest
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = *"importing:    ${fixtures}/bomb.tar.gz"* ]]
     [[ $output = *'conversion to tarbomb not needed'* ]]
     [[ -f "${CH_IMAGE_STORAGE}/img/imptest/bin/foo" ]]
     grep -F '"arch": "corn"' "${CH_IMAGE_STORAGE}/img/imptest/ch/metadata.json"
-    ch-image delete imptest
+    clearly image delete imptest
 
     # non-tarbomb
     (cd "$fixtures" && tar czvf standard.tar.gz nonempty)
-    run ch-image import -v "${fixtures}/standard.tar.gz" imptest
+    run clearly image import -v "${fixtures}/standard.tar.gz" imptest
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = *"importing:    ${fixtures}/standard.tar.gz"* ]]
     [[ $output = *'converting to tarbomb'* ]]
     [[ -f "${CH_IMAGE_STORAGE}/img/imptest/bin/foo" ]]
     grep -F '"arch": "corn"' "${CH_IMAGE_STORAGE}/img/imptest/ch/metadata.json"
-    ch-image delete imptest
+    clearly image delete imptest
 
     # non-tarbomb, but enclosing directory is a standard dir
     (cd "${fixtures}/nonempty" && tar czvf ../tricky.tar.gz bin)
-    run ch-image import -v "${fixtures}/tricky.tar.gz" imptest
+    run clearly image import -v "${fixtures}/tricky.tar.gz" imptest
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = *"importing:    ${fixtures}/tricky.tar.gz"* ]]
     [[ $output = *'conversion to tarbomb not needed'* ]]
     [[ -f "${CH_IMAGE_STORAGE}/img/imptest/bin/foo" ]]
-    ch-image delete imptest
+    clearly image delete imptest
 
     # empty, uncompressed tarfile
     (cd "${fixtures}" && tar cvf empty.tar empty)
-    run ch-image import -v "${fixtures}/empty.tar" imptest
+    run clearly image import -v "${fixtures}/empty.tar" imptest
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = *"importing:    ${fixtures}/empty.tar"* ]]
     [[ $output = *'converting to tarbomb'* ]]
     [[ $output = *'warning: no metadata to load; using defaults'* ]]
-    ch-image delete imptest
+    clearly image delete imptest
 
     ## Directories
 
     # non-empty directory
-    run ch-image import -v "${fixtures}/nonempty" imptest
+    run clearly image import -v "${fixtures}/nonempty" imptest
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = *"importing:    ${fixtures}/nonempty"* ]]
     [[ $output = *"copying image: ${fixtures}/nonempty -> ${CH_IMAGE_STORAGE}/img/imptest"* ]]
     [[ -f "${CH_IMAGE_STORAGE}/img/imptest/bin/foo" ]]
     grep -F '"arch": "corn"' "${CH_IMAGE_STORAGE}/img/imptest/ch/metadata.json"
-    ch-image delete imptest
+    clearly image delete imptest
 
     # empty directory
-    run ch-image import -v "${fixtures}/empty" imptest
+    run clearly image import -v "${fixtures}/empty" imptest
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = *"importing:    ${fixtures}/empty"* ]]
     [[ $output = *"copying image: ${fixtures}/empty -> ${CH_IMAGE_STORAGE}/img/imptest"* ]]
     [[ $output = *'warning: no metadata to load; using defaults'* ]]
-    ch-image delete imptest
+    clearly image delete imptest
 
     # symlink to directory
-    run ch-image import -v "${fixtures}/nelink" imptest
+    run clearly image import -v "${fixtures}/nelink" imptest
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = *"importing:    ${fixtures}/nelink"* ]]
     [[ $output = *"copying image: ${fixtures}/nelink -> ${CH_IMAGE_STORAGE}/img/imptest"* ]]
     [[ -f "${CH_IMAGE_STORAGE}/img/imptest/bin/foo" ]]
     grep -F '"arch": "corn"' "${CH_IMAGE_STORAGE}/img/imptest/ch/metadata.json"
-    ch-image delete imptest
+    clearly image delete imptest
 
     ## Errors
 
     # input does not exist
-    run ch-image import -v /doesnotexist imptest
+    run clearly image import -v /doesnotexist imptest
     echo "$output"
     [[ $status -eq 1 ]]
     [[ $output = *"error: can"?"t copy: not found: /doesnotexist"* ]]
 
     # invalid destination reference
-    run ch-image import -v "${fixtures}/empty" 'badchar*'
+    run clearly image import -v "${fixtures}/empty" 'badchar*'
     echo "$output"
     [[ $status -eq 1 ]]
     [[ $output = *'error: image ref syntax, char 8: badchar*'* ]]
 
     # non-empty file that’s not a tarball
-    run ch-image import -v "${fixtures}/nonempty/ch/metadata.json" imptest
+    run clearly image import -v "${fixtures}/nonempty/ch/metadata.json" imptest
     echo "$output"
     [[ $status -eq 1 ]]
     [[ $output = *"error: cannot open: ${fixtures}/nonempty/ch/metadata.json"* ]]
@@ -333,16 +333,16 @@ EOF
 }
 
 
-@test 'ch-image list' {
+@test 'clearly image list' {
 
     # list all images
-    run ch-image list
+    run clearly image list
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = *"alpine:3.17"* ]]
 
     # name does not exist remotely, in library
-    run ch-image list doesnotexist:latest
+    run clearly image list doesnotexist:latest
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = *'in local storage:    no'* ]]
@@ -351,7 +351,7 @@ EOF
     [[ $output = *'archs available:     n/a'* ]]
 
     # tag does not exist remotely, in library
-    run ch-image list alpine:doesnotexist
+    run clearly image list alpine:doesnotexist
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = *'in local storage:    no'* ]]
@@ -360,7 +360,7 @@ EOF
     [[ $output = *'archs available:     n/a'* ]]
 
     # name does not exist remotely, not in library
-    run ch-image list charliecloud/doesnotexist:latest
+    run clearly image list charliecloud/doesnotexist:latest
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = *'in local storage:    no'* ]]
@@ -369,7 +369,7 @@ EOF
     [[ $output = *'archs available:     n/a'* ]]
 
     # tag does not exist remotely, not in library
-    run ch-image list charliecloud/metadata:doesnotexist
+    run clearly image list charliecloud/metadata:doesnotexist
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = *'in local storage:    no'* ]]
@@ -378,7 +378,7 @@ EOF
     [[ $output = *'archs available:     n/a'* ]]
 
     # in storage, does not exist remotely
-    run ch-image list argenv
+    run clearly image list argenv
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = *'in local storage:    yes'* ]]
@@ -387,7 +387,7 @@ EOF
     [[ $output = *'archs available:     n/a'* ]]
 
     # not in storage, exists remotely, fat manifest exists
-    run ch-image list debian:buster-slim
+    run clearly image list debian:buster-slim
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = *'in local storage:    no'* ]]
@@ -396,7 +396,7 @@ EOF
     [[ $output = *'archs available:'*'386'*'amd64'*'arm/v7'*'arm64/v8'* ]]
 
     # in storage, exists remotely, no fat manifest
-    run ch-image list charliecloud/metadata:2021-01-15
+    run clearly image list charliecloud/metadata:2021-01-15
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = *'in local storage:    yes'* ]]
@@ -405,7 +405,7 @@ EOF
     [[ $output = *'archs available:     unknown'* ]]
 
     # exists remotely, fat manifest exists, no Linux architectures
-    run ch-image list mcr.microsoft.com/windows:20H2
+    run clearly image list mcr.microsoft.com/windows:20H2
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = *'in local storage:    no'* ]]
@@ -414,7 +414,7 @@ EOF
     [[ $output = *'warning: no valid architectures found'* ]]
 
     # scratch is weird and tells lies
-    run ch-image list scratch
+    run clearly image list scratch
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = *'available remotely:  yes'* ]]
@@ -422,24 +422,24 @@ EOF
 }
 
 
-@test 'ch-image reset' {
+@test 'clearly image reset' {
     CH_IMAGE_STORAGE="$BATS_TMPDIR"/sd-reset
 
     # Ensure our test storage dir doesn’t exist yet.
     [[ -e $CH_IMAGE_STORAGE ]] && rm -Rf --one-file-system "$CH_IMAGE_STORAGE"
 
     # Put an image innit.
-    ch-image pull alpine:3.17
+    clearly image pull alpine:3.17
     ls "$CH_IMAGE_STORAGE"
 
     # List images; should be only the one we just pulled.
-    run ch-image list
+    run clearly image list
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = "alpine:3.17" ]]
 
     # Reset.
-    ch-image reset
+    clearly image reset
 
     # Image storage directory should be empty now.
     expected=$(cat <<'EOF'
@@ -470,15 +470,15 @@ EOF
     rm -Rf --one-file-system "$CH_IMAGE_STORAGE"
 
     # Reset again; should error.
-    run ch-image reset
+    run clearly image reset
     echo "$output"
     [[ $status -eq 1 ]]
     [[ $output = *"$CH_IMAGE_STORAGE not a builder storage"* ]]
 }
 
 
-@test 'ch-image storage-path' {
-    run ch-image gestalt storage-path
+@test 'clearly image storage-path' {
+    run clearly image gestalt storage-path
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = /* ]]                                        # absolute path
@@ -486,8 +486,8 @@ EOF
 }
 
 
-@test 'ch-image build --bind' {
-    ch-image --no-cache build -t tmpimg -f - \
+@test 'clearly image build --bind' {
+    clearly image --no-cache build -t tmpimg -f - \
              -b "${PWD}/fixtures" -b ./fixtures:/mnt/0 . <<EOF
 FROM alpine:3.17
 RUN mount
@@ -499,13 +499,13 @@ EOF
 }
 
 
-@test 'ch-image build: metadata carry-forward' {
+@test 'clearly image build: metadata carry-forward' {
     arch_exclude aarch64  # test image not available
     arch_exclude ppc64le  # test image not available
     img=$CH_IMAGE_STORAGE/img/tmpimg
 
     # Print out current metadata, then update it.
-    run ch-image build -v -t tmpimg -f - . <<'EOF'
+    run clearly image build -v -t tmpimg -f - . <<'EOF'
 FROM charliecloud/metadata:2021-01-15
 RUN echo "cwd1: $PWD"
 WORKDIR /usr
@@ -716,18 +716,18 @@ EOF
 }
 
 
-@test 'ch-image build: multistage with colon' {
-cat <<'EOF' | ch-image --no-cache build -t tmpimg:tagged -f - .
+@test 'clearly image build: multistage with colon' {
+cat <<'EOF' | clearly image --no-cache build -t tmpimg:tagged -f - .
 FROM alpine:3.17
 FROM alpine:3.16
 COPY --from=0 /etc/os-release /
 EOF
-    ch-image delete tmpimg:tagged
+    clearly image delete tmpimg:tagged
 }
 
 
-@test 'ch-image build: failed RUN' {
-    ch-image delete tmpimg || true
+@test 'clearly image build: failed RUN' {
+    clearly image delete tmpimg || true
 
     # tr(1) works around a bug in Bash ≤4.4 (I think) that causes here docs
     # containing literal backslashes to parse incorrectly. See item “aa” in
@@ -744,21 +744,21 @@ RUN set -o noclobber %
 EOF
         )
 
-    ch-image build -t tmpimg - <<EOF && exit 1  # SC2314
+    clearly image build -t tmpimg - <<EOF && exit 1  # SC2314
 ${df}
  && false
 EOF
 
     # This will succeed unless there’s leftover junk from failed RUN above.
-    ch-image build -t tmpimg - <<EOF
+    clearly image build -t tmpimg - <<EOF
 ${df}
  && true
 EOF
 }
 
 
-@test 'ch-image build: failed COPY' {
-    ch-image delete tmpimg || true
+@test 'clearly image build: failed COPY' {
+    clearly image delete tmpimg || true
 
     # Set up fixtures.
     fixtures_dir="$BATS_TMPDIR"/copyfail
@@ -773,14 +773,14 @@ EOF
     # This will fail after the first file is already copied, because COPY is
     # non-atomic. We use an unreadable file because if the file didn’t exist,
     # COPY would fail out before starting.
-    ch-image build -t tmpimg -f - "$fixtures_dir" <<'EOF' && exit 1
+    clearly image build -t tmpimg -f - "$fixtures_dir" <<'EOF' && exit 1
 FROM alpine:3.17
 COPY /file_readable /file_unreadable /
 EOF
 
     # This will succeed unless there’s leftover junk from failed COPY above.
     # Otherwise, it will fail because can’t overwrite a file with a directory.
-    ch-image build -t tmpimg -f - "$fixtures_dir" <<'EOF'
+    clearly image build -t tmpimg -f - "$fixtures_dir" <<'EOF'
 FROM alpine:3.17
 COPY /dir_ /file_readable
 EOF
@@ -794,7 +794,7 @@ EOF
    [[ -e $CH_IMAGE_STORAGE ]] && rm -Rf --one-file-system "$CH_IMAGE_STORAGE"
 
    # Initialize by listing.
-   run ch-image list
+   run clearly image list
    echo "$output"
    [[ $status -eq 0 ]]
    [[ $output = *"initializing storage directory: v"*" ${CH_IMAGE_STORAGE}"* ]]
@@ -803,7 +803,7 @@ EOF
    v_current=$(cat "$CH_IMAGE_STORAGE"/version)
 
    # Version matches; success.
-   run ch-image -v list
+   run clearly image -v list
    echo "$output"
    [[ $status -eq 0 ]]
    [[ $output = *"found storage dir v${v_current}: ${CH_IMAGE_STORAGE}"* ]]
@@ -813,19 +813,19 @@ EOF
    cat "$CH_IMAGE_STORAGE"/version
 
    # Version mismatch; fail.
-   run ch-image -v list
+   run clearly image -v list
    echo "$output"
    [[ $status -eq 1 ]]
    [[ $output = *'error: incompatible storage directory v-1'* ]]
 
    # Reset.
-   run ch-image reset
+   run clearly image reset
    echo "$output"
    [[ $status -eq 0 ]]
    [[ $output = *"initializing storage directory: v${v_current} ${CH_IMAGE_STORAGE}"* ]]
 
    # Version matches again; success.
-   run ch-image -v list
+   run clearly image -v list
    echo "$output"
    [[ $status -eq 0 ]]
    [[ $output = *"found storage dir v${v_current}: ${CH_IMAGE_STORAGE}"* ]]
@@ -847,7 +847,7 @@ EOF
     # Rest of test uses custom storage path.
     rm -rf "$my_storage"
     mkdir -p "$my_storage"/img
-    ch-convert -i ch-image -o dir alpine:3.17 "${my_storage}/img/alpine+3.17"
+    ch-convert -i image -o dir alpine:3.17 "${my_storage}/img/alpine+3.17"
     unset CH_IMAGE_STORAGE
 
     # Specified on command line.
@@ -887,7 +887,7 @@ EOF
     # image, and that’s missing /bin/true so it pukes if we try to run it.
     # That is, in both cases, we want run-by-name to win.
     rm -rf ./alpine+3.17
-    ch-convert -i ch-image -o dir alpine:3.17 ./alpine+3.17
+    ch-convert -i image -o dir alpine:3.17 ./alpine+3.17
     rm ./alpine+3.17/bin/true
 
     # Default.
@@ -906,8 +906,8 @@ EOF
 
     export CH_IMAGE_STORAGE=$BATS_TMPDIR/import_1638
     rm -Rf --one-file-system "$CH_IMAGE_STORAGE"
-    ch-image import "$BATS_TMPDIR"/alpine317.tar.gz alpine:3.17
-    ch-image import "$BATS_TMPDIR"/alpine316.tar.gz alpine:3.16
+    clearly image import "$BATS_TMPDIR"/alpine317.tar.gz alpine:3.17
+    clearly image import "$BATS_TMPDIR"/alpine316.tar.gz alpine:3.16
 
     df1=$BATS_TMPDIR/import_1638.1.df
     cat > "$df1" <<'EOF'
@@ -922,7 +922,7 @@ EOF
 
     echo
     echo '*** Build once: miss'
-    run ch-image build -t tmpimg -f "$df1" "$BATS_TMPDIR"
+    run clearly image build -t tmpimg -f "$df1" "$BATS_TMPDIR"
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = *'1* FROM alpine:3.17'* ]]
@@ -930,7 +930,7 @@ EOF
 
     echo
     echo '*** Build again: hit'
-    run ch-image build -t tmpimg -f "$df1" "$BATS_TMPDIR"
+    run clearly image build -t tmpimg -f "$df1" "$BATS_TMPDIR"
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = *'1* FROM alpine:3.17'* ]]
@@ -938,7 +938,7 @@ EOF
 
     echo
     echo '*** Build a 3rd time with the second base image: should now miss'
-    run ch-image build -t tmpimg -f "$df2" "$BATS_TMPDIR"
+    run clearly image build -t tmpimg -f "$df2" "$BATS_TMPDIR"
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = *'1* FROM alpine:3.16'* ]]
@@ -955,8 +955,8 @@ FROM almalinux:8
 RUN dnf install -y --releasever=/ --installroot=/foo filesystem
 EOF
 
-    ch-image build -f "$df" "$BATS_TMPDIR"
-    ch-image reset
+    clearly image build -f "$df" "$BATS_TMPDIR"
+    clearly image reset
 }
 
 
@@ -974,23 +974,23 @@ ENV A_B=/bar
 WORKDIR ${A_B}/baz
 RUN env | egrep '^PWD='
 EOF
-    run ch-image build --rebuild -f "$df" "$BATS_TMPDIR"
+    run clearly image build --rebuild -f "$df" "$BATS_TMPDIR"
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = *'PWD=/bar/baz'* ]]
 }
 
-@test "ch-image modify" {
+@test "clearly image modify" {
 
   # -c success, echo
-  run ch-image modify -c "echo foo" -c "echo bar" -- alpine:3.17 tmpimg
+  run clearly image modify -c "echo foo" -c "echo bar" -- alpine:3.17 tmpimg
   echo "$output"
   [[ $status -eq 0 ]]
   [[ $output = *'foo'* ]]
   [[ $output = *'bar'* ]]
 
   # -c success, create file
-  ch-image modify -c "touch /home/foo" -- alpine:3.17 tmpimg
+  clearly image modify -c "touch /home/foo" -- alpine:3.17 tmpimg
   run ch-run tmpimg -- ls /home
   echo "$output"
   [[ $status -eq 0 ]]
@@ -998,26 +998,26 @@ EOF
 
   # non-interactive, script
   echo "touch /home/bar" >> "${BATS_TMPDIR}/modify-script.sh"
-  ch-image modify alpine:3.17 tmpimg "${BATS_TMPDIR}/modify-script.sh"
+  clearly image modify alpine:3.17 tmpimg "${BATS_TMPDIR}/modify-script.sh"
   run ch-run tmpimg -- ls /home
   echo "$output"
   [[ $status -eq 0 ]]
   [[ $output = *'bar'* ]]
 
   # non-interactive, here doc
-  ch-image modify alpine:3.17 tmpimg <<'EOF'
+  clearly image modify alpine:3.17 tmpimg <<'EOF'
 touch /home/foobar
 EOF
   [[ -f "$CH_IMAGE_STORAGE/img/tmpimg/home/foobar" ]]
 
   # -c fail
-  run ch-image modify -c 'echo foo' -- alpine:3.17 alpine:3.17
+  run clearly image modify -c 'echo foo' -- alpine:3.17 alpine:3.17
   echo "$output"
   [[ $status -eq 1 ]]
   [[ $output = *'output must be different from source image'* ]]
 
   # non-existent shell
-  run ch-image modify -i -S "doesnotexist" -- alpine:3.17 tmpimg
+  run clearly image modify -i -S "doesnotexist" -- alpine:3.17 tmpimg
   echo "$output"
   [[ $status -eq 1 ]]
   [[ $output = *"can't run shell:"* ]]

@@ -165,7 +165,7 @@ Notes/gotchas:
 
 Matrix dimensions with variable names and possible values:
 
-  1. CH_TEST_BUILDER (ch-image, docker)
+  1. CH_TEST_BUILDER (image, docker)
 
   2. CH_IMAGE_CACHE (enabled, rebuild, disabled)
 

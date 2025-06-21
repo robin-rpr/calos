@@ -17,7 +17,7 @@ vset () {
         printf '[35m%s (default)[0m\n' "${!name}"
     fi
 }
-vset  CH_TEST_BUILDER   ch-image
+vset  CH_TEST_BUILDER   image
 vset  CH_IMAGE_CACHE    enabled
 vset  CH_TEST_PACK_FMT  squash-mount
 case $(uname -m) in

@@ -7,7 +7,7 @@ tag=RSYNC
 
 setup () {
     scope standard
-    [[ $CH_TEST_BUILDER = ch-image ]] || skip 'ch-image only'
+    [[ $CH_TEST_BUILDER = image ]] || skip 'image only'
     umask 0007
     fixtures=$BATS_TMPDIR/rsync
     context=$fixtures/ctx
@@ -131,7 +131,7 @@ RSYNC /basic1/file-basic1 /dst/new/
 # multiple files
 RSYNC /basic1/file-basic1 /basic2/file-basic2 /dst/newB
 EOF
-    ch-image build --rebuild -f "$ch_tmpimg_df" "$context"
+    clearly image build --rebuild -f "$ch_tmpimg_df" "$context"
     ls_dump "$dst" files
     run ls_ "$dst"
     echo "$output"
@@ -168,7 +168,7 @@ RSYNC +z /basic1 /dst/basic1_newC
 # ... need -r at least
 RSYNC +z -r /basic1/ /dst/basic1_newD
 EOF
-    ch-image build --rebuild -f "$ch_tmpimg_df" "$context"
+    clearly image build --rebuild -f "$ch_tmpimg_df" "$context"
     ls_dump "$dst" dir1
     run ls_ "$dst"
     echo "$output"
@@ -216,7 +216,7 @@ RSYNC /basic1 /basic2/ /dst/dstF
 RUN mkdir /dst/dstG && echo file-dstG > /dst/dstG/file-dstG
 RSYNC --delete /basic*/ /dst/dstG
 EOF
-    ch-image build --rebuild -f "$ch_tmpimg_df" "$context"
+    clearly image build --rebuild -f "$ch_tmpimg_df" "$context"
     ls_dump "$dst" dir2
     run ls_ "$dst"
     echo "$output"
@@ -270,7 +270,7 @@ EOF
 
     # +m: noisily skip both symlinks
     echo "$df" | sed -E 's/%ARG%/+m/' > "$ch_tmpimg_df"
-    run ch-image build --rebuild -f "$ch_tmpimg_df" "$context"
+    run clearly image build --rebuild -f "$ch_tmpimg_df" "$context"
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = *'skipping non-regular file "file-out_rel"'* ]]
@@ -285,7 +285,7 @@ EOF
 
     # default (+l): silently skip the unsafe symlink
     echo "$df" | sed -E 's/%ARG%//' > "$ch_tmpimg_df"
-    run ch-image build --rebuild -f "$ch_tmpimg_df" "$context"
+    run clearly image build --rebuild -f "$ch_tmpimg_df" "$context"
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output != *skipping* ]]
@@ -300,7 +300,7 @@ EOF
 
     # +u: silently replace unsafe symlink with regular file
     echo "$df" | sed -E 's/%ARG%/+u/' > "$ch_tmpimg_df"
-    run ch-image build --rebuild -f "$ch_tmpimg_df" "$context"
+    run clearly image build --rebuild -f "$ch_tmpimg_df" "$context"
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output != *skipping* ]]
@@ -316,7 +316,7 @@ EOF
 
     # +z: noisily skip both symlinks
     echo "$df" | sed -E 's/%ARG%/+z/' > "$ch_tmpimg_df"
-    run ch-image build --rebuild -f "$ch_tmpimg_df" "$context"
+    run clearly image build --rebuild -f "$ch_tmpimg_df" "$context"
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = *'skipping non-regular file "file-out_rel"'* ]]
@@ -331,7 +331,7 @@ EOF
 
     # +z --links: silently keep both symlinks, leaving the unsafe one dangling
     echo "$df" | sed -E 's/%ARG%/+z --links/' > "$ch_tmpimg_df"
-    run ch-image build --rebuild -f "$ch_tmpimg_df" "$context"
+    run clearly image build --rebuild -f "$ch_tmpimg_df" "$context"
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output != *skipping* ]]
@@ -354,7 +354,7 @@ RUN mkdir /dst
 
 RSYNC / /dst
 EOF
-    ch-image build --rebuild -f "$ch_tmpimg_df" "$context"
+    clearly image build --rebuild -f "$ch_tmpimg_df" "$context"
     ls_dump "$dst" dir-root
     run ls_ "$dst"
     echo "$output"
@@ -394,7 +394,7 @@ FROM alpine:3.17
 RUN mkdir /dst
 RSYNC /sym1 /dst
 EOF
-    run ch-image build --rebuild -f "$ch_tmpimg_df" "$context"
+    run clearly image build --rebuild -f "$ch_tmpimg_df" "$context"
     echo "$output"
     [[ $status -eq 0 ]]
     [[ 0 -eq $(echo "$output" | grep -Fc 'skipping non-regular file') ]]
@@ -423,7 +423,7 @@ FROM alpine:3.17
 RUN mkdir /dst
 RSYNC /sym1/ /dst/sym1
 EOF
-    ch-image build --rebuild -f "$ch_tmpimg_df" "$context"
+    clearly image build --rebuild -f "$ch_tmpimg_df" "$context"
     ls_dump "$dst" sym-slashed
     run ls_ "$dst"
     echo "$output"
@@ -445,7 +445,7 @@ FROM alpine:3.17
 RUN mkdir /dst
 RSYNC +m /sym1/ /dst/sym1
 EOF
-    run ch-image build --rebuild -f "$ch_tmpimg_df" "$context"
+    run clearly image build --rebuild -f "$ch_tmpimg_df" "$context"
     echo "$output"
     [[ $status -eq 0 ]]
     [[ 12 -eq $(echo "$output" | grep -Fc 'skipping non-regular file') ]]
@@ -468,7 +468,7 @@ FROM alpine:3.17
 RUN mkdir /dst
 RSYNC +u /sym1/ /dst/sym1
 EOF
-    ch-image build --rebuild -f "$ch_tmpimg_df" "$context"
+    clearly image build --rebuild -f "$ch_tmpimg_df" "$context"
     ls_dump "$dst" sym-u
     run ls_ "$dst"
     echo "$output"
@@ -502,7 +502,7 @@ FROM alpine:3.17
 RUN mkdir /dst
 RSYNC /sym1 /sym2 /dst
 EOF
-    run ch-image build --rebuild -f "$ch_tmpimg_df" "$context"
+    run clearly image build --rebuild -f "$ch_tmpimg_df" "$context"
     echo "$output"
     [[ $status -eq 0 ]]
     ls_dump "$dst" sym-between
@@ -532,7 +532,7 @@ FROM alpine:3.17
 RUN mkdir /dst
 RSYNC /sym1/file-sym1_direct /sym1/file-sym1_upover /dst
 EOF
-    run ch-image build --rebuild -f "$ch_tmpimg_df" "$context"
+    run clearly image build --rebuild -f "$ch_tmpimg_df" "$context"
     echo "$output"
     [[ $status -eq 0 ]]
     ls_dump "$dst" sym-to-file
@@ -551,7 +551,7 @@ FROM alpine:3.17
 RUN mkdir /dst
 RSYNC /sym1/dir-sym1_direct /dst
 EOF
-    run ch-image build --rebuild -f "$ch_tmpimg_df" "$context"
+    run clearly image build --rebuild -f "$ch_tmpimg_df" "$context"
     echo "$output"
     [[ $status -eq 0 ]]
     ls_dump "$dst" sym-to-dir
@@ -570,7 +570,7 @@ FROM alpine:3.17
 RUN mkdir /dst
 RSYNC /sym1/dir-sym1_direct/ /dst/dir-sym1_direct
 EOF
-    run ch-image build --rebuild -f "$ch_tmpimg_df" "$context"
+    run clearly image build --rebuild -f "$ch_tmpimg_df" "$context"
     echo "$output"
     [[ $status -eq 0 ]]
     ls_dump "$dst" sym-to-dir-slashed
@@ -590,7 +590,7 @@ FROM alpine:3.17
 RUN mkdir /dst
 RSYNC /sym-broken /dst
 EOF
-    run ch-image build --rebuild -f "$ch_tmpimg_df" "$context"
+    run clearly image build --rebuild -f "$ch_tmpimg_df" "$context"
     echo "$output"
     [[ $status -eq 0 ]]
     ls_dump "$dst" sym-broken
@@ -610,7 +610,7 @@ FROM alpine:3.17
 RUN mkdir /dst
 RSYNC +m --copy-links /sym-broken /dst
 EOF
-    run ch-image build --rebuild -f "$ch_tmpimg_df" "$context"
+    run clearly image build --rebuild -f "$ch_tmpimg_df" "$context"
     echo "$output"
     [[ $status -eq 1 ]]
     [[ $output = *"symlink has no referent: \"${context}/sym-broken/doesnotexist_broken_direct\""* ]]
@@ -626,7 +626,7 @@ RUN mkdir /dst \
  && ls -lh /dst
 RSYNC /file-top /dst/file-dst_direct
 EOF
-    run ch-image build --rebuild -f "$ch_tmpimg_df" "$context"
+    run clearly image build --rebuild -f "$ch_tmpimg_df" "$context"
     echo "$output"
     [[ $status -eq 0 ]]
     ls_dump "$dst" sym-dst-symlink-file
@@ -649,7 +649,7 @@ RUN mkdir /dst \
  && ls -lh /dst
 RSYNC /file-top /dst/dir-dst_direct
 EOF
-    run ch-image build --rebuild -f "$ch_tmpimg_df" "$context"
+    run clearly image build --rebuild -f "$ch_tmpimg_df" "$context"
     echo "$output"
     [[ $status -eq 0 ]]
     ls_dump "$dst" sym-dst-symlink-dir-src-file
@@ -673,7 +673,7 @@ RUN mkdir /dst \
  && ls -lh /dst
 RSYNC /dir-top /dst/dir-dst_direct
 EOF
-    run ch-image build --rebuild -f "$ch_tmpimg_df" "$context"
+    run clearly image build --rebuild -f "$ch_tmpimg_df" "$context"
     echo "$output"
     [[ $status -eq 0 ]]
     ls_dump "$dst" sym-dst-symlink-dir
@@ -698,7 +698,7 @@ RUN mkdir /dst \
  && ls -lh /dst
 RSYNC /dir-top/ /dst/dir-dst_direct
 EOF
-    run ch-image build --rebuild -f "$ch_tmpimg_df" "$context"
+    run clearly image build --rebuild -f "$ch_tmpimg_df" "$context"
     echo "$output"
     [[ $status -eq 0 ]]
     ls_dump "$dst" sym-dst-symlink-dir-slashed
@@ -721,7 +721,7 @@ FROM alpine:3.17
 RUN mkdir /dst
 RSYNC /hard /dst
 EOF
-    run ch-image build --rebuild -f "$ch_tmpimg_df" "$context"
+    run clearly image build --rebuild -f "$ch_tmpimg_df" "$context"
     echo "$output"
     [[ $status -eq 0 ]]
     ls_dump "$dst" hard
@@ -746,7 +746,7 @@ FROM alpine:3.17
 WORKDIR /dst
 RSYNC file-basic1 .
 EOF
-    ch-image build --rebuild -f "$ch_tmpimg_df" "$context"/basic1
+    clearly image build --rebuild -f "$ch_tmpimg_df" "$context"/basic1
     ls_dump "$dst" files
     run ls_ "$dst"
     echo "$output"
@@ -762,7 +762,7 @@ EOF
 FROM alpine:3.17
 RSYNC foo bar
 EOF
-    run ch-image build -t tmpimg - < "$ch_tmpimg_df"
+    run clearly image build -t tmpimg - < "$ch_tmpimg_df"
     echo "$output"
     [[ $status -eq 1 ]]
     [[ $output = *'error: no context'* ]]
@@ -774,7 +774,7 @@ EOF
 FROM alpine:3.17
 RSYNC +y foo bar
 EOF
-    run ch-image build -t tmpimg - < "$ch_tmpimg_df"
+    run clearly image build -t tmpimg - < "$ch_tmpimg_df"
     echo "$output"
     [[ $status -eq 1 ]]
     [[ $output = *'error: invalid plus option: y'* ]]
@@ -786,7 +786,7 @@ EOF
 FROM alpine:3.17
 RSYNC foo://bar baz
 EOF
-    run ch-image build -t tmpimg - < "$ch_tmpimg_df"
+    run clearly image build -t tmpimg - < "$ch_tmpimg_df"
     echo "$output"
     [[ $status -eq 1 ]]
     [[ $output = *'error: SSH and rsync transports not supported'* ]]
@@ -800,7 +800,7 @@ EOF
 FROM alpine:3.17
 RSYNC --remove-source-files foo bar
 EOF
-    run ch-image build -t tmpimg - < "$ch_tmpimg_df"
+    run clearly image build -t tmpimg - < "$ch_tmpimg_df"
     echo "$output"
     [[ $status -eq 1 ]]
     [[ $output = *'error: disallowed option: --remove-source-files'* ]]
@@ -814,7 +814,7 @@ FROM alpine:3.17
 RUN mkdir /dst
 RSYNC --files-from=./file-top / /dst
 EOF
-    ch-image build --rebuild -f "$ch_tmpimg_df" "$context"
+    clearly image build --rebuild -f "$ch_tmpimg_df" "$context"
     ls_dump "$dst" files
     run ls_ "$dst"
     echo "$output"
@@ -833,7 +833,7 @@ RUN mkdir /dst
 RUN printf 'file-top\n' > /fls
 RSYNC --files-from=/fls / /dst
 EOF
-    ch-image build --rebuild -f "$ch_tmpimg_df" "$context"
+    clearly image build --rebuild -f "$ch_tmpimg_df" "$context"
     ls_dump "$dst" files
     run ls_ "$dst"
     echo "$output"
@@ -847,7 +847,7 @@ EOF
 FROM alpine:3.17
 RSYNC --files-from=- / /dst
 EOF
-    run ch-image build --rebuild -f "$ch_tmpimg_df" "$context"
+    run clearly image build --rebuild -f "$ch_tmpimg_df" "$context"
     echo "$output"
     [[ $status -eq 1 ]]
     [[ $output = *'error: --*-from: can'?'t use standard input'* ]]
@@ -857,7 +857,7 @@ EOF
 FROM alpine:3.17
 RSYNC --files-from=foo:bar / /dst
 EOF
-    run ch-image build --rebuild -f "$ch_tmpimg_df" "$context"
+    run clearly image build --rebuild -f "$ch_tmpimg_df" "$context"
     echo "$output"
     [[ $status -eq 1 ]]
     [[ $output = *'error: --*-from: can'?'t use remote hosts'* ]]

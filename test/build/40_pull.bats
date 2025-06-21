@@ -2,7 +2,7 @@ load ../common
 
 setup () {
     scope standard
-    [[ $CH_TEST_BUILDER = ch-image ]] || skip 'ch-image only'
+    [[ $CH_TEST_BUILDER = image ]] || skip 'image only'
 }
 
 image_ref_parse () {
@@ -12,7 +12,7 @@ image_ref_parse () {
     retcode_expected=$2
     echo "--- parsing: ${ref}"
     set +e
-    out=$(ch-image pull --parse-only "$ref" 2>&1)
+    out=$(clearly image pull --parse-only "$ref" 2>&1)
     retcode=$?
     set -e
     echo "--- return code: ${retcode}"
@@ -216,7 +216,7 @@ EOF
 
     CH_IMAGE_STORAGE=$BATS_TMPDIR/pull-quirks
     img="${CH_IMAGE_STORAGE}/img/charliecloud%file-quirks+2020-10-21"
-    ch-image pull charliecloud/file-quirks:2020-10-21
+    clearly image pull charliecloud/file-quirks:2020-10-21
     ls -lh "${img}/test"
 
     output_expected=$(cat <<'EOF'
@@ -261,13 +261,13 @@ EOF
 
     # OCI manifest; see issue #1184.
     img=charliecloud/ocimanifest:2021-10-12
-    ch-image pull "$img"
+    clearly image pull "$img"
 
     # Manifest schema version one (v1); see issue #814. Use debian:squeeze
     # because 1) it always returns a v1 manifest schema (regardless of media
     # type specified), and 2) it isn't very large, thus keeps test time down.
     img=debian+squeeze
-    ch-image pull "$img"
+    clearly image pull "$img"
     grep -F '"schemaVersion": 1' "${cache}/${img}%skinny.manifest.json"
 
     rm -Rf --one-file-system "$storage"
@@ -288,33 +288,33 @@ EOF
     # may be worth our while to upload some small test images to these places.
 
     # Docker Hub: https://hub.docker.com/_/alpine
-    ch-image pull registry-1.docker.io/library/alpine:3.17
+    clearly image pull registry-1.docker.io/library/alpine:3.17
 
     # quay.io: https://quay.io/repository/quay/busybox
-    ch-image pull quay.io/quay/busybox:latest
+    clearly image pull quay.io/quay/busybox:latest
 
     # gitlab.com: https://gitlab.com/pages/hugo
     # FIXME: 50 MiB, try to do better; seems to be the slowest repo.
-    ch-image pull registry.gitlab.com/pages/hugo:latest
+    clearly image pull registry.gitlab.com/pages/hugo:latest
 
     # Google Container Registry:
     # https://console.cloud.google.com/gcr/images/google-containers/GLOBAL
     # FIXME: “latest” tags do not work, but they do in Docker (issue #896)
     # FIXME: arch-aware pull does not work either (issue #1100)
-    ch-image pull --arch=yolo gcr.io/google-containers/busybox:1.27
+    clearly image pull --arch=yolo gcr.io/google-containers/busybox:1.27
 
     # nVidia NGC: https://ngc.nvidia.com
     # FIXME: 96 MiB unpacked; also kind of slow
     # Note: Can’t pull this image with LC_ALL=C under Python 3.6 (issue #970).
-    ch-image pull nvcr.io/hpc/foldingathome/fah-gpu:7.6.21
+    clearly image pull nvcr.io/hpc/foldingathome/fah-gpu:7.6.21
 
     # Red Hat registry: https://catalog.redhat.com/software/containers/explore
     # FIXME: 77 MiB unpacked, should find a smaller public image
-    ch-image pull registry.access.redhat.com/ubi7/ubi-minimal:latest
+    clearly image pull registry.access.redhat.com/ubi7/ubi-minimal:latest
 
     # Microsoft Container Registry:
     # https://github.com/microsoft/containerregistry
-    ch-image pull mcr.microsoft.com/mcr/hello-world:latest
+    clearly image pull mcr.microsoft.com/mcr/hello-world:latest
 
     # Things not here (yet?):
     #
@@ -347,7 +347,7 @@ EOF
     name=charliecloud/metadata:$tag
     img=$CH_IMAGE_STORAGE/img/charliecloud%metadata+$tag
 
-    ch-image pull "$name"
+    clearly image pull "$name"
 
     # Volume mount points exist?
     ls -lh "${img}/mnt"
@@ -498,13 +498,13 @@ EOF
     # some test suite problems, I’m changing all instances of alpine:latest
     # here to alpine:3.15. We really need a more permanent solution for this
     # (see #1485)
-    #ch-image --arch=yolo pull alpine:3.15  # see #1953
-    ch-image --arch=host pull alpine:3.15
-    ch-image --arch=amd64 pull alpine:3.15
-    ch-image --arch=arm64/v8 pull alpine:3.15
+    #clearly image --arch=yolo pull alpine:3.15  # see #1953
+    clearly image --arch=host pull alpine:3.15
+    clearly image --arch=amd64 pull alpine:3.15
+    clearly image --arch=arm64/v8 pull alpine:3.15
 
     # Has fat manifest, but requested arch does not exist.
-    run ch-image --arch=doesnotexist pull alpine:3.15
+    run clearly image --arch=doesnotexist pull alpine:3.15
     echo "$output"
     [[ $status -eq 1 ]]
     [[ $output = *'requested arch unavailable:'*'available:'* ]]
@@ -512,14 +512,14 @@ EOF
     # Delete it so we don’t try to use a non-matching arch for other testing.
     # FIXME: After #1485 is closed, revert to alpine:latest or alpine:3.17 and
     # delete cache along with image.
-    ch-image delete alpine:3.15 || true
+    clearly image delete alpine:3.15 || true
 
     # No fat manifest.
-    ch-image --arch=yolo pull charliecloud/metadata:2021-01-15
-    ch-image --arch=amd64 pull charliecloud/metadata:2021-01-15
+    clearly image --arch=yolo pull charliecloud/metadata:2021-01-15
+    clearly image --arch=amd64 pull charliecloud/metadata:2021-01-15
     if [[ $(uname -m) == 'x86_64' ]]; then
-        ch-image --arch=host pull charliecloud/metadata:2021-01-15
-        run ch-image --arch=arm64/v8 pull charliecloud/metadata:2021-01-15
+        clearly image --arch=host pull charliecloud/metadata:2021-01-15
+        run clearly image --arch=arm64/v8 pull charliecloud/metadata:2021-01-15
         echo "$output"
         [[ $status -eq 1 ]]
         [[ $output = *'image is architecture-unaware'*'consider --arch=yolo'* ]]
@@ -532,25 +532,25 @@ EOF
     fi
 
     # name does not exist remotely, in library
-    run ch-image pull doesnotexist:latest
+    run clearly image pull doesnotexist:latest
     echo "$output"
     [[ $status -eq 1 ]]
     [[ $output = *'registry-1.docker.io:443/library/doesnotexist:latest'* ]]
 
     # tag does not exist remotely, in library
-    run ch-image pull alpine:doesnotexist
+    run clearly image pull alpine:doesnotexist
     echo "$output"
     [[ $status -eq 1 ]]
     [[ $output = *'registry-1.docker.io:443/library/alpine:doesnotexist'* ]]
 
     # name does not exist remotely, not in library
-    run ch-image pull charliecloud/doesnotexist:latest
+    run clearly image pull charliecloud/doesnotexist:latest
     echo "$output"
     [[ $status -eq 1 ]]
     [[ $output = *'registry-1.docker.io:443/charliecloud/doesnotexist:latest'* ]]
 
     # tag does not exist remotely, not in library
-    run ch-image pull charliecloud/metadata:doesnotexist
+    run clearly image pull charliecloud/metadata:doesnotexist
     echo "$output"
     [[ $status -eq 1 ]]
     [[ $output = *'registry-1.docker.io:443/charliecloud/metadata:doesnotexist'* ]]
@@ -560,7 +560,7 @@ EOF
 @test 'remove part_ files' {
     # Create a problematic file and list images to provoke it
     touch "$CH_IMAGE_STORAGE"/dlcache/part_PROBLEM
-    run ch-image list
+    run clearly image list
     echo "$output"
     [[ $status -eq 0 ]]
 

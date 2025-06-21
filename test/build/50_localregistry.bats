@@ -1,5 +1,5 @@
 load ../common
-tag='ch-image push'
+tag='clearly image push'
 
 # Note: These tests use a local registry listening on localhost:5000 but do
 # not start it. Therefore, they do not depend on whether the pushed images are
@@ -8,38 +8,38 @@ tag='ch-image push'
 
 setup () {
     scope standard
-    [[ $CH_TEST_BUILDER = ch-image ]] || skip 'ch-image only'
+    [[ $CH_TEST_BUILDER = image ]] || skip 'image only'
     localregistry_init
 }
 
 @test "${tag}: without destination reference" {
     # FIXME: This test copies an image manually so we can use it to push.
     # Remove when we have real aliasing support for images.
-    ch-image build -t localhost:5000/alpine:3.17 - <<'EOF'
+    clearly image build -t localhost:5000/alpine:3.17 - <<'EOF'
 FROM alpine:3.17
 EOF
 
-    run ch-image -v --tls-no-verify push localhost:5000/alpine:3.17
+    run clearly image -v --tls-no-verify push localhost:5000/alpine:3.17
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = *'pushing image:   localhost:5000/alpine:3.17'* ]]
     [[ $output = *"image path:      ${CH_IMAGE_STORAGE}/img/localhost+5000%alpine+3.17"* ]]
 
-    ch-image delete localhost:5000/alpine:3.17
+    clearly image delete localhost:5000/alpine:3.17
 }
 
 @test "${tag}: without metadata history" {
-    ch-image build -t tmpimg - <<'EOF'
+    clearly image build -t tmpimg - <<'EOF'
 FROM alpine:3.17
 EOF
 
     ch-convert tmpimg "$BATS_TMPDIR/tmpimg"
     rm -rf "$BATS_TMPDIR/tmpimg/ch"
 
-    ch-image delete tmpimg
-    ch-image import "$BATS_TMPDIR/tmpimg" tmpimg
+    clearly image delete tmpimg
+    clearly image import "$BATS_TMPDIR/tmpimg" tmpimg
 
-    run ch-image -v --tls-no-verify push tmpimg localhost:5000/tmpimg
+    run clearly image -v --tls-no-verify push tmpimg localhost:5000/tmpimg
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = *'pushing image:   tmpimg'* ]]
@@ -48,7 +48,7 @@ EOF
 }
 
 @test "${tag}: with destination reference" {
-    run ch-image -v --tls-no-verify push alpine:3.17 localhost:5000/alpine:3.17
+    run clearly image -v --tls-no-verify push alpine:3.17 localhost:5000/alpine:3.17
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = *'pushing image:   alpine:3.17'* ]]
@@ -88,7 +88,7 @@ EOF
 EOF
 
     # Push the image
-    run ch-image -v --tls-no-verify push --image "$img" \
+    run clearly image -v --tls-no-verify push --image "$img" \
                                          localhost:5000/foo/bar:weirdal
     echo "$output"
     [[ $status -eq 0 ]]
@@ -100,7 +100,7 @@ EOF
     [[ $output = *'stripping unsafe setuid bit: ./setuid_file'* ]]
 
     # Pull it back
-    ch-image -v --tls-no-verify pull localhost:5000/foo/bar:weirdal
+    clearly image -v --tls-no-verify pull localhost:5000/foo/bar:weirdal
     ch-convert localhost:5000/foo/bar:weirdal "$img2"
     ls -l "$img2"
     [[ $(stat -c '%A' "$img2"/setuid_file) = -rw-r----- ]]
@@ -110,12 +110,12 @@ EOF
 }
 
 @test "${tag}: consistent layer hash" {
-    run ch-image push --tls-no-verify alpine:3.17 localhost:5000/alpine:3.17
+    run clearly image push --tls-no-verify alpine:3.17 localhost:5000/alpine:3.17
     echo "$output"
     [[ $status -eq 0 ]]
     push1=$(echo "$output" | grep -E 'layer 1/1: .+: checking')
 
-    run ch-image push --tls-no-verify alpine:3.17 localhost:5000/alpine:3.17
+    run clearly image push --tls-no-verify alpine:3.17 localhost:5000/alpine:3.17
     echo "$output"
     [[ $status -eq 0 ]]
     push2=$(echo "$output" | grep -E 'layer 1/1: .+: checking')
@@ -125,15 +125,15 @@ EOF
 
 @test "${tag}: environment variables round-trip" {
     # Delete “tmpimg” from previous test to avoid issues
-    ch-image delete tmpimg
+    clearly image delete tmpimg
 
-    cat <<'EOF' | ch-image build -t tmpimg -
+    cat <<'EOF' | clearly image build -t tmpimg -
 FROM alpine:3.17
 ENV weird="al yankovic"
 EOF
 
-    ch-image push --tls-no-verify tmpimg localhost:5000/tmpimg
-    ch-image pull --tls-no-verify localhost:5000/tmpimg
+    clearly image push --tls-no-verify tmpimg localhost:5000/tmpimg
+    clearly image pull --tls-no-verify localhost:5000/tmpimg
     ch-convert localhost:5000/tmpimg "$BATS_TMPDIR"/tmpimg
 
     run ch-run "$BATS_TMPDIR"/tmpimg --unset-env='*' --set-env -- env

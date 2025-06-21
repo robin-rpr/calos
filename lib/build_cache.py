@@ -41,6 +41,7 @@ import textwrap
 import charliecloud as ch
 import filesystem as fs
 import image as im
+import constants
 import pull
 
 
@@ -346,7 +347,7 @@ class File_Metadata:
          path = fs.Path()
          hardlinks = dict()
       fm = class_(image_root, path)
-      if (fm.path == im.GIT_DIR):
+      if (fm.path == constants.GIT_DIR):
          # skip Git stuff at image root
          fm.dont_restore = True
          return fm
@@ -467,7 +468,7 @@ class File_Metadata:
       # Do-nothing case. Exclude RPM databases explicitly because old caches
       # can have them left over without being tagged don’t restore.
       if (self.dont_restore or self.path.match("var/lib/rpm/__db.*")):
-         if (not quick and self.path != im.GIT_DIR):
+         if (not quick and self.path != constants.GIT_DIR):
             ch.INFO("ignoring un-restorable file: /%s" % self.path)
          return
       # Make sure I exist, and with the correct name.
@@ -867,7 +868,7 @@ class Enabled_Cache:
       #
       # It is easier to just write the list we want every time, rather than
       # trying to figure out if an update is needed.
-      (self.root // "info/exclude").file_write("!*\n%s\n" % im.GIT_DIR)
+      (self.root // "info/exclude").file_write("!*\n%s\n" % constants.GIT_DIR)
       # Remove old .gitignore files from all commits. While there are nice
       # tools to do this (e.g. “git filter-repo”), we don’t want to depend on
       # an external tool. Thus, the options seem to be “filter-branch” or
@@ -1007,7 +1008,7 @@ class Enabled_Cache:
       else:
          if ("env" not in kwargs):
             kwargs["env"] = dict()
-         kwargs["env"].update({ "GIT_DIR": str(cwd // im.GIT_DIR),
+         kwargs["env"].update({ "GIT_DIR": str(cwd // constants.GIT_DIR),
                                 "GIT_WORK_TREE": str(cwd) })
       return (ch.cmd_stdout if quiet else ch.cmd)([git] + argv, cwd=cwd,
                                                   *args, **kwargs)
@@ -1119,7 +1120,7 @@ class Enabled_Cache:
          # Delete images that are worktrees referring back to the build cache.
          ch.INFO("deleting build cache")
          for d in ch.storage.unpack_base.listdir():
-            dotgit = ch.storage.unpack_base // d // im.GIT_DIR
+            dotgit = ch.storage.unpack_base // d // constants.GIT_DIR
             if (os.path.exists(dotgit)):
                ch.VERBOSE("deleting cached image: %s" % d)
                (ch.storage.unpack_base // d).rmtree()
@@ -1269,7 +1270,7 @@ class Enabled_Cache:
                    image.unpack_path, base])
          # Move GIT_DIR from default location to where we want it.
          git_dir_default = image.unpack_path // ".git"
-         git_dir_new = image.unpack_path // im.GIT_DIR
+         git_dir_new = image.unpack_path // constants.GIT_DIR
          git_dir_new.parent.mkdir()
          git_dir_default.rename(git_dir_new)
          t.log("created worktree")
@@ -1286,8 +1287,8 @@ class Enabled_Cache:
          ch.storage.image_tmp.rmtree()
       image.unpack_path.rename(ch.storage.image_tmp)
       self.worktree_add(image, base)
-      (image.unpack_path // im.GIT_DIR).rename(   ch.storage.image_tmp
-                                               // im.GIT_DIR)
+      (image.unpack_path // constants.GIT_DIR).rename(   ch.storage.image_tmp
+                                               // constants.GIT_DIR)
       image.unpack_path.rmtree()
       ch.storage.image_tmp.rename(image.unpack_path)
 
@@ -1319,16 +1320,16 @@ class Enabled_Cache:
          [1]: https://git-scm.com/docs/git-worktree
          [2]: https://git-scm.com/docs/gitrepository-layout"""
       t = ch.Timer()
-      wt_actuals = { fs.Path(i).parts[-(len(im.GIT_DIR)+1)]
+      wt_actuals = { fs.Path(i).parts[-(len(constants.GIT_DIR)+1)]
                      for i in glob.iglob(str(   ch.storage.unpack_base
-                                             // "*" // im.GIT_DIR)) }
+                                             // "*" // constants.GIT_DIR)) }
       wt_gits =    { fs.Path(i).name
                      for i in glob.iglob("%s/worktrees/*" % self.root) }
       # Unlink images that think they are in Git but are not. This should not
       # happen, but it does, and I wasn’t able to figure out how it happened.
       wt_gits_orphaned = wt_actuals - wt_gits
       for img_dir in wt_gits_orphaned:
-         link = ch.storage.unpack_base // img_dir // im.GIT_DIR
+         link = ch.storage.unpack_base // img_dir // constants.GIT_DIR
          ch.WARNING("image erroneously marked cached, fixing: %s" % link,
                     ch.BUG_REPORT_PLZ)
          link.unlink()
@@ -1355,7 +1356,7 @@ class Enabled_Cache:
          if (not wt_dir_stored.is_relative_to(ch.storage.root)):
             for wt in wt_actuals:
                wt_repo_dir = ch.storage.build_cache // "worktrees" // wt
-               wt_img_git = ch.storage.unpack_base // wt // im.GIT_DIR
+               wt_img_git = ch.storage.unpack_base // wt // constants.GIT_DIR
                wt_img_git.file_write("gitdir: %s\n" % str(wt_repo_dir))
                (wt_repo_dir // "gitdir").file_write(str(wt_img_git) + "\n")
             ch.VERBOSE("fixed %d worktrees" % len(wt_actuals))

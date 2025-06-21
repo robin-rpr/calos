@@ -7,7 +7,7 @@ mylibdir = $(pkglibdir)
 
 # Python modules to compile via Cython
 cython_modules = \
-  build build_cache charliecloud filesystem misc modify pull \
+  build build_cache charliecloud constants filesystem misc modify pull \
   push registry image irtree force version
 
 # Generated file lists
@@ -18,7 +18,8 @@ cython_so_files = $(cython_modules:%=%@PYEXT_SUFFIX@)
 dist_mylib_DATA = base.sh
 
 # Version + metadata files
-mylib_DATA = contributors.bash version.py version.sh version.txt
+mylib_DATA = contributors.bash version.py version.txt
+mylib_SCRIPTS = version.sh
 
 # Cython rules
 SUFFIXES = .py .c @PYEXT_SUFFIX@
@@ -61,3 +62,4 @@ version.py: ../configure
 version.sh: ../configure
 	printf "# shellcheck shell=sh disable=SC2034\n" > $@
 	printf "ch_version='@PACKAGE_VERSION@'\n" >> $@
+	chmod +x $@

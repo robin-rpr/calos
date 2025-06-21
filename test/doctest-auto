@@ -14,7 +14,7 @@ load ../common
 
 setup () {
     scope standard
-    [[ \$CH_TEST_BUILDER = ch-image ]] || skip 'ch-image only'
+    [[ \$CH_TEST_BUILDER = image ]] || skip 'image only'
 }
 
 EOF

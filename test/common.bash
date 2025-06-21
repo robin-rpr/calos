@@ -47,8 +47,8 @@ archive_ok () {
 
 build_ () {
     case $CH_TEST_BUILDER in
-        ch-image)
-            "$ch_bin"/ch-image build "$@"
+        image)
+            "$ch_libexec"/image build "$@"
             ;;
         docker)
             # Coordinate this list with test “build.bats/proxy variables”.
@@ -86,7 +86,7 @@ builder_tag_p () {
                 return 0
             fi
             ;;
-        ch-image)
+        image)
             if [[ -d ${CH_IMAGE_STORAGE}/img/${1} ]]; then
                 echo "ok"
                 return 0
@@ -317,7 +317,7 @@ env_require CH_TEST_TARDIR
 env_require CH_TEST_IMGDIR
 env_require CH_TEST_PERMDIRS
 env_require CH_TEST_BUILDER
-if [[ $CH_TEST_BUILDER == ch-image ]]; then
+if [[ $CH_TEST_BUILDER == image ]]; then
     env_require CH_IMAGE_STORAGE
 fi
 
@@ -334,10 +334,18 @@ CH_ERR_MISC=31
 CH_ERR_CMD=49
 #CH_ERR_SQUASH=84 # Currently not used
 
-ch_runfile=$(command -v ch-run)
+ch_bin="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck disable=SC2034
+ch_base=${ch_bin%/*}
 
-# Charliecloud version.
-ch_version=$(ch-run --version 2>&1)
+ch_lib=${ch_bin}/../../lib
+ch_libexec=${ch_bin}/../../libexec
+
+# Run file.
+ch_runfile=${ch_libexec}/run
+
+# Clearly version.
+ch_version=$("${ch_lib}/version.sh" 2>&1)
 ch_version_base=$(echo "$ch_version" | sed -E 's/~.+//')
 ch_version_docker=$(echo "$ch_version" | tr '~+' '--')
 

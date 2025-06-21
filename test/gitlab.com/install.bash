@@ -25,8 +25,8 @@ fi
 
 clrequire 'documentation: yes'
 
-if [[ $CH_TEST_BUILDER = ch-image ]]; then
-    clrequire 'with ch-image(1): yes'
+if [[ $CH_TEST_BUILDER = image ]]; then
+    clrequire 'with image(1): yes'
 fi
 
 clrequire 'recommended tests, tar-unpack mode: yes'
@@ -40,7 +40,7 @@ else
     clrequire 'internal SquashFS mounting ... no'
 fi
 
-if [[ $CH_TEST_BUILDER = ch-image ]]; then
+if [[ $CH_TEST_BUILDER = image ]]; then
     clrequire '"lark" module ... bundled'
     test -f ./lib/lark/lark.py
 fi

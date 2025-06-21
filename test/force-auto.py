@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# This script generates a BATS file to exercise “ch-image build --force”
+# This script generates a BATS file to exercise “clearly image build --force”
 # across a variety of distributions. It’s used by Makefile.am.
 #
 # About each distribution, we remember:
@@ -149,7 +149,7 @@ class Test(abc.ABC):
       else:
          build2_base = "tmpimg"
          build1 = f"""\
-run ch-image -v build -t tmpimg -f - . << 'EOF'
+run clearly image -v build -t tmpimg -f - . << 'EOF'
 FROM {self.base}
 {self.build_from_hook}
 RUN {self.prep_run}
@@ -180,7 +180,7 @@ echo "$output"
       out = self.as_outputs(outs)
       # emit the test
       print(f"""
-@test "ch-image --force: {self}" {{
+@test "clearly image --force: {self}" {{
 {self.skip}
 scope {scope}
 {arch_excludes}
@@ -189,7 +189,7 @@ scope {scope}
 {build1}
 
 # build 2: image we're testing
-run ch-image -v build {force} -t tmpimg2 -f - . << 'EOF'
+run clearly image -v build {force} -t tmpimg2 -f - . << 'EOF'
 FROM {build2_base}
 {self.build_from_hook}
 RUN {run}
@@ -353,7 +353,7 @@ print("""\
 load common
 
 setup () {
-    [[ $CH_TEST_BUILDER = ch-image ]] || skip 'ch-image only'
+    [[ $CH_TEST_BUILDER = image ]] || skip 'image only'
     [[ $CH_IMAGE_CACHE = enabled ]] || skip 'bucache enabled only'
 }
 """)
