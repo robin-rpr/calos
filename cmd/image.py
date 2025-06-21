@@ -7,13 +7,11 @@ import inspect
 import os.path
 import sys
 
-ch_lib = os.path.dirname(os.path.abspath(__file__)) + "/../../lib"
-sys.path.insert(0, ch_lib)
-import charliecloud as ch
+sys.path.insert(0, LIBDIR)
+import charliecloud as clearly
 import build
-import build_cache as bu
-import filesystem as fs
-import image as im
+import build_cache
+import filesystem
 import misc
 import modify
 import pull
@@ -22,25 +20,25 @@ import push
 
 ## Constants ##
 
-# FIXME: It’s currently easy to get the run path from another script, but
+# FIXME: It's currently easy to get the run path from another script, but
 # hard from something in lib. So, we set it here for now.
-ch.CH_BIN = os.path.dirname(os.path.abspath(
+clearly.CH_BIN = os.path.dirname(os.path.abspath(
                  inspect.getframeinfo(inspect.currentframe()).filename))
-ch.CH_RUN = ch.CH_BIN + "/run"
+clearly.CH_RUN = clearly.CH_BIN + "/run"
 
 
 ## Main ##
 
 def main():
 
-   if (not os.path.exists(ch.CH_RUN)):
-      ch.depfails.append(("missing", ch.CH_RUN))
+   if (not os.path.exists(clearly.CH_RUN)):
+      clearly.depfails.append(("missing", clearly.CH_RUN))
 
-   ap = ch.ArgumentParser(
+   ap = clearly.ArgumentParser(
       description="Build and manage images; completely unprivileged.",
       epilog="""Storage directory is used for caching and temporary images.
                 Location: first defined of --storage, $CH_IMAGE_STORAGE, and
-                %s.""" % fs.Storage.root_default(),
+                %s.""" % filesystem.Storage.root_default(),
       sub_title="subcommands",
       sub_metavar="CMD")
 
@@ -60,17 +58,17 @@ def main():
    #      because before the subcommand is preferred.
    #
    #   2. We suppress defaults in the subcommand [1]. Without this, the
-   #      subcommand option value wins even it it’s the default. :P Currently,
+   #      subcommand option value wins even it it's the default. :P Currently,
    #      if specified in both places, the subcommand value wins and the
    #      before value is not considered at all, e.g. "clearly image -vv foo -v"
    #      gives verbosity 1, not 3. This oddity seemed acceptable.
    #
    # Alternate approaches include:
    #
-   #   * Set the main parser as the “parent” of the subcommand parser [2].
+   #   * Set the main parser as the "parent" of the subcommand parser [2].
    #     This may be the documented approach? However, it adds all the
-   #     subcommands to the subparser, which we don’t want. A workaround would
-   #     be to create a *third* parser that’s the parent of both the main and
+   #     subcommands to the subparser, which we don't want. A workaround would
+   #     be to create a *third* parser that's the parent of both the main and
    #     subcommand parsers, but that seems like too much indirection to me.
    #
    #   * A two-stage parse (parse_known_args(), then parse_args() to have the
@@ -87,17 +85,17 @@ def main():
       { ("bucache", "build cache common options"): [
            [["--cache"],
             { "action": "store_const",
-              "const": ch.Build_Mode.ENABLED,
+              "const": clearly.Build_Mode.ENABLED,
               "dest": "bucache",
               "help": "enable build cache" }],
            [["--no-cache"],
             { "action": "store_const",
-              "const": ch.Build_Mode.DISABLED,
+              "const": clearly.Build_Mode.DISABLED,
               "dest": "bucache",
               "help": "disable build cache" }],
            [["--rebuild"],
             { "action": "store_const",
-              "const": ch.Build_Mode.REBUILD,
+              "const": clearly.Build_Mode.REBUILD,
               "dest": "bucache",
               "help": "force cache misses for non-FROM instructions" }] ],
         (None, "misc common options"): [
@@ -116,8 +114,8 @@ def main():
               "help": "break into PDB before LINE of MODULE" }],
            [["--cache-large"],
             { "metavar": "SIZE",
-              "type": lambda s: ch.positive(s) * 2**20,  # internal unit: bytes
-              "default": ch.positive(
+              "type": lambda s: clearly.positive(s) * 2**20,  # internal unit: bytes
+              "default": clearly.positive(
                  os.environ.get("CH_IMAGE_CACHE_LARGE", 0)) * 2**20,
               "help": "large file threshold in MiB" }],
            [["--debug"],
@@ -137,18 +135,18 @@ def main():
               "help": "re-prompt each time a registry password is needed" }],
            [["--profile"],
             { "action": "store_true",
-              "help": "dump profile to “./profile.{p,txt}”" }],
+              "help": "dump profile to \"./profile.{p,txt}\"" }],
            [["-q", "--quiet"],
             { "action": "count",
               "default": 0,
               "help": "print less output (can be repeated)"}],
            [["-s", "--storage"],
             { "metavar": "DIR",
-              "type": fs.Path,
+              "type": filesystem.Path,
               "help": "set builder internal storage directory to DIR" }],
            [["--tls-no-verify"],
             { "action": "store_true",
-              "help": "don’t verify registry certificates (dangerous!)" }],
+              "help": "don't verify registry certificates (dangerous!)" }],
            [["-v", "--verbose"],
             { "action": "count",
               "default": 0,
@@ -171,7 +169,7 @@ def main():
    # Helper function to set up a subparser. The star forces the latter two
    # arguments to be called by keyword, for clarity.
    def add_opts(p, dispatch, *, deps_check, stog_init, help_=False):
-      assert (not stog_init or deps_check)  # can’t init storage w/o deps
+      assert (not stog_init or deps_check)  # can't init storage w/o deps
       if (dispatch is not None):
          p.set_defaults(func=dispatch)
          dependencies_check[dispatch] = deps_check
@@ -204,13 +202,13 @@ def main():
    sp.add_argument("-f", "--file", metavar="DOCKERFILE",
                    help="Dockerfile to use (default: CONTEXT/Dockerfile)")
    sp.add_argument("--force", metavar="MODE", nargs="?", default="seccomp",
-                   type=ch.Force_Mode, const="seccomp",
+                   type=clearly.Force_Mode, const="seccomp",
                    help="inject unprivileged build workarounds")
    sp.add_argument("--force-cmd", metavar="CMD,ARG1[,ARG2...]",
                    action="append", default=[],
                    help="command arg(s) to add under --force=seccomp")
    sp.add_argument("-n", "--dry-run", action="store_true",
-                   help="don’t execute instructions")
+                   help="don't execute instructions")
    sp.add_argument("--parse-only", action="store_true",
                    help="stop after parsing the Dockerfile")
    sp.add_argument("-t", "--tag", metavar="TAG",
@@ -274,7 +272,7 @@ def main():
    sp.add_argument("-l", "--long", action="store_true",
                    help="use long listing format")
    sp.add_argument("-u", "--undeletable", action="store_true",
-                   help="list images that can be restored with “undelete”")
+                   help="list images that can be restored with \"undelete\"")
    sp.add_argument("--undeleteable", action="store_true", dest="undeletable",
                    help=argparse.SUPPRESS)
    sp.add_argument("image_ref", metavar="IMAGE_REF", nargs="?",
@@ -292,9 +290,9 @@ def main():
    sp.add_argument("image_ref", metavar="IMAGE_REF", help="image to modify")
    sp.add_argument("out_image", metavar="OUT_IMAGE", help="destination of modified image")
    sp.add_argument("script", metavar="SCRIPT", help="foo", nargs='?')
-   # Options “modify” shares with “build”. Note that while we could abstract
-   # this out to avoid repeated lines, as we do for “common_opts”, we’ve decided
-   # that the tradeoff in code readability wouldn’t be worth it.
+   # Options "modify" shares with "build". Note that while we could abstract
+   # this out to avoid repeated lines, as we do for "common_opts", we've decided
+   # that the tradeoff in code readability wouldn't be worth it.
    sp.add_argument("-b", "--bind", metavar="SRC[:DST]",
                    action="append", default=[],
                    help="mount SRC at guest DST (default: same as SRC)")
@@ -302,7 +300,7 @@ def main():
                    action="append", default=[],
                    help="set build-time variable ARG to VAL, or $ARG if no VAL")
    sp.add_argument("--force", metavar="MODE", nargs="?", default="seccomp",
-                   type=ch.Force_Mode, const="seccomp",
+                   type=clearly.Force_Mode, const="seccomp",
                    help="inject unprivileged build workarounds")
    sp.add_argument("--force-cmd", metavar="CMD,ARG1[,ARG2...]",
                    action="append", default=[],
@@ -324,7 +322,7 @@ def main():
    sp = ap.add_parser("push",
                       "copy image from local filesystem to remote repository")
    add_opts(sp, push.main, deps_check=True, stog_init=True)
-   sp.add_argument("--image", metavar="DIR", type=fs.Path,
+   sp.add_argument("--image", metavar="DIR", type=filesystem.Path,
                    help="path to unpacked image (default: opaque path in storage dir)")
    sp.add_argument("source_ref", metavar="IMAGE_REF", help="image to push")
    sp.add_argument("dest_ref", metavar="DEST_REF", nargs="?",
@@ -340,27 +338,27 @@ def main():
    sp.add_argument("image_ref", metavar="IMAGE_REF", help="image to recover")
 
    # Monkey patch problematic characters out of stdout and stderr.
-   ch.monkey_write_streams()
+   clearly.monkey_write_streams()
 
    # Parse it up!
    if (len(sys.argv) < 2):
        ap.print_help(file=sys.stderr)
-       ch.exit(1)
+       clearly.exit(1)
    cli = ap.parse_args()
 
    # Initialize.
-   ch.init(cli)
+   clearly.init(cli)
    if (dependencies_check[cli.func]):
-      ch.dependencies_check()
+      clearly.dependencies_check()
    if (storage_init[cli.func]):
-      ch.storage.init()
-      bu.init(cli)
+      clearly.storage.init()
+      build_cache.init(cli)
 
    # Dispatch.
-   ch.profile_start()
+   clearly.profile_start()
    cli.func(cli)
-   ch.warnings_dump()
-   ch.exit(0)
+   clearly.warnings_dump()
+   clearly.exit(0)
 
 
 ## Functions ##
@@ -375,7 +373,7 @@ def breakpoint_inject(module_name, line_no):
          return super().__init__(*args, **kwargs)
       def generic_visit(self, parent):
          # Operate on parent of target statement because we need to inject the
-         # new code into the parent’s body (i.e., as siblings of the target
+         # new code into the parent's body (i.e., as siblings of the target
          # statement).
          if (    self.inject_ct == 0
              and hasattr(parent, "body")
@@ -384,7 +382,7 @@ def breakpoint_inject(module_name, line_no):
                if (    isinstance(child, ast.stmt)
                    and hasattr(child, "lineno")
                    and child.lineno == line_no):
-                  ch.WARNING(  "--break: injecting PDB breakpoint: %s:%d (%s)"
+                  clearly.WARNING(  "--break: injecting PDB breakpoint: %s:%d (%s)"
                              % (module_name, line_no, type(child).__name__))
                   parent.body[i:i] = inject_tree.body
                   self.inject_ct += 1
@@ -393,7 +391,7 @@ def breakpoint_inject(module_name, line_no):
          return parent
 
    if (module_name not in sys.modules):
-      ch.FATAL("--break: no module named %s" % module_name)
+      clearly.FATAL("--break: no module named %s" % module_name)
    module = sys.modules[module_name]
    src_text = inspect.getsource(module)
    src_path = inspect.getsourcefile(module)
@@ -403,13 +401,13 @@ def breakpoint_inject(module_name, line_no):
    ijor = PDB_Injector()
    ijor.visit(module_tree)  # calls generic_visit() on all nodes
    if (ijor.inject_ct < 1):
-      ch.FATAL("--break: no statement found at %s:%d" % (module_name, line_no))
+      clearly.FATAL("--break: no statement found at %s:%d" % (module_name, line_no))
    assert (ijor.inject_ct == 1)
 
    ast.fix_missing_locations(module_tree)
    exec(compile(module_tree, "%s <re-compiled>" % src_path, "exec"),
         module.__dict__)
-   # Set a global in the target module so it can test if it’s been
+   # Set a global in the target module so it can test if it's been
    # re-executed. This means re-execution is *complete*, so it will not be set
    # in module-level code run during re-execution, but if the original
    # execution continues *after* re-execution completes (this happens for
@@ -419,10 +417,10 @@ def breakpoint_inject(module_name, line_no):
 
 ## Bootstrap ##
 
-# This code is more complicated than the standard boilerplace (i.e., “if
-# (__name__ == "__main__"): main()”) for two reasons:
+# This code is more complicated than the standard boilerplace (i.e., "if
+# (__name__ == "__main__"): main()") for two reasons:
 #
-#   1. The mechanism for fatal errors is to raise ch.Fatal_Error. We catch
+#   1. The mechanism for fatal errors is to raise clearly.Fatal_Error. We catch
 #      this to re-print warnings and print the error message before exiting.
 #      (We used to priont an error message and then sys.exit(1), but this
 #      approach lets us do things like rollback and fixes ordering problems
@@ -433,7 +431,7 @@ def breakpoint_inject(module_name, line_no):
 
 if (__name__ == "__main__"):
    try:
-      # We can’t set these two module globals that support --break normally
+      # We can't set these two module globals that support --break normally
       # (i.e., module-level code at the top of this file) because this module
       # might be executed twice, and thus any value we set would be
       # overwritten by the default when the module is re-executed.
@@ -446,20 +444,20 @@ if (__name__ == "__main__"):
             (opt, _, arg_eq) = opt.partition("=")
             if (opt == "--break"):
                if (not sys.stdin.isatty()):
-                  ch.FATAL("--break: standard input must be a terminal")
+                  clearly.FATAL("--break: standard input must be a terminal")
                if (arg_eq != ""):
                   arg = arg_eq
                try:
                   (module_name, line_no) = arg.split(":")
                   line_no = int(line_no)
                except ValueError:
-                  ch.FATAL("--break: can’t parse MODULE:LIST: %s" % arg)
+                  clearly.FATAL("--break: can't parse MODULE:LIST: %s" % arg)
                breakpoint_inject(module_name, line_no)
       # If we injected into __main__, we already ran main() when re-executing
       # this module inside breakpoint_inject().
       if ("breakpoint_reexecuted" not in globals()):
          main()
-   except ch.Fatal_Error as x:
-      ch.warnings_dump()
-      ch.ERROR(*x.args, **x.kwargs)
-      ch.exit(1)
+   except clearly.Fatal_Error as x:
+      clearly.warnings_dump()
+      clearly.ERROR(*x.args, **x.kwargs)
+      clearly.exit(1)

@@ -33,6 +33,19 @@ the performance and functionality already on offer.
 Container images can be built using Docker or anything else that can generate
 a standard Linux filesystem tree.
 
+Quick Installation
+------------------
+
+To build from source:
+
+1. Install Python dependencies: ``make install-deps``
+2. Generate build system: ``./autogen.sh``
+3. Configure: ``./configure``
+4. Build and install: ``make && sudo make install``
+
+Alternatively, you can install dependencies manually:
+``pip3 install -r requirements.txt``
+
 How do I learn more?
 --------------------
 

@@ -172,35 +172,6 @@ Don’t hesitate to use it. But if you do, we would very much appreciate if you:
   1. File a bug explaining why! We’ll fix it.
   2. Remove it from your package or procedure once we fix that bug.
 
-Disable bundled Lark package: :code:`--disable-bundled-lark`
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-*This option is minimally supported and not recommended. Use only if you
-really know what you are doing.*
-
-Charliecloud uses the Python package `Lark
-<https://lark-parser.readthedocs.io/en/latest/>`_ for parsing Dockerfiles and
-image references. Because this package is developed rapidly, and recent
-versions have important features and bug fixes not yet available in common
-distributions, we bundle the package with Charliecloud.
-
-If you prefer a separately-installed Lark, either via system packages or
-:code:`pip`, you can use :code:`./configure --disable-bundled-lark`. This
-excludes the bundled Lark from being installed or placed in :code:`make dist`
-tarballs. It *does not* remove the bundled Lark from the source directory; if
-you run from the source directory (i.e., without installing), the bundled Lark
-will be used if present regardless of this option.
-
-Bundled Lark is included in the tarballs we distribute. You can remove it and
-re-build :code:`configure` with :code:`./autogen.sh --rm-lark --no-lark`. If
-you are starting from a Git checkout, bundled Lark is installed by default by
-:code:`./autogen.sh`, but you can prevent this with :code:`./autogen.sh
---no-lark`.
-
-The main use case for these options is to support package maintainers. If this
-is you and does not meet your needs, please get in touch with us and we will
-help.
-
 Avoid potentially troublesome informational tests: :code:`--disable-impolite-checks`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

@@ -91,11 +91,6 @@ AC_ARG_ENABLE([buggy-build],
   )],
   [use_werror=yes])
 
-AC_ARG_ENABLE([bundled-lark],
-  AS_HELP_STRING([--disable-bundled-lark],
-                 [use system Lark (not recommended; see docs!)]),
-  [], [enable_bundled_lark=yes])
-
 AC_ARG_ENABLE([image],
   AS_HELP_STRING([--disable-image],
                  [unprivileged builder & image manager]),
@@ -566,6 +561,25 @@ AS_CASE([$python],
 CH_CHECK_VERSION([PYTHON], [$vmin_python],
                  [--version | head -1 | cut -d' ' -f2])
 
+# Python module “lark”
+vmin_lark=1.1.9  # CentOS 7; FIXME: haven’t actually tested this
+AS_IF([test -n "$PYTHON"], [
+  AC_MSG_CHECKING([for lark module])
+  cat <<EOF | #!/usr/bin/env python3
+import sys
+try:
+   import lark
+except Exception:
+   sys.exit(1)
+EOF
+  AS_IF([test $? -eq 0],
+    [REQUESTS=$PYTHON; have_lark=yes],
+    [REQUESTS=;         have_lark=no])
+  AC_MSG_RESULT($have_lark)
+  CH_CHECK_VERSION([REQUESTS], [$vmin_lark],
+    [-c 'import lark; print(lark.__version__)'])
+])
+
 # Python module “requests”
 vmin_requests=2.6.0  # CentOS 7; FIXME: haven’t actually tested this
 AS_IF([test -n "$PYTHON"], [
@@ -610,18 +624,6 @@ AS_IF([test -n "$CC"],
   [AC_MSG_RESULT([yes ($CC)])],
   [AC_MSG_RESULT([no])
    AC_MSG_ERROR([C compiler required for Cython compilation])])
-
-# Check for bundled Lark; we do not verify or report version. Note this
-# assumes that $PWD is the top of the source tree. I don’t believe anything
-# else is supported (see issue #820), but it’s brittle.
-AC_MSG_CHECKING([for bundled Lark module])
-AS_IF([test -e ./lib/lark-*.dist-info],
-      [lark_status=bundled],
-      [lark_status=external])
-AC_MSG_RESULT($lark_status)
-AS_IF([   test $enable_bundled_lark = yes \
-       && test $lark_status != bundled],
-       [AC_MSG_ERROR([bundled Lark not found; see docs])])
 
 # DOT
 vmin_dot=2.30.1
@@ -813,12 +815,12 @@ CH_CHECK_VERSION([WGET], [$vmin_wget], [--version | head -1 | cut -d' ' -f3])
 
 AM_CONDITIONAL([ENABLE_CH_IMAGE], [test $enable_image = yes])
 AM_CONDITIONAL([ENABLE_HTML], [test $enable_html = yes])
-AM_CONDITIONAL([ENABLE_LARK], [test $enable_bundled_lark = yes])
 AM_CONDITIONAL([ENABLE_MAN], [test $enable_man = yes])
 AS_IF([test $enable_syslog = yes],
       [AC_DEFINE([ENABLE_SYSLOG], [1], [log to syslog])])
 AM_CONDITIONAL([ENABLE_TEST], [test $enable_test = yes])
 
+AC_SUBST([PYEXT_SUFFIX], [`python3-config --extension-suffix`])
 AC_SUBST([CH_RUN_LIBS])
 AC_SUBST([SPHINX])
 AC_SUBST([CYTHON_VERSION])
@@ -1007,8 +1009,8 @@ Building images
   with image(1): ${have_image}
     enabled ... ${enable_image}
     Python in shebang ≥ $vmin_python ... ${PYTHON_VERSION_NOTE}
-    "lark" module ... ${lark_status}
     "requests" module ≥ $vmin_requests ... ${REQUESTS_VERSION_NOTE}
+    "lark" module ≥ $vmin_lark ... ${LARK_VERSION_NOTE}
     run(1) ... ${have_run}
 
   with image(1) using build cache: ${have_image_bu}

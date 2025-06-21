@@ -15,6 +15,7 @@ import build_cache as bu
 import filesystem as fs
 import force
 import image as im
+import lark
 
 
 ## Globals ##
@@ -37,11 +38,6 @@ images = dict()
 # Number of stages. This is obtained by counting FROM instructions in the
 # parse tree, so we can use it for error checking.
 image_ct = None
-
-## Imports not in standard library ##
-
-# See image.py for the messy import of this.
-lark = im.lark
 
 ## Exceptions ##
 

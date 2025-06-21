@@ -1,8 +1,4 @@
 #!/usr/bin/env python3
-"""
-Clearstack Daemon
-A lightweight daemon for managing Clearstack containers.
-"""
 
 import json
 import logging
@@ -15,8 +11,6 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
-import tempfile
-import shutil
 
 # Configure logging
 logging.basicConfig(

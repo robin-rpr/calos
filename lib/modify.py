@@ -13,8 +13,7 @@ import build_cache as bu
 import force
 import image as im
 import irtree
-
-lark = im.lark
+import lark
 
 class Modify_Mode(enum.Enum):
    COMMAND_SEQ = "commands"

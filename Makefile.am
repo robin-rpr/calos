@@ -12,7 +12,7 @@ install-exec-hook:
 	for i in $(DESTDIR)@libexecdir@/clearly/convert \
 	         $(DESTDIR)@libexecdir@/clearly/ch-fromhost \
 	         $(DESTDIR)@libexecdir@/clearly/ch-test \
-	         $(DESTDIR)@libexecdir@/clearly/doctest \
+	         $(DESTDIR)@datadir@/clearly/doctest \
 			 $(DESTDIR)@libdir@/clearly/base.sh; \
 	do \
 	  if [ -e $$i ]; then \

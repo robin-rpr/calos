@@ -145,20 +145,20 @@ ln -s "${sphinxdir}/js"    %{buildroot}%{_pkgdocdir}/html/_static/js
 %files builder
 %{_bindir}/image
 %{_mandir}/man1/image.1*
-%{_prefix}/lib/%{name}/build.py
-%{_prefix}/lib/%{name}/build_cache.py
-%{_prefix}/lib/%{name}/charliecloud.py
-%{_prefix}/lib/%{name}/filesystem.py
-%{_prefix}/lib/%{name}/force.py
-%{_prefix}/lib/%{name}/image.py
+%{_prefix}/lib/%{name}/build.*.py
+%{_prefix}/lib/%{name}/build_cache.*.py
+%{_prefix}/lib/%{name}/charliecloud.*.py
+%{_prefix}/lib/%{name}/filesystem.*.py
+%{_prefix}/lib/%{name}/force.*.py
+%{_prefix}/lib/%{name}/image.*.py
 %{_prefix}/lib/%{name}/lark
 %{_prefix}/lib/%{name}/lark-1.1.9.dist-info
-%{_prefix}/lib/%{name}/misc.py
-%{_prefix}/lib/%{name}/modify.py
-%{_prefix}/lib/%{name}/pull.py
-%{_prefix}/lib/%{name}/push.py
-%{_prefix}/lib/%{name}/registry.py
-%{_prefix}/lib/%{name}/version.py
+%{_prefix}/lib/%{name}/misc.*.py
+%{_prefix}/lib/%{name}/modify.*.py
+%{_prefix}/lib/%{name}/pull.*.py
+%{_prefix}/lib/%{name}/push.*.py
+%{_prefix}/lib/%{name}/registry.*.py
+%{_prefix}/lib/%{name}/version.*.py
 %{?el7:%{_prefix}/lib/%{name}/__pycache__}
 
 %files doc

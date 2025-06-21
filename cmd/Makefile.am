@@ -36,17 +36,17 @@ run_oci_CFLAGS = -Wno-unused-function
 # Cython compilation rules
 image.c: image.py
 	rm -f $@
-	cython image.py --embed -3 -o image.c --module-name image
+	cython image.py -E LIBDIR="$(pkglibdir)" --embed -3 -o image.c --module-name image
 	chmod +rx,-w $@  # respects umask
 
 run-oci.c: run-oci.py
 	rm -f $@
-	cython run-oci.py --embed -3 -o run-oci.c --module-name run_oci
+	cython run-oci.py -E LIBDIR="$(pkglibdir)" --embed -3 -o run-oci.c --module-name run_oci
 	chmod +rx,-w $@  # respects umask
 
 daemon.c: daemon.py
 	rm -f $@
-	cython daemon.py --embed -3 -o daemon.c --module-name daemon
+	cython daemon.py -E LIBDIR="$(pkglibdir)" --embed -3 -o daemon.c --module-name daemon
 	chmod +rx,-w $@  # respects umask
 
 # Link with Python libraries

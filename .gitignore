@@ -1,6 +1,8 @@
 # Derived files (no Autotools stuff).
 *.o
 a.out
+/lib/*.c
+/lib/*.so
 /bin/clearly
 /cmd/checkns
 /cmd/run
@@ -25,9 +27,6 @@ a.out
 /doc/html/
 /doc/man/*.[17]
 /lib/contributors.bash
-/lib/lark
-/lib/lark-stubs
-/lib/lark*.dist-info
 /lib/version.py
 /lib/version.sh
 /lib/version.txt

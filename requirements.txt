@@ -1,0 +1,6 @@
+# Python dependencies for Clearly
+# This file contains the list of required python packages for the project.
+
+lark==1.1.9
+wheel
+requests>=2.6.0 

@@ -13,6 +13,7 @@ import filesystem as fs
 import image as im
 import pull
 import version
+import lark
 
 
 ## argparse “actions” ##
@@ -28,7 +29,7 @@ class Dependencies(Action_Exit):
       # ch.init() not yet called, so must get verbosity from arguments.
       ch.dependencies_check()
       if (cli.verbose >= 1):
-         print("lark path: %s" % os.path.normpath(inspect.getfile(im.lark)))
+         print("lark path: %s" % os.path.normpath(inspect.getfile(lark)))
       sys.exit(0)
 
 class Version(Action_Exit):
