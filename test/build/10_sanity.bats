@@ -62,7 +62,7 @@ load ../common
         ls -l "$path"
         [[ ! -u $path ]]
         [[ ! -g $path ]]
-    done < <( find "$clearly_libexec" -name '*' -a \( -executable -o -name '*.c' \) \
+    done < <( find "${clearly_libexec}/clearly" -name '*' -a \( -executable -o -name '*.c' \) \
                    -print0 )
 }
 
