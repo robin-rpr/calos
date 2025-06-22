@@ -33,8 +33,12 @@ continuing to build from source as described below:
   * python3-pip
   * python3-wheel
   * python3-cython
-  * bats
   * git
+
+Optional dependencies:
+
+  * rsync
+  * bats
 
 Building from source
 --------------------
