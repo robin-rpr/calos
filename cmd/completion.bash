@@ -118,17 +118,17 @@ if [[ -z "$(declare -f -F _get_comp_words_by_ref)" ]]; then
 fi
 
 # https://stackoverflow.com/a/246128
-_ch_completion_dir=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-_ch_completion_version="$("$_ch_completion_dir"/../misc/version)"
+_clearly_completion_dir=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+_clearly_completion_version="$("$_clearly_completion_dir"/../misc/version)"
 
-_ch_completion_log="/tmp/completion.log"
+_clearly_completion_log="/tmp/completion.log"
 
 # Record file being sourced.
 if [[ -n "$CH_COMPLETION_DEBUG" ]]; then
-    printf "completion.bash sourced\n\n" >> "$_ch_completion_log"
+    printf "completion.bash sourced\n\n" >> "$_clearly_completion_log"
 fi
 
-_ch_completable_executables="image run convert"
+_clearly_completable_executables="image run convert"
 
 
 ## convert ##
@@ -146,7 +146,7 @@ _convert_opts="-h --help -n --dry-run --no-clobber --no-xattrs -v --verbose
 
 # Completion function for convert
 #
-_ch_convert_complete () {
+_clearly_convert_complete () {
     local prev
     local cur
     local fmt_in
@@ -157,8 +157,8 @@ _ch_convert_complete () {
     local extras
     _get_comp_words_by_ref -n : cur prev words cword
 
-    strg_dir=$(_ch_find_storage "${words[@]::${#words[@]}-1}")
-    _ch_convert_parse "$strg_dir" "$cword" fmt_in fmt_out opts_end "${words[@]}"
+    strg_dir=$(_clearly_find_storage "${words[@]::${#words[@]}-1}")
+    _clearly_convert_parse "$strg_dir" "$cword" fmt_in fmt_out opts_end "${words[@]}"
 
     # Populate debug log
     _DEBUG "\$ ${words[*]}"
@@ -206,7 +206,7 @@ _ch_convert_complete () {
         # Input image not yet specified, complete potential input images.
         case "$fmt_in" in
         image)
-            COMPREPLY+=( $(compgen -W "$(_ch_list_images "$strg_dir")" -- "$cur") )
+            COMPREPLY+=( $(compgen -W "$(_clearly_list_images "$strg_dir")" -- "$cur") )
             __ltrim_colon_completions "$cur"
             ;;
         dir)
@@ -231,7 +231,7 @@ _ch_convert_complete () {
         "")
             # No in fmt specified, could be anything
             COMPREPLY+=( $(_compgen_filepaths -X "!*.tar.* !*tgz !*.sqfs" "$cur") )
-            COMPREPLY+=( $(compgen -W "$(_ch_list_images "$strg_dir")" -- "$cur") )
+            COMPREPLY+=( $(compgen -W "$(_clearly_list_images "$strg_dir")" -- "$cur") )
             _space_filepath -X "!*.tar.* !*tgz !*.sqfs" "$cur"
             __ltrim_colon_completions "$cur"
             return 0
@@ -295,7 +295,7 @@ _image_complete () {
     # of the array, except for the one at index “i”. The syntax glossary at the
     # top of this file gives a breakdown of the constituent elements of this
     # hideous expression.
-    strg_dir=$(_ch_find_storage "${words[@]::$cword}" "${words[@]:$cword+1:${#array[@]}-1}")
+    strg_dir=$(_clearly_find_storage "${words[@]::$cword}" "${words[@]:$cword+1:${#array[@]}-1}")
 
     # Populate debug log
     _DEBUG "\$ ${words[*]}"
@@ -327,7 +327,7 @@ _image_complete () {
         ;;
     -s|--storage)
         # See comment about overzealous completion for the “--storage” option
-        # under “_ch_convert_complete”.
+        # under “_clearly_convert_complete”.
         if [[ -n "$cur" ]]; then
             compopt -o nospace
             COMPREPLY=( $(compgen -d -S / -- "$cur") )
@@ -380,7 +380,7 @@ _image_complete () {
         case "$sub_cmd" in
         list)
             if [[ "$prev" == "--undeletable" || "$prev" == "--undeleteable" || "$prev" == "-u" ]]; then
-                COMPREPLY=( $(compgen -W "$(_ch_undelete_list "$strg_dir")" -- "$cur") )
+                COMPREPLY=( $(compgen -W "$(_clearly_undelete_list "$strg_dir")" -- "$cur") )
                 return 0
             fi
             extras="$extras -l --long -u --undeletable"
@@ -396,7 +396,7 @@ _image_complete () {
             extras="$extras $_image_modify_opts"
             ;;
         esac
-        COMPREPLY=( $(compgen -W "$(_ch_list_images "$strg_dir") $extras" -- "$cur") )
+        COMPREPLY=( $(compgen -W "$(_clearly_list_images "$strg_dir") $extras" -- "$cur") )
         __ltrim_colon_completions "$cur"
         ;;
     gestalt)
@@ -416,11 +416,11 @@ _image_complete () {
             COMPREPLY=( $(compgen -d -S / -- "$cur") )
             return 0
         fi
-        COMPREPLY=( $(compgen -W "$(_ch_list_images "$strg_dir") --image" -- "$cur") )
+        COMPREPLY=( $(compgen -W "$(_clearly_list_images "$strg_dir") --image" -- "$cur") )
         __ltrim_colon_completions "$cur"
         ;;
     undelete)
-        COMPREPLY=( $(compgen -W "$(_ch_undelete_list "$strg_dir")" -- "$cur") )
+        COMPREPLY=( $(compgen -W "$(_clearly_undelete_list "$strg_dir")" -- "$cur") )
         ;;
     '')
         # Only autocomplete subcommands if there's no subcommand present.
@@ -459,9 +459,9 @@ _run_complete () {
     local extras=
     _get_comp_words_by_ref -n : cur prev words cword
 
-    # See the comment above the first call to “_ch_find_storage” for an
+    # See the comment above the first call to “_clearly_find_storage” for an
     # explanation of the horrible syntax here.
-    strg_dir=$(_ch_find_storage "${words[@]::$cword}" "${words[@]:$cword+1:${#array[@]}-1}")
+    strg_dir=$(_clearly_find_storage "${words[@]::$cword}" "${words[@]:$cword+1:${#array[@]}-1}")
     local cli_image
     local cmd_index=-1
    _run_parse "$strg_dir" "$cword" cli_image cmd_index "${words[@]}"
@@ -521,7 +521,7 @@ _run_complete () {
         ;;
     -s|--storage)
         # See comment about overzealous completion for the “--storage” option
-        # under “_ch_convert_complete”.
+        # under “_clearly_convert_complete”.
         if [[ -n "$cur" ]]; then
             compopt -o nospace
             COMPREPLY=( $(compgen -d -S / -- "$cur") )
@@ -548,7 +548,7 @@ _run_complete () {
         # Complete images in storage. Note we don't use “clearly image list” here
         # because it can initialize an empty storage directory and we don't want
         # this script to have any such side effects.
-        COMPREPLY+=( $(compgen -W "$(_ch_list_images "$strg_dir")" -- "$cur") )
+        COMPREPLY+=( $(compgen -W "$(_clearly_list_images "$strg_dir")" -- "$cur") )
         __ltrim_colon_completions "$cur"
     fi
 
@@ -560,7 +560,7 @@ _run_complete () {
 
 ## Helper functions ##
 
-_ch_completion_help="Usage: clearly completion [ OPTION ]
+_clearly_completion_help="Usage: clearly completion [ OPTION ]
 
 Utility function for Clearstack tab completion.
 
@@ -574,8 +574,8 @@ Utility function for Clearstack tab completion.
 # Add debugging text to log file if CH_COMPLETION_DEBUG is specified.
 _DEBUG () {
     if [[ -n "$CH_COMPLETION_DEBUG" ]]; then
-        #echo "$@" >> "$_ch_completion_log"
-        printf "%s\n" "$@" >> "$_ch_completion_log"
+        #echo "$@" >> "$_clearly_completion_log"
+        printf "%s\n" "$@" >> "$_clearly_completion_log"
     fi
 }
 
@@ -589,19 +589,19 @@ completion () {
                 complete -r run
                 ;;
             --help)
-                printf "%s" "$_ch_completion_help" 1>&2
+                printf "%s" "$_clearly_completion_help" 1>&2
                 return 0
                 ;;
             --version)
-                printf "%s\n" "$_ch_completion_version" 1>&2
+                printf "%s\n" "$_clearly_completion_version" 1>&2
                 ;;
             --version-ok)
-                if _version_ok_ch_completion "image"; then
+                if _version_ok_clearly_completion "image"; then
                     printf "version ok\n" 1>&2
                     return 0
                 else
                     printf "image:      %s\n" "$(image --version)" 1>&2
-                    printf "completion: %s\n" "$_ch_completion_version" 1>&2
+                    printf "completion: %s\n" "$_clearly_completion_version" 1>&2
                     printf "version incompatible!\n" 1>&2
                     return 1
                 fi
@@ -618,7 +618,7 @@ _completion_opts="--disable --help --version --version-ok"
 
 # Yes, the untility function needs completion too...
 #
-_ch_completion_complete () {
+_clearly_completion_complete () {
     local cur
     _get_comp_words_by_ref -n : cur
 
@@ -633,10 +633,10 @@ _ch_completion_complete () {
 #   2.) The current position (measured in words) of the cursor in the array
 #       representing the command line (index starting at 0).
 #
-#   3.) An out parameter (explanation below). If “_ch_convert_parse” is able to
+#   3.) An out parameter (explanation below). If “_clearly_convert_parse” is able to
 #       determine the format of the input image, it will pass that format back
 #       to the caller as a string using this out parameter. There are two ways
-#       that “_ch_convert_parse” can determine the input image format:
+#       that “_clearly_convert_parse” can determine the input image format:
 #           i.) If “-i” or “--in-fmt” is specified and is followed by a valid
 #               image format, the out parameter will be set to a that format.
 #               E.g. “image”.
@@ -652,16 +652,16 @@ _ch_completion_complete () {
 #       "${array[@]}").
 #
 # “Out parameter” here refers to a variable that is meant to pass information
-# from this function to its caller (here the “_ch_chonvert_complete” function).
+# from this function to its caller (here the “_clearly_chonvert_complete” function).
 # Out parameters should be passed to a bash function as the unquoted names of
 # variables (e.g. “var” instead of “$var” or “"$var"”) within the caller’s
 # scope. Passing the variables to the function in this way allows it to change
 # their values, and for those changes to persist in the scope that called the
 # function (this is what makes them “out parameters”).
 #
-_ch_convert_parse () {
+_clearly_convert_parse () {
     local images
-    images=$(_ch_list_images "$1")
+    images=$(_clearly_list_images "$1")
     local cword="$2"
     local -n in_fmt=$3
     local -n out_fmt=$4
@@ -720,7 +720,7 @@ _ch_convert_parse () {
 # Remove trailing slash. Note that this isn't performed when the script is
 # sourced because the working storage directory can effectively change at any
 # time with “CH_IMAGE_STORAGE” or the “--storage” option.
-_ch_find_storage () {
+_clearly_find_storage () {
     if echo "$@" | grep -Eq -- '\s(--storage|-\w*s)'; then
         # This if “--storage” or “-s” are in the command line.
         sed -Ee 's/(.*)(--storage=*|[^-]-s=*)\ *([^ ]*)(.*$)/\3/g' -Ee 's|/$||g' <<< "$@"
@@ -763,7 +763,7 @@ _image_subcmd_get () {
 }
 
 # List images in storage directory.
-_ch_list_images () {
+_clearly_list_images () {
     # “find” throws an error if “img” subdir doesn't exist or is empty, so check
     # before proceeding.
     if [[ -d "$1/img" && -n "$(ls -A "$1/img")" ]]; then
@@ -779,7 +779,7 @@ _ch_list_images () {
 #   2.) The current position (measured in words) of the cursor in the array
 #       representing the command line (index starting at 0).
 #
-#   3.) An out parameter (see explanation above “_ch_convert_parse”). If
+#   3.) An out parameter (see explanation above “_clearly_convert_parse”). If
 #       “_run_parse” finds the name of an image in storage (e.g.
 #       “alpine:latest”) or something that looks like an image path (i.e. a
 #       directory, tarball or file named like a squash archive) in the command
@@ -808,7 +808,7 @@ _run_parse () {
     # assumes that the out parameter in question is the empty string before it
     # gets called.
     local images                   # these two lines are separate b/c SC2155
-    images=$(_ch_list_images "$1") #
+    images=$(_clearly_list_images "$1") #
     shift 1
     local cword="$1"
     shift 1
@@ -854,7 +854,7 @@ _run_parse () {
 }
 
 # List undeletable images in the build cache, if it exists.
-_ch_undelete_list () {
+_clearly_undelete_list () {
     if [[ -d "$1/bucache/" ]]; then
         git -C "$strg_dir/bucache/" tag -l | sed -e "s/&//g" \
                                                  -e "s/%/\//g" \
@@ -905,9 +905,9 @@ _compgen_filepaths () {
 
 # Wrapper for a horrible pipeline to complete python files in lib.
 _compgen_py_libfiles () {
-    compgen -f "$_ch_completion_dir/../lib/" |
+    compgen -f "$_clearly_completion_dir/../lib/" |
         grep -o -E ".*\.py" |
-        sed "s|$_ch_completion_dir\/\.\.\/lib\/\(.*\)\.py|\1|"
+        sed "s|$_clearly_completion_dir\/\.\.\/lib\/\(.*\)\.py|\1|"
 }
 
 # Return 0 if "$1" is a word in space-separated sequence of words "$2", e.g.
@@ -970,15 +970,15 @@ _space_filepath () {
     fi
 }
 
-_version_ok_ch_completion () {
-    if [[ "$($1 --version 2>&1)" == "$_ch_completion_version" ]]; then
+_version_ok_clearly_completion () {
+    if [[ "$($1 --version 2>&1)" == "$_clearly_completion_version" ]]; then
         return 0
     else
         return 1
     fi
 }
 
-complete -F _ch_completion_complete completion
-complete -F _ch_convert_complete convert
+complete -F _clearly_completion_complete completion
+complete -F _clearly_convert_complete convert
 complete -F _image_complete image
 complete -F _run_complete run

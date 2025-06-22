@@ -9,7 +9,7 @@ load ../common
     if [[ ! -d ../doc ]]; then
         skip 'documentation source code absent'
     fi
-    if [[ ! -f ../doc/html/index.html || ! -f ../doc/man/ch-run.1 ]]; then
+    if [[ ! -f ../doc/html/index.html || ! -f ../doc/man/clearly-run.1 ]]; then
         skip 'documentation not built'
     fi
     (cd ../doc && make -j "$(getconf _NPROCESSORS_ONLN)")

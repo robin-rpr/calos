@@ -73,7 +73,7 @@ builder_ok () {
     # Uncomment below when they can be supported by all the builders.
     builder_tag_p "$1"
     #builder_tag_p "${1}:latest"
-    #docker_tag_p "${1}:$(ch-run --version |& tr '~+' '--')"
+    #docker_tag_p "${1}:$(clearly run --version |& tr '~+' '--')"
 }
 
 builder_tag_p () {
@@ -114,7 +114,7 @@ chtest_fixtures_ok () {
     [[ -e ${1}/mnt/dev/dontdeleteme ]]
     ls -Aq "${1}/dev"
     [[ $(ls -Aq "${1}/dev") = '' ]]
-    ch-run "$1" -- test -e /mnt/dev/dontdeleteme
+    clearly run "$1" -- test -e /mnt/dev/dontdeleteme
     # Are permissions still good?
     ls -ld "$1"/maxperms_*
     [[ $(stat -c %a "${1}/maxperms_dir") = 1777 ]]
@@ -216,7 +216,7 @@ pict_assert_equal () {
     echo "diff: $diff_"
     echo "   bind: $diff_bind"
     # See: https://imagemagick.org/script/command-line-options.php#metric
-    pixel_ct=$(ch-run "$ch_img" -b "$ref_bind" \
+    pixel_ct=$(clearly run "$ch_img" -b "$ref_bind" \
                                 -b "$sample_bind" \
                                 -b "$diff_bind" -- \
                       compare -metric AE /a.png /b.png "$diff_" 2>&1 || true)
@@ -226,7 +226,7 @@ pict_assert_equal () {
 
 # Check if the pict_ functions are usable; if not, pedantic-fail.
 pict_ok () {
-    if "$ch_mpirun_node" ch-run "$ch_img" -- compare > /dev/null 2>&1; then
+    if "$ch_mpirun_node" clearly run "$ch_img" -- compare > /dev/null 2>&1; then
         pedantic_fail 'need ImageMagick'
     fi
 }
@@ -329,7 +329,7 @@ chmod 700 "$btnew"
 export BATS_TMPDIR=$btnew
 [[ $(stat -c %a "$BATS_TMPDIR") = '700' ]]
 
-# ch-run exit codes. (see also: ch_misc.h, lib/build.py)
+# clearly run exit codes. (see also: ch_misc.h, lib/build.py)
 CH_ERR_MISC=31
 CH_ERR_CMD=49
 #CH_ERR_SQUASH=84 # Currently not used
@@ -345,7 +345,7 @@ ch_libexec=${ch_bin}/../../libexec
 ch_runfile=${ch_libexec}/run
 
 # Clearly version.
-ch_version=$("${ch_lib}/_version.sh" 2>&1)
+. "${ch_lib}/_version.sh"
 ch_version_base=$(echo "$ch_version" | sed -E 's/~.+//')
 ch_version_docker=$(echo "$ch_version" | tr '~+' '--')
 

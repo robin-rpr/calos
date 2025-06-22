@@ -48,8 +48,8 @@ fi
 
 # Build.
 make -j"$(nproc)"
-ldd bin/ch-run
-bin/ch-run --version
+ldd cmd/run
+cmd/run --version
 
 # Make tarball.
 rm -f charliecloud-*.tar.gz
@@ -59,5 +59,5 @@ ls -lh charliecloud-*.tar.gz
 # Install.
 sudo make install
 echo "$prefox"
-ldd "$prefox"/bin/ch-run
-"$prefox"/bin/ch-run --version
+ldd "$prefox"/cmd/run
+"$prefox"/cmd/run --version

@@ -21,12 +21,12 @@ fromhost_clean () {
       -o -name sotest            \
       -o -name sotest.c          \
     \) -print -delete
-    ch-run -w "$1" -- /sbin/ldconfig  # restore default cache
+    clearly run -w "$1" -- /sbin/ldconfig  # restore default cache
     fromhost_clean_p "$1"
 }
 
 fromhost_clean_p () {
-    ch-run "$1" -- /sbin/ldconfig -p | grep -F libsotest && return 1
+    clearly run "$1" -- /sbin/ldconfig -p | grep -F libsotest && return 1
     run fromhost_ls "$1"
     echo "$output"
     [[ $status -eq 0 ]]
@@ -43,7 +43,7 @@ glibc_version_ok () {
     # get an error. This function ensures that host glibc and guest glibc are
     # compatible (see #1430).
     host=$(ldd --version | grep -oE '[0-9.]+[^.]$')
-    guest=$(ch-run "$1" -- ldd --version | grep -oE '[0-9.]+[^.]$')
+    guest=$(clearly run "$1" -- ldd --version | grep -oE '[0-9.]+[^.]$')
     # Check version compatibility. If host glibc ≥ 2.34 and guest glibc < 2.34,
     # skip the test.
     if [[     $(printf "%s\n2.34" "$host" | sort -V | head -1) = 2.34 \
@@ -70,44 +70,44 @@ glibc_version_ok () {
     test -f "${img}/usr/bin/sotest"
     test -f "${img}${libpath}/libsotest.so.1.0"
     test -L "${img}${libpath}/libsotest.so.1"
-    ch-run "$img" -- /sbin/ldconfig -p | grep -F libsotest
-    ch-run "$img" -- sotest
+    clearly run "$img" -- /sbin/ldconfig -p | grep -F libsotest
+    clearly run "$img" -- sotest
     rm "${img}/usr/bin/sotest"
     rm "${img}${libpath}/libsotest.so.1.0"
     rm "${img}${libpath}/libsotest.so.1"
-    ch-run -w "$img" -- /sbin/ldconfig
+    clearly run -w "$img" -- /sbin/ldconfig
     fromhost_clean_p "$img"
 
     # --cmd
     ch-fromhost -v --cmd 'cat sotest/files_inferrable.txt' "$img"
-    ch-run "$img" -- sotest
+    clearly run "$img" -- sotest
 
     # --path
     ch-fromhost -v --path sotest/bin/sotest \
                    --path sotest/lib/libsotest.so.1.0 \
                    "$img"
-    ch-run "$img" -- sotest
+    clearly run "$img" -- sotest
     fromhost_clean "$img"
 
     # --cmd and --file
     ch-fromhost -v --cmd 'cat sotest/files_inferrable.txt' \
                    --file sotest/files_inferrable.txt "$img"
-    ch-run "$img" -- sotest
+    clearly run "$img" -- sotest
     fromhost_clean "$img"
 
     # --dest
     ch-fromhost -v --file sotest/files_inferrable.txt \
                    --dest /mnt "$img" \
                    --path sotest/sotest.c
-    ch-run "$img" -- sotest
-    ch-run "$img" -- test -f /mnt/sotest.c
+    clearly run "$img" -- sotest
+    clearly run "$img" -- test -f /mnt/sotest.c
     fromhost_clean "$img"
 
     # --dest overrides inference, but ldconfig still run
     ch-fromhost -v --dest /lib \
                    --file sotest/files_inferrable.txt \
                    "$img"
-    ch-run "$img" -- /lib/sotest
+    clearly run "$img" -- /lib/sotest
     fromhost_clean "$img"
 
     # --no-ldconfig
@@ -115,8 +115,8 @@ glibc_version_ok () {
     [[   -f "${img}/usr/bin/sotest" ]]
     [[   -f "${img}${libpath}/libsotest.so.1.0" ]]
     [[ ! -L "${img}${libpath}/libsotest.so.1" ]]
-    ch-run "$img" -- /sbin/ldconfig -p | grep -FL libsotest
-    run ch-run "$img" -- sotest
+    clearly run "$img" -- /sbin/ldconfig -p | grep -FL libsotest
+    run clearly run "$img" -- sotest
     echo "$output"
     [[ $status -eq 127 ]]
     [[ $output = *'libsotest.so.1: cannot open shared object file'* ]]
@@ -124,7 +124,7 @@ glibc_version_ok () {
 
     # no --verbose
     ch-fromhost --file sotest/files_inferrable.txt "$img"
-    ch-run "$img" -- sotest
+    clearly run "$img" -- sotest
     fromhost_clean "$img"
 
     # destination directory not writeable (#323)
@@ -152,8 +152,8 @@ glibc_version_ok () {
     test -f "${img}/usr/bin/sotest"
     test -f "${img}/${libpath}/libsotest.so.1.0"
     test -L "${img}/${libpath}/libsotest.so.1"
-    ch-run "$img" -- /sbin/ldconfig -p | grep -F libsotest
-    ch-run "$img" -- sotest
+    clearly run "$img" -- /sbin/ldconfig -p | grep -F libsotest
+    clearly run "$img" -- sotest
     rm "${img}/usr/bin/sotest"
     rm "${img}/${libpath}/libsotest.so.1.0"
     rm "${img}/${libpath}/libsotest.so.1"
@@ -377,13 +377,13 @@ glibc_version_ok () {
     ch-fromhost -v --nvidia "$img"
 
     # nvidia-smi runs in guest
-    ch-run "$img" -- nvidia-smi -L
+    clearly run "$img" -- nvidia-smi -L
 
     # nvidia-smi -L matches host
     host=$(nvidia-smi -L)
     echo "host GPUs:"
     echo "$host"
-    guest=$(ch-run "$img" -- nvidia-smi -L)
+    guest=$(clearly run "$img" -- nvidia-smi -L)
     echo "guest GPUs:"
     echo "$guest"
     cmp <(echo "$host") <(echo "$guest")
@@ -391,26 +391,26 @@ glibc_version_ok () {
     # --nvidia and --cmd
     fromhost_clean "$img"
     ch-fromhost --nvidia --file sotest/files_inferrable.txt "$img"
-    ch-run "$img" -- nvidia-smi -L
-    ch-run "$img" -- sotest
+    clearly run "$img" -- nvidia-smi -L
+    clearly run "$img" -- sotest
     # --nvidia and --file
     fromhost_clean "$img"
     ch-fromhost --nvidia --cmd 'cat sotest/files_inferrable.txt' "$img"
-    ch-run "$img" -- nvidia-smi -L
-    ch-run "$img" -- sotest
+    clearly run "$img" -- nvidia-smi -L
+    clearly run "$img" -- sotest
 
     # CUDA sample
     sample=/matrixMulCUBLAS
     # should fail without ch-fromhost --nvidia
     fromhost_clean "$img"
-    run ch-run "$img" -- "$sample"
+    run clearly run "$img" -- "$sample"
     echo "$output"
     [[ $status -eq 1 ]]
     [[ $output = *'CUDA error at'* ]]
     # should succeed with it
     fromhost_clean_p "$img"
     ch-fromhost --nvidia "$img"
-    run ch-run "$img" -- "$sample"
+    run clearly run "$img" -- "$sample"
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output =~ 'Comparing CUBLAS Matrix Multiply with CPU results: PASS' ]]

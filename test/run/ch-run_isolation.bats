@@ -4,7 +4,7 @@ load ../common
     scope full
     host_ns=$(stat -Lc '%i' /proc/self/ns/mnt)
     echo "host:  ${host_ns}"
-    guest_ns=$(ch-run "$ch_timg" -- stat -Lc %i /proc/self/ns/mnt)
+    guest_ns=$(clearly run "$ch_timg" -- stat -Lc %i /proc/self/ns/mnt)
     echo "guest: ${guest_ns}"
     [[ -n $host_ns && -n $guest_ns && $host_ns -ne $guest_ns ]]
 }
@@ -13,7 +13,7 @@ load ../common
     scope full
     host_ns=$(stat -Lc '%i' /proc/self/ns/user)
     echo "host:  ${host_ns}"
-    guest_ns=$(ch-run "$ch_timg" -- stat -Lc %i /proc/self/ns/user)
+    guest_ns=$(clearly run "$ch_timg" -- stat -Lc %i /proc/self/ns/user)
     echo "guest: ${guest_ns}"
     [[ -n $host_ns && -n $guest_ns && $host_ns -ne $guest_ns ]]
 }
@@ -31,7 +31,7 @@ load ../common
     if [[ $host_distro = "$guest_expected" ]]; then
         pedantic_fail 'host matches expected guest distro'
     fi
-    guest_distro=$(ch-run "$ch_timg" -- \
+    guest_distro=$(clearly run "$ch_timg" -- \
                           cat /etc/os-release \
                    | grep -F PRETTY_NAME \
                    | sed -r 's/^(.*")?(.+)(")$/\2/')
@@ -43,15 +43,15 @@ load ../common
 @test 'user and group match host' {
     scope full
     host_uid=$(id -u)
-    guest_uid=$(ch-run "$ch_timg" -- id -u)
+    guest_uid=$(clearly run "$ch_timg" -- id -u)
     [[ $host_uid = "$guest_uid" ]]
     host_pgid=$(id -g)
-    guest_pgid=$(ch-run "$ch_timg" -- id -g)
+    guest_pgid=$(clearly run "$ch_timg" -- id -g)
     [[ $host_pgid = "$guest_pgid" ]]
     host_username=$(id -un)
-    guest_username=$(ch-run "$ch_timg" -- id -un)
+    guest_username=$(clearly run "$ch_timg" -- id -un)
     [[ $host_username = "$guest_username" ]]
     host_pgroup=$(id -gn)
-    guest_pgroup=$(ch-run "$ch_timg" -- id -gn)
+    guest_pgroup=$(clearly run "$ch_timg" -- id -gn)
     [[ $host_pgroup = "$guest_pgroup" ]]
 }

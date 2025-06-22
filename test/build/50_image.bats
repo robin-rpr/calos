@@ -832,7 +832,7 @@ EOF
 }
 
 
-@test 'ch-run --unsafe' {
+@test 'clearly run --unsafe' {
     my_storage=${BATS_TMPDIR}/unsafe
 
     # Default storage location.
@@ -840,7 +840,7 @@ EOF
         sold=$CH_IMAGE_STORAGE
         unset CH_IMAGE_STORAGE
         [[ ! -e .%3.17 ]]
-        ch-run --unsafe alpine:3.17 -- /bin/true
+        clearly run --unsafe alpine:3.17 -- /bin/true
         CH_IMAGE_STORAGE=$sold
     fi
 
@@ -851,28 +851,28 @@ EOF
     unset CH_IMAGE_STORAGE
 
     # Specified on command line.
-    ch-run --unsafe -s "$my_storage" alpine:3.17 -- /bin/true
+    clearly run --unsafe -s "$my_storage" alpine:3.17 -- /bin/true
 
     # Specified with environment variable.
     export CH_IMAGE_STORAGE=$my_storage
 
     # Basic environment-variable specified.
-    ch-run --unsafe alpine:3.17 -- /bin/true
+    clearly run --unsafe alpine:3.17 -- /bin/true
 }
 
 
-@test 'ch-run storage errors' {
-    run ch-run -v -w alpine:3.17 -- /bin/true
+@test 'clearly run storage errors' {
+    run clearly run -v -w alpine:3.17 -- /bin/true
     echo "$output"
     [[ $status -eq $CH_ERR_MISC ]]
     [[ $output = *'error: --write invalid when running by name'* ]]
 
-    run ch-run -v "$CH_IMAGE_STORAGE"/img/alpine+3.17 -- /bin/true
+    run clearly run -v "$CH_IMAGE_STORAGE"/img/alpine+3.17 -- /bin/true
     echo "$output"
     [[ $status -eq $CH_ERR_MISC ]]
     [[ $output = *"error: can't run directory images from storage (hint: run by name)"* ]]
 
-    run ch-run -v -s /doesnotexist alpine:3.17 -- /bin/true
+    run clearly run -v -s /doesnotexist alpine:3.17 -- /bin/true
     echo "$output"
     [[ $status -eq $CH_ERR_MISC ]]
     [[ $output = *'warning: storage directory not found: /doesnotexist'* ]]
@@ -880,7 +880,7 @@ EOF
 }
 
 
-@test 'ch-run image in both storage and cwd' {
+@test 'clearly run image in both storage and cwd' {
     cd "$BATS_TMPDIR"
 
     # Set up a fixure image in $CWD that causes a collision with the named
@@ -891,10 +891,10 @@ EOF
     rm ./alpine+3.17/bin/true
 
     # Default.
-    ch-run alpine:3.17 -- /bin/true
+    clearly run alpine:3.17 -- /bin/true
 
     # With --unsafe.
-    ch-run --unsafe alpine:3.17 -- /bin/true
+    clearly run --unsafe alpine:3.17 -- /bin/true
 }
 
 

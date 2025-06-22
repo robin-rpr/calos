@@ -8,12 +8,12 @@ import os.path
 import sys
 
 import _clearly as clearly
-import _build_cache as build_cache
 import _filesystem as filesystem
 import _image as image
 import _reference as reference
 import _pull as pull
 import _version as version
+import _build_cache
 import lark
 
 
@@ -49,14 +49,14 @@ def build_cache(cli):
    if (cli.bucache == clearly.Build_Mode.DISABLED):
       clearly.FATAL("build-cache subcommand invalid with build cache disabled")
    if (cli.reset):
-      build_cache.cache.reset()
+      _build_cache.cache.reset()
    if (cli.gc):
-      build_cache.cache.garbageinate()
+      _build_cache.cache.garbageinate()
    if (cli.tree):
-      build_cache.cache.tree_print()
+      _build_cache.cache.tree_print()
    if (cli.dot):
-      build_cache.cache.tree_dot()
-   build_cache.cache.summary_print()
+      _build_cache.cache.tree_dot()
+   _build_cache.cache.summary_print()
 
 def delete(cli):
    fail_ct = 0
@@ -64,23 +64,23 @@ def delete(cli):
       delete_ct = 0
       for img in itertools.chain(image.Image.glob(ref),
                                  image.Image.glob(ref + "_stage[0-9]*")):
-         build_cache.cache.unpack_delete(img)
+         _build_cache.cache.unpack_delete(img)
          to_delete = reference.Reference.ref_to_pathstr(str(img))
-         build_cache.cache.branch_delete(to_delete)
+         _build_cache.cache.branch_delete(to_delete)
          delete_ct += 1
       if (delete_ct == 0):
          fail_ct += 1
          clearly.ERROR("no matching image, can’t delete: %s" % ref)
-   build_cache.cache.worktrees_fix()
+   _build_cache.cache.worktrees_fix()
    if (fail_ct > 0):
       clearly.FATAL("unable to delete %d invalid image(s)" % fail_ct)
 
 def gestalt_bucache(cli):
-   build_cache.have_deps()
+   _build_cache.have_deps()
 
 def gestalt_bucache_dot(cli):
-   build_cache.have_deps()
-   build_cache.have_dot()
+   _build_cache.have_deps()
+   _build_cache.have_dot()
 
 def gestalt_logging(cli):
    clearly.TRACE("trace")
@@ -106,7 +106,7 @@ def import_(cli):
    pathstr = reference.Reference.ref_to_pathstr(cli.image_ref)
    if (cli.bucache == clearly.Build_Mode.ENABLED):
       # Un-tag previously deleted branch, if it exists.
-      build_cache.cache.tag_delete(pathstr, fail_ok=True)
+      _build_cache.cache.tag_delete(pathstr, fail_ok=True)
    dst = image.Image(reference.Reference(cli.image_ref))
    clearly.INFO("importing:    %s" % cli.path)
    clearly.INFO("destination:  %s" % dst)
@@ -115,7 +115,7 @@ def import_(cli):
       dst.copy_unpacked(cli.path)
    else:  # tarball, hopefully
       dst.unpack([cli.path])
-   build_cache.cache.adopt(dst)
+   _build_cache.cache.adopt(dst)
    if (dst.metadata["history"] == []):
       dst.metadata["history"].append({ "empty_layer": False,
                                        "command":     "clearly image import"})
@@ -157,13 +157,13 @@ def list_(cli):
                                               img.last_modified.ctime())
       print("in local storage:    %s" % stored)
       # in cache?
-      (sid, commit) = build_cache.cache.find_image(img)
+      (sid, commit) = _build_cache.cache.find_image(img)
       if (sid is None):
          cached = "no"
       else:
          cached = "yes (state ID %s, commit %s)" % (sid.short, commit[:7])
          if (os.path.exists(img.unpack_path)):
-            wdc = build_cache.cache.worktree_head(img)
+            wdc = _build_cache.cache.worktree_head(img)
             if (wdc is None):
                clearly.WARNING("stored image not connected to build cache")
             elif (wdc != commit):
@@ -212,7 +212,7 @@ def undelete(cli):
    img = image.Image(reference.Reference(cli.image_ref))
    if (img.unpack_exist_p):
       clearly.FATAL("image exists; will not overwrite")
-   (_, git_hash) = build_cache.cache.find_deleted_image(img)
+   (_, git_hash) = _build_cache.cache.find_deleted_image(img)
    if (git_hash is None):
       clearly.FATAL("image not in cache")
-   build_cache.cache.checkout_ready(img, git_hash)
+   _build_cache.cache.checkout_ready(img, git_hash)

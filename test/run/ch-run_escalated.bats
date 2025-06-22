@@ -1,8 +1,8 @@
 load ../common
 
-@test 'ch-run refuses to run if setgid' {
+@test 'clearly run refuses to run if setgid' {
     scope standard
-    ch_run_tmp=$BATS_TMPDIR/ch-run.setgid
+    ch_run_tmp=$BATS_TMPDIR/run.setgid
     gid=$(id -g)
     gid2=$(id -G | cut -d' ' -f2)
     echo "gids: ${gid} ${gid2}"
@@ -20,10 +20,10 @@ load ../common
     rm "$ch_run_tmp"
 }
 
-@test 'ch-run refuses to run if setuid' {
+@test 'clearly run refuses to run if setuid' {
     scope standard
     [[ -n $ch_have_sudo ]] || skip 'sudo not available'
-    ch_run_tmp=$BATS_TMPDIR/ch-run.setuid
+    ch_run_tmp=$BATS_TMPDIR/run.setuid
     cp -a "$ch_runfile" "$ch_run_tmp"
     ls -l "$ch_run_tmp"
     sudo chown root "$ch_run_tmp"
@@ -37,30 +37,30 @@ load ../common
     sudo rm "$ch_run_tmp"
 }
 
-@test 'ch-run as root: --version and --test' {
+@test 'clearly run as root: --version and --test' {
     scope standard
     [[ -n $ch_have_sudo ]] || skip 'sudo not available'
     sudo "$ch_runfile" --version
     sudo "$ch_runfile" --help
 }
 
-@test 'ch-run as root: run image' {
+@test 'clearly run as root: run image' {
     scope standard
     # Running an image should work as root, but it doesn’t, and I'm not sure
     # why, so skip this test. This fails in the test suite with:
     #
-    #   ch-run: couldn’t resolve image path: No such file or directory (ch-run.c:139:2)
+    #   clearly run: couldn’t resolve image path: No such file or directory (run.c:139:2)
     #
     # but when run manually (with same arguments?) it fails differently with:
     #
-    #   $ sudo bin/ch-run $ch_imgdir/chtest -- true
-    #   ch-run: [...]/chtest: Permission denied (ch-run.c:195:13)
+    #   $ sudo clearly run $ch_imgdir/chtest -- true
+    #   clearly run: [...]/chtest: Permission denied (run.c:195:13)
     #
     skip 'issue #76'
     sudo "$ch_runfile" "$ch_timg" -- true
 }
 
-@test 'ch-run as root: root with non-zero gid refused' {
+@test 'clearly run as root: root with non-zero gid refused' {
     scope standard
     [[ -n $ch_have_sudo ]] || skip 'sudo not available'
     if ! (sudo -u root -g "$(id -gn)" true); then

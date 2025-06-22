@@ -42,8 +42,8 @@ man_targets = {"charliecloud":       {"synopsis": "",
 
 
 CH_BASE = os.path.abspath(os.path.dirname(__file__) + "/..")
-if (not os.path.isfile("%s/bin/ch-run" % CH_BASE)):
-   print("not found: %s/bin/ch-run" % CH_BASE, file=sys.stderr)
+if (not os.path.isfile("%s/cmd/run" % CH_BASE)):
+   print("not found: %s/cmd/run" % CH_BASE, file=sys.stderr)
    sys.exit(1)
 
 win = True

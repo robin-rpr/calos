@@ -1532,14 +1532,14 @@ EOF
     clearly image build -t tmpimg -f "$TMP_DF" "$TMP_CX"
     clearly image delete tmpimg
     clearly image build -t tmpimg -f "$TMP_DF" "$TMP_CX"
-    run ch-run tmpimg -- getfattr home/foo
+    run clearly run tmpimg -- getfattr home/foo
     # don’t check for ACL xattr bc it’s more straightforward to use getfacl(1).
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = *'# file: home/foo'* ]]
     [[ $output = *'user.foo'* ]]
 
-    run ch-run tmpimg -- getfacl home/foo
+    run clearly run tmpimg -- getfacl home/foo
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = *"user:$USER:r--"* ]]
