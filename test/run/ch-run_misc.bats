@@ -43,7 +43,7 @@ EOF
 
 @test 'mount image read-write' {
     scope standard
-    [[ $CH_TEST_PACK_FMT = *-unpack ]] || skip 'needs writeable image'
+    [[ $CLEARLY_TEST_PACK_FMT = *-unpack ]] || skip 'needs writeable image'
     clearly run -w "$ch_timg" -- sh -c 'echo writable > write'
     clearly run -w "$ch_timg" rm write
 }
@@ -60,23 +60,23 @@ EOF
 }
 
 
-@test "\$CH_RUNNING" {
+@test "\$CLEARLY_RUNNING" {
     scope standard
 
-    if [[ -v CH_RUNNING ]]; then
-      echo "\$CH_RUNNING already set: $CH_RUNNING"
+    if [[ -v CLEARLY_RUNNING ]]; then
+      echo "\$CLEARLY_RUNNING already set: $CLEARLY_RUNNING"
       false
     fi
 
-    run clearly run "$ch_timg" -- /bin/sh -c 'env | grep -E ^CH_RUNNING'
+    run clearly run "$ch_timg" -- /bin/sh -c 'env | grep -E ^CLEARLY_RUNNING'
     echo "$output"
     [[ $status -eq 0 ]]
-    [[ $output = 'CH_RUNNING=Weird Al Yankovic' ]]
+    [[ $output = 'CLEARLY_RUNNING=Weird Al Yankovic' ]]
 }
 
 
 @test "\$HOME" {
-    [[ $CH_TEST_BUILDER != 'none' ]] || skip 'image builder required'
+    [[ $CLEARLY_TEST_BUILDER != 'none' ]] || skip 'image builder required'
     demand-overlayfs
     LC_ALL=C
 
@@ -121,7 +121,7 @@ EOF
     run clearly run --home "$ch_timg" -- /bin/sh -c 'echo $HOME'
     export HOME="$home_tmp"
     echo "$output"
-    [[ $status -eq $CH_ERR_MISC ]]
+    [[ $status -eq $CLEARLY_ERR_MISC ]]
     # shellcheck disable=SC2016
     [[ $output = *'--home failed: $HOME not set'* ]]
 }
@@ -201,7 +201,7 @@ EOF
     # Error if directory does not exist.
     run clearly run --cd /goops "$ch_timg" -- /bin/true
     echo "$output"
-    [[ $status -eq $CH_ERR_MISC ]]
+    [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output =~ "can't cd to /goops: No such file or directory" ]]
 }
 
@@ -242,7 +242,7 @@ EOF
 
 
 @test 'clearly run --bind with tmpfs overmount' {
-    [[ -n $CH_TEST_SUDO ]] || skip 'sudo required'
+    [[ -n $CLEARLY_TEST_SUDO ]] || skip 'sudo required'
     demand-overlayfs
 
     img=$BATS_TMPDIR/bind-overmount
@@ -298,7 +298,7 @@ EOF
 
 @test 'clearly run --bind errors' {
     scope quick
-    [[ $CH_TEST_PACK_FMT == squash-mount ]] || skip 'squash-mount format only'
+    [[ $CLEARLY_TEST_PACK_FMT == squash-mount ]] || skip 'squash-mount format only'
     demand-overlayfs
 
     # no argument to --bind
@@ -310,112 +310,112 @@ EOF
     # empty argument to --bind
     run clearly run -b '' "$ch_timg" -- /bin/true
     echo "$output"
-    [[ $status -eq $CH_ERR_MISC ]]
+    [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output = *'--bind: no source provided'* ]]
 
     # source not provided
     run clearly run -b :/mnt/9 "$ch_timg" -- /bin/true
     echo "$output"
-    [[ $status -eq $CH_ERR_MISC ]]
+    [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output = *'--bind: no source provided'* ]]
 
     # destination not provided
     run clearly run -b "${bind1_dir}:" "$ch_timg" -- /bin/true
     echo "$output"
-    [[ $status -eq $CH_ERR_MISC ]]
+    [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output = *'--bind: no destination provided'* ]]
 
     # destination is /
     run clearly run -b "${bind1_dir}:/" "$ch_timg" -- /bin/true
     echo "$output"
-    [[ $status -eq $CH_ERR_MISC ]]
+    [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output = *"--bind: destination can't be /"* ]]
 
     # destination is relative
     run clearly run -b "${bind1_dir}:foo" "$ch_timg" -- /bin/true
     echo "$output"
-    [[ $status -eq $CH_ERR_MISC ]]
+    [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output = *"--bind: destination must be absolute"* ]]
 
     # destination climbs out of image, exists
     run clearly run -b "${bind1_dir}:/.." "$ch_timg" -- /bin/true
     echo "$output"
-    [[ $status -eq $CH_ERR_MISC ]]
+    [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output = *"can't bind: "*"/${USER}.ch not subdirectory of "*"/${USER}.ch/mnt"* ]]
 
     # destination climbs out of image, does not exist
     run clearly run -b "${bind1_dir}:/../doesnotexist/a" "$ch_timg" -- /bin/true
     echo "$output"
-    [[ $status -eq $CH_ERR_MISC ]]
+    [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output = *"can't mkdir: "*"/${USER}.ch/doesnotexist not subdirectory of "*"/${USER}.ch/mnt"* ]]
     [[ ! -e ${ch_imgdir}/doesnotexist ]]
 
     # source does not exist
     run clearly run -b "/doesnotexist" "$ch_timg" -- /bin/true
     echo "$output"
-    [[ $status -eq $CH_ERR_MISC ]]
+    [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output = *"can't bind: source not found: /doesnotexist"* ]]
 
     # destination does not exist and image is not writeable
     run clearly run -b "${bind1_dir}:/doesnotexist" "$ch_timg" -- /bin/true
     echo "$output"
-    [[ $status -eq $CH_ERR_MISC ]]
+    [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output = *"can't mkdir: "*"/${USER}.ch/mnt/doesnotexist: Read-only file system"* ]]
 
     # neither source nor destination exist
     run clearly run -b /doesnotexist-out:/doesnotexist-in "$ch_timg" -- /bin/true
     echo "$output"
-    [[ $status -eq $CH_ERR_MISC ]]
+    [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output = *"can't bind: source not found: /doesnotexist-out"* ]]
 
     # correct bind followed by source does not exist
     run clearly run -b "${bind1_dir}:/mnt/0" -b /doesnotexist "$ch_timg" -- /bin/true
     echo "$output"
-    [[ $status -eq $CH_ERR_MISC ]]
+    [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output = *"can't bind: source not found: /doesnotexist"* ]]
 
     # correct bind followed by destination does not exist
     run clearly run -b "${bind1_dir}:/mnt/0" -b "${bind2_dir}:/doesnotexist" \
                "$ch_timg" -- /bin/true
     echo "$output"
-    [[ $status -eq $CH_ERR_MISC ]]
+    [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output = *"can't mkdir: "*"/${USER}.ch/mnt/doesnotexist: Read-only file system"* ]]
 
     # destination is broken symlink
     run clearly run -b "${bind1_dir}:/mnt/link-b0rken-abs" "$ch_timg" -- /bin/true
     echo "$output"
-    [[ $status -eq $CH_ERR_MISC ]]
+    [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output = *"can't mkdir: symlink not relative: "*"/${USER}.ch/mnt/mnt/link-b0rken-abs"* ]]
 
     # destination is absolute symlink outside image
     run clearly run -b "${bind1_dir}:/mnt/link-bad-abs" "$ch_timg" -- /bin/true
     echo "$output"
-    [[ $status -eq $CH_ERR_MISC ]]
+    [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output = *"can't bind: "*" not subdirectory of"* ]]
 
     # destination relative symlink outside image
     run clearly run -b "${bind1_dir}:/mnt/link-bad-rel" "$ch_timg" -- /bin/true
     echo "$output"
-    [[ $status -eq $CH_ERR_MISC ]]
+    [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output = *"can't bind: "*" not subdirectory of"* ]]
 
     # mkdir(2) under existing bind-mount, default, first level
     run clearly run -b "${bind1_dir}:/proc/doesnotexist" "$ch_timg" -- /bin/true
     echo "$output"
-    [[ $status -eq $CH_ERR_MISC ]]
+    [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output = *"can't mkdir: "*"/${USER}.ch/mnt/proc/doesnotexist under existing bind-mount "*"/${USER}.ch/mnt/proc "* ]]
 
     # mkdir(2) under existing bind-mount, user-supplied, first level
     run clearly run -b "${bind1_dir}:/mnt/0" \
                -b "${bind2_dir}:/mnt/0/foo" "$ch_timg" -- /bin/true
     echo "$output"
-    [[ $status -eq $CH_ERR_MISC ]]
+    [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output = *"can't mkdir: "*"/${USER}.ch/mnt/mnt/0/foo under existing bind-mount "*"/${USER}.ch/mnt/mnt/0 "* ]]
 
     # mkdir(2) under existing bind-mount, default, 2nd level
     run clearly run -b "${bind1_dir}:/proc/sys/doesnotexist" "$ch_timg" -- /bin/true
     echo "$output"
-    [[ $status -eq $CH_ERR_MISC ]]
+    [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output = *"can't mkdir: "*"/${USER}.ch/mnt/proc/sys/doesnotexist under existing bind-mount "*"/${USER}.ch/mnt/proc "* ]]
 }
 
@@ -612,13 +612,13 @@ EOF
     # file does not exist
     run clearly run --set-env=doesnotexist.txt "$ch_timg" -- /bin/true
     echo "$output"
-    [[ $status -eq $CH_ERR_MISC ]]
+    [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output = *"can't open: doesnotexist.txt: No such file or directory"* ]]
 
     # /ch/environment missing
     run clearly run --set-env "$ch_timg" -- /bin/true
     echo "$output"
-    [[ $status -eq $CH_ERR_MISC ]]
+    [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output = *"can't open: /ch/environment: No such file or directory"* ]]
 
     # Note: I’m not sure how to test an error during reading, i.e., getline(3)
@@ -628,14 +628,14 @@ EOF
     echo 'FOO bar' > "$f_in"
     run clearly run --set-env="$f_in" "$ch_timg" -- /bin/true
     echo "$output"
-    [[ $status -eq $CH_ERR_MISC ]]
+    [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output = *"can't parse variable: no delimiter: ${f_in}:1"* ]]
 
     # invalid line: no name
     echo '=bar' > "$f_in"
     run clearly run --set-env="$f_in" "$ch_timg" -- /bin/true
     echo "$output"
-    [[ $status -eq $CH_ERR_MISC ]]
+    [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output = *"can't parse variable: empty name: ${f_in}:1"* ]]
 }
 
@@ -654,7 +654,7 @@ EOF
     # missing environment variable
     run clearly run --set-env='$PATH:foo' "$ch_timg" -- /bin/true
     echo "$output"
-    [[ $status -eq $CH_ERR_MISC ]]
+    [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output = *'$PATH:foo: No such file or directory'* ]]
 }
 
@@ -669,7 +669,7 @@ EOF
     run clearly run --unset-env=doesnotmatch "$ch_timg" -- env
     echo "$output" | sort
     [[ $status -eq 0 ]]
-    ex='^(_|CH_RUNNING|HOME|PATH|SHLVL|TMPDIR)='  # expected to change
+    ex='^(_|CLEARLY_RUNNING|HOME|PATH|SHLVL|TMPDIR)='  # expected to change
     diff -u <(env | grep -Ev "$ex" | sort) \
             <(echo "$output" | grep -Ev "$ex" | sort)
 
@@ -677,13 +677,13 @@ EOF
     run clearly run --unset-env='*' "$ch_timg" -- env
     echo "$output"
     [[ $status -eq 0 ]]
-    [[ $output = 'CH_RUNNING=Weird Al Yankovic' ]]
+    [[ $output = 'CLEARLY_RUNNING=Weird Al Yankovic' ]]
 
     printf '\n# Everything, plus shell re-adds\n\n'
     run clearly run --unset-env='*' "$ch_timg" -- /bin/sh -c 'env | sort'
     echo "$output"
     [[ $status -eq 0 ]]
-    diff -u <(printf 'CH_RUNNING=Weird Al Yankovic\nPWD=/\nSHLVL=1\n') \
+    diff -u <(printf 'CLEARLY_RUNNING=Weird Al Yankovic\nPWD=/\nSHLVL=1\n') \
             <(echo "$output")
 
     printf '\n# Without wildcards\n\n'
@@ -701,7 +701,7 @@ EOF
     printf '\n# Empty string\n\n'
     run clearly run --unset-env= "$ch_timg" -- env
     echo "$output"
-    [[ $status -eq $CH_ERR_MISC ]]
+    [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output = *'--unset-env: GLOB must have non-zero length'* ]]
 }
 
@@ -724,7 +724,7 @@ EOF
     echo "$output"
     [[ $status -eq 0 ]]
     output_expected=$(cat <<'EOF'
-CH_RUNNING=Weird Al Yankovic
+CLEARLY_RUNNING=Weird Al Yankovic
 chue_1=foo
 chue_2=bar
 EOF
@@ -844,7 +844,7 @@ EOF
 
 @test 'clearly run: internal SquashFUSE mounting' {
     scope standard
-    [[ $CH_TEST_PACK_FMT == squash-mount ]] || skip 'squash-mount format only'
+    [[ $CLEARLY_TEST_PACK_FMT == squash-mount ]] || skip 'squash-mount format only'
 
     ch_mnt="/var/tmp/${USER}.ch/mnt"
 
@@ -881,7 +881,7 @@ EOF
 
 @test 'clearly run: internal SquashFUSE errors' {
     scope standard
-    [[ $CH_TEST_PACK_FMT == squash-mount ]] || skip 'squash-mount format only'
+    [[ $CLEARLY_TEST_PACK_FMT == squash-mount ]] || skip 'squash-mount format only'
 
     # mount point is empty string
     run clearly run --mount= "$ch_timg" -- /bin/true
@@ -904,7 +904,7 @@ EOF
     # image is file but not sqfs
     run clearly run -vv ./fixtures/README -- /bin/true
     echo "$output"
-    [[ $status -eq $CH_ERR_MISC ]]
+    [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output = *'magic expected: 6873 7173; actual: 596f 7520'* ]]
     [[ $output = *'unknown image type: '*'/fixtures/README'* ]]
 
@@ -940,7 +940,7 @@ EOF
     # This should start up the container OK but fail to find the user command.
     run clearly run "$img" -- /bin/true
     echo "$output"
-    [[ $status -eq $CH_ERR_CMD ]]
+    [[ $status -eq $CLEARLY_ERR_CMD ]]
     [[ $output = *"can't execve(2): /bin/true: No such file or directory"* ]]
 
     # For each required file, we want a correct error if it’s missing.
@@ -951,7 +951,7 @@ EOF
         run clearly run "$img" -- /bin/true
         touch "${img}/${f}"  # restore before test fails for idempotency
         echo "$output"
-        [[ $status -eq $CH_ERR_MISC ]]
+        [[ $status -eq $CLEARLY_ERR_MISC ]]
         r="can't bind: destination not found: .+/${f}"
         echo "expected: ${r}"
         [[ $output =~ $r ]]
@@ -964,7 +964,7 @@ EOF
         run clearly run "$img" -- /bin/true
         touch "${img}/${f}"  # restore before test fails for idempotency
         echo "$output"
-        [[ $status -eq $CH_ERR_CMD ]]
+        [[ $status -eq $CLEARLY_ERR_CMD ]]
         [[ $output = *"can't execve(2): /bin/true: No such file or directory"* ]]
     done
 
@@ -977,7 +977,7 @@ EOF
         rmdir "${img}/${f}"  # restore before test fails for idempotency
         touch "${img}/${f}"
         echo "$output"
-        [[ $status -eq $CH_ERR_MISC ]]
+        [[ $status -eq $CLEARLY_ERR_MISC ]]
         r="can't bind .+ to /.+/${f}: Not a directory"
         echo "expected: ${r}"
         [[ $output =~ $r ]]
@@ -990,7 +990,7 @@ EOF
         run clearly run "$img" -- /bin/true
         mkdir "${img}/${d}"  # restore before test fails for idempotency
         echo "$output"
-        [[ $status -eq $CH_ERR_MISC ]]
+        [[ $status -eq $CLEARLY_ERR_MISC ]]
         r="can't bind: destination not found: .+/${d}"
         echo "expected: ${r}"
         [[ $output =~ $r ]]
@@ -1005,7 +1005,7 @@ EOF
         rm "${img}/${d}"    # restore before test fails for idempotency
         mkdir "${img}/${d}"
         echo "$output"
-        [[ $status -eq $CH_ERR_MISC ]]
+        [[ $status -eq $CLEARLY_ERR_MISC ]]
         r="can't bind .+ to /.+/${d}: Not a directory"
         echo "expected: ${r}"
         [[ $output =~ $r ]]
@@ -1016,7 +1016,7 @@ EOF
     run clearly run --private-tmp "$img" -- /bin/true
     mkdir "${img}/tmp"  # restore before test fails for idempotency
     echo "$output"
-    [[ $status -eq $CH_ERR_MISC ]]
+    [[ $status -eq $CLEARLY_ERR_MISC ]]
     r="can't mount tmpfs at /.+/tmp: No such file or directory"
     echo "expected: ${r}"
     [[ $output =~ $r ]]
@@ -1026,13 +1026,13 @@ EOF
     run clearly run "$img" -- /bin/true
     mkdir "${img}/home"  # restore before test fails for idempotency
     echo "$output"
-    [[ $status -eq $CH_ERR_CMD ]]
+    [[ $status -eq $CLEARLY_ERR_CMD ]]
     [[ $output = *"can't execve(2): /bin/true: No such file or directory"* ]]
 
     # Everything should be restored and back to the original error.
     run clearly run "$img" -- /bin/true
     echo "$output"
-    [[ $status -eq $CH_ERR_CMD ]]
+    [[ $status -eq $CLEARLY_ERR_CMD ]]
     [[ $output = *"can't execve(2): /bin/true: No such file or directory"* ]]
 
     # At this point, there should be exactly two each of passwd and group
@@ -1075,7 +1075,7 @@ EOF
     # This test depends on a fairly specific syslog configuration, so just do
     # it on GitHub Actions.
     [[ -n $GITHUB_ACTIONS ]] || skip 'GitHub Actions only'
-    [[ -n $CH_TEST_SUDO ]] || skip 'sudo required'
+    [[ -n $CLEARLY_TEST_SUDO ]] || skip 'sudo required'
     expected="uid=$(id -u) args=6: clearly run ${ch_timg} -- echo foo \"b a}\\\$r\""
     echo "$expected"
     #shellcheck disable=SC2016
@@ -1136,7 +1136,7 @@ EOF
     # subprocess failure at quiet level 2
     run clearly run -qq "$ch_timg" -- doesnotexist
     echo "$output"
-    [[ $status -eq $CH_ERR_CMD ]]
+    [[ $status -eq $CLEARLY_ERR_CMD ]]
     [[ $output = *"error: can't execve(2): doesnotexist: No such file or directory"* ]]
 
     # quiet level 3
@@ -1149,12 +1149,12 @@ EOF
     # subprocess failure at quiet level 3
     run clearly run -qqq "$ch_timg" -- doesnotexist
     echo "$output"
-    [[ $status -eq $CH_ERR_CMD ]]
+    [[ $status -eq $CLEARLY_ERR_CMD ]]
     [[ $output != *"error: can't execve(2): doesnotexist: No such file or directory"* ]]
 
     # failure at quiet level 3
     run clearly run -qqq --test=log-fail
-    [[ $status -eq $CH_ERR_MISC ]]
+    [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output != *'info'* ]]
     [[ $output != *'warning: warning'* ]]
     [[ $output = *'error: the program failed inexplicably'* ]]
@@ -1166,6 +1166,6 @@ EOF
     # bad tmpfs size
     run clearly run --write-fake=foo "$ch_timg" -- true
     echo "$output"
-    [[ $status -eq $CH_ERR_MISC ]]
+    [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output == *'cannot mount tmpfs for overlay: Invalid argument'* ]]
 }

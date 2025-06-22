@@ -93,13 +93,13 @@ To specify which files to inject
 
   :code:`--cray-cxi`
     Inject cray-libfabric for slingshot. This is equivalent to
-    :code:`--path $CH_FROMHOST_OFI_CXI`, where :code:`$CH_FROMHOST_OFI_CXI` is
+    :code:`--path $CLEARLY_FROMHOST_OFI_CXI`, where :code:`$CLEARLY_FROMHOST_OFI_CXI` is
     the path to the Cray host libfabric :code:`libfabric.so`.
 
   :code:`--cray-gni`
     Inject cray gemini/aries GNI libfabric provider :code:`libgnix-fi.so`. This
-    is equivalent to :code:`--fi-provider $CH_FROMHOST_OFI_GNI`, where
-    :code:`CH_FROMHOST_OFI_GNI` is the path to the Cray host ugni provider
+    is equivalent to :code:`--fi-provider $CLEARLY_FROMHOST_OFI_GNI`, where
+    :code:`CLEARLY_FROMHOST_OFI_GNI` is the path to the Cray host ugni provider
     :code:`libgnix-fi.so`.
 
   :code:`--nvidia`

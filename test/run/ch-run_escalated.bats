@@ -15,7 +15,7 @@ load ../common
     [[ -g $ch_run_tmp ]]
     run "$ch_run_tmp" --version
     echo "$output"
-    [[ $status -eq $CH_ERR_MISC ]]
+    [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output = *': please report this bug ('* ]]
     rm "$ch_run_tmp"
 }
@@ -32,7 +32,7 @@ load ../common
     [[ -u $ch_run_tmp ]]
     run "$ch_run_tmp" --version
     echo "$output"
-    [[ $status -eq $CH_ERR_MISC ]]
+    [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output = *': please report this bug ('* ]]
     sudo rm "$ch_run_tmp"
 }
@@ -71,12 +71,12 @@ load ../common
     fi
     run sudo -u root -g "$(id -gn)" "$ch_runfile" -v --version
     echo "$output"
-    [[ $status -eq $CH_ERR_MISC ]]
+    [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output = *'please report this bug ('* ]]
 }
 
 @test 'non-setuid fusermount3' {
-    [[ $CH_TEST_PACK_FMT == squash-mount ]] || skip 'squash-mount format only'
+    [[ $CLEARLY_TEST_PACK_FMT == squash-mount ]] || skip 'squash-mount format only'
     if [[ -u $(command -v fusermount3) ]]; then
         ls -lh "$(command -v fusermount3)"
         pedantic_fail 'fusermount3(1) is setuid'

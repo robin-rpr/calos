@@ -99,7 +99,7 @@ for oldtar in $oldtars; do
     mkdir "$storage"
     tar xf "$oldtar" -C "$storage"
     [[ -d $storage ]]
-    export CH_IMAGE_STORAGE=$storage
+    export CLEARLY_IMAGE_STORAGE=$storage
     INFO "unpacked: $(du -sh "$storage" | cut -f1) bytes in $(du --inodes -sh "$storage" | cut -f1) inodes"
 
     case ${storage#*-} in

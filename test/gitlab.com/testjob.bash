@@ -12,9 +12,9 @@ env | grep -Ei '_proxy$' | sort
 
 # Directory setup. Use /mnt because in gitlab.com CI that’s a big tmpfs.
 df -h
-export CH_IMAGE_STORAGE=/mnt/storage
-export CH_TEST_IMGDIR=/mnt/img
-export CH_TEST_TARDIR=/mnt/pack
+export CLEARLY_IMAGE_STORAGE=/mnt/storage
+export CLEARLY_TEST_IMGDIR=/mnt/img
+export CLEARLY_TEST_TARDIR=/mnt/pack
 
 # Target directory.
 sudo rm -Rf /ch

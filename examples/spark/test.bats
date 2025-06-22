@@ -1,4 +1,4 @@
-CH_TEST_TAG=$ch_test_tag
+CLEARLY_TEST_TAG=$ch_test_tag
 load "${CHTEST_DIR}/common.bash"
 
 # Note: If you get output like the following (piping through cat turns off
@@ -20,7 +20,7 @@ setup () {
     scope standard
     prerequisites_ok spark
     pmix_or_skip
-    [[ $CH_TEST_PACK_FMT = *-unpack ]] || skip 'issue #1161'
+    [[ $CLEARLY_TEST_PACK_FMT = *-unpack ]] || skip 'issue #1161'
     umask 0077
 
     # Unset these Java variables so the container doesn’t use host paths.

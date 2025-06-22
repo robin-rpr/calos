@@ -281,8 +281,8 @@ class Credentials:
       else:
          try:
             # Otherwise, use environment variables.
-            username = os.environ["CH_IMAGE_USERNAME"]
-            password = os.environ["CH_IMAGE_PASSWORD"]
+            username = os.environ["CLEARLY_IMAGE_USERNAME"]
+            password = os.environ["CLEARLY_IMAGE_PASSWORD"]
          except KeyError:
             # Finally, prompt the user.
             # FIXME: This hangs in Bats despite sys.stdin.isatty() == True.

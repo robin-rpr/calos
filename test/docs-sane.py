@@ -41,9 +41,9 @@ man_targets = {"charliecloud":       {"synopsis": "",
                                       "sec":  7}}
 
 
-CH_BASE = os.path.abspath(os.path.dirname(__file__) + "/..")
-if (not os.path.isfile("%s/cmd/run" % CH_BASE)):
-   print("not found: %s/cmd/run" % CH_BASE, file=sys.stderr)
+CLEARLY_BASE = os.path.abspath(os.path.dirname(__file__) + "/..")
+if (not os.path.isfile("%s/cmd/run" % CLEARLY_BASE)):
+   print("not found: %s/cmd/run" % CLEARLY_BASE, file=sys.stderr)
    sys.exit(1)
 
 win = True
@@ -66,14 +66,14 @@ def check_man():
    # is set using the executable’s “--help” option (see “help_get”). Note that
    # this code assumes that a file is an executable if the execute bit for any
    # permission group.
-   os.chdir(CH_BASE + "/bin")
+   os.chdir(CLEARLY_BASE + "/bin")
    for f in os.listdir("."):
       if (os.path.isfile(f) and os.stat(f).st_mode & 0o111):
          man_targets[f] = {"synopsis": help_get(f), "sec":  1}
 
    # Check that all the expected .rst files are in doc/ and that no unexpected
    # .rst files are present.
-   os.chdir(CH_BASE + "/doc")
+   os.chdir(CLEARLY_BASE + "/doc")
    man_rsts = set(glob.glob("ch*.rst"))
    man_rsts_expected = { i + ".rst" for i in man_targets }
    lose_lots("unexpected .rst", man_rsts - man_rsts_expected)
@@ -131,7 +131,7 @@ def check_man():
 
    # Check that all expected man pages are present, and *only* the expected man
    # pages.
-   os.chdir(CH_BASE + "/doc/man")
+   os.chdir(CLEARLY_BASE + "/doc/man")
    mans = set(glob.glob("*.[1-8]"))
    mans_expected = { i + ".%d" % (man_targets[i]["sec"]) for i in man_targets}
    lose_lots("unexpected man", mans - mans_expected)

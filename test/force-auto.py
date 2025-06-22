@@ -98,7 +98,7 @@ class Test(abc.ABC):
    def as_grep_files(self, grep_files, image, invert=False):
       cmds = []
       for (re, path) in grep_files:
-         path = f"\"$CH_IMAGE_STORAGE\"/img/{image}/{path}"
+         path = f"\"$CLEARLY_IMAGE_STORAGE\"/img/{image}/{path}"
          cmd = f"ls -lh {path}"
          if (invert):
             cmd = f"! ( {cmd} )"
@@ -353,8 +353,8 @@ print("""\
 load common
 
 setup () {
-    [[ $CH_TEST_BUILDER = image ]] || skip 'image only'
-    [[ $CH_IMAGE_CACHE = enabled ]] || skip 'bucache enabled only'
+    [[ $CLEARLY_TEST_BUILDER = image ]] || skip 'image only'
+    [[ $CLEARLY_IMAGE_CACHE = enabled ]] || skip 'bucache enabled only'
 }
 """)
 

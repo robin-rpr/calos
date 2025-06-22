@@ -46,7 +46,7 @@ archive_ok () {
 }
 
 build_ () {
-    case $CH_TEST_BUILDER in
+    case $CLEARLY_TEST_BUILDER in
         image)
             "$ch_libexec"/image build "$@"
             ;;
@@ -62,7 +62,7 @@ build_ () {
                           "$@"
             ;;
         *)
-            printf 'invalid builder: %s\n' "$CH_TEST_BUILDER" >&2
+            printf 'invalid builder: %s\n' "$CLEARLY_TEST_BUILDER" >&2
             exit 1
             ;;
     esac
@@ -78,7 +78,7 @@ builder_ok () {
 
 builder_tag_p () {
     printf 'image tag %s ... ' "$1"
-    case $CH_TEST_BUILDER in
+    case $CLEARLY_TEST_BUILDER in
         buildah*)
             hash_=$(buildah images -q "$1" | sort -u)
             if [[ $hash_ ]]; then
@@ -87,7 +87,7 @@ builder_tag_p () {
             fi
             ;;
         image)
-            if [[ -d ${CH_IMAGE_STORAGE}/img/${1} ]]; then
+            if [[ -d ${CLEARLY_IMAGE_STORAGE}/img/${1} ]]; then
                 echo "ok"
                 return 0
             fi
@@ -123,18 +123,18 @@ chtest_fixtures_ok () {
 
 cray_ofi_or_skip () {
     if [[ $ch_cray ]]; then
-        [[ -n "$CH_TEST_OFI_PATH" ]] || skip 'CH_TEST_OFI_PATH not set'
+        [[ -n "$CLEARLY_TEST_OFI_PATH" ]] || skip 'CLEARLY_TEST_OFI_PATH not set'
         [[ -z "$FI_PROVIDER_PATH" ]] || skip 'host FI_PROVIDER_PATH set'
         if [[ $cray_prov == 'gni' ]]; then
-            export CH_FROMHOST_OFI_GNI=$CH_TEST_OFI_PATH
+            export CLEARLY_FROMHOST_OFI_GNI=$CLEARLY_TEST_OFI_PATH
             $ch_mpirun_node ch-fromhost -v --cray-gni "$1"
         fi
         if [[ $cray_prov == 'cxi' ]]; then
-            export CH_FROMHOST_OFI_CXI=$CH_TEST_OFI_PATH
+            export CLEARLY_FROMHOST_OFI_CXI=$CLEARLY_TEST_OFI_PATH
             $ch_mpirun_node ch-fromhost --cray-cxi "$1"
             # Examples use libfabric's fi_info to ensure injection works; when
             # replacing libfabric we also need to replace this binary.
-            fi_info="$(dirname "$(dirname "$CH_TEST_OFI_PATH")")/bin/fi_info"
+            fi_info="$(dirname "$(dirname "$CLEARLY_TEST_OFI_PATH")")/bin/fi_info"
             [[ -x "$fi_info" ]]
             $ch_mpirun_node ch-fromhost -v -d /usr/local/bin \
                                            -p "$fi_info" \
@@ -169,9 +169,9 @@ localregistry_init () {
         skip 'no local registry'
     fi
     # Note: These will only stick if function is called *not* in a subshell.
-    export CH_IMAGE_AUTH=yes
-    export CH_IMAGE_USERNAME=charlie
-    export CH_IMAGE_PASSWORD=test
+    export CLEARLY_IMAGE_AUTH=yes
+    export CLEARLY_IMAGE_USERNAME=charlie
+    export CLEARLY_IMAGE_PASSWORD=test
 }
 
 multiprocess_ok () {
@@ -238,7 +238,7 @@ pmix_or_skip () {
 }
 
 prerequisites_ok () {
-    if [[ -f $CH_TEST_TARDIR/${1}.pq_missing ]]; then
+    if [[ -f $CLEARLY_TEST_TARDIR/${1}.pq_missing ]]; then
         skip 'build prerequisites not met'
     fi
 }
@@ -256,12 +256,12 @@ scope () {
         quick)
             ;;  # always run quick-scope tests
         standard)
-            if [[ $CH_TEST_SCOPE = quick ]]; then
+            if [[ $CLEARLY_TEST_SCOPE = quick ]]; then
                 skip "${1} scope"
             fi
             ;;
         full)
-            if [[ $CH_TEST_SCOPE = quick || $CH_TEST_SCOPE = standard ]]; then
+            if [[ $CLEARLY_TEST_SCOPE = quick || $CLEARLY_TEST_SCOPE = standard ]]; then
                 skip "${1} scope"
             fi
             ;;
@@ -275,7 +275,7 @@ scope () {
 
 unpack_img_all_nodes () {
     if [[ $1 ]]; then
-        case $CH_TEST_PACK_FMT in
+        case $CLEARLY_TEST_PACK_FMT in
             squash-mount)
                 # Lots of things expect no extension here, so go with that
                 # even though it’s a file, not a directory.
@@ -313,12 +313,12 @@ podman_ () {
 }
 
 # Do we have what we need?
-env_require CH_TEST_TARDIR
-env_require CH_TEST_IMGDIR
-env_require CH_TEST_PERMDIRS
-env_require CH_TEST_BUILDER
-if [[ $CH_TEST_BUILDER == image ]]; then
-    env_require CH_IMAGE_STORAGE
+env_require CLEARLY_TEST_TARDIR
+env_require CLEARLY_TEST_IMGDIR
+env_require CLEARLY_TEST_PERMDIRS
+env_require CLEARLY_TEST_BUILDER
+if [[ $CLEARLY_TEST_BUILDER == image ]]; then
+    env_require CLEARLY_IMAGE_STORAGE
 fi
 
 # User-private temporary directory in case multiple users are running the
@@ -330,9 +330,9 @@ export BATS_TMPDIR=$btnew
 [[ $(stat -c %a "$BATS_TMPDIR") = '700' ]]
 
 # clearly run exit codes. (see also: ch_misc.h, lib/build.py)
-CH_ERR_MISC=31
-CH_ERR_CMD=49
-#CH_ERR_SQUASH=84 # Currently not used
+CLEARLY_ERR_MISC=31
+CLEARLY_ERR_CMD=49
+#CLEARLY_ERR_SQUASH=84 # Currently not used
 
 ch_bin="$(cd "$(dirname "$0")" && pwd)"
 # shellcheck disable=SC2034
@@ -363,11 +363,11 @@ ch_version_docker=$(echo "$ch_version" | tr '~+' '--')
 #
 # [1]: https://unix.stackexchange.com/a/136527
 # [2]: http://man7.org/linux/man-pages/man1/readlink.1.html
-ch_imgdir=$(readlink -m "$CH_TEST_IMGDIR")
-ch_tardir=$(readlink -m "$CH_TEST_TARDIR")
+ch_imgdir=$(readlink -m "$CLEARLY_TEST_IMGDIR")
+ch_tardir=$(readlink -m "$CLEARLY_TEST_TARDIR")
 
 # Image information.
-ch_tag=${CH_TEST_TAG:-NO_TAG_SET}  # set by Makefile; many tests don’t need it
+ch_tag=${CLEARLY_TEST_TAG:-NO_TAG_SET}  # set by Makefile; many tests don’t need it
 ch_img=${ch_imgdir}/${ch_tag}
 ch_tar=${ch_tardir}/${ch_tag}.tar.gz
 ch_ttar=${ch_tardir}/chtest.tar.gz
@@ -427,7 +427,7 @@ ch_mpirun_node=
 ch_mpirun_np="-np ${ch_cores_node}"
 ch_unslurm=
 if [[ $SLURM_JOB_ID ]]; then
-    [[ -z "$CH_TEST_SLURM_MPI" ]] || srun_mpi="--mpi=$CH_TEST_SLURM_MPI"
+    [[ -z "$CLEARLY_TEST_SLURM_MPI" ]] || srun_mpi="--mpi=$CLEARLY_TEST_SLURM_MPI"
     ch_multiprocess=yes
     ch_mpirun_node="srun $srun_mpi --ntasks-per-node 1"
     ch_mpirun_core="srun $srun_mpi --ntasks-per-node $ch_cores_node"
@@ -465,7 +465,7 @@ else
 fi
 
 # Do we have and want sudo?
-if    [[ $CH_TEST_SUDO ]] \
+if    [[ $CLEARLY_TEST_SUDO ]] \
    && command -v sudo >/dev/null 2>&1 \
    && sudo true > /dev/null 2>&1; then
     # This isn’t super reliable; it returns true if we have *any* sudo

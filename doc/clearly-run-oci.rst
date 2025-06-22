@@ -190,7 +190,7 @@ Environment variables
 
 .. include:: py_env.rst
 
-:code:`CH_RUN_OCI_HANG`
+:code:`CLEARLY_RUN_OCI_HANG`
 
   If set to the name of a command (e.g., :code:`create`), sleep indefinitely
   when that command is invoked. The purpose here is to halt a build so it can

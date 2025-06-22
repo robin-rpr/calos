@@ -159,17 +159,17 @@ Notes/gotchas:
   1. Values are strings and cannot be duplicates [7]. This leads to some
      contrived values.
 
-  2. All-caps variables prefixed by “CH_” are used by Charliecloud, while
+  2. All-caps variables prefixed by “CLEARLY_” are used by Charliecloud, while
      lower-case “ci_” are used by this pipeline. Hence the more descriptive
      values for lower-case.
 
 Matrix dimensions with variable names and possible values:
 
-  1. CH_TEST_BUILDER (image, docker)
+  1. CLEARLY_TEST_BUILDER (image, docker)
 
-  2. CH_IMAGE_CACHE (enabled, rebuild, disabled)
+  2. CLEARLY_IMAGE_CACHE (enabled, rebuild, disabled)
 
-  3. CH_TEST_PACK_FMT (squash-mount, squash-unpack, tar-unpack)
+  3. CLEARLY_TEST_PACK_FMT (squash-mount, squash-unpack, tar-unpack)
 
   4. ci_arch (amd64, arm64)
 

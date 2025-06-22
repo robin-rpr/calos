@@ -2,7 +2,7 @@ load ../common
 
 setup () {
     scope standard
-    [[ $CH_TEST_BUILDER = image ]] || skip 'image only'
+    [[ $CLEARLY_TEST_BUILDER = image ]] || skip 'image only'
 }
 
 image_ref_parse () {
@@ -214,8 +214,8 @@ EOF
     # Validate that layers replace symlinks correctly. See
     # test/Dockerfile.symlink and issues #819 & #825.
 
-    CH_IMAGE_STORAGE=$BATS_TMPDIR/pull-quirks
-    img="${CH_IMAGE_STORAGE}/img/charliecloud%file-quirks+2020-10-21"
+    CLEARLY_IMAGE_STORAGE=$BATS_TMPDIR/pull-quirks
+    img="${CLEARLY_IMAGE_STORAGE}/img/charliecloud%file-quirks+2020-10-21"
     clearly image pull charliecloud/file-quirks:2020-10-21
     ls -lh "${img}/test"
 
@@ -250,14 +250,14 @@ EOF
 @test 'pull images with uncommon manifests' {
     arch_exclude aarch64  # test image not available
     arch_exclude ppc64le  # test image not available
-    if [[ -n $CH_REGY_DEFAULT_HOST ]]; then
+    if [[ -n $CLEARLY_REGY_DEFAULT_HOST ]]; then
         # Manifests seem to vary by registry; we need Docker Hub.
         skip 'default registry host set'
     fi
 
     storage="${BATS_TMPDIR}/tmp"
     cache=$storage/dlcache
-    CH_IMAGE_STORAGE=$storage
+    CLEARLY_IMAGE_STORAGE=$storage
 
     # OCI manifest; see issue #1184.
     img=charliecloud/ocimanifest:2021-10-12
@@ -274,7 +274,7 @@ EOF
 }
 
 @test 'pull from public repos' {
-    if [[ -n $CH_REGY_DEFAULT_HOST ]]; then
+    if [[ -n $CLEARLY_REGY_DEFAULT_HOST ]]; then
         skip 'default registry host set'  # avoid Docker Hub
     fi
     if [[ -z $CI ]]; then
@@ -345,7 +345,7 @@ EOF
     arch_exclude ppc64le  # test image not available
     tag=2021-01-15
     name=charliecloud/metadata:$tag
-    img=$CH_IMAGE_STORAGE/img/charliecloud%metadata+$tag
+    img=$CLEARLY_IMAGE_STORAGE/img/charliecloud%metadata+$tag
 
     clearly image pull "$name"
 
@@ -527,7 +527,7 @@ EOF
 }
 
 @test 'pull images that do not exist' {
-    if [[ -n $CH_REGY_DEFAULT_HOST ]]; then
+    if [[ -n $CLEARLY_REGY_DEFAULT_HOST ]]; then
         skip 'default registry host set'  # errors are Docker Hub specific
     fi
 
@@ -559,11 +559,11 @@ EOF
 # See issue #1925
 @test 'remove part_ files' {
     # Create a problematic file and list images to provoke it
-    touch "$CH_IMAGE_STORAGE"/dlcache/part_PROBLEM
+    touch "$CLEARLY_IMAGE_STORAGE"/dlcache/part_PROBLEM
     run clearly image list
     echo "$output"
     [[ $status -eq 0 ]]
 
     # Remove the problematic file to clean up
-    rm -f "$CH_IMAGE_STORAGE"/dlcache/part_PROBLEM
+    rm -f "$CLEARLY_IMAGE_STORAGE"/dlcache/part_PROBLEM
 }

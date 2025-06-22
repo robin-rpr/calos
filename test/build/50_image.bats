@@ -2,7 +2,7 @@ load ../common
 
 setup () {
     scope standard
-    [[ $CH_TEST_BUILDER = image ]] || skip 'image only'
+    [[ $CLEARLY_TEST_BUILDER = image ]] || skip 'image only'
 }
 
 tmpimg_build () {
@@ -43,7 +43,7 @@ EOF
     [[ $output = *'verbose level: 1'* ]]
 
     # unset debug in preparation for “--quiet” tests
-    unset CH_IMAGE_DEBUG
+    unset CLEARLY_IMAGE_DEBUG
 
     # test gestalt logging
     run clearly image gestalt logging
@@ -173,7 +173,7 @@ EOF
     [[ $output = *"deletetest"* ]]
 
     # Break image.
-    rmdir "$CH_IMAGE_STORAGE"/img/deletetest/dev
+    rmdir "$CLEARLY_IMAGE_STORAGE"/img/deletetest/dev
 
     # Delete image.
     clearly image delete deletetest
@@ -191,7 +191,7 @@ FROM alpine:3.17
 EOF
 
     # Break image.
-    rmdir "$CH_IMAGE_STORAGE"/img/tmpimg/dev
+    rmdir "$CLEARLY_IMAGE_STORAGE"/img/tmpimg/dev
 
     # Rebuild image.
     clearly image build -t tmpimg -f - . << 'EOF'
@@ -241,8 +241,8 @@ EOF
     [[ $status -eq 0 ]]
     [[ $output = *"importing:    ${fixtures}/bomb.tar.gz"* ]]
     [[ $output = *'conversion to tarbomb not needed'* ]]
-    [[ -f "${CH_IMAGE_STORAGE}/img/imptest/bin/foo" ]]
-    grep -F '"arch": "corn"' "${CH_IMAGE_STORAGE}/img/imptest/ch/metadata.json"
+    [[ -f "${CLEARLY_IMAGE_STORAGE}/img/imptest/bin/foo" ]]
+    grep -F '"arch": "corn"' "${CLEARLY_IMAGE_STORAGE}/img/imptest/ch/metadata.json"
     clearly image delete imptest
 
     # non-tarbomb
@@ -252,8 +252,8 @@ EOF
     [[ $status -eq 0 ]]
     [[ $output = *"importing:    ${fixtures}/standard.tar.gz"* ]]
     [[ $output = *'converting to tarbomb'* ]]
-    [[ -f "${CH_IMAGE_STORAGE}/img/imptest/bin/foo" ]]
-    grep -F '"arch": "corn"' "${CH_IMAGE_STORAGE}/img/imptest/ch/metadata.json"
+    [[ -f "${CLEARLY_IMAGE_STORAGE}/img/imptest/bin/foo" ]]
+    grep -F '"arch": "corn"' "${CLEARLY_IMAGE_STORAGE}/img/imptest/ch/metadata.json"
     clearly image delete imptest
 
     # non-tarbomb, but enclosing directory is a standard dir
@@ -263,7 +263,7 @@ EOF
     [[ $status -eq 0 ]]
     [[ $output = *"importing:    ${fixtures}/tricky.tar.gz"* ]]
     [[ $output = *'conversion to tarbomb not needed'* ]]
-    [[ -f "${CH_IMAGE_STORAGE}/img/imptest/bin/foo" ]]
+    [[ -f "${CLEARLY_IMAGE_STORAGE}/img/imptest/bin/foo" ]]
     clearly image delete imptest
 
     # empty, uncompressed tarfile
@@ -283,9 +283,9 @@ EOF
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = *"importing:    ${fixtures}/nonempty"* ]]
-    [[ $output = *"copying image: ${fixtures}/nonempty -> ${CH_IMAGE_STORAGE}/img/imptest"* ]]
-    [[ -f "${CH_IMAGE_STORAGE}/img/imptest/bin/foo" ]]
-    grep -F '"arch": "corn"' "${CH_IMAGE_STORAGE}/img/imptest/ch/metadata.json"
+    [[ $output = *"copying image: ${fixtures}/nonempty -> ${CLEARLY_IMAGE_STORAGE}/img/imptest"* ]]
+    [[ -f "${CLEARLY_IMAGE_STORAGE}/img/imptest/bin/foo" ]]
+    grep -F '"arch": "corn"' "${CLEARLY_IMAGE_STORAGE}/img/imptest/ch/metadata.json"
     clearly image delete imptest
 
     # empty directory
@@ -293,7 +293,7 @@ EOF
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = *"importing:    ${fixtures}/empty"* ]]
-    [[ $output = *"copying image: ${fixtures}/empty -> ${CH_IMAGE_STORAGE}/img/imptest"* ]]
+    [[ $output = *"copying image: ${fixtures}/empty -> ${CLEARLY_IMAGE_STORAGE}/img/imptest"* ]]
     [[ $output = *'warning: no metadata to load; using defaults'* ]]
     clearly image delete imptest
 
@@ -302,9 +302,9 @@ EOF
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = *"importing:    ${fixtures}/nelink"* ]]
-    [[ $output = *"copying image: ${fixtures}/nelink -> ${CH_IMAGE_STORAGE}/img/imptest"* ]]
-    [[ -f "${CH_IMAGE_STORAGE}/img/imptest/bin/foo" ]]
-    grep -F '"arch": "corn"' "${CH_IMAGE_STORAGE}/img/imptest/ch/metadata.json"
+    [[ $output = *"copying image: ${fixtures}/nelink -> ${CLEARLY_IMAGE_STORAGE}/img/imptest"* ]]
+    [[ -f "${CLEARLY_IMAGE_STORAGE}/img/imptest/bin/foo" ]]
+    grep -F '"arch": "corn"' "${CLEARLY_IMAGE_STORAGE}/img/imptest/ch/metadata.json"
     clearly image delete imptest
 
     ## Errors
@@ -328,7 +328,7 @@ EOF
     [[ $output = *"error: cannot open: ${fixtures}/nonempty/ch/metadata.json"* ]]
 
     ## Clean up
-    [[ ! -e "${CH_IMAGE_STORAGE}/img/imptest" ]]
+    [[ ! -e "${CLEARLY_IMAGE_STORAGE}/img/imptest" ]]
     rm -Rfv --one-file-system "$fixtures"
 }
 
@@ -423,14 +423,14 @@ EOF
 
 
 @test 'clearly image reset' {
-    CH_IMAGE_STORAGE="$BATS_TMPDIR"/sd-reset
+    CLEARLY_IMAGE_STORAGE="$BATS_TMPDIR"/sd-reset
 
     # Ensure our test storage dir doesn’t exist yet.
-    [[ -e $CH_IMAGE_STORAGE ]] && rm -Rf --one-file-system "$CH_IMAGE_STORAGE"
+    [[ -e $CLEARLY_IMAGE_STORAGE ]] && rm -Rf --one-file-system "$CLEARLY_IMAGE_STORAGE"
 
     # Put an image innit.
     clearly image pull alpine:3.17
-    ls "$CH_IMAGE_STORAGE"
+    ls "$CLEARLY_IMAGE_STORAGE"
 
     # List images; should be only the one we just pulled.
     run clearly image list
@@ -463,17 +463,17 @@ version
 ./ulcache:
 EOF
 )
-    actual=$(cd "$CH_IMAGE_STORAGE" && ls -1R)
+    actual=$(cd "$CLEARLY_IMAGE_STORAGE" && ls -1R)
     diff -u <(echo "$expected") <(echo "$actual")
 
     # Remove storage directory.
-    rm -Rf --one-file-system "$CH_IMAGE_STORAGE"
+    rm -Rf --one-file-system "$CLEARLY_IMAGE_STORAGE"
 
     # Reset again; should error.
     run clearly image reset
     echo "$output"
     [[ $status -eq 1 ]]
-    [[ $output = *"$CH_IMAGE_STORAGE not a builder storage"* ]]
+    [[ $output = *"$CLEARLY_IMAGE_STORAGE not a builder storage"* ]]
 }
 
 
@@ -482,7 +482,7 @@ EOF
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = /* ]]                                        # absolute path
-    [[ $CH_IMAGE_STORAGE && $output = "$CH_IMAGE_STORAGE" ]]  # what we set
+    [[ $CLEARLY_IMAGE_STORAGE && $output = "$CLEARLY_IMAGE_STORAGE" ]]  # what we set
 }
 
 
@@ -502,7 +502,7 @@ EOF
 @test 'clearly image build: metadata carry-forward' {
     arch_exclude aarch64  # test image not available
     arch_exclude ppc64le  # test image not available
-    img=$CH_IMAGE_STORAGE/img/tmpimg
+    img=$CLEARLY_IMAGE_STORAGE/img/tmpimg
 
     # Print out current metadata, then update it.
     run clearly image build -v -t tmpimg -f - . <<'EOF'
@@ -519,7 +519,7 @@ RUN echo "shell2: $0"
 EOF
     echo "$output"
     [[ $status -eq 0 ]]
-    if [[ $CH_IMAGE_CACHE = disabled ]]; then
+    if [[ $CLEARLY_IMAGE_CACHE = disabled ]]; then
         [[ $output = *'cwd1: /mnt'* ]]
         [[ $output = *'cwd2: /usr'* ]]
         [[ $output = *'env1: PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'* ]]
@@ -788,29 +788,29 @@ EOF
 
 
 @test 'storage directory versioning' {
-   export CH_IMAGE_STORAGE="$BATS_TMPDIR"/sd-version
+   export CLEARLY_IMAGE_STORAGE="$BATS_TMPDIR"/sd-version
 
    # Ensure our test storage dir doesn’t exist yet.
-   [[ -e $CH_IMAGE_STORAGE ]] && rm -Rf --one-file-system "$CH_IMAGE_STORAGE"
+   [[ -e $CLEARLY_IMAGE_STORAGE ]] && rm -Rf --one-file-system "$CLEARLY_IMAGE_STORAGE"
 
    # Initialize by listing.
    run clearly image list
    echo "$output"
    [[ $status -eq 0 ]]
-   [[ $output = *"initializing storage directory: v"*" ${CH_IMAGE_STORAGE}"* ]]
+   [[ $output = *"initializing storage directory: v"*" ${CLEARLY_IMAGE_STORAGE}"* ]]
 
    # Read current version.
-   v_current=$(cat "$CH_IMAGE_STORAGE"/version)
+   v_current=$(cat "$CLEARLY_IMAGE_STORAGE"/version)
 
    # Version matches; success.
    run clearly image -v list
    echo "$output"
    [[ $status -eq 0 ]]
-   [[ $output = *"found storage dir v${v_current}: ${CH_IMAGE_STORAGE}"* ]]
+   [[ $output = *"found storage dir v${v_current}: ${CLEARLY_IMAGE_STORAGE}"* ]]
 
    # Fake version mismatch - non-upgradeable.
-   echo '-1' > "$CH_IMAGE_STORAGE"/version
-   cat "$CH_IMAGE_STORAGE"/version
+   echo '-1' > "$CLEARLY_IMAGE_STORAGE"/version
+   cat "$CLEARLY_IMAGE_STORAGE"/version
 
    # Version mismatch; fail.
    run clearly image -v list
@@ -822,13 +822,13 @@ EOF
    run clearly image reset
    echo "$output"
    [[ $status -eq 0 ]]
-   [[ $output = *"initializing storage directory: v${v_current} ${CH_IMAGE_STORAGE}"* ]]
+   [[ $output = *"initializing storage directory: v${v_current} ${CLEARLY_IMAGE_STORAGE}"* ]]
 
    # Version matches again; success.
    run clearly image -v list
    echo "$output"
    [[ $status -eq 0 ]]
-   [[ $output = *"found storage dir v${v_current}: ${CH_IMAGE_STORAGE}"* ]]
+   [[ $output = *"found storage dir v${v_current}: ${CLEARLY_IMAGE_STORAGE}"* ]]
 }
 
 
@@ -836,25 +836,25 @@ EOF
     my_storage=${BATS_TMPDIR}/unsafe
 
     # Default storage location.
-    if [[ $CH_IMAGE_STORAGE = /var/tmp/$USER.ch ]]; then
-        sold=$CH_IMAGE_STORAGE
-        unset CH_IMAGE_STORAGE
+    if [[ $CLEARLY_IMAGE_STORAGE = /var/tmp/$USER.ch ]]; then
+        sold=$CLEARLY_IMAGE_STORAGE
+        unset CLEARLY_IMAGE_STORAGE
         [[ ! -e .%3.17 ]]
         clearly run --unsafe alpine:3.17 -- /bin/true
-        CH_IMAGE_STORAGE=$sold
+        CLEARLY_IMAGE_STORAGE=$sold
     fi
 
     # Rest of test uses custom storage path.
     rm -rf "$my_storage"
     mkdir -p "$my_storage"/img
     clearly convert -i image -o dir alpine:3.17 "${my_storage}/img/alpine+3.17"
-    unset CH_IMAGE_STORAGE
+    unset CLEARLY_IMAGE_STORAGE
 
     # Specified on command line.
     clearly run --unsafe -s "$my_storage" alpine:3.17 -- /bin/true
 
     # Specified with environment variable.
-    export CH_IMAGE_STORAGE=$my_storage
+    export CLEARLY_IMAGE_STORAGE=$my_storage
 
     # Basic environment-variable specified.
     clearly run --unsafe alpine:3.17 -- /bin/true
@@ -864,17 +864,17 @@ EOF
 @test 'clearly run storage errors' {
     run clearly run -v -w alpine:3.17 -- /bin/true
     echo "$output"
-    [[ $status -eq $CH_ERR_MISC ]]
+    [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output = *'error: --write invalid when running by name'* ]]
 
-    run clearly run -v "$CH_IMAGE_STORAGE"/img/alpine+3.17 -- /bin/true
+    run clearly run -v "$CLEARLY_IMAGE_STORAGE"/img/alpine+3.17 -- /bin/true
     echo "$output"
-    [[ $status -eq $CH_ERR_MISC ]]
+    [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output = *"error: can't run directory images from storage (hint: run by name)"* ]]
 
     run clearly run -v -s /doesnotexist alpine:3.17 -- /bin/true
     echo "$output"
-    [[ $status -eq $CH_ERR_MISC ]]
+    [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output = *'warning: storage directory not found: /doesnotexist'* ]]
     [[ $output = *"error: can't stat: alpine:3.17: No such file or directory"* ]]
 }
@@ -899,13 +899,13 @@ EOF
 
 
 @test "IMPORT cache miss" {  # issue #1638
-    [[ $CH_IMAGE_CACHE = enabled ]] || skip 'build cache enabled only'
+    [[ $CLEARLY_IMAGE_CACHE = enabled ]] || skip 'build cache enabled only'
 
     clearly convert alpine:3.17 "$BATS_TMPDIR"/alpine317.tar.gz
     clearly convert alpine:3.16 "$BATS_TMPDIR"/alpine316.tar.gz
 
-    export CH_IMAGE_STORAGE=$BATS_TMPDIR/import_1638
-    rm -Rf --one-file-system "$CH_IMAGE_STORAGE"
+    export CLEARLY_IMAGE_STORAGE=$BATS_TMPDIR/import_1638
+    rm -Rf --one-file-system "$CLEARLY_IMAGE_STORAGE"
     clearly image import "$BATS_TMPDIR"/alpine317.tar.gz alpine:3.17
     clearly image import "$BATS_TMPDIR"/alpine316.tar.gz alpine:3.16
 
@@ -947,7 +947,7 @@ EOF
 
 
 @test "dnf --installroot" {  # issue #1765
-    export CH_IMAGE_STORAGE=$BATS_TMPDIR/dnf_installroot
+    export CLEARLY_IMAGE_STORAGE=$BATS_TMPDIR/dnf_installroot
     df=$BATS_TMPDIR/dnf_installroot.df
 
     cat > "$df" <<EOF

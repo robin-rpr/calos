@@ -56,8 +56,8 @@ setup () {
 }
 
 @test 'filesystem permission enforcement' {
-    [[ $CH_TEST_PERMDIRS = skip ]] && skip 'user request'
-    for d in $CH_TEST_PERMDIRS; do
+    [[ $CLEARLY_TEST_PERMDIRS = skip ]] && skip 'user request'
+    for d in $CLEARLY_TEST_PERMDIRS; do
         d="${d}/pass"
         echo "verifying: ${d}"
         # shellcheck disable=SC2086

@@ -1,4 +1,4 @@
-CH_TEST_TAG=$ch_test_tag
+CLEARLY_TEST_TAG=$ch_test_tag
 load "${CHTEST_DIR}/common.bash"
 
 setup () {
@@ -41,7 +41,7 @@ count_ranks () {
 
 @test "${ch_tag}/validate $cray_prov injection" {
     [[ -n "$ch_cray" ]] || skip "host is not cray"
-    [[ -n "$CH_TEST_OFI_PATH" ]] || skip "--fi-provider not set"
+    [[ -n "$CLEARLY_TEST_OFI_PATH" ]] || skip "--fi-provider not set"
     run $ch_mpirun_node clearly run --join "$ch_img" -- sh -c \
                     "FI_PROVIDER=$cray_prov FI_LOG_LEVEL=info /hello/hello 2>&1"
     echo "$output"

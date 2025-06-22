@@ -191,7 +191,7 @@ AC_ARG_WITH([sphinx-python],
 #
 #   2. $1_VERSION_NOTE contains a brief explanatory note.
 #
-AC_DEFUN([CH_CHECK_VERSION], [
+AC_DEFUN([CLEARLY_CHECK_VERSION], [
   AS_VAR_PUSHDEF([prog], [$1])
   AS_IF([test -n "$prog"], [
     # ${!1} is non-empty
@@ -256,7 +256,7 @@ AS_IF([test "$CC" = icc],
 # the library arguments we need. This also requires us to use AC_CHECK_LIB
 # instead of the (recommended by docs) AC_SEARCH_LIBS, because that adds
 # things to LIBS, which we don’t want because it’s applied to all executables.
-CH_RUN_LIBS=
+CLEARLY_RUN_LIBS=
 
 # asprintf(3)
 #
@@ -297,14 +297,14 @@ AC_LINK_IFELSE([AC_LANG_SOURCE([[
   [AC_MSG_RESULT([no])     # try external libargp
    AC_CHECK_LIB(
      [argp], [argp_parse],
-     [CH_RUN_LIBS="-largp $CH_RUN_LIBS"],
+     [CLEARLY_RUN_LIBS="-largp $CLEARLY_RUN_LIBS"],
      [AC_MSG_ERROR([argp_parse(3) not found; please report this bug])])])
 
 # pthreads; needed for “clearly run --join”.
 AX_PTHREAD
 
 # POSIX IPC lives in librt.
-AC_CHECK_LIB([rt], [shm_open], [CH_RUN_LIBS="-lrt $CH_RUN_LIBS"], [
+AC_CHECK_LIB([rt], [shm_open], [CLEARLY_RUN_LIBS="-lrt $CLEARLY_RUN_LIBS"], [
   AC_MSG_ERROR([shm_open(3) not found])
 ])
 
@@ -334,7 +334,7 @@ AC_RUN_IFELSE([AC_LANG_SOURCE([[
 AC_MSG_RESULT($have_userns)
 
 # overlayfs
-AC_DEFUN([CH_OVERLAY_C], [[
+AC_DEFUN([CLEARLY_OVERLAY_C], [[
   #define _GNU_SOURCE
   #include <errno.h>
   #include <fcntl.h>
@@ -400,7 +400,7 @@ AC_DEFUN([CH_OVERLAY_C], [[
 AC_MSG_CHECKING([for unprivileged overlayfs])
 have_overlayfs="check disabled"
 AS_IF([test $enable_impolite_checks = yes],
-      [AC_RUN_IFELSE([AC_LANG_SOURCE(CH_OVERLAY_C)],
+      [AC_RUN_IFELSE([AC_LANG_SOURCE(CLEARLY_OVERLAY_C)],
                      [have_overlayfs=yes],
                      [have_overlayfs=no],
                      [AC_MSG_ERROR([cross-compilation not supported])])])
@@ -409,7 +409,7 @@ have_tmpfs_xattrs="check disabled"
 AC_MSG_CHECKING([for tmpfs user xattrs])
 AS_IF([test $enable_impolite_checks = yes],
       [AC_RUN_IFELSE([#define XATTRS
-                      AC_LANG_SOURCE(CH_OVERLAY_C)],
+                      AC_LANG_SOURCE(CLEARLY_OVERLAY_C)],
                      [have_tmpfs_xattrs=yes],
                      [have_tmpfs_xattrs=no],
                      [AC_MSG_ERROR([cross-compilation not supported])])])
@@ -483,13 +483,13 @@ AS_IF([test $test_seccomp = yes],
 # SquashFS Tools
 vmin_mksquashfs=4.2  # CentOS 7
 AC_CHECK_PROG([MKSQUASHFS], [mksquashfs], [mksquashfs])
-CH_CHECK_VERSION([MKSQUASHFS], [$vmin_mksquashfs],
+CLEARLY_CHECK_VERSION([MKSQUASHFS], [$vmin_mksquashfs],
                  [-version | head -1 | cut -d' ' -f3])
 
 # SquashFUSE executables
 vmin_squashfuse=0.1.100  # Ubuntu 16.04 (Xenial). CentOS 7 has 0.1.102.
 AC_CHECK_PROG([SQUASHFUSE], [squashfuse], [squashfuse])
-CH_CHECK_VERSION([SQUASHFUSE], [$vmin_squashfuse],
+CLEARLY_CHECK_VERSION([SQUASHFUSE], [$vmin_squashfuse],
                  [--help 2>&1 | head -1 | cut -d' ' -f2])
 
 # Check for libsquashfuse if it’s wanted.
@@ -537,7 +537,7 @@ AS_IF([   test $want_libsquashfuse = yes \
        AS_IF([test -n "$lib_libsquashfuse"],
              [rpath_libsquashfuse=-Wl,-rpath=$lib_libsquashfuse],
              [rpath_libsquashfuse=])
-       CH_RUN_LIBS="-lsquashfuse_ll -lfuse3 $rpath_libsquashfuse $CH_RUN_LIBS"],
+       CLEARLY_RUN_LIBS="-lsquashfuse_ll -lfuse3 $rpath_libsquashfuse $CLEARLY_RUN_LIBS"],
       [have_libsquashfuse=no])
 AS_IF([   test $need_libsquashfuse = yes \
        && test $have_libsquashfuse = no],
@@ -558,7 +558,7 @@ AS_CASE([$python],
   [/*], [PYTHON="$python"],                              # absolute
   [*],  [AC_CHECK_PROG([PYTHON], [$python], [$python])]  # verify it's in $PATH
 )
-CH_CHECK_VERSION([PYTHON], [$vmin_python],
+CLEARLY_CHECK_VERSION([PYTHON], [$vmin_python],
                  [--version | head -1 | cut -d' ' -f2])
 
 # Python module “lark”
@@ -576,7 +576,7 @@ EOF
     [REQUESTS=$PYTHON; have_lark=yes],
     [REQUESTS=;         have_lark=no])
   AC_MSG_RESULT($have_lark)
-  CH_CHECK_VERSION([REQUESTS], [$vmin_lark],
+  CLEARLY_CHECK_VERSION([REQUESTS], [$vmin_lark],
     [-c 'import lark; print(lark.__version__)'])
 ])
 
@@ -595,7 +595,7 @@ EOF
     [REQUESTS=$PYTHON; have_requests=yes],
     [REQUESTS=;         have_requests=no])
   AC_MSG_RESULT($have_requests)
-  CH_CHECK_VERSION([REQUESTS], [$vmin_requests],
+  CLEARLY_CHECK_VERSION([REQUESTS], [$vmin_requests],
     [-c 'import requests; print(requests.__version__)'])
 ])
 
@@ -614,7 +614,7 @@ EOF
     [CYTHON=$PYTHON; have_cython=yes],
     [CYTHON=;         have_cython=no])
   AC_MSG_RESULT($have_cython)
-  CH_CHECK_VERSION([CYTHON], [$vmin_cython],
+  CLEARLY_CHECK_VERSION([CYTHON], [$vmin_cython],
     [-c 'import cython; print(Cython.__version__)'])
 ])
 
@@ -628,22 +628,22 @@ AS_IF([test -n "$CC"],
 # DOT
 vmin_dot=2.30.1
 AC_CHECK_PROG([DOT], [dot], [dot])
-CH_CHECK_VERSION([DOT], [$vmin_dot], [dot -V 2>&1 | cut -d' ' -f5])
+CLEARLY_CHECK_VERSION([DOT], [$vmin_dot], [dot -V 2>&1 | cut -d' ' -f5])
 
 # Git
 vmin_git=2.28.1
 AC_CHECK_PROG([GIT], [git], [git])
-CH_CHECK_VERSION([GIT], [$vmin_git], [--version | cut -d' ' -f3])
+CLEARLY_CHECK_VERSION([GIT], [$vmin_git], [--version | cut -d' ' -f3])
 
 # git2dot
 vmin_git2dot=0.8.3
 AC_CHECK_PROG([GIT2DOT], [git2dot.py], [git2dot.py])
-CH_CHECK_VERSION([GIT2DOT], [$vmin_git2dot], [--version | cut -d' ' -f3])
+CLEARLY_CHECK_VERSION([GIT2DOT], [$vmin_git2dot], [--version | cut -d' ' -f3])
 
 # rsync
 vmin_rsync=3.1.0  # NOTE: keep in sync with lib/charliecloud.py
 AC_CHECK_PROG([RSYNC], [rsync], [rsync])
-CH_CHECK_VERSION([RSYNC], [$vmin_rsync],
+CLEARLY_CHECK_VERSION([RSYNC], [$vmin_rsync],
   [--version | sed -En 's/rsync +version (@<:@0-9@:>@+\.@<:@0-9@:>@+\.@<:@0-9@:>@+).*$/\1/p'])
 
 
@@ -652,7 +652,7 @@ CH_CHECK_VERSION([RSYNC], [$vmin_rsync],
 # Sphinx
 vmin_sphinx=1.2.3
 AX_WITH_PROG([SPHINX], [sphinx-build])
-CH_CHECK_VERSION([SPHINX], [$vmin_sphinx],
+CLEARLY_CHECK_VERSION([SPHINX], [$vmin_sphinx],
                  [--version | sed -E 's/sphinx-build //'])
 
 # Get the Sphinx Python. We don’t care about version.
@@ -672,10 +672,10 @@ AS_IF([test -n "$SPHINX"], [
 vmin_docutils=0.14
 AS_IF([test -n "$SPHINX"], [
   # Sphinx depends on docutils, so we don’t need to check if the module exists
-  # before checking its version. (CH_CHECK_VERSION isn’t smart enough to deal
+  # before checking its version. (CLEARLY_CHECK_VERSION isn’t smart enough to deal
   # with Python being present but a module not.)
   DOCUTILS=$sphinx_python  # FIXME: output is confusing
-  CH_CHECK_VERSION([DOCUTILS], [$vmin_docutils],
+  CLEARLY_CHECK_VERSION([DOCUTILS], [$vmin_docutils],
                    [-c 'import docutils; print(docutils.__version__)'])
 ], [DOCUTILS_VERSION_NOTE='moot b/c no sphinx-build'])
 
@@ -694,7 +694,7 @@ EOF
     [RTD=$sphinx_python; have_rtd=yes],
     [RTD=;               have_rtd=no])
   AC_MSG_RESULT([$have_rtd])
-  CH_CHECK_VERSION([RTD], [$vmin_rtd],
+  CLEARLY_CHECK_VERSION([RTD], [$vmin_rtd],
     [-c 'import sphinx_rtd_theme; print(sphinx_rtd_theme.__version__)'])
 ], [RTD_VERSION_NOTE='moot b/c no sphinx-build'])
 
@@ -718,7 +718,7 @@ AS_IF([   test $enable_man = yes && test $have_docs = no],
 # libnvidia-container-cli
 vmin_nvidia_cli=1.0.0
 AC_CHECK_PROG([NVIDIA_CLI], [nvidia-container-cli], [nvidia-container-cli])
-CH_CHECK_VERSION([NVIDIA_CLI], [$vmin_nvidia_CLI],
+CLEARLY_CHECK_VERSION([NVIDIA_CLI], [$vmin_nvidia_CLI],
                  [-V | head -1 | cut -d' ' -f2])
 AC_MSG_CHECKING([for nVidia libraries & executables])
 AS_IF([test -n "$NVIDIA_CLI"],
@@ -734,18 +734,18 @@ AC_MSG_RESULT($have_nvidia_libs)
 # Bash
 vmin_bash=4.1
 AC_CHECK_PROG([_BASH], [bash], [bash])  # $BASH and $BASH_VERSION already used
-CH_CHECK_VERSION([_BASH], [$vmin_bash], [--version | head -1 | cut -d' ' -f4])
+CLEARLY_CHECK_VERSION([_BASH], [$vmin_bash], [--version | head -1 | cut -d' ' -f4])
 
 # Bats
 vmin_bats=1.2.0
 AC_CHECK_PROG([BATS], [bats], [bats])
-CH_CHECK_VERSION([BATS], [$vmin_bats], [--version | cut -d' ' -f2])
+CLEARLY_CHECK_VERSION([BATS], [$vmin_bats], [--version | cut -d' ' -f2])
 
 # ShellCheck
 vmin_shellcheck=0.9.0
 AC_CHECK_PROG([SHELLCHECK], [shellcheck], [shellcheck])
 # https://stackoverflow.com/questions/6022384
-CH_CHECK_VERSION([SHELLCHECK], [$vmin_shellcheck],
+CLEARLY_CHECK_VERSION([SHELLCHECK], [$vmin_shellcheck],
                  [--version | sed -n '2{s/^version: //;p;q}'])
 
 # sudo, generic
@@ -762,7 +762,7 @@ CH_CHECK_VERSION([SHELLCHECK], [$vmin_shellcheck],
 # Wget
 vmin_wget=1.11  # 2008
 AC_CHECK_PROG([WGET], [wget], [wget])
-CH_CHECK_VERSION([WGET], [$vmin_wget], [--version | head -1 | cut -d' ' -f3])
+CLEARLY_CHECK_VERSION([WGET], [$vmin_wget], [--version | head -1 | cut -d' ' -f3])
 
 
 ### Output variables #########################################################
@@ -813,7 +813,7 @@ CH_CHECK_VERSION([WGET], [$vmin_wget], [--version | head -1 | cut -d' ' -f3])
 #
 # Below are all the variables we want available outside configure.
 
-AM_CONDITIONAL([ENABLE_CH_IMAGE], [test $enable_image = yes])
+AM_CONDITIONAL([ENABLE_IMAGE], [test $enable_image = yes])
 AM_CONDITIONAL([ENABLE_HTML], [test $enable_html = yes])
 AM_CONDITIONAL([ENABLE_MAN], [test $enable_man = yes])
 AS_IF([test $enable_syslog = yes],
@@ -821,7 +821,7 @@ AS_IF([test $enable_syslog = yes],
 AM_CONDITIONAL([ENABLE_TEST], [test $enable_test = yes])
 
 AC_SUBST([PYEXT_SUFFIX], [`python3-config --extension-suffix`])
-AC_SUBST([CH_RUN_LIBS])
+AC_SUBST([CLEARLY_RUN_LIBS])
 AC_SUBST([SPHINX])
 AC_SUBST([CYTHON_VERSION])
 

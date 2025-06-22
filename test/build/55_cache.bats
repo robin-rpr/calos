@@ -18,9 +18,9 @@ treeonly () {
 
 setup () {
     scope standard
-    [[ $CH_TEST_BUILDER = image ]] || skip 'image only'
-    [[ $CH_IMAGE_CACHE = enabled ]] || skip 'build cache enabled only'
-    export CH_IMAGE_STORAGE=$BATS_TMPDIR/butest  # don’t mess up main storage
+    [[ $CLEARLY_TEST_BUILDER = image ]] || skip 'image only'
+    [[ $CLEARLY_IMAGE_CACHE = enabled ]] || skip 'build cache enabled only'
+    export CLEARLY_IMAGE_STORAGE=$BATS_TMPDIR/butest  # don’t mess up main storage
     dot_base=$BATS_TMPDIR/bu_
     clearly image gestalt bucache-dot
 }
@@ -33,10 +33,10 @@ setup () {
 # versions. If they are in the published paper, the figure number is noted.
 
 @test "${tag}: Fig. 2: empty cache" {
-    rm -Rf --one-file-system "$CH_IMAGE_STORAGE"
+    rm -Rf --one-file-system "$CLEARLY_IMAGE_STORAGE"
 
     blessed_tree=$(cat << EOF
-initializing storage directory: v7 ${CH_IMAGE_STORAGE}
+initializing storage directory: v7 ${CLEARLY_IMAGE_STORAGE}
 initializing empty build cache
 *  (root) ROOT
 EOF
@@ -319,7 +319,7 @@ EOF
 
 @test "${tag}: two pulls, different" {
     localregistry_init
-    unset CH_IMAGE_AUTH  # don’t give local creds to Docker Hub
+    unset CLEARLY_IMAGE_AUTH  # don’t give local creds to Docker Hub
 
     # Simulate a change in an image from a remote repo; ensure that “clearly image
     # pull” downloads the next image. Note clearly image pull behavior is the same
@@ -877,7 +877,7 @@ EOF
 
     # Pull base image w/o cache.
     clearly image pull --no-cache alpine:3.17
-    [[ ! -e $CH_IMAGE_STORAGE/img/alpine+3.17/.git ]]
+    [[ ! -e $CLEARLY_IMAGE_STORAGE/img/alpine+3.17/.git ]]
 
     # Build child image.
     run clearly image build -t foo - <<'EOF'
@@ -1166,8 +1166,8 @@ EOF
     echo "$output"
     [[ $status -eq 0 ]]
     diff -u <(echo "$blessed_tree") <(echo "$output" | treeonly)
-    ls -x "$CH_IMAGE_STORAGE"/img
-    [[ $(ls -x "$CH_IMAGE_STORAGE"/img) == "bar  foo" ]]
+    ls -x "$CLEARLY_IMAGE_STORAGE"/img
+    [[ $(ls -x "$CLEARLY_IMAGE_STORAGE"/img) == "bar  foo" ]]
 
     # pull same normal image normally
     sleep 1
@@ -1178,8 +1178,8 @@ EOF
     echo "$output"
     [[ $status -eq 0 ]]
     diff -u <(echo "$blessed_tree") <(echo "$output" | treeonly)
-    ls -x "$CH_IMAGE_STORAGE"/img
-    [[ $(ls -x "$CH_IMAGE_STORAGE"/img) == "alpine+3.17  bar  foo" ]]
+    ls -x "$CLEARLY_IMAGE_STORAGE"/img
+    [[ $(ls -x "$CLEARLY_IMAGE_STORAGE"/img) == "alpine+3.17  bar  foo" ]]
 }
 
 
@@ -1202,11 +1202,11 @@ EOF
 
 @test "${tag}: garbage vs. reset" {
     scope full
-    rm -Rf --one-file-system "$CH_IMAGE_STORAGE"
+    rm -Rf --one-file-system "$CLEARLY_IMAGE_STORAGE"
 
     # Init build cache.
     clearly image list
-    cd "$CH_IMAGE_STORAGE"/bucache
+    cd "$CLEARLY_IMAGE_STORAGE"/bucache
 
     # Turn off auto-gc so it’s not triggered during the build itself.
     git config gc.auto 0
@@ -1249,13 +1249,13 @@ EOF
     clearly image build-cache --reset
     clearly image build -t tmpimg -f <(echo "$df") .
     clearly image delete tmpimg
-    [[ ! -e $CH_IMAGE_STORAGE/img/tmpimg ]]
+    [[ ! -e $CLEARLY_IMAGE_STORAGE/img/tmpimg ]]
     run clearly image build -v -t tmpimg -f <(echo "$df") .
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = *'* FROM'* ]]
     [[ $output = *'* RUN.S'* ]]
-    [[ $output = *"no image found: $CH_IMAGE_STORAGE/img/tmpimg"* ]]
+    [[ $output = *"no image found: $CLEARLY_IMAGE_STORAGE/img/tmpimg"* ]]
     [[ $output = *'created worktree'* ]]
 }
 
@@ -1266,7 +1266,7 @@ EOF
     statwalk () {
         # Remove (1) mtime and atime for symlinks, where it cannot be set, and
         # (2) directory sizes, which vary by filesystem and maybe other stuff.
-        ( cd "$CH_IMAGE_STORAGE"/img/tmpimg/test
+        ( cd "$CLEARLY_IMAGE_STORAGE"/img/tmpimg/test
             find . -printf '%n %M %4s m=%TFT%TT a=%AFT%AT %p (%l)\n' \
           | sed -E 's/^(1 l.+)([am]=[0-9T:.-]+ ){2}(.+)$/\1m=::: a=::: \3/' \
           | sed -E 's/^([1-9] d[rwxs-]{9}) [0-9 ]{4}/\1 0000/' \
@@ -1282,7 +1282,7 @@ EOF
     # mkfifo(1), which uses the system call mknod(2), which is intercepted by
     # our seccomp(2) filter (see also: #1646).
     clearly image build --force=none -t tmpimg -f ./bucache/difficult.df .
-    stat "$CH_IMAGE_STORAGE"/img/tmpimg/test/fifo_
+    stat "$CLEARLY_IMAGE_STORAGE"/img/tmpimg/test/fifo_
     stat1=$(statwalk)
     diff -u - <(echo "$stat1" | sed -E 's/([am])=[0-9T:.-]+/\1=:::/g') <<'EOF'
 7 drwxr-x--- 0000 m=::: a=::: . ()
@@ -1331,7 +1331,7 @@ EOF
     # against the (already validated) results of the first build, this time
     # including timestamps.
     clearly image delete tmpimg
-    [[ ! -e $CH_IMAGE_STORAGE/img/tmpimg ]]
+    [[ ! -e $CLEARLY_IMAGE_STORAGE/img/tmpimg ]]
     run clearly image build --force=none -t tmpimg -f ./bucache/difficult.df .
     echo "$output"
     [[ $status -eq 0 ]]
@@ -1355,7 +1355,7 @@ EOF
     echo "$df" | clearly image build -t tmpimg -
     clearly image delete tmpimg
     echo "$df" | clearly image build -t tmpimg -
-    ls -lh "$CH_IMAGE_STORAGE"/img/tmpimg/__ch-test_ignore__
+    ls -lh "$CLEARLY_IMAGE_STORAGE"/img/tmpimg/__ch-test_ignore__
 }
 
 
@@ -1424,7 +1424,7 @@ EOF
     echo '*** no large files'
     clearly image build-cache --reset
     echo "$df" | clearly image build --cache-large=0 -t tmpimg -
-    run ls "$CH_IMAGE_STORAGE"/bularge
+    run ls "$CLEARLY_IMAGE_STORAGE"/bularge
     echo "$output"
     [[ $status -eq 0 ]]
     [[ -z $output ]]
@@ -1433,7 +1433,7 @@ EOF
     echo '*** threshold = 5'
     clearly image build-cache --reset
     echo "$df" | clearly image build --cache-large=5 -t tmpimg -
-    run ls "$CH_IMAGE_STORAGE"/bularge
+    run ls "$CLEARLY_IMAGE_STORAGE"/bularge
     echo "$output"
     [[ $status -eq 0 ]]
     diff -u - <(echo "$output") <<'EOF'
@@ -1443,7 +1443,7 @@ EOF
     echo
     echo '*** threshold = 4, rebuild'
     echo "$df" | clearly image build --rebuild --cache-large=4 -t tmpimg -
-    run ls "$CH_IMAGE_STORAGE"/bularge
+    run ls "$CLEARLY_IMAGE_STORAGE"/bularge
     echo "$output"
     [[ $status -eq 0 ]]
     # should re-use existing bigfile5
@@ -1456,7 +1456,7 @@ EOF
     echo '*** threshold = 4, reset'
     clearly image build-cache --reset
     echo "$df" | clearly image build --rebuild --cache-large=4 -t tmpimg -
-    run ls "$CH_IMAGE_STORAGE"/bularge
+    run ls "$CLEARLY_IMAGE_STORAGE"/bularge
     echo "$output"
     [[ $status -eq 0 ]]
     diff -u - <(echo "$output") <<'EOF'
@@ -1504,7 +1504,7 @@ EOF
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = *'deleting, see issue #1351: var/lib/rpm/__db.001'* ]]
-    [[ ! -e $CH_IMAGE_STORAGE/img/tmpimg/var/lib/rpm/__db.001 ]]
+    [[ ! -e $CLEARLY_IMAGE_STORAGE/img/tmpimg/var/lib/rpm/__db.001 ]]
 }
 
 
@@ -1547,9 +1547,9 @@ EOF
 
 
 @test "${tag}: orphaned worktrees" {  # PR #1824
-    img_metadata=$CH_IMAGE_STORAGE/img/tmpimg/ch
+    img_metadata=$CLEARLY_IMAGE_STORAGE/img/tmpimg/ch
     img_to_git=$img_metadata/git
-    git_worktrees=$CH_IMAGE_STORAGE/bucache/worktrees
+    git_worktrees=$CLEARLY_IMAGE_STORAGE/bucache/worktrees
     git_to_img=$git_worktrees/tmpimg
 
     # pull image, should be unlinked

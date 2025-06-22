@@ -7,11 +7,11 @@ tag=RSYNC
 
 setup () {
     scope standard
-    [[ $CH_TEST_BUILDER = image ]] || skip 'image only'
+    [[ $CLEARLY_TEST_BUILDER = image ]] || skip 'image only'
     umask 0007
     fixtures=$BATS_TMPDIR/rsync
     context=$fixtures/ctx
-    dst=$CH_IMAGE_STORAGE/img/tmpimg/dst
+    dst=$CLEARLY_IMAGE_STORAGE/img/tmpimg/dst
 }
 
 ls_ () {
@@ -733,9 +733,9 @@ drwxrwx--- .      hard
 -rw-rw---- 2  10    hard-file1
 -rw-rw---- 2  10    hard-file2
 EOF
-    inode_dst=$(stat -c %i "$CH_IMAGE_STORAGE"/img/tmpimg/dst/hard/hard-file1)
+    inode_dst=$(stat -c %i "$CLEARLY_IMAGE_STORAGE"/img/tmpimg/dst/hard/hard-file1)
     [[     $inode_dst \
-       -eq $(stat -c %i "$CH_IMAGE_STORAGE"/img/tmpimg/dst/hard/hard-file2) ]]
+       -eq $(stat -c %i "$CLEARLY_IMAGE_STORAGE"/img/tmpimg/dst/hard/hard-file2) ]]
     [[ $inode_src -ne $inode_dst ]]
 }
 

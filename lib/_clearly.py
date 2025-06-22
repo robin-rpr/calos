@@ -253,12 +253,12 @@ class ArgumentParser(argparse.ArgumentParser):
       if (not hasattr(cli, "func")):
          self.error("CMD not specified")
       # Bring in environment variables that set options.
-      if (cli.bucache is None and "CH_IMAGE_CACHE" in os.environ):
+      if (cli.bucache is None and "CLEARLY_IMAGE_CACHE" in os.environ):
          try:
-            cli.bucache = Build_Mode(os.environ["CH_IMAGE_CACHE"])
+            cli.bucache = Build_Mode(os.environ["CLEARLY_IMAGE_CACHE"])
          except ValueError:
-            FATAL("$CH_IMAGE_CACHE: invalid build cache mode: %s"
-                  % os.environ["CH_IMAGE_CACHE"])
+            FATAL("$CLEARLY_IMAGE_CACHE: invalid build cache mode: %s"
+                  % os.environ["CLEARLY_IMAGE_CACHE"])
       return cli
 
 
@@ -677,16 +677,16 @@ def init(cli):
          incomp_opts += 1
    if (incomp_opts > 0):
       FATAL("%d incompatible option pair(s)" % incomp_opts)
-   xattrs_save = ((cli.xattrs) or (("CH_XATTRS" in os.environ) and (not cli.no_xattrs)))
-   trace_fatal = (cli.debug or bool(os.environ.get("CH_IMAGE_DEBUG", False)))
+   xattrs_save = ((cli.xattrs) or (("CLEARLY_XATTRS" in os.environ) and (not cli.no_xattrs)))
+   trace_fatal = (cli.debug or bool(os.environ.get("CLEARLY_IMAGE_DEBUG", False)))
    log_level = Log_Level(cli.verbose - cli.quiet)
    assert (-3 <= log_level.value <= 3)
    if (log_level <= Log_Level.STDERR):
       # suppress writing to stdout (particularly “print”).
       sys.stdout = open(os.devnull, 'w')
-   if ("CH_LOG_FESTOON" in os.environ):
+   if ("CLEARLY_LOG_FESTOON" in os.environ):
       log_festoon = True
-   file_ = os.getenv("CH_LOG_FILE")
+   file_ = os.getenv("CLEARLY_LOG_FILE")
    if (file_ is not None):
       log_fp = file_.open("at")
    atexit.register(color_reset, log_fp)
@@ -720,8 +720,8 @@ def init(cli):
       registry.auth_p = True
    elif (cli.auth):
       registry.auth_p = True
-   elif ("CH_IMAGE_AUTH" in os.environ):
-      registry.auth_p = (os.environ["CH_IMAGE_AUTH"] == "yes")
+   elif ("CLEARLY_IMAGE_AUTH" in os.environ):
+      registry.auth_p = (os.environ["CLEARLY_IMAGE_AUTH"] == "yes")
    else:
       registry.auth_p = False
    VERBOSE("registry authentication: %s" % registry.auth_p)

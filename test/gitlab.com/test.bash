@@ -12,8 +12,8 @@ export PATH=$prefox/bin:$PATH
 # Test outside Git WD only if image with cache enabled. If cache disabled,
 # it’s too slow, and other builders we don’t need to test that hard.
 if [[ ! (   -e $prefox/.git
-         && $CH_TEST_BUILDER = image
-         && $CH_IMAGE_CACHE = enabled ) ]]; then
+         && $CLEARLY_TEST_BUILDER = image
+         && $CLEARLY_IMAGE_CACHE = enabled ) ]]; then
     exit 0
 fi
 
@@ -32,9 +32,9 @@ ch-test all
 # to do this once. Since all CI tests that use image with an enabled cache
 # take roughly the same amount of time, we arbitrarily chose squash-mount as
 # the pack format.
-if [[    $CH_TEST_BULDER == image
-      && $CH_IMAGE_CACHE = enabled
-      && $CH_TEST_PACK_FMT = squash-mount ]]; then
+if [[    $CLEARLY_TEST_BULDER == image
+      && $CLEARLY_IMAGE_CACHE = enabled
+      && $CLEARLY_TEST_PACK_FMT = squash-mount ]]; then
     ch-test rootemu
     [[ $(cat "/tmp/ch-test.tmp.$(id -un)/rootemu") = yes ]]
 fi

@@ -1,7 +1,7 @@
 load ../common
 
 setup () {
-    [[ $CH_TEST_BUILDER != none ]] || skip 'no builder'
+    [[ $CLEARLY_TEST_BUILDER != none ]] || skip 'no builder'
 }
 
 
@@ -9,10 +9,10 @@ setup () {
     # These should all yield an output image, but we don’t actually care about
     # it, so re-use the same one.
 
-    export CH_IMAGE_CACHE=disabled
+    export CLEARLY_IMAGE_CACHE=disabled
 
     scope standard
-    [[ $CH_TEST_BUILDER = image ]] || skip 'image only' # FIXME: other builders?
+    [[ $CLEARLY_TEST_BUILDER = image ]] || skip 'image only' # FIXME: other builders?
 
     # No newline at end of file.
       printf 'FROM alpine:3.17\nRUN echo hello' \
@@ -171,7 +171,7 @@ EOF
 
 @test 'Dockerfile: syntax errors' {
     scope standard
-    [[ $CH_TEST_BUILDER = image ]] || skip 'image only'
+    [[ $CLEARLY_TEST_BUILDER = image ]] || skip 'image only'
 
     # Bad instruction. Also, -v should give interal blabber about the grammar.
     run clearly image -v build -t tmpimg -f - . <<'EOF'
@@ -238,7 +238,7 @@ EOF
 
 @test 'Dockerfile: semantic errors' {
     scope standard
-    [[ $CH_TEST_BUILDER = image ]] || skip 'image only'
+    [[ $CLEARLY_TEST_BUILDER = image ]] || skip 'image only'
 
     # Repeated instruction option.
     run clearly image build -t tmpimg -f - . <<'EOF'
@@ -272,7 +272,7 @@ EOF
     # This test also creates images we don’t care about.
 
     scope standard
-    [[ $CH_TEST_BUILDER = image ]] || skip 'image only'
+    [[ $CLEARLY_TEST_BUILDER = image ]] || skip 'image only'
 
     # FROM --platform
     run clearly image build -t tmpimg -f - . <<'EOF'
@@ -348,7 +348,7 @@ EOF
     # This test also creates images we don’t care about.
 
     scope standard
-    [[ $CH_TEST_BUILDER = image ]] || skip 'image only'
+    [[ $CLEARLY_TEST_BUILDER = image ]] || skip 'image only'
 
     # parser directives
     run clearly image build -t tmpimg -f - . <<'EOF'
@@ -482,7 +482,7 @@ EOF
 @test 'Dockerfile: LABEL parsing' {
 
     scope standard
-    [[ $CH_TEST_BUILDER = image ]] || skip 'image only'
+    [[ $CLEARLY_TEST_BUILDER = image ]] || skip 'image only'
 
     label_expected=$(cat <<'EOF'
 ('chsl_0a', 'value 0a')
@@ -527,7 +527,7 @@ EOF
 
 @test 'Dockerfile: SHELL' {
    scope standard
-   [[ $CH_TEST_BUILDER = buildah* ]] && skip "Buildah doesn't support SHELL"
+   [[ $CLEARLY_TEST_BUILDER = buildah* ]] && skip "Buildah doesn't support SHELL"
 
    # test that SHELL command can change executables and parameters
    run build_ -t tmpimg --no-cache -f - . <<'EOF'
@@ -552,7 +552,7 @@ RUN print("hello")
 EOF
    echo "$output"
    [[ $status -eq 1 ]]
-   if [[ $CH_TEST_BUILDER = image ]]; then
+   if [[ $CLEARLY_TEST_BUILDER = image ]]; then
       [[ $output = *"/doesnotexist: No such file or directory"* ]]
    else
       [[ $output = *"/doesnotexist: no such file or directory"* ]]
@@ -587,7 +587,7 @@ EOF
     # clearly image, we are responsible for --build-arg being implemented correctly
     # and (2) Docker and Buildah take a full minute for this test, vs. three
     # seconds for clearly image.
-    if [[ $CH_TEST_BUILDER = image ]]; then
+    if [[ $CLEARLY_TEST_BUILDER = image ]]; then
         scope standard
     else
         scope full
@@ -652,7 +652,7 @@ EOF
     diff -u <(echo "$env_expected") <(echo "$env_actual")
 
     echo '*** one --build-arg from environment'
-    if [[ $CH_TEST_BUILDER == image ]]; then
+    if [[ $CLEARLY_TEST_BUILDER == image ]]; then
         env_expected=$(cat <<'EOF'
 chse_arg1_df=foo1
 chse_arg2_df=arg2
@@ -736,7 +736,7 @@ EOF
     diff -u <(echo "$env_expected") <(echo "$env_actual")
 
     echo '*** two --build-arg with substitution'
-    if [[ $CH_TEST_BUILDER == image ]]; then
+    if [[ $CLEARLY_TEST_BUILDER == image ]]; then
         env_expected=$(cat <<'EOF'
 chse_arg2_df=bar2
 chse_arg3_df=bar3 bar2
@@ -770,7 +770,7 @@ EOF
     run build_ --build-arg chse_doesnotexist=foo \
                --no-cache -t tmpimg -f ./Dockerfile.argenv .
     echo "$output"
-    if [[ $CH_TEST_BUILDER = image ]]; then
+    if [[ $CLEARLY_TEST_BUILDER = image ]]; then
         [[ $status -eq 1 ]]
         [[ $output = *'not consumed'* ]]
         [[ $output = *'chse_doesnotexist'* ]]
@@ -783,7 +783,7 @@ EOF
     run build_ --build-arg chse_arg1_df \
                --no-cache -t tmpimg -f ./Dockerfile.argenv .
     echo "$output"
-    if [[ $CH_TEST_BUILDER = image ]]; then
+    if [[ $CLEARLY_TEST_BUILDER = image ]]; then
         [[ $status -eq 1 ]]
         [[ $output = *'--build-arg: chse_arg1_df: no value and not in environment'* ]]
     else
@@ -806,7 +806,7 @@ RUN echo alpine=$(cat /etc/alpine-release | cut -d. -f1-2)
 EOF
     echo "$output"
     [[ $status -eq 0 ]]
-    if [[ $CH_TEST_BUILDER != docker ]]; then  # Docker weird and inconsistent
+    if [[ $CLEARLY_TEST_BUILDER != docker ]]; then  # Docker weird and inconsistent
         [[ $output = *'FROM alpine:3.17'* ]]
         [[ $output = *'os=alpine:3.17 foo=bar baz=qux'* ]]
     fi
@@ -825,7 +825,7 @@ RUN echo alpine2=$(cat /etc/alpine-release | cut -d. -f1-2)
 EOF
     echo "$output"
     [[ $status -eq 0 ]]
-    if [[ $CH_TEST_BUILDER != docker ]]; then
+    if [[ $CLEARLY_TEST_BUILDER != docker ]]; then
         [[ $output = *'FROM alpine:3.16'* ]]
         [[ $output = *'FROM alpine:3.17'* ]]
         [[ $output = *'1: os1=alpine:3.16 os2=alpine:3.17'* ]]
@@ -841,7 +841,7 @@ FROM $os
 EOF
     echo "$output"
     [[ $status -eq 1 ]]
-    if [[ $CH_TEST_BUILDER = docker ]]; then
+    if [[ $CLEARLY_TEST_BUILDER = docker ]]; then
         # shellcheck disable=SC2016
         [[ $output = *'base name ($os) should not be blank'* ]]
     else
@@ -858,7 +858,7 @@ RUN echo alpine=$(cat /etc/alpine-release | cut -d. -f1-2)
 EOF
     echo "$output"
     [[ $status -eq 0 ]]
-    if [[ $CH_TEST_BUILDER != docker ]]; then
+    if [[ $CLEARLY_TEST_BUILDER != docker ]]; then
         [[ $output = *'FROM alpine:3.17'* ]]
         [[ $output = *'os=alpine:3.17'* ]]
     fi
@@ -903,7 +903,7 @@ EOF
     #
     #  3. checkout stage_1 as image tag and display correct base text, (alias
     #     'b', not 'a' or ARG).
-    if [[ $CH_TEST_BUILDER = image ]]; then
+    if [[ $CLEARLY_TEST_BUILDER = image ]]; then
         [[ $output = *"ARG BASEIMG='alpine:3.17'"* ]]
         [[ $output = *'FROM alpine:3.17 AS a'* ]]
         [[ $output = *'RUN.S true'* ]]
@@ -924,7 +924,7 @@ EOF
 
 @test 'Dockerfile: FROM --arg' {
     scope standard
-    [[ $CH_TEST_BUILDER = image ]] || skip 'image only'
+    [[ $CLEARLY_TEST_BUILDER = image ]] || skip 'image only'
 
     # --arg present but not used in image name
     run clearly image build --no-cache -t tmpimg -f - . <<'EOF'
@@ -959,7 +959,7 @@ EOF
 
 @test 'Dockerfile: COPY list form' {
     scope standard
-    [[ $CH_TEST_BUILDER == image ]] || skip 'image only'
+    [[ $CLEARLY_TEST_BUILDER == image ]] || skip 'image only'
 
     # single source
     run clearly image build -t tmpimg -f - . <<'EOF'
@@ -969,7 +969,7 @@ EOF
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = *"COPY ['fixtures/empty-file'] -> '.'"* ]]
-    test -f "$CH_IMAGE_STORAGE"/img/tmpimg/empty-file
+    test -f "$CLEARLY_IMAGE_STORAGE"/img/tmpimg/empty-file
 
     # multiple source
     run clearly image build -t tmpimg -f - . <<'EOF'
@@ -979,8 +979,8 @@ EOF
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = *"COPY ['fixtures/empty-file', 'fixtures/README'] -> '.'"* ]]
-    test -f "$CH_IMAGE_STORAGE"/img/tmpimg/empty-file
-    test -f "$CH_IMAGE_STORAGE"/img/tmpimg/README
+    test -f "$CLEARLY_IMAGE_STORAGE"/img/tmpimg/empty-file
+    test -f "$CLEARLY_IMAGE_STORAGE"/img/tmpimg/README
 }
 
 @test 'Dockerfile: COPY to nonexistent directory' {
@@ -1021,7 +1021,7 @@ EOF
 
 @test 'Dockerfile: COPY errors' {
     scope standard
-    [[ $CH_TEST_BUILDER = buildah* ]] && skip 'Buildah untested'
+    [[ $CLEARLY_TEST_BUILDER = buildah* ]] && skip 'Buildah untested'
 
     # Dockerfile on stdin, so no context directory.
     run build_ -t tmpimg - <<'EOF'
@@ -1030,7 +1030,7 @@ COPY doesnotexist .
 EOF
     echo "$output"
     [[ $status -ne 0 ]]
-    if [[ $CH_TEST_BUILDER = docker ]]; then
+    if [[ $CLEARLY_TEST_BUILDER = docker ]]; then
         # This error message seems wrong. I was expecting something about
         # no context, so COPY not allowed.
         [[    $output = *'file does not exist'* \
@@ -1066,7 +1066,7 @@ COPY fixtures/symlink-to-tmp .
 EOF
     echo "$output"
     [[ $status -ne 0 ]]
-    if [[ $CH_TEST_BUILDER = docker ]]; then
+    if [[ $CLEARLY_TEST_BUILDER = docker ]]; then
         [[    $output = *'file does not exist'* \
            || $output = *'not found'* ]]
     else
@@ -1084,7 +1084,7 @@ EOF
     # OK so with Docker now that BuildKit is the default (v24.0.5), this build
     # *succeeds* and /etc/fstab is overwritten with the contents of
     # common.bash (and Build.missing is ignored AFAICT). 👎
-    if [[ $CH_TEST_BUILDER != docker ]]; then
+    if [[ $CLEARLY_TEST_BUILDER != docker ]]; then
         run build_ -t foo -f - . <<'EOF'
 FROM alpine:3.17
 COPY Build.missing common.bash /etc/fstab
@@ -1116,7 +1116,7 @@ COPY .
 EOF
     echo "$output"
     [[ $status -ne 0 ]]
-    if [[ $CH_TEST_BUILDER = image ]]; then
+    if [[ $CLEARLY_TEST_BUILDER = image ]]; then
         [[ $output = *"error: can"?"t parse: -:2,7"* ]]
     else
         [[ $output = *'COPY requires at least two arguments'* ]]
@@ -1127,7 +1127,7 @@ COPY ["."]
 EOF
     echo "$output"
     [[ $status -ne 0 ]]
-    if [[ $CH_TEST_BUILDER = image ]]; then
+    if [[ $CLEARLY_TEST_BUILDER = image ]]; then
         [[ $output = *'error: source or destination missing'* ]]
     else
         [[ $output = *'COPY requires at least two arguments'* ]]
@@ -1168,7 +1168,7 @@ EOF
 
 @test 'Dockerfile: COPY --from errors' {
     scope standard
-    [[ $CH_TEST_BUILDER = buildah* ]] && skip 'Buildah untested'
+    [[ $CLEARLY_TEST_BUILDER = buildah* ]] && skip 'Buildah untested'
 
     # Note: Docker treats several types of erroneous --from names as another
     # image and tries to pull it. To avoid clashes with real, pullable images,
@@ -1217,7 +1217,7 @@ EOF
        || $output = *'pull access denied'*'repository does not exist'* ]]
 
     # index exists, but is later
-    if [[ $CH_TEST_BUILDER != docker ]]; then  # BuildKit can work out of order
+    if [[ $CLEARLY_TEST_BUILDER != docker ]]; then  # BuildKit can work out of order
         run build_ -t tmpimg -f - . <<'EOF'
 FROM alpine:3.17
 COPY --from=1 /etc/fstab /
@@ -1229,7 +1229,7 @@ EOF
     fi
 
     # name is later
-    if [[ $CH_TEST_BUILDER != docker ]]; then  # BuildKit can work out of order
+    if [[ $CLEARLY_TEST_BUILDER != docker ]]; then  # BuildKit can work out of order
         run build_ -t tmpimg -f - . <<'EOF'
 FROM alpine:3.17
 COPY --from=uhigtsbjmfps /etc/fstab /
@@ -1260,7 +1260,7 @@ EOF
     # it’s from a previous stage, it should work. See issue #1381.
 
     scope standard
-    [[ $CH_TEST_BUILDER == image ]] || skip 'image only'
+    [[ $CLEARLY_TEST_BUILDER == image ]] || skip 'image only'
 
     run clearly image build --no-cache -t foo - <<'EOF'
 FROM alpine:3.16
@@ -1274,7 +1274,7 @@ EOF
 
 @test 'Dockerfile: FROM scratch' {
     scope standard
-    [[ $CH_TEST_BUILDER = image ]] || skip 'image only'
+    [[ $CLEARLY_TEST_BUILDER = image ]] || skip 'image only'
 
     # remove if it exists
     clearly image delete scratch || true
@@ -1290,7 +1290,7 @@ EOF
 
 @test 'Dockerfile: bad image reference' {
     scope standard
-    [[ $CH_TEST_BUILDER == image ]] || skip 'image only'
+    [[ $CLEARLY_TEST_BUILDER == image ]] || skip 'image only'
 
     run clearly image build -t tmpimg - <<'EOF'
 FROM /alpine:3.17
@@ -1303,7 +1303,7 @@ EOF
 # Test for Lark issue #237: lark.exceptions.UnexpectedEOF if file doesn't end in newline.
 @test 'Dockerfile: Lark parsing without newline EOF' {
     scope standard
-    [[ $CH_TEST_BUILDER == image ]] || skip 'image only'
+    [[ $CLEARLY_TEST_BUILDER == image ]] || skip 'image only'
 
     cp ../examples/Dockerfile.mpich Dockerfile.tmp
 

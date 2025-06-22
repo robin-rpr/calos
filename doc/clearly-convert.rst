@@ -50,7 +50,7 @@ producing the final format actually needed.
     Error if :code:`OUT` already exists, rather than replacing it.
 
   :code:`--no-xattrs`
-    Ignore xattrs and ACLs when converting. Overrides :code:`$CH_XATTRS`.
+    Ignore xattrs and ACLs when converting. Overrides :code:`$CLEARLY_XATTRS`.
 
   :code:`-o`, :code:`--out-fmt FMT`
     Output image format is :code:`FMT`; inferred if omitted.

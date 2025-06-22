@@ -17,7 +17,7 @@ import subprocess
 import sys
 import time
 
-CH_BASE = os.path.abspath(os.path.dirname(__file__) + "/../..")
+CLEARLY_BASE = os.path.abspath(os.path.dirname(__file__) + "/../..")
 PACKAGES = ["charliecloud",
             "charliecloud-builder",
             "charliecloud-debuginfo",
@@ -35,7 +35,7 @@ def main():
    ap.add_argument("--rpmbuild", metavar="DIR",
                    default="%s/rpmbuild" % os.getenv("HOME"))
    args = ap.parse_args()
-   print("# Clearstack root:  %s" % CH_BASE)
+   print("# Clearstack root:  %s" % CLEARLY_BASE)
    print("architecture:       %s" % ARCH)
    print("""\
 version:            %(version)s
@@ -80,7 +80,7 @@ rpmbuild root:      %(rpmbuild)s
          if (x.errno != errno.EEXIST): raise
 
    # Determine distro.
-   rpms_dist = cmd_out(CH_BASE + "/cmd/run", args.image,
+   rpms_dist = cmd_out(CLEARLY_BASE + "/cmd/run", args.image,
                       '--', 'rpmbuild', '--eval', '%{?dist}')
    rpms_dist = rpms_dist.split('.')[-1]
 
@@ -102,13 +102,13 @@ rpmbuild root:      %(rpmbuild)s
    # which is not true. The warning further claims that “*caching* wheels has
    # been disabled” (emphasis added), but in fact wheels are disabled
    # entirely, so autogen.sh fails with “embedded Lark is broken”. Thanks pip!
-   cmd(CH_BASE + "/cmd/run", "-b", "%s:/mnt/0" % git_tmp, "-b", "%s:/root" % rpm_pips,
+   cmd(CLEARLY_BASE + "/cmd/run", "-b", "%s:/mnt/0" % git_tmp, "-b", "%s:/root" % rpm_pips,
                "-c", "/mnt/0", args.image, "--", "./autogen.sh")
-   cmd(CH_BASE + "/cmd/run", "-b", "%s:/mnt/0" % git_tmp, "-c", "/mnt/0", args.image,
+   cmd(CLEARLY_BASE + "/cmd/run", "-b", "%s:/mnt/0" % git_tmp, "-c", "/mnt/0", args.image,
        "--", "./configure")
-   cmd(CH_BASE + "/cmd/run", "-b", "%s:/mnt/0" % git_tmp, "-c", "/mnt/0", args.image,
+   cmd(CLEARLY_BASE + "/cmd/run", "-b", "%s:/mnt/0" % git_tmp, "-c", "/mnt/0", args.image,
        "--", "make")
-   cmd(CH_BASE + "/cmd/run", "-b", "%s:/mnt/0" % git_tmp, "-c", "/mnt/0", args.image,
+   cmd(CLEARLY_BASE + "/cmd/run", "-b", "%s:/mnt/0" % git_tmp, "-c", "/mnt/0", args.image,
        "--", "make", "dist")
    ch_version = open(git_tmp + "/lib/_version.txt").read()[:-1]
    ch_tarball = "charliecloud-%s.tar.gz" % ch_version
@@ -119,9 +119,9 @@ rpmbuild root:      %(rpmbuild)s
 
    # Copy lint configuration and patchs.
    # FIXME: Put version into destination sometime?
-   shutil.copy("%s/packaging/fedora/charliecloud.rpmlintrc" % CH_BASE,
+   shutil.copy("%s/packaging/fedora/charliecloud.rpmlintrc" % CLEARLY_BASE,
                "%s/charliecloud.rpmlintrc" % rpm_specs)
-   shutil.copy("%s/packaging/fedora/el7-pkgdir.patch" % CH_BASE,
+   shutil.copy("%s/packaging/fedora/el7-pkgdir.patch" % CLEARLY_BASE,
                "%s/el7-pkgdir.patch" % rpm_sources)
 
    # Remove temporary Git directory.
@@ -136,7 +136,7 @@ rpmbuild root:      %(rpmbuild)s
       spec = "charliecloud.spec"
    else:
       spec = "charliecloud-%s.spec" % rpm_vr
-   with open("%s/packaging/fedora/charliecloud.spec" % CH_BASE, "rt") as in_, \
+   with open("%s/packaging/fedora/charliecloud.spec" % CLEARLY_BASE, "rt") as in_, \
         open("%s/%s" % (rpm_specs, spec), "wt") as out:
       print("# writing %s" % out.name)
       t = in_.read()
@@ -182,7 +182,7 @@ rpmbuild root:      %(rpmbuild)s
    rpm_sources    = "/usr/local/src/SOURCES"
    rpmbuild_args += ["--define", "_topdir /usr/local/src"]
    rpmlint_args  += ["--file", "%s/charliecloud.rpmlintrc" % rpm_specs]
-   container     += [CH_BASE + "/cmd/run", "-w",
+   container     += [CLEARLY_BASE + "/cmd/run", "-w",
                      "-b", "%s:/usr/local/src" % args.rpmbuild,
                      args.image, "--"]
 

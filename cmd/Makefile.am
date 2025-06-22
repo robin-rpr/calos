@@ -16,7 +16,7 @@ endif
 
 # additional build flags for run
 run_CFLAGS = $(PTHREAD_CFLAGS)
-run_LDADD = $(CH_RUN_LIBS)
+run_LDADD = $(CLEARLY_RUN_LIBS)
 
 
 ## Shell scripts - distributed as-is

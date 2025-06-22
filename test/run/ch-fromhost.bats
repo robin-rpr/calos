@@ -1,7 +1,7 @@
 load ../common
 
 setup () {
-    [[ $CH_TEST_PACK_FMT = *-unpack ]] || skip 'need writeable image'
+    [[ $CLEARLY_TEST_PACK_FMT = *-unpack ]] || skip 'need writeable image'
     [[ $ch_libc = glibc ]] || skip 'glibc only'
     fi_provider_path=$FI_PROVIDER_PATH
 }

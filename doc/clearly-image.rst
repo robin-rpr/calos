@@ -96,7 +96,7 @@ Common options placed before or after the sub-command:
 
   :code:`--debug`
     Add a stack trace to fatal error hints. This can also be done by setting
-    the environment variable :code:`CH_IMAGE_DEBUG`.
+    the environment variable :code:`CLEARLY_IMAGE_DEBUG`.
 
   :code:`--no-cache`
     Disable build cache. Default if a sufficiently new Git is not available.
@@ -112,7 +112,7 @@ Common options placed before or after the sub-command:
   :code:`--no-xattrs`
     Enforce default handling of xattrs, i.e. do not save them in the build cache
     or restore them on rebuild. This is the default, but the option is provided
-    to override the :code:`$CH_XATTRS` environment variable.
+    to override the :code:`$CLEARLY_XATTRS` environment variable.
 
   :code:`--password-many`
     Re-prompt the user every time a registry password is needed.
@@ -200,13 +200,13 @@ GitLab calls it a "personal access token (PAT)", Quay calls it an "application
 token", and nVidia NGC calls it an "API token".
 
 For non-interactive authentication, you can use environment variables
-:code:`CH_IMAGE_USERNAME` and :code:`CH_IMAGE_PASSWORD`. Only do this if you
+:code:`CLEARLY_IMAGE_USERNAME` and :code:`CLEARLY_IMAGE_PASSWORD`. Only do this if you
 fully understand the implications for your specific use case, because it is
 difficult to securely store secrets in environment variables.
 
 By default for most subcommands, all registry access is anonymous. To instead
 use authenticated access for everything, specify :code:`--auth` or set the
-environment variable :code:`$CH_IMAGE_AUTH=yes`. The exception is
+environment variable :code:`$CLEARLY_IMAGE_AUTH=yes`. The exception is
 :code:`push`, which always runs in authenticated mode. Even for pulling public
 images, it can be useful to authenticate for registries that have per-user
 rate limits, such as `Docker Hub
@@ -272,7 +272,7 @@ In descending order of priority, this directory is located at:
   :code:`-s`, :code:`--storage DIR`
     Command line option.
 
-  :code:`$CH_IMAGE_STORAGE`
+  :code:`$CLEARLY_IMAGE_STORAGE`
     Environment variable. The path must be absolute, because the variable is
     likely set in a very different context than when it’s used, which seems
     error-prone on what a relative path is relative to.
@@ -339,8 +339,8 @@ directory.
 `Extended attributes <https://man7.org/linux/man-pages/man7/xattr.7.html>`_
 (xattrs) are ignored by the build cache by default. Cache support for xattrs
 belonging to unprivileged xattr namespaces (e.g. :code:`user`) can be enabled by
-specifying the :code:`--xattrs` option or by setting the :code:`CH_XATTRS`
-environment variable. If :code:`CH_XATTRS` is set, you override it with
+specifying the :code:`--xattrs` option or by setting the :code:`CLEARLY_XATTRS`
+environment variable. If :code:`CLEARLY_XATTRS` is set, you override it with
 :code:`--no-xattrs`. **Note that extended attributes in privileged xattr
 namespaces (e.g. :code:`trusted`) cannot be read by :code:`ch-image` and will
 always be lost without warning.**
@@ -352,7 +352,7 @@ all other operations re-execute and re-cache their results. The purpose of
 image.
 
 Enabled mode is selected with :code:`--cache` or setting
-:code:`$CH_IMAGE_CACHE` to :code:`enabled`, disabled mode with
+:code:`$CLEARLY_IMAGE_CACHE` to :code:`enabled`, disabled mode with
 :code:`--no-cache` or :code:`disabled`, and rebuild mode with
 :code:`--rebuild` or :code:`rebuild`. The default mode is *enabled* if an
 appropriate Git is installed, otherwise *disabled*.
@@ -505,7 +505,7 @@ their content is not actually identical (e.g., :code:`touch(1)` shenanigans
 can corrupt an image).
 
 Option :code:`--cache-large` sets the threshold in MiB; if not set,
-environment variable :code:`CH_IMAGE_CACHE_LARGE` is used; if that is not set
+environment variable :code:`CLEARLY_IMAGE_CACHE_LARGE` is used; if that is not set
 either, the default value :code:`0` indicates that no files are considered
 large.
 
@@ -2330,7 +2330,7 @@ overwrite :code:`IMAGE_REF` if it exists.
 Environment variables
 =====================
 
-:code:`CH_IMAGE_USERNAME`, :code:`CH_IMAGE_PASSWORD`
+:code:`CLEARLY_IMAGE_USERNAME`, :code:`CLEARLY_IMAGE_PASSWORD`
   Username and password for registry authentication. **See important caveats
   in section "Authentication" above.**
 

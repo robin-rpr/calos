@@ -81,7 +81,7 @@ if ENABLE_TEST
 nobase_test_DATA = $(testfiles)
 nobase_test_SCRIPTS = $(testfiles_exec)
 nobase_nodist_test_SCRIPTS = $(sobuilts)
-if ENABLE_CH_IMAGE  # this means we have Python
+if ENABLE_IMAGE  # this means we have Python
 nobase_test_DATA += force-auto.bats
 force-auto.bats: force-auto
 	./$< > $@

@@ -9,7 +9,7 @@ variables:
   FF_SCRIPT_SECTIONS: true                        # tidier logs?
   FF_TIMESTAMPS: true                             # timestamps on log lines
   FF_USE_FASTZIP: true                            # faster archive creation
-  CH_PIPELINE_MODE:
+  CLEARLY_PIPELINE_MODE:
     description: "Pipeline mode to use."
     value: ci
     options:
@@ -17,7 +17,7 @@ variables:
       - daily
 
 workflow:
-  name: "$CI_PIPELINE_SOURCE/$CI_COMMIT_BRANCH$CI_MERGE_REQUEST_IID/$CH_PIPELINE_MODE $CI_COMMIT_SHORT_SHA $CI_COMMIT_TITLE"
+  name: "$CI_PIPELINE_SOURCE/$CI_COMMIT_BRANCH$CI_MERGE_REQUEST_IID/$CLEARLY_PIPELINE_MODE $CI_COMMIT_SHORT_SHA $CI_COMMIT_TITLE"
   rules:
     # Exclude branch pipelines for MRs.
     - if: $CI_PIPELINE_SOURCE == "push" && $CI_OPEN_MERGE_REQUESTS
@@ -28,7 +28,7 @@ workflow:
 # one of these anchors.
 .when-ci: &when-ci
   rules:
-    - if: $CH_PIPELINE_MODE == "ci"
+    - if: $CLEARLY_PIPELINE_MODE == "ci"
       when: always
 .when-ci-main: &when-ci-main
   # This anchor is to trigger downstream pipelines that use the main branch.
@@ -38,13 +38,13 @@ workflow:
   # than wasting resources.
   rules:
     - if:    $CI_PIPELINE_SOURCE == "web"
-          || (    $CH_PIPELINE_MODE == "ci"
+          || (    $CLEARLY_PIPELINE_MODE == "ci"
                && (    $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
                     || $CI_MERGE_REQUEST_LABELS =~ /ci-downstream/ ) )
       when: always
 .when-daily: &when-daily
   rules:
-    - if: $CH_PIPELINE_MODE == "daily"
+    - if: $CLEARLY_PIPELINE_MODE == "daily"
       when: always
 .when-always: &when-always
   rules:
@@ -97,12 +97,12 @@ review-nag:
   <<: *when-daily
   tags: [saas-linux-small-amd64]
   script: |
-    test/gitlab.com/reviews-email --to   $CH_DLQ_TO \
-                                  --from $CH_DLQ_FROM \
-                                  --host $CH_DLQ_HOST \
-                                  --port $CH_DLQ_PORT \
-                                  --user $CH_DLQ_USER \
-                                  --pass $CH_DLQ_PASS
+    test/gitlab.com/reviews-email --to   $CLEARLY_DLQ_TO \
+                                  --from $CLEARLY_DLQ_FROM \
+                                  --host $CLEARLY_DLQ_HOST \
+                                  --port $CLEARLY_DLQ_PORT \
+                                  --user $CLEARLY_DLQ_USER \
+                                  --pass $CLEARLY_DLQ_PASS
 
 loc:
   stage: ch
@@ -118,9 +118,9 @@ test:
   parallel:
     matrix:
       # Core tests with everything turned on.
-      - CH_TEST_BUILDER: [image]
-        CH_IMAGE_CACHE: [enabled]
-        CH_TEST_PACK_FMT: [squash-mount, squash-unpack, tar-unpack]
+      - CLEARLY_TEST_BUILDER: [image]
+        CLEARLY_IMAGE_CACHE: [enabled]
+        CLEARLY_TEST_PACK_FMT: [squash-mount, squash-unpack, tar-unpack]
         ci_arch: [amd64]
         ci_distro: [debian]
         ci_sudo: [sudo_yes]

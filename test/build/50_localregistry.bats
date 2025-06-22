@@ -8,7 +8,7 @@ tag='clearly image push'
 
 setup () {
     scope standard
-    [[ $CH_TEST_BUILDER = image ]] || skip 'image only'
+    [[ $CLEARLY_TEST_BUILDER = image ]] || skip 'image only'
     localregistry_init
 }
 
@@ -23,7 +23,7 @@ EOF
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = *'pushing image:   localhost:5000/alpine:3.17'* ]]
-    [[ $output = *"image path:      ${CH_IMAGE_STORAGE}/img/localhost+5000%alpine+3.17"* ]]
+    [[ $output = *"image path:      ${CLEARLY_IMAGE_STORAGE}/img/localhost+5000%alpine+3.17"* ]]
 
     clearly image delete localhost:5000/alpine:3.17
 }
@@ -44,7 +44,7 @@ EOF
     [[ $status -eq 0 ]]
     [[ $output = *'pushing image:   tmpimg'* ]]
     [[ $output = *'destination:     localhost:5000/tmpimg'* ]]
-    [[ $output = *"image path:      ${CH_IMAGE_STORAGE}/img/tmpimg"* ]]
+    [[ $output = *"image path:      ${CLEARLY_IMAGE_STORAGE}/img/tmpimg"* ]]
 }
 
 @test "${tag}: with destination reference" {
@@ -53,7 +53,7 @@ EOF
     [[ $status -eq 0 ]]
     [[ $output = *'pushing image:   alpine:3.17'* ]]
     [[ $output = *'destination:     localhost:5000/alpine:3.17'* ]]
-    [[ $output = *"image path:      ${CH_IMAGE_STORAGE}/img/alpine+3.17"* ]]
+    [[ $output = *"image path:      ${CLEARLY_IMAGE_STORAGE}/img/alpine+3.17"* ]]
     # FIXME: Can’t re-use layer from previous test because it’s a copy.
     #re='layer 1/1: [0-9a-f]{7}: already present'
     #[[ $output =~ $re ]]

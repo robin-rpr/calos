@@ -220,17 +220,17 @@ while [ $# -gt 0 ]; do
                 ;;
             --cray-cxi)
                 warn_fi_var
-                if [ -z "$CH_FROMHOST_OFI_CXI" ]; then
-                    FATAL "CH_FROMHOST_OFI_CXI is not set"
+                if [ -z "$CLEARLY_FROMHOST_OFI_CXI" ]; then
+                    FATAL "CLEARLY_FROMHOST_OFI_CXI is not set"
                 fi
-                enqueue_file "$CH_FROMHOST_OFI_CXI"
+                enqueue_file "$CLEARLY_FROMHOST_OFI_CXI"
                 ;;
             --cray-gni)
                 warn_fi_var
-                if [ -z "$CH_FROMHOST_OFI_GNI" ]; then
-                    FATAL "CH_FROMHOST_OFI_GNI is not set"
+                if [ -z "$CLEARLY_FROMHOST_OFI_GNI" ]; then
+                    FATAL "CLEARLY_FROMHOST_OFI_GNI is not set"
                 fi
-                enqueue_file "$CH_FROMHOST_OFI_GNI"
+                enqueue_file "$CLEARLY_FROMHOST_OFI_GNI"
                 ;;
             -d|--dest)
                 ensure_nonempty --dest "$1"

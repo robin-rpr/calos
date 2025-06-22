@@ -142,7 +142,7 @@ Image format is specified with:
     * :code:`squash-unpack` or 🎃: SquashFS, and the images are unpacked
       before running.
 
-    Default: :code:`$CH_TEST_PACK_FMT` if set. Otherwise, if
+    Default: :code:`$CLEARLY_TEST_PACK_FMT` if set. Otherwise, if
     :code:`mksquashfs(1)` is available and :code:`ch-run` was built with
     :code:`libsquashfuse` support, then :code:`squash-mount`, else
     :code:`tar-unpack`.
@@ -150,7 +150,7 @@ Image format is specified with:
 Additional arguments:
 
   :code:`-b`, :code:`--builder BUILDER`
-    Image builder to use. Default: :code:`$CH_TEST_BUILDER` if set, otherwise
+    Image builder to use. Default: :code:`$CLEARLY_TEST_BUILDER` if set, otherwise
     :code:`ch-image`.
 
   :code:`--dry-run`
@@ -162,18 +162,18 @@ Additional arguments:
   :code:`--img-dir DIR`
     Set unpacked images directory to :code:`DIR`. In a multi-node allocation,
     this directory may not be shared between nodes. Default:
-    :code:`$CH_TEST_IMGDIR` if set; otherwise :code:`/var/tmp/${USER}.img`.
+    :code:`$CLEARLY_TEST_IMGDIR` if set; otherwise :code:`/var/tmp/${USER}.img`.
 
   :code:`--lustre DIR`
     Use :code:`DIR` for run-phase Lustre tests. Default:
-    :code:`CH_TEST_LUSTREDIR` if set; otherwise skip them.
+    :code:`CLEARLY_TEST_LUSTREDIR` if set; otherwise skip them.
 
     The tests will create, populate, and delete a new subdirectory under
     :code:`DIR`, leaving everything else in :code:`DIR` untouched.
 
   :code:`--pack-dir DIR`
     Set packed images directory to :code:`DIR`. Default:
-    :code:`$CH_TEST_TARDIR` if set; otherwise :code:`/var/tmp/${USER}.pack`.
+    :code:`$CLEARLY_TEST_TARDIR` if set; otherwise :code:`/var/tmp/${USER}.pack`.
 
   :code:`--pedantic (yes|no)`
     Some tests require configurations that are very specific (e.g., being a
@@ -191,7 +191,7 @@ Additional arguments:
     don’t need to test your :code:`tmpfs`\ es, but out-of-tree filesystems very
     likely need this.
 
-    Implies :code:`--sudo`. Default: :code:`CH_TEST_PERMDIRS` if set;
+    Implies :code:`--sudo`. Default: :code:`CLEARLY_TEST_PERMDIRS` if set;
     otherwise skip the filesystem permissions tests.
 
   :code:`--sudo`
@@ -271,10 +271,10 @@ Output has been omitted.
    (mybox)$ scp -r /var/tmp/pack hpc:/scratch/$USER/pack
    (mybox)$ ssh hpc
    (hpc)$ salloc -N2
-   (cn001)$ export CH_TEST_TARDIR=/scratch/$USER/pack
-   (cn001)$ export CH_TEST_IMGDIR=/local/tmp
-   (cn001)$ export CH_TEST_PERMDIRS="/scratch/$USER/perms /home/$USER/perms"
-   (cn001)$ export CH_TEST_SCOPE=full
+   (cn001)$ export CLEARLY_TEST_TARDIR=/scratch/$USER/pack
+   (cn001)$ export CLEARLY_TEST_IMGDIR=/local/tmp
+   (cn001)$ export CLEARLY_TEST_PERMDIRS="/scratch/$USER/perms /home/$USER/perms"
+   (cn001)$ export CLEARLY_TEST_SCOPE=full
    (cn001)$ ch-test run
    (cn001)$ ch-test examples
 

@@ -139,7 +139,7 @@ directories like :code:`/tmp` or :code:`/var/tmp` as the storage directory.
 
 Let Charliecloud create the storage directory. For example, if you want to use
 :code:`/big/containers/$USER/charlie` for the storage directory (e.g., by
-setting :code:`CH_IMAGE_STORAGE`), ensure :code:`/big/containers/$USER` exists
+setting :code:`CLEARLY_IMAGE_STORAGE`), ensure :code:`/big/containers/$USER` exists
 but do not create the final directory :code:`charlie`.
 
 "Transport endpoint is not connected"
@@ -1356,7 +1356,7 @@ How do I handle extended attributes in Charliecloud?
 As noted in section :ref:`ch-image_build-cache`, Charliecloud doesn’t support
 extended attributes (xattrs) by default. Support for xattrs  can be enabled for
 :code:`ch-image` and :code:`ch-convert` by specifying :code:`--xattrs` or
-setting :code:`$CH_XATTRS`. This will make :code:`ch-image` save and restore
+setting :code:`$CLEARLY_XATTRS`. This will make :code:`ch-image` save and restore
 xattrs via the build cache, and will make :code:`ch-convert` preserve xattrs on
 conversion. Important caveats include:
 

@@ -1,7 +1,7 @@
 load ../common
 
 setup () {
-    [[ $CH_TEST_PACK_FMT = *-unpack ]] || skip 'need writeable image'
+    [[ $CLEARLY_TEST_PACK_FMT = *-unpack ]] || skip 'need writeable image'
     [[ $CHTEST_GITWD ]] || skip "not in Git working directory"
     if     ! command -v sphinx-build > /dev/null 2>&1 \
         && ! command -v sphinx-build-3.6 > /dev/null 2>&1; then

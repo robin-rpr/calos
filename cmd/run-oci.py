@@ -36,10 +36,10 @@ def main():
    clearly.VERBOSE("--- starting ------------------------------------")
    clearly.VERBOSE("args: %s" % sys.argv)
    clearly.VERBOSE("environment: %s" % { k: v for (k, v) in os.environ.items()
-                                  if k.startswith("CH_RUN_OCI_") })
+                                  if k.startswith("CLEARLY_RUN_OCI_") })
    clearly.VERBOSE("CLI: %s" % args)
-   if (args.op.__name__ == "op_" + os.getenv("CH_RUN_OCI_HANG", default="")):
-      clearly.VERBOSE("hanging before %s per CH_RUN_OCI_HANG" % args.op.__name__)
+   if (args.op.__name__ == "op_" + os.getenv("CLEARLY_RUN_OCI_HANG", default="")):
+      clearly.VERBOSE("hanging before %s per CLEARLY_RUN_OCI_HANG" % args.op.__name__)
       sleep_forever()
       assert False, "unreachable code reached"
    state = state_load()

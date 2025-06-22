@@ -17,9 +17,9 @@ vset () {
         printf '[35m%s (default)[0m\n' "${!name}"
     fi
 }
-vset  CH_TEST_BUILDER   image
-vset  CH_IMAGE_CACHE    enabled
-vset  CH_TEST_PACK_FMT  squash-mount
+vset  CLEARLY_TEST_BUILDER   image
+vset  CLEARLY_IMAGE_CACHE    enabled
+vset  CLEARLY_TEST_PACK_FMT  squash-mount
 case $(uname -m) in
     x86_64)
         vset  ci_arch   amd64

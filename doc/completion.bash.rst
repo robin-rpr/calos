@@ -91,7 +91,7 @@ Debugging
 =========
 
 Tab completion can write debugging logs to :code:`/tmp/ch-completion.log`.
-Enable this by setting the environment variable :code:`CH_COMPLETION_DEBUG`.
+Enable this by setting the environment variable :code:`CLEARLY_COMPLETION_DEBUG`.
 (This is primarily intended for developers.)
 
 

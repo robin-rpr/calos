@@ -27,7 +27,7 @@ def main():
    ap = clearly.ArgumentParser(
       description="Build and manage images; completely unprivileged.",
       epilog="""Storage directory is used for caching and temporary images.
-                Location: first defined of --storage, $CH_IMAGE_STORAGE, and
+                Location: first defined of --storage, $CLEARLY_IMAGE_STORAGE, and
                 %s.""" % filesystem.Storage.root_default(),
       sub_title="subcommands",
       sub_metavar="CMD")
@@ -106,7 +106,7 @@ def main():
             { "metavar": "SIZE",
               "type": lambda s: clearly.positive(s) * 2**20,  # internal unit: bytes
               "default": clearly.positive(
-                 os.environ.get("CH_IMAGE_CACHE_LARGE", 0)) * 2**20,
+                 os.environ.get("CLEARLY_IMAGE_CACHE_LARGE", 0)) * 2**20,
               "help": "large file threshold in MiB" }],
            [["--debug"],
             { "action": "store_true",
@@ -119,7 +119,7 @@ def main():
               "help": "allow concurrent storage directory access (risky!)" }],
            [["--no-xattrs"],
             { "action": "store_true",
-              "help": "disable xattrs and ACLs (overrides $CH_XATTRS)" }],
+              "help": "disable xattrs and ACLs (overrides $CLEARLY_XATTRS)" }],
            [["--password-many"],
             { "action": "store_true",
               "help": "re-prompt each time a registry password is needed" }],

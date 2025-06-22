@@ -2,8 +2,8 @@ load ../common
 tag='clearly image --force'
 
 setup () {
-    [[ $CH_TEST_BUILDER = image ]] || skip 'image only'
-    export CH_IMAGE_CACHE=disabled
+    [[ $CLEARLY_TEST_BUILDER = image ]] || skip 'image only'
+    export CLEARLY_IMAGE_CACHE=disabled
 }
 
 @test "${tag}: no matching distro" {

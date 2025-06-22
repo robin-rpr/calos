@@ -15,10 +15,10 @@ else
 fi
 
 # Set environment variable for image --debug flag
-export CH_IMAGE_DEBUG=true
+export CLEARLY_IMAGE_DEBUG=true
 
 # Set environment variable for convert and image --xattrs flag
-export CH_XATTRS=true
+export CLEARLY_XATTRS=true
 
 ### Functions we need right away
 
@@ -68,15 +68,15 @@ Additional options:
   --dry-run              print summary of what would be tested and exit
   -f,--file FILE[:TEST]  run tests in FILE only, or even just TEST
   -h,--help              print this help and exit
-  --img-dir DIR          unpacked images directory; same as \$CH_TEST_IMGDIR
+  --img-dir DIR          unpacked images directory; same as \$CLEARLY_TEST_IMGDIR
   --fi-path PATH         path to libfabric provider injection target(s)
-  --pack-dir DIR         packed image directory; same as \$CH_TEST_TARDIR
-  --pack-fmt FMT         packed image format; same as \$CH_TEST_PACK_FMT
+  --pack-dir DIR         packed image directory; same as \$CLEARLY_TEST_TARDIR
+  --pack-fmt FMT         packed image format; same as \$CLEARLY_TEST_PACK_FMT
   --pedandic {yes,no}    set pedantic mode rather than guessing
-  --perm-dir DIR         permissions fixture dir, can repeat; \$CH_TEST_PERMDIRS
+  --perm-dir DIR         permissions fixture dir, can repeat; \$CLEARLY_TEST_PERMDIRS
   --srun-mpi MPI         srun --mpi argument; see srun --mpi=list
   --sudo                 enable tests that need sudo
-  --lustre DIR           run-phase Lustre test directory; \$CH_TEST_LUSTREDIR
+  --lustre DIR           run-phase Lustre test directory; \$CLEARLY_TEST_LUSTREDIR
   --version              print version and exit
 
 See the man page for important details.
@@ -93,7 +93,7 @@ bats_vmin=1.2.0  # FIXME: get from configure somehow?
 
 builder_check () {
     printf 'checking builder ...\n'
-    case $CH_TEST_BUILDER in
+    case $CLEARLY_TEST_BUILDER in
     image)
         if ! "${ch_bin}/image" --dependencies; then
             fatal 'builder: image: missing dependencies'
@@ -125,7 +125,7 @@ builder_check () {
         bv=
         ;;
     *)
-        fatal "builder: $CH_TEST_BUILDER: not supported"
+        fatal "builder: $CLEARLY_TEST_BUILDER: not supported"
         ;;
     esac
     printf 'found: %s %s\n\n' "$bl" "$bv"
@@ -135,32 +135,32 @@ builder_check () {
 builder_set () {
     width=$1
     if [[ -n $builder ]]; then
-        CH_TEST_BUILDER=$builder
+        CLEARLY_TEST_BUILDER=$builder
         method='command line'
-    elif [[ -n $CH_TEST_BUILDER ]]; then
+    elif [[ -n $CLEARLY_TEST_BUILDER ]]; then
         method='environment'
     else
-        CH_TEST_BUILDER=image
+        CLEARLY_TEST_BUILDER=image
         method='default'
     fi
-    printf "%-*s %s (%s)\n" "$width" 'builder:' "$CH_TEST_BUILDER" "$method"
-    if [[ $CH_TEST_BUILDER == image ]]; then
-        vset CH_IMAGE_STORAGE '' "$CH_IMAGE_STORAGE" "/var/tmp/${USER}.ch" \
+    printf "%-*s %s (%s)\n" "$width" 'builder:' "$CLEARLY_TEST_BUILDER" "$method"
+    if [[ $CLEARLY_TEST_BUILDER == image ]]; then
+        vset CLEARLY_IMAGE_STORAGE '' "$CLEARLY_IMAGE_STORAGE" "/var/tmp/${USER}.ch" \
                               "$width" 'image storage'
     fi
-    export CH_TEST_BUILDER
+    export CLEARLY_TEST_BUILDER
 }
 
-# Create CH_TEST_IMGDIR, avoiding #347.
+# Create CLEARLY_TEST_IMGDIR, avoiding #347.
 dir_img_mk () {
     dir_img_rm
-    printf "creating %s\n\n" "$CH_TEST_IMGDIR"
-    $ch_mpirun_node mkdir "$CH_TEST_IMGDIR"
-    $ch_mpirun_node touch "$CH_TEST_IMGDIR/WEIRD_AL_YANKOVIC"
+    printf "creating %s\n\n" "$CLEARLY_TEST_IMGDIR"
+    $ch_mpirun_node mkdir "$CLEARLY_TEST_IMGDIR"
+    $ch_mpirun_node touch "$CLEARLY_TEST_IMGDIR/WEIRD_AL_YANKOVIC"
 }
 
 dir_img_rm () {
-    dir_rm_safe "$CH_TEST_IMGDIR"
+    dir_rm_safe "$CLEARLY_TEST_IMGDIR"
 }
 
 # Remove a filesystem permissions fixture directory. Ensure that the target
@@ -187,7 +187,7 @@ dir_rm_safe () {
 # The run phase requires artifacts from a successful build phase. Thus, we
 # check sanity based on the minimal set of artifacts (no builder).
 dir_tar_check () {
-    printf 'checking %s: ' "$CH_TEST_TARDIR"
+    printf 'checking %s: ' "$CLEARLY_TEST_TARDIR"
     dir_tar_check_file chtest{.tar.gz,.sqfs}
     printf 'ok\n\n'
 }
@@ -195,10 +195,10 @@ dir_tar_check () {
 dir_tar_check_file () {
     local missing
     for f in "$@"; do
-        if [[ -f ${CH_TEST_TARDIR}/${f} ]]; then
+        if [[ -f ${CLEARLY_TEST_TARDIR}/${f} ]]; then
             return 0
         else
-            missing+=("${CH_TEST_TARDIR}/${f}")
+            missing+=("${CLEARLY_TEST_TARDIR}/${f}")
         fi
     done
     fatal "phase $phase: missing packed images: ${missing[*]}"
@@ -206,13 +206,13 @@ dir_tar_check_file () {
 
 dir_tar_mk () {
     dir_tar_rm
-    printf "creating %s\n\n" "$CH_TEST_TARDIR"
-    $ch_mpirun_node mkdir "$CH_TEST_TARDIR"
-    $ch_mpirun_node touch "${CH_TEST_TARDIR}/WEIRD_AL_YANKOVIC"
+    printf "creating %s\n\n" "$CLEARLY_TEST_TARDIR"
+    $ch_mpirun_node mkdir "$CLEARLY_TEST_TARDIR"
+    $ch_mpirun_node touch "${CLEARLY_TEST_TARDIR}/WEIRD_AL_YANKOVIC"
 }
 
 dir_tar_rm () {
-    dir_rm_safe "$CH_TEST_TARDIR"
+    dir_rm_safe "$CLEARLY_TEST_TARDIR"
 }
 
 dir_tmp_rm () {
@@ -241,49 +241,49 @@ pack_fmt_set () {
         have_libsquashfuse=
     fi
     if [[ -n $pack_fmt ]]; then
-        CH_TEST_PACK_FMT=$pack_fmt
+        CLEARLY_TEST_PACK_FMT=$pack_fmt
         method='command line'
-    elif [[ -n $CH_TEST_PACK_FMT ]]; then
+    elif [[ -n $CLEARLY_TEST_PACK_FMT ]]; then
         method='environment'
     elif [[ -n $have_mksquashfs && -n $have_libsquashfuse ]]; then
-        CH_TEST_PACK_FMT=squash-mount
+        CLEARLY_TEST_PACK_FMT=squash-mount
         method='default'
     else
-        CH_TEST_PACK_FMT=tar-unpack
+        CLEARLY_TEST_PACK_FMT=tar-unpack
         method='default'
     fi
-    case $CH_TEST_PACK_FMT in
+    case $CLEARLY_TEST_PACK_FMT in
         '🐘')  # elephant emoji U+1F418
-            CH_TEST_PACK_FMT=squash-mount
+            CLEARLY_TEST_PACK_FMT=squash-mount
             ;;
         '📠')  # fax machine emoji U+1F4E0
-            CH_TEST_PACK_FMT=tar-unpack
+            CLEARLY_TEST_PACK_FMT=tar-unpack
             ;;
         '🎃')  # jack-o-lantern emoji U+1F383
-            CH_TEST_PACK_FMT=squash-unpack
+            CLEARLY_TEST_PACK_FMT=squash-unpack
             ;;
         esac
-    export CH_TEST_PACK_FMT
+    export CLEARLY_TEST_PACK_FMT
     printf "%-*s %s (%s)\n" \
-           "$width" 'packed image format:' "$CH_TEST_PACK_FMT" "$method"
-    case $CH_TEST_PACK_FMT in
+           "$width" 'packed image format:' "$CLEARLY_TEST_PACK_FMT" "$method"
+    case $CLEARLY_TEST_PACK_FMT in
         squash-mount)
             if [[ -z $have_mksquashfs ]]; then
-                fatal "format invalid: ${CH_TEST_PACK_FMT}: no mksquashfs"
+                fatal "format invalid: ${CLEARLY_TEST_PACK_FMT}: no mksquashfs"
             fi
             if [[ -z $have_libsquashfuse ]]; then
-                fatal "format invalid: ${CH_TEST_PACK_FMT}: run not linked with libsquashfuse"
+                fatal "format invalid: ${CLEARLY_TEST_PACK_FMT}: run not linked with libsquashfuse"
             fi
             ;;
         tar-unpack)
             ;;  # nothing to check (assume we have tar)
         squash-unpack)
             if [[ -z $have_mksquashfs ]]; then
-                fatal "format invalid: ${CH_TEST_PACK_FMT}: no mksquashfs"
+                fatal "format invalid: ${CLEARLY_TEST_PACK_FMT}: no mksquashfs"
             fi
             ;;
         *)
-            fatal "format unknown: ${CH_TEST_PACK_FMT}"
+            fatal "format unknown: ${CLEARLY_TEST_PACK_FMT}"
             ;;
     esac
 }
@@ -322,7 +322,7 @@ pq_missing () {
         local out=$2
         local tag
         tag=$(test_make_auto tag "$img")
-        printf '%s\n' "$out" >> "${CH_TEST_TARDIR}/${tag}.pq_missing"
+        printf '%s\n' "$out" >> "${CLEARLY_TEST_TARDIR}/${tag}.pq_missing"
     fi
 }
 
@@ -383,8 +383,8 @@ test_build_images () {
 
 test_examples () {
     printf '\n'
-    if [[ $CH_TEST_SCOPE == quick ]]; then
-        echo "no examples for $CH_TEST_SCOPE scope"
+    if [[ $CLEARLY_TEST_SCOPE == quick ]]; then
+        echo "no examples for $CLEARLY_TEST_SCOPE scope"
     fi
     echo 'executing example phase tests ...'
     if find "$TMP_" -name '*_example.bats' | grep -q .; then
@@ -415,7 +415,7 @@ test_make () {
         # For each tarball or squashfs file in --pack-dir look for a
         # corresponding example or image that produces a matching tag. If
         # found, check the image for exclusion conidtions.
-        pack_files=$(find "$CH_TEST_TARDIR"     -name '*.tar.gz' \
+        pack_files=$(find "$CLEARLY_TEST_TARDIR"     -name '*.tar.gz' \
                                             -o  -name '*.sqfs' | sort)
         for i in $pack_files; do
             img_pack=${i##*/}
@@ -435,7 +435,7 @@ test_make () {
         printf 'ok\n\n'
         ;;
     examples)
-        if [[ $CH_TEST_SCOPE == quick ]]; then
+        if [[ $CLEARLY_TEST_SCOPE == quick ]]; then
             echo 'skipping examples phase in quick scope'
             return
         fi
@@ -529,35 +529,35 @@ test_make_check_image () {
 
     if [[ $phase == 'build' ]]; then
         # Exclude Dockerfiles if we have no builder.
-        if [[ $CH_TEST_BUILDER == none && $img == *Dockerfile* ]]; then
+        if [[ $CLEARLY_TEST_BUILDER == none && $img == *Dockerfile* ]]; then
             pq_missing "$img" 'builder required'
             img_ok=
         fi
-        # Exclude if included builders are given and $CH_TEST_BUILDER isn’t one.
+        # Exclude if included builders are given and $CLEARLY_TEST_BUILDER isn’t one.
         if [[ -n $builder_include ]]; then
             builder_ok=
             for b in $builder_include; do
-                if [[ $b == "$CH_TEST_BUILDER" ]]; then
+                if [[ $b == "$CLEARLY_TEST_BUILDER" ]]; then
                     builder_ok=yes
                 fi
             done
             if [[ -z $builder_ok ]]; then
-                pq_missing "$img" "builder not included: ${CH_TEST_BUILDER}"
+                pq_missing "$img" "builder not included: ${CLEARLY_TEST_BUILDER}"
                 img_ok=
             fi
         fi
-        # Exclude images that are not compatible with CH_TEST_BUILDER.
+        # Exclude images that are not compatible with CLEARLY_TEST_BUILDER.
         for b in $builder_exclude; do
-            if [[ $b == "$CH_TEST_BUILDER" ]]; then
-                pq_missing "$img" "builder excluded: ${CH_TEST_BUILDER}"
+            if [[ $b == "$CLEARLY_TEST_BUILDER" ]]; then
+                pq_missing "$img" "builder excluded: ${CLEARLY_TEST_BUILDER}"
                 img_ok=
             fi
         done
     fi
 
-    # Exclude images with a scope that is not a subset of CH_TEST_SCOPE.
+    # Exclude images with a scope that is not a subset of CLEARLY_TEST_SCOPE.
     if [[ $scope_int -lt "$img_scope_int" ]]; then
-        pq_missing "$img" "not in scope: ${CH_TEST_SCOPE}"
+        pq_missing "$img" "not in scope: ${CLEARLY_TEST_SCOPE}"
         img_ok=
     fi
 
@@ -569,8 +569,8 @@ test_make_check_image () {
         fi
     done
 
-    # Exclude images that require sudo if CH_TEST_SUDO is empty
-    if [[ -n $sudo_required && -z $CH_TEST_SUDO ]]; then
+    # Exclude images that require sudo if CLEARLY_TEST_SUDO is empty
+    if [[ -n $sudo_required && -z $CLEARLY_TEST_SUDO ]]; then
         pq_missing "$img" 'generic sudo required'
         img_ok=
     fi
@@ -653,7 +653,7 @@ test_make_template_print () {
              -e "s@%\(basename\)s@$basename_@g" \
              -e "s@%\(dirname\)s@$dirname_@g" \
              -e "s@%\(path\)s@$path_@g" \
-             -e "s@%\(scope\)s@$CH_TEST_SCOPE@g" \
+             -e "s@%\(scope\)s@$CLEARLY_TEST_SCOPE@g" \
              -e "s@%\(tag\)s@$tag@g"
     printf '\n'
 }
@@ -686,7 +686,7 @@ test_run () {
         fatal "${TMP_}/run_auto.bats not found"
     fi
     bats run_first.bats "${TMP_}/run_auto.bats" ./run/*.bats
-    if [[ $CH_TEST_SCOPE != quick ]]; then
+    if [[ $CLEARLY_TEST_SCOPE != quick ]]; then
         for guest_user in $(id -un) root nobody; do
             for guest_group in $(id -gn) root $(id -gn nobody); do
                 export GUEST_USER=$guest_user
@@ -773,7 +773,7 @@ else
 fi
 
 # Reject non-default registry on GitHub Actions.
-if [[ -n $GITHUB_ACTIONS && -n $CH_REGY_DEFAULT_HOST ]]; then
+if [[ -n $GITHUB_ACTIONS && -n $CLEARLY_REGY_DEFAULT_HOST ]]; then
     fatal 'non-default registry on GitHub Actions invalid'
 fi
 
@@ -994,31 +994,31 @@ printf '\n'
 
 #    variable name    CLI              environment         default
 #                     desc. width  description
-vset CH_TEST_SCOPE    "$scope"         "$CH_TEST_SCOPE"    standard \
+vset CLEARLY_TEST_SCOPE    "$scope"         "$CLEARLY_TEST_SCOPE"    standard \
                       21 'scope'
 builder_set 21
 pedantry_set 21
-vset CH_TEST_SUDO     "$use_sudo"      "$CH_TEST_SUDO"     "$use_sudo_default" \
+vset CLEARLY_TEST_SUDO     "$use_sudo"      "$CLEARLY_TEST_SUDO"     "$use_sudo_default" \
                       21 'use generic sudo'
-vset CH_TEST_IMGDIR   "$imgdir"        "$CH_TEST_IMGDIR"   "/var/tmp/${USER}.img" \
+vset CLEARLY_TEST_IMGDIR   "$imgdir"        "$CLEARLY_TEST_IMGDIR"   "/var/tmp/${USER}.img" \
                       21 'unpacked images dir'
-vset CH_TEST_TARDIR   "$tardir"        "$CH_TEST_TARDIR"   "/var/tmp/${USER}.pack" \
+vset CLEARLY_TEST_TARDIR   "$tardir"        "$CLEARLY_TEST_TARDIR"   "/var/tmp/${USER}.pack" \
                       21 'packed images dir'
 pack_fmt_set 21
-vset CH_IMAGE_CACHE   "$bucache_mode"  "$CH_IMAGE_CACHE"   enabled \
+vset CLEARLY_IMAGE_CACHE   "$bucache_mode"  "$CLEARLY_IMAGE_CACHE"   enabled \
                       21 'build cache mode'
-vset CH_TEST_PERMDIRS "${permdirs[*]}" "$CH_TEST_PERMDIRS" skip \
+vset CLEARLY_TEST_PERMDIRS "${permdirs[*]}" "$CLEARLY_TEST_PERMDIRS" skip \
                       21 'fs permissions dirs'
-vset CH_TEST_LUSTREDIR "$lustredir"    "$CH_TEST_LUSTREDIR" skip \
+vset CLEARLY_TEST_LUSTREDIR "$lustredir"    "$CLEARLY_TEST_LUSTREDIR" skip \
                       21 'Lustre test dir'
-vset CH_TEST_SLURM_MPI "$srun_mpi"     "$CH_TEST_SLURM_MPI" "$SLURM_MPI_TYPE" \
+vset CLEARLY_TEST_SLURM_MPI "$srun_mpi"     "$CLEARLY_TEST_SLURM_MPI" "$SLURM_MPI_TYPE" \
                       21 'srun mpi type'
-vset CH_TEST_OFI_PATH  "$fi_path"     "$CH_TEST_OFI_PATH"  skip \
+vset CLEARLY_TEST_OFI_PATH  "$fi_path"     "$CLEARLY_TEST_OFI_PATH"  skip \
                       21 'ofi provider(s) path'
 printf '\n'
 
-if [[ $phase == *'perm'* ]] && [[ $CH_TEST_PERMDIRS == skip ]]; then
-    fatal "phase $phase: CH_TEST_PERMDIRS: can't be 'skip'"
+if [[ $phase == *'perm'* ]] && [[ $CLEARLY_TEST_PERMDIRS == skip ]]; then
+    fatal "phase $phase: CLEARLY_TEST_PERMDIRS: can't be 'skip'"
 fi
 
 # Check that different sources of version number are consistent.
@@ -1065,7 +1065,7 @@ fi
 
 # If srun --mpi=pmix, set variable to avoid spurious error. See
 # https://github.com/open-mpi/ompi/issues/7516.
-if [[ "$CH_TEST_SLURM_MPI" == 'pmix'* ]]; then
+if [[ "$CLEARLY_TEST_SLURM_MPI" == 'pmix'* ]]; then
     export PMIX_MCA_gds=hash
 fi
 
@@ -1081,7 +1081,7 @@ if ! "${ch_bin}/checkns"; then
 fi
 printf '\n'
 
-if [[ $CH_TEST_SUDO ]]; then
+if [[ $CLEARLY_TEST_SUDO ]]; then
     printf 'checking sudo ...\n'
     sudo echo ok
     printf '\n'
@@ -1094,7 +1094,7 @@ fi
 
 if [[ -n $is_sudo ]]; then
     printf 'exiting per --is-sudo\n'
-    if [[ -n $CH_TEST_SUDO ]]; then exit 0; else exit 1; fi
+    if [[ -n $CLEARLY_TEST_SUDO ]]; then exit 0; else exit 1; fi
 fi
 
 if [[ -n $dry ]];then
@@ -1106,7 +1106,7 @@ cd "$CHTEST_DIR"
 
 export PATH=$ch_bin:$PATH
 
-# Now that CH_TEST_* variables, PATH, and BATS_TMPDIR has been set and checked,
+# Now that CLEARLY_TEST_* variables, PATH, and BATS_TMPDIR has been set and checked,
 # we source CHTEST_DIR/common.bash.
 . "${CHTEST_DIR}/common.bash"
 
@@ -1121,7 +1121,7 @@ examples=$(   find "$CHTEST_EXAMPLES_DIR"    -name 'Dockerfile' \
            && find "$CHTEST_EXAMPLES_DIR"    -name 'Build' \
                                           -o -name 'Build.*' | sort)
 
-scope_int=$(scope_to_digit "$CH_TEST_SCOPE")
+scope_int=$(scope_to_digit "$CLEARLY_TEST_SCOPE")
 
 # Execute phase
 case $phase in
@@ -1184,7 +1184,7 @@ case $phase in
         ;;
     mk-perm-dirs)
         printf 'creating filesystem permissions fixtures ...\n'
-        for d in $CH_TEST_PERMDIRS; do
+        for d in $CLEARLY_TEST_PERMDIRS; do
             if [[ -d ${d} ]]; then
                 printf '%s already exists\n' "$d"
                 continue
@@ -1199,7 +1199,7 @@ case $phase in
         win
         ;;
     rm-perm-dirs)
-        for d in $CH_TEST_PERMDIRS; do
+        for d in $CLEARLY_TEST_PERMDIRS; do
             dir_perm_rm "$d"
         done
         ;;

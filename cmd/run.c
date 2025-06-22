@@ -306,8 +306,8 @@ void fix_environment(struct args *args)
       }
    }
 
-   // $CH_RUNNING is not affected by --unset-env or --set-env.
-   Z_ (setenv("CH_RUNNING", "Weird Al Yankovic", 1));
+   // $CLEARLY_RUNNING is not affected by --unset-env or --set-env.
+   Z_ (setenv("CLEARLY_RUNNING", "Weird Al Yankovic", 1));
 }
 
 /* Find the first environment variable in array that is set; put its name in
@@ -637,7 +637,7 @@ void privs_verify_invoking()
 /* Return path to the storage directory, if -s is not specified. */
 char *storage_default(void)
 {
-   char *storage = getenv("CH_IMAGE_STORAGE");
+   char *storage = getenv("CLEARLY_IMAGE_STORAGE");
 
    if (storage == NULL)
       T_ (1 <= asprintf(&storage, "/var/tmp/%s.ch", username));

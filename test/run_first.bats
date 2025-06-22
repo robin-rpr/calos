@@ -2,8 +2,8 @@ load common
 
 @test 'permissions test directories exist' {
     scope standard
-    [[ $CH_TEST_PERMDIRS = skip ]] && skip 'user request'
-    for d in $CH_TEST_PERMDIRS; do
+    [[ $CLEARLY_TEST_PERMDIRS = skip ]] && skip 'user request'
+    for d in $CLEARLY_TEST_PERMDIRS; do
         echo "$d"
         test -d "${d}"
         test -d "${d}/pass"

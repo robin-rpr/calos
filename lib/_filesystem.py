@@ -1079,11 +1079,11 @@ class Storage:
 
    @staticmethod
    def root_env():
-      if (not "CH_IMAGE_STORAGE" in os.environ):
+      if (not "CLEARLY_IMAGE_STORAGE" in os.environ):
          return None
-      path = Path(os.environ["CH_IMAGE_STORAGE"])
+      path = Path(os.environ["CLEARLY_IMAGE_STORAGE"])
       if (not path.is_absolute()):
-         clearly.FATAL("$CH_IMAGE_STORAGE: not absolute path: %s" % path)
+         clearly.FATAL("$CLEARLY_IMAGE_STORAGE: not absolute path: %s" % path)
       return path
 
    @property

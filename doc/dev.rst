@@ -683,14 +683,14 @@ with the test suite, on any system, and leave the results in
 necessary image directory)::
 
   $ bin/ch-image build -f ./examples/Dockerfile.centos_7ch ./examples
-  $ bin/ch-convert centos_7ch $CH_TEST_IMGDIR/centos_7ch
-  $ packaging/fedora/build $CH_TEST_IMGDIR/centos_7ch 0.9.7-1
+  $ bin/ch-convert centos_7ch $CLEARLY_TEST_IMGDIR/centos_7ch
+  $ packaging/fedora/build $CLEARLY_TEST_IMGDIR/centos_7ch 0.9.7-1
 
 To build a pre-release RPM of Git HEAD using the CentOS 7 image::
 
   $ bin/ch-image build -f ./examples/Dockerfile.centos_7ch ./examples
-  $ bin/ch-convert centos_7ch $CH_TEST_IMGDIR/centos_7ch
-  $ packaging/fedora/build ${CH_TEST_IMGDIR}/centos_7ch HEAD
+  $ bin/ch-convert centos_7ch $CLEARLY_TEST_IMGDIR/centos_7ch
+  $ packaging/fedora/build ${CLEARLY_TEST_IMGDIR}/centos_7ch HEAD
 
 Gotchas and quirks
 ------------------
@@ -838,7 +838,7 @@ Variable conventions in shell scripts and :code:`.bats` files
 
 * Separate words with underscores.
 
-* User-configured environment variables: all uppercase, :code:`CH_TEST_`
+* User-configured environment variables: all uppercase, :code:`CLEARLY_TEST_`
   prefix. Do not use in individual :code:`.bats` files; instead, provide an
   intermediate variable.
 
@@ -1111,8 +1111,8 @@ though it does not change the root directory. We do not understand why. In
 particular, this means that you cannot see the container root filesystem it
 provides without joining those namespaces. To do so:
 
-#. Export :code:`CH_RUN_OCI_LOGFILE` with some logfile path.
-#. Export :code:`CH_RUN_OCI_DEBUG_HANG` with the step you want to examine
+#. Export :code:`CLEARLY_RUN_OCI_LOGFILE` with some logfile path.
+#. Export :code:`CLEARLY_RUN_OCI_DEBUG_HANG` with the step you want to examine
    (e.g., :code:`create`).
 #. Run :code:`ch-build -b buildah`.
 #. Make note of the PID in the logfile.

@@ -2,7 +2,7 @@ source common.bash  # for ShellCheck; removed by ch-test
 
 @test 'builder to archive %(tag)s' {
     scope %(scope)s
-    case $CH_TEST_PACK_FMT in
+    case $CLEARLY_TEST_PACK_FMT in
         squash*)
             ext=sqfs
             ;;
@@ -14,7 +14,7 @@ source common.bash  # for ShellCheck; removed by ch-test
             ;;
     esac
     archive=${ch_tardir}/%(tag)s.${ext}
-    clearly convert -i "$CH_TEST_BUILDER" '%(tag)s' "$archive"
+    clearly convert -i "$CLEARLY_TEST_BUILDER" '%(tag)s' "$archive"
     archive_grep "$archive"
     archive_ok "$archive"
 }

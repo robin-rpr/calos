@@ -17,7 +17,7 @@ source common.bash  # for ShellCheck; removed by ch-test
             [[ ${#tarballs[@]} -eq 1 ]]
             tarball=${tarballs[0]}
             # Convert to SquashFS if needed.
-            if [[ $CH_TEST_PACK_FMT = squash* ]]; then
+            if [[ $CLEARLY_TEST_PACK_FMT = squash* ]]; then
                 # With the centos7xz image, we run into permission errors if we
                 # try to use the tar “--xattrs-include” option. Using strace(1),
                 # we determined that with the xattrs option specified, tar first
@@ -36,7 +36,7 @@ source common.bash  # for ShellCheck; removed by ch-test
                 rm "$tarball"
             fi
         elif [[ -d $out ]]; then                             # directory
-            case $CH_TEST_PACK_FMT in
+            case $CLEARLY_TEST_PACK_FMT in
                 squash-*)
                     ext=sqsh
                     ;;

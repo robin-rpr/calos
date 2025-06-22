@@ -12,7 +12,7 @@ cd "$1" || exit 1        # satisfy ShellCheck
 
 # Configure.
 
-if [[ $CH_TEST_PACK_FMT = squash-mount ]]; then
+if [[ $CLEARLY_TEST_PACK_FMT = squash-mount ]]; then
     libsquashfuse=yes
 else
     libsquashfuse=no
@@ -25,14 +25,14 @@ fi
 
 clrequire 'documentation: yes'
 
-if [[ $CH_TEST_BUILDER = image ]]; then
+if [[ $CLEARLY_TEST_BUILDER = image ]]; then
     clrequire 'with image(1): yes'
 fi
 
 clrequire 'recommended tests, tar-unpack mode: yes'
 clrequire 'recommended tests, squash-unpack mode: yes'
 
-if [[ $CH_TEST_PACK_FMT = squash-mount ]]; then
+if [[ $CLEARLY_TEST_PACK_FMT = squash-mount ]]; then
     clrequire 'recommended tests, squash-mount mode: yes'
     clrequire 'internal SquashFS mounting ... yes'
 else
@@ -40,7 +40,7 @@ else
     clrequire 'internal SquashFS mounting ... no'
 fi
 
-if [[ $CH_TEST_BUILDER = image ]]; then
+if [[ $CLEARLY_TEST_BUILDER = image ]]; then
     clrequire '"lark" module ... bundled'
     test -f ./lib/lark/lark.py
 fi

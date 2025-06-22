@@ -47,8 +47,8 @@ load ../common
 setup () {
     skip 'omitted for now (see test/gitlab.com/README)'
     scope standard
-    [[ $CH_TEST_BUILDER = image ]] || skip 'image only'
-    [[ $CH_TEST_PACK_FMT = *-unpack ]] || skip 'needs directory images'
+    [[ $CLEARLY_TEST_BUILDER = image ]] || skip 'image only'
+    [[ $CLEARLY_TEST_PACK_FMT = *-unpack ]] || skip 'needs directory images'
     if ! command -v docker > /dev/null 2>&1; then
         pedantic_fail 'docker not found'  # FIXME: WHAT ABOUT PODMAN?
     fi
@@ -194,7 +194,7 @@ convert-img () {
     echo
     echo "CONVERT ${ct}: ${in_desc} ($in_fmt) -> ${out_desc} (${out_fmt})"
     delete "$out_fmt" "$out_desc"
-    if [[ $in_fmt = image && $CH_IMAGE_CACHE = enabled ]]; then
+    if [[ $in_fmt = image && $CLEARLY_IMAGE_CACHE = enabled ]]; then
         # round-trip the input image through Git
         clearly image delete "$in_desc"
         clearly image undelete "$in_desc"
@@ -202,7 +202,7 @@ convert-img () {
     clearly convert --no-clobber -v -i "$in_fmt" -o "$out_fmt" "$in_desc" "$out_desc"
     # Doing it twice doubles the time but also tests that both new conversions
     # and overwrite work. Hence, full scope only.
-    if [[ $CH_TEST_SCOPE = full ]]; then
+    if [[ $CLEARLY_TEST_SCOPE = full ]]; then
         clearly convert -v -i "$in_fmt" -o "$out_fmt" "$in_desc" "$out_desc"
     fi
 }
@@ -451,7 +451,7 @@ test_from () {
 
 
 @test 'clearly convert: pathological tarballs' {
-    [[ $CH_TEST_PACK_FMT = tar-unpack ]] || skip 'tar mode only'
+    [[ $CLEARLY_TEST_PACK_FMT = tar-unpack ]] || skip 'tar mode only'
     out=${BATS_TMPDIR}/convert.dir
     # Are /dev fixtures present in tarball? (issue #157)
     present=$(tar tf "$ch_ttar" | grep -F deleteme)
@@ -507,7 +507,7 @@ test_from () {
     #
     # In this test, we create a tarball with “unusual” xattrs that we don’t want
     # to restore (i.e. a borked tarball), and try to convert it into a image.
-    [[ -n $CH_TEST_SUDO ]] || skip 'sudo required'
+    [[ -n $CLEARLY_TEST_SUDO ]] || skip 'sudo required'
 
     cd "$BATS_TMPDIR"
 

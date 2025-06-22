@@ -124,7 +124,7 @@ _clearly_completion_version="$("$_clearly_completion_dir"/../misc/version)"
 _clearly_completion_log="/tmp/completion.log"
 
 # Record file being sourced.
-if [[ -n "$CH_COMPLETION_DEBUG" ]]; then
+if [[ -n "$CLEARLY_COMPLETION_DEBUG" ]]; then
     printf "completion.bash sourced\n\n" >> "$_clearly_completion_log"
 fi
 
@@ -275,7 +275,7 @@ _archs="amd64 arm/v5 arm/v6 arm/v7 arm64/v8 386 mips64le ppc64le s390x"
 
 # Completion function for image
 #
-_image_complete () {
+_clearly_image_complete () {
     local prev
     local cur
     local cword
@@ -285,7 +285,7 @@ _image_complete () {
     local extras=
     _get_comp_words_by_ref -n : cur prev words cword
 
-    sub_cmd=$(_image_subcmd_get "$cword" "${words[@]}")
+    sub_cmd=$(_clearly_image_subcmd_get "$cword" "${words[@]}")
     # To find the storage directory, we want to look at all the words in the
     # current command line except for the current word (“${words[$cword]}”
     # here). We do this to prevent unexpected behavior resulting from the
@@ -571,9 +571,9 @@ Utility function for Clearstack tab completion.
                   executables
 "
 
-# Add debugging text to log file if CH_COMPLETION_DEBUG is specified.
+# Add debugging text to log file if CLEARLY_COMPLETION_DEBUG is specified.
 _DEBUG () {
-    if [[ -n "$CH_COMPLETION_DEBUG" ]]; then
+    if [[ -n "$CLEARLY_COMPLETION_DEBUG" ]]; then
         #echo "$@" >> "$_clearly_completion_log"
         printf "%s\n" "$@" >> "$_clearly_completion_log"
     fi
@@ -719,13 +719,13 @@ _clearly_convert_parse () {
 # Figure out which storage directory to use (including cli-specified storage).
 # Remove trailing slash. Note that this isn't performed when the script is
 # sourced because the working storage directory can effectively change at any
-# time with “CH_IMAGE_STORAGE” or the “--storage” option.
+# time with “CLEARLY_IMAGE_STORAGE” or the “--storage” option.
 _clearly_find_storage () {
     if echo "$@" | grep -Eq -- '\s(--storage|-\w*s)'; then
         # This if “--storage” or “-s” are in the command line.
         sed -Ee 's/(.*)(--storage=*|[^-]-s=*)\ *([^ ]*)(.*$)/\3/g' -Ee 's|/$||g' <<< "$@"
-    elif [[ -n "$CH_IMAGE_STORAGE" ]]; then
-        echo "$CH_IMAGE_STORAGE" | sed -Ee 's|/$||g'
+    elif [[ -n "$CLEARLY_IMAGE_STORAGE" ]]; then
+        echo "$CLEARLY_IMAGE_STORAGE" | sed -Ee 's|/$||g'
     else
         echo "/var/tmp/$USER.ch"
     fi
@@ -736,12 +736,12 @@ _clearly_find_storage () {
 # It's worth noting that the double for loop doesn't take that much time, since
 # the Clearstack command line, even in the wost case, is relatively short.
 #
-# Usage: _image_subcmd_get [words]
+# Usage: _clearly_image_subcmd_get [words]
 #
 # Example:
-#   >> _image_subcmd_get "clearly image [...] build [...]"
+#   >> _clearly_image_subcmd_get "clearly image [...] build [...]"
 #   build
-_image_subcmd_get () {
+_clearly_image_subcmd_get () {
     local cword="$1"
     shift 1
     local subcmd
@@ -980,5 +980,5 @@ _version_ok_clearly_completion () {
 
 complete -F _clearly_completion_complete completion
 complete -F _clearly_convert_complete convert
-complete -F _image_complete image
+complete -F _clearly_image_complete image
 complete -F _run_complete run

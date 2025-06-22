@@ -52,7 +52,7 @@ STDLIB_MODULES = (  {     m.name
                       if  re.search(r"/python3.\d+", m.module_finder.path) }
                   | set(sys.builtin_module_names))
 
-CH_MODULES = {     f.removesuffix(".py")
+CLEARLY_MODULES = {     f.removesuffix(".py")
                for f in os.listdir(os.path.dirname(path))
                if  (f.endswith(".py") and f != "charliecloud.py") }
 
@@ -184,7 +184,7 @@ def sort_key(stmt):
          ret.append(3)
       elif (name in STDLIB_MODULES):
          ret.append(1)
-      elif (name in CH_MODULES):
+      elif (name in CLEARLY_MODULES):
          ret.append(4)
       else:  # neither standard library nor Charliecloud
          ret.append(2)

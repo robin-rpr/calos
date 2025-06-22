@@ -889,7 +889,7 @@ if [ "$#" -ne 2 ]; then
     usage
 fi
 # This bizarre bit of syntax comes from https://unix.stackexchange.com/a/28782
-if [ -n "$xattrs" ] || { [ -n "$CH_XATTRS" ] && [ -z "$no_xattrs" ]; }; then
+if [ -n "$xattrs" ] || { [ -n "$CLEARLY_XATTRS" ] && [ -z "$no_xattrs" ]; }; then
     echo "preserving xattrs..."
     tar_xattr_args='--xattrs-include=user.* --xattrs-include=system.*'
     squash_xattr_arg=-xattrs

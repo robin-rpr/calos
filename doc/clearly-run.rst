@@ -386,13 +386,13 @@ environment is passed through unaltered, except:
 * limited tweaks to avoid significant guest breakage;
 * user-set variables via :code:`--set-env`;
 * user-unset variables via :code:`--unset-env`; and
-* set :code:`CH_RUNNING`.
+* set :code:`CLEARLY_RUNNING`.
 
 This section describes these features.
 
 The default tweaks happen first, then :code:`--set-env` and
 :code:`--unset-env` in the order specified on the command line, and then
-:code:`CH_RUNNING`. The two options can be repeated arbitrarily many times,
+:code:`CLEARLY_RUNNING`. The two options can be repeated arbitrarily many times,
 e.g. to add/remove multiple variable sets or add only some variables in a
 file.
 
@@ -401,7 +401,7 @@ Default behavior
 
 By default, :code:`ch-run` makes the following environment variable changes:
 
-:code:`$CH_RUNNING`
+:code:`$CLEARLY_RUNNING`
   Set to :code:`Weird Al Yankovic`. While a process can figure out that it’s
   in an unprivileged container and what namespaces are active without this
   hint, that can be messy, and there is no way to tell that it’s a
@@ -649,7 +649,7 @@ Example 1: Remove the single environment variable :code:`FOO`::
   $ export FOO=bar
   $ env | fgrep FOO
   FOO=bar
-  $ ch-run --unset-env=FOO $CH_TEST_IMGDIR/chtest -- env | fgrep FOO
+  $ ch-run --unset-env=FOO $CLEARLY_TEST_IMGDIR/chtest -- env | fgrep FOO
   $
 
 Example 2: Hide from a container the fact that it’s running in a Slurm
@@ -659,9 +659,9 @@ want to do this to test an MPI program with one rank and no launcher::
   $ salloc -N1
   $ env | egrep '^SLURM' | wc
      44      44    1092
-  $ ch-run $CH_TEST_IMGDIR/mpihello-openmpi -- /hello/hello
+  $ ch-run $CLEARLY_TEST_IMGDIR/mpihello-openmpi -- /hello/hello
   [... long error message ...]
-  $ ch-run --unset-env='SLURM*' $CH_TEST_IMGDIR/mpihello-openmpi -- /hello/hello
+  $ ch-run --unset-env='SLURM*' $CLEARLY_TEST_IMGDIR/mpihello-openmpi -- /hello/hello
   0: MPI version:
   Open MPI v3.1.3, package: Open MPI root@c897a83f6f92 Distribution, ident: 3.1.3, repo rev: v3.1.3, Oct 29, 2018
   0: init ok cn001.localdomain, 1 ranks, userns 4026532530
@@ -670,7 +670,7 @@ want to do this to test an MPI program with one rank and no launcher::
 
 Example 3: Clear the environment completely (remove all variables)::
 
-  $ ch-run --unset-env='*' $CH_TEST_IMGDIR/chtest -- env
+  $ ch-run --unset-env='*' $CLEARLY_TEST_IMGDIR/chtest -- env
   $
 
 Example 4: Remove all environment variables *except* for those prefixed with
@@ -679,7 +679,7 @@ either :code:`WANTED_` or :code:`ALSO_WANTED_`::
   $ export WANTED_1=yes
   $ export ALSO_WANTED_2=yes
   $ export NOT_WANTED_1=no
-  $ ch-run --unset-env='!(WANTED_*|ALSO_WANTED_*)' $CH_TEST_IMGDIR/chtest -- env
+  $ ch-run --unset-env='!(WANTED_*|ALSO_WANTED_*)' $CLEARLY_TEST_IMGDIR/chtest -- env
   WANTED_1=yes
   ALSO_WANTED_2=yes
   $
@@ -687,7 +687,7 @@ either :code:`WANTED_` or :code:`ALSO_WANTED_`::
 Note that some programs, such as shells, set some environment variables even
 if started with no init files::
 
-  $ ch-run --unset-env='*' $CH_TEST_IMGDIR/debian_9ch -- bash --noprofile --norc -c env
+  $ ch-run --unset-env='*' $CLEARLY_TEST_IMGDIR/debian_9ch -- bash --noprofile --norc -c env
   SHLVL=1
   PWD=/
   _=/usr/bin/env
