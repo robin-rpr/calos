@@ -1,4 +1,4 @@
-CLEARLY_TEST_TAG=$ch_test_tag
+CLEARLY_TEST_TAG=$clearly_test_tag
 load "${CHTEST_DIR}/common.bash"
 
 setup () {
@@ -28,36 +28,36 @@ clean_dir () {
 }
 
 tidy_run () {
-    clearly run -b "$binds" "$ch_img" -- "$@"
+    clearly run -b "$binds" "$clearly_img" -- "$@"
 }
 
 binds=${CLEARLY_TEST_LUSTREDIR}:/mnt/0
 work_dir=/mnt/0/charliecloud_test
 
-@test "${ch_tag}/start clean" {
+@test "${clearly_tag}/start clean" {
     clean_dir "${CLEARLY_TEST_LUSTREDIR}/charliecloud_test" || true
     mkdir "${CLEARLY_TEST_LUSTREDIR}/charliecloud_test"  # fail if not cleaned up
 }
 
-@test "${ch_tag}/create directory" {
+@test "${clearly_tag}/create directory" {
     tidy_run mkdir "${work_dir}/test_create_dir"
 }
 
-@test "${ch_tag}/create file" {
+@test "${clearly_tag}/create file" {
     tidy_run touch "${work_dir}/test_create_file"
 }
 
-@test "${ch_tag}/delete file" {
+@test "${clearly_tag}/delete file" {
     tidy_run rm "${work_dir}/test_create_file"
 }
 
-@test "${ch_tag}/write file" {
+@test "${clearly_tag}/write file" {
     # sh wrapper to get echo output to the right place. Without it, the output
     # from echo goes outside the container.
     tidy_run sh -c "echo hello > ${work_dir}/test_write.txt"
 }
 
-@test "${ch_tag}/read file" {
+@test "${clearly_tag}/read file" {
     output_expected=$(cat <<'EOF'
 hello
 0+1 records in
@@ -69,7 +69,7 @@ EOF
     diff -u <(echo "$output_expected") <(echo "$output")
 }
 
-@test "${ch_tag}/striping" {
+@test "${clearly_tag}/striping" {
     tidy_run mkdir "${work_dir}/set_stripes"
     stripe_ct_old=$(tidy_run lfs getstripe --stripe-count "${work_dir}/set_stripes/")
     echo "old stripe count: $stripe_ct_old"
@@ -81,6 +81,6 @@ EOF
     [[ $expected_new -eq $stripe_ct_new ]]
 }
 
-@test "${ch_tag}/clean up" {
+@test "${clearly_tag}/clean up" {
     clean_dir "${CLEARLY_TEST_LUSTREDIR}/charliecloud_test"
 }

@@ -993,7 +993,7 @@ a destination that already exists, like those created under :code:`/mnt`::
   $ mkdir /var/tmp/foo1
   $ echo world > /var/tmp/foo1/bar
   $ ch-run -b /var/tmp/foo0 -b /var/tmp/foo1 /var/tmp/hello -- bash
-  ch-run[1184427]: error: can’t mkdir: /var/tmp/hello/var/tmp/foo0: Read-only file system (ch_misc.c:142 30)
+  ch-run[1184427]: error: can’t mkdir: /var/tmp/hello/var/tmp/foo0: Read-only file system (clearly_misc.c:142 30)
   $ ch-run -b /var/tmp/foo0:/mnt/0 -b /var/tmp/foo1:/mnt/1 /var/tmp/hello -- bash
   > ls /mnt
   0  1  2  3  4  5  6  7  8  9

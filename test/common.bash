@@ -8,11 +8,11 @@
 # shellcheck disable=SC2034
 if false; then
     # from ch-test
-    ch_base=
-    ch_bin=
-    ch_lib=
-    ch_libc=
-    ch_test_tag=
+    clearly_base=
+    clearly_bin=
+    clearly_lib=
+    clearly_libc=
+    clearly_test_tag=
     # from Bats
     lines=
     output=
@@ -20,7 +20,7 @@ if false; then
 fi
 
 # Some defaults
-ch_tmpimg_df="$BATS_TMPDIR"/tmpimg.df
+clearly_tmpimg_df="$BATS_TMPDIR"/tmpimg.df
 
 arch_exclude () {
     # Skip the test if architecture (from “uname -m”) matches $1.
@@ -48,7 +48,7 @@ archive_ok () {
 build_ () {
     case $CLEARLY_TEST_BUILDER in
         image)
-            "$ch_libexec"/image build "$@"
+            "$clearly_libexec"/image build "$@"
             ;;
         docker)
             # Coordinate this list with test “build.bats/proxy variables”.
@@ -122,21 +122,21 @@ chtest_fixtures_ok () {
 }
 
 cray_ofi_or_skip () {
-    if [[ $ch_cray ]]; then
+    if [[ $clearly_cray ]]; then
         [[ -n "$CLEARLY_TEST_OFI_PATH" ]] || skip 'CLEARLY_TEST_OFI_PATH not set'
         [[ -z "$FI_PROVIDER_PATH" ]] || skip 'host FI_PROVIDER_PATH set'
         if [[ $cray_prov == 'gni' ]]; then
             export CLEARLY_FROMHOST_OFI_GNI=$CLEARLY_TEST_OFI_PATH
-            $ch_mpirun_node ch-fromhost -v --cray-gni "$1"
+            $clearly_mpirun_node ch-fromhost -v --cray-gni "$1"
         fi
         if [[ $cray_prov == 'cxi' ]]; then
             export CLEARLY_FROMHOST_OFI_CXI=$CLEARLY_TEST_OFI_PATH
-            $ch_mpirun_node ch-fromhost --cray-cxi "$1"
+            $clearly_mpirun_node ch-fromhost --cray-cxi "$1"
             # Examples use libfabric's fi_info to ensure injection works; when
             # replacing libfabric we also need to replace this binary.
             fi_info="$(dirname "$(dirname "$CLEARLY_TEST_OFI_PATH")")/bin/fi_info"
             [[ -x "$fi_info" ]]
-            $ch_mpirun_node ch-fromhost -v -d /usr/local/bin \
+            $clearly_mpirun_node ch-fromhost -v -d /usr/local/bin \
                                            -p "$fi_info" \
                                               "$1"
         fi
@@ -175,17 +175,17 @@ localregistry_init () {
 }
 
 multiprocess_ok () {
-    [[ $ch_multiprocess ]] || skip 'no multiprocess launch tool found'
+    [[ $clearly_multiprocess ]] || skip 'no multiprocess launch tool found'
     true
 }
 
 openmpi_or_skip () {
-    [[ $ch_mpi == 'openmpi' ]] || skip "openmpi only"
+    [[ $clearly_mpi == 'openmpi' ]] || skip "openmpi only"
 }
 
 pedantic_fail () {
     msg=$1
-    if [[ -n $ch_pedantic ]]; then
+    if [[ -n $clearly_pedantic ]]; then
         echo "$msg" 1>&2
         return 1
     else
@@ -216,7 +216,7 @@ pict_assert_equal () {
     echo "diff: $diff_"
     echo "   bind: $diff_bind"
     # See: https://imagemagick.org/script/command-line-options.php#metric
-    pixel_ct=$(clearly run "$ch_img" -b "$ref_bind" \
+    pixel_ct=$(clearly run "$clearly_img" -b "$ref_bind" \
                                 -b "$sample_bind" \
                                 -b "$diff_bind" -- \
                       compare -metric AE /a.png /b.png "$diff_" 2>&1 || true)
@@ -226,7 +226,7 @@ pict_assert_equal () {
 
 # Check if the pict_ functions are usable; if not, pedantic-fail.
 pict_ok () {
-    if "$ch_mpirun_node" clearly run "$ch_img" -- compare > /dev/null 2>&1; then
+    if "$clearly_mpirun_node" clearly run "$clearly_img" -- compare > /dev/null 2>&1; then
         pedantic_fail 'need ImageMagick'
     fi
 }
@@ -244,9 +244,9 @@ prerequisites_ok () {
 }
 
 scope () {
-    if [[ -n $ch_one_test ]]; then
+    if [[ -n $clearly_one_test ]]; then
         # Ignore scope if a single test is given.
-        if [[ $BATS_TEST_DESCRIPTION != *"$ch_one_test"* ]]; then
+        if [[ $BATS_TEST_DESCRIPTION != *"$clearly_one_test"* ]]; then
             skip 'per --file'
         else
             return 0
@@ -279,13 +279,13 @@ unpack_img_all_nodes () {
             squash-mount)
                 # Lots of things expect no extension here, so go with that
                 # even though it’s a file, not a directory.
-                $ch_mpirun_node ln -s "${ch_tardir}/${ch_tag}.sqfs" "${ch_imgdir}/${ch_tag}"
+                $clearly_mpirun_node ln -s "${clearly_tardir}/${clearly_tag}.sqfs" "${clearly_imgdir}/${clearly_tag}"
                 ;;
             squash-unpack)
-                $ch_mpirun_node clearly convert -o dir "${ch_tardir}/${ch_tag}.sqfs" "${ch_imgdir}/${ch_tag}"
+                $clearly_mpirun_node clearly convert -o dir "${clearly_tardir}/${clearly_tag}.sqfs" "${clearly_imgdir}/${clearly_tag}"
                 ;;
             tar-unpack)
-                $ch_mpirun_node clearly convert -o dir "${ch_tardir}/${ch_tag}.tar.gz" "${ch_imgdir}/${ch_tag}"
+                $clearly_mpirun_node clearly convert -o dir "${clearly_tardir}/${clearly_tag}.tar.gz" "${clearly_imgdir}/${clearly_tag}"
                 ;;
             *)
                 false  # unknown format
@@ -297,7 +297,7 @@ unpack_img_all_nodes () {
 }
 
 # Do we need sudo to run docker?
-if [[ -n $ch_docker_nosudo ]]; then
+if [[ -n $clearly_docker_nosudo ]]; then
     docker_ () {
         docker "$@"
     }
@@ -329,25 +329,25 @@ chmod 700 "$btnew"
 export BATS_TMPDIR=$btnew
 [[ $(stat -c %a "$BATS_TMPDIR") = '700' ]]
 
-# clearly run exit codes. (see also: ch_misc.h, lib/build.py)
+# clearly run exit codes. (see also: clearly_misc.h, lib/build.py)
 CLEARLY_ERR_MISC=31
 CLEARLY_ERR_CMD=49
 #CLEARLY_ERR_SQUASH=84 # Currently not used
 
-ch_bin="$(cd "$(dirname "$0")" && pwd)"
+clearly_bin="$(cd "$(dirname "$0")" && pwd)"
 # shellcheck disable=SC2034
-ch_base=${ch_bin%/*}
+clearly_base=${clearly_bin%/*}
 
-ch_lib=${ch_bin}/../../lib
-ch_libexec=${ch_bin}/../../libexec
+clearly_lib=${clearly_bin}/../../lib
+clearly_libexec=${clearly_bin}/../../libexec
 
 # Run file.
-ch_runfile=${ch_libexec}/run
+clearly_runfile=${clearly_libexec}/run
 
 # Clearly version.
-. "${ch_lib}/_version.sh"
-ch_version_base=$(echo "$ch_version" | sed -E 's/~.+//')
-ch_version_docker=$(echo "$ch_version" | tr '~+' '--')
+. "${clearly_lib}/_version.sh"
+clearly_version_base=$(echo "$clearly_version" | sed -E 's/~.+//')
+clearly_version_docker=$(echo "$clearly_version" | tr '~+' '--')
 
 # Separate directories for tarballs and images.
 #
@@ -363,30 +363,30 @@ ch_version_docker=$(echo "$ch_version" | tr '~+' '--')
 #
 # [1]: https://unix.stackexchange.com/a/136527
 # [2]: http://man7.org/linux/man-pages/man1/readlink.1.html
-ch_imgdir=$(readlink -m "$CLEARLY_TEST_IMGDIR")
-ch_tardir=$(readlink -m "$CLEARLY_TEST_TARDIR")
+clearly_imgdir=$(readlink -m "$CLEARLY_TEST_IMGDIR")
+clearly_tardir=$(readlink -m "$CLEARLY_TEST_TARDIR")
 
 # Image information.
-ch_tag=${CLEARLY_TEST_TAG:-NO_TAG_SET}  # set by Makefile; many tests don’t need it
-ch_img=${ch_imgdir}/${ch_tag}
-ch_tar=${ch_tardir}/${ch_tag}.tar.gz
-ch_ttar=${ch_tardir}/chtest.tar.gz
-ch_timg=${ch_imgdir}/chtest
+clearly_tag=${CLEARLY_TEST_TAG:-NO_TAG_SET}  # set by Makefile; many tests don’t need it
+clearly_img=${clearly_imgdir}/${clearly_tag}
+clearly_tar=${clearly_tardir}/${clearly_tag}.tar.gz
+clearly_ttar=${clearly_tardir}/chtest.tar.gz
+clearly_timg=${clearly_imgdir}/chtest
 
-if [[ $ch_tag = *'-mpich' ]]; then
-    ch_mpi=mpich
+if [[ $clearly_tag = *'-mpich' ]]; then
+    clearly_mpi=mpich
     # As of MPICH 4.0.2, using SLURM as the MPICH process manager requires two
     # configure options that disable the compilation of mpiexec. This may not
     # always be the case.
-    ch_mpi_exe=mpiexec
+    clearly_mpi_exe=mpiexec
 else
-    ch_mpi=openmpi
-    ch_mpi_exe=mpirun
+    clearly_mpi=openmpi
+    clearly_mpi_exe=mpirun
 fi
 
 # Crays are special.
 if [[ -f /etc/opt/cray/release/cle-release ]]; then
-    ch_cray=yes
+    clearly_cray=yes
     # Prefer gni provider on Cray ugni machines
     if [[ -d /opt/cray/ugni ]]; then
         cray_prov=gni
@@ -394,73 +394,73 @@ if [[ -f /etc/opt/cray/release/cle-release ]]; then
         cray_prov=cxi
     fi
 else
-    ch_cray=
+    clearly_cray=
 fi
 
 # Multi-node and multi-process stuff. Do not use Slurm variables in tests; use
 # these instead:
 #
-#   ch_multiprocess    can run multiple processes
-#   ch_multinode       can run on multiple nodes
-#   ch_nodes           number of nodes in job
-#   ch_cores_node      number of cores per node
-#   ch_cores_total     total cores in job ($ch_nodes × $ch_cores_node)
+#   clearly_multiprocess    can run multiple processes
+#   clearly_multinode       can run on multiple nodes
+#   clearly_nodes           number of nodes in job
+#   clearly_cores_node      number of cores per node
+#   clearly_cores_total     total cores in job ($clearly_nodes × $clearly_cores_node)
 #
-#   ch_mpirun_node     command to run one rank per node
-#   ch_mpirun_core     command to run one rank per physical core
-#   ch_mpirun_2        command to run two ranks per job launcher default
-#   ch_mpirun_2_1node  command to run two ranks on one node
-#   ch_mpirun_2_2node  command to run two ranks on two nodes (one rank/node)
+#   clearly_mpirun_node     command to run one rank per node
+#   clearly_mpirun_core     command to run one rank per physical core
+#   clearly_mpirun_2        command to run two ranks per job launcher default
+#   clearly_mpirun_2_1node  command to run two ranks on one node
+#   clearly_mpirun_2_2node  command to run two ranks on two nodes (one rank/node)
 #
 if [[ $SLURM_JOB_ID ]]; then
-    ch_nodes=$SLURM_JOB_NUM_NODES
+    clearly_nodes=$SLURM_JOB_NUM_NODES
 else
-    ch_nodes=1
+    clearly_nodes=1
 fi
 # One rank per hyperthread can exhaust hardware contexts, resulting in
 # communication failure. Use one rank per core to avoid this. There are ways
 # to do this with Slurm, but they need Slurm configuration that seems
 # unreliably present. This seems to be the most portable way to do this.
-ch_cores_node=$(lscpu -p | tail -n +5 | sort -u -t, -k 2 | wc -l)
-ch_cores_total=$((ch_nodes * ch_cores_node))
-ch_mpirun_node=
-ch_mpirun_np="-np ${ch_cores_node}"
-ch_unslurm=
+clearly_cores_node=$(lscpu -p | tail -n +5 | sort -u -t, -k 2 | wc -l)
+clearly_cores_total=$((clearly_nodes * clearly_cores_node))
+clearly_mpirun_node=
+clearly_mpirun_np="-np ${clearly_cores_node}"
+clearly_unslurm=
 if [[ $SLURM_JOB_ID ]]; then
     [[ -z "$CLEARLY_TEST_SLURM_MPI" ]] || srun_mpi="--mpi=$CLEARLY_TEST_SLURM_MPI"
-    ch_multiprocess=yes
-    ch_mpirun_node="srun $srun_mpi --ntasks-per-node 1"
-    ch_mpirun_core="srun $srun_mpi --ntasks-per-node $ch_cores_node"
-    ch_mpirun_2="srun $srun_mpi -n2"
-    ch_mpirun_2_1node="srun $srun_mpi -N1 -n2"
+    clearly_multiprocess=yes
+    clearly_mpirun_node="srun $srun_mpi --ntasks-per-node 1"
+    clearly_mpirun_core="srun $srun_mpi --ntasks-per-node $clearly_cores_node"
+    clearly_mpirun_2="srun $srun_mpi -n2"
+    clearly_mpirun_2_1node="srun $srun_mpi -N1 -n2"
     # OpenMPI 3.1 pukes when guest-launched and Slurm environment variables
     # are present. Work around this by fooling OpenMPI into believing it’s not
     # in a Slurm allocation.
-    if [[ $ch_mpi = openmpi ]]; then
-        ch_unslurm='--unset-env=SLURM*'
+    if [[ $clearly_mpi = openmpi ]]; then
+        clearly_unslurm='--unset-env=SLURM*'
     fi
-    if [[ $ch_nodes -eq 1 ]]; then
-        ch_multinode=
-        ch_mpirun_2_2node=false
+    if [[ $clearly_nodes -eq 1 ]]; then
+        clearly_multinode=
+        clearly_mpirun_2_2node=false
     else
-        ch_multinode=yes
-        ch_mpirun_2_2node="srun $srun_mpi -N2 -n2"
+        clearly_multinode=yes
+        clearly_mpirun_2_2node="srun $srun_mpi -N2 -n2"
     fi
 else
-    ch_multinode=
-    ch_mpirun_2_2node=false
+    clearly_multinode=
+    clearly_mpirun_2_2node=false
     if command -v mpirun > /dev/null 2>&1; then
-        ch_multiprocess=yes
-        ch_mpirun_node='mpirun --map-by ppr:1:node'
-        ch_mpirun_core="mpirun ${ch_mpirun_np}"
-        ch_mpirun_2='mpirun -np 2'
-        ch_mpirun_2_1node='mpirun -np 2 --host localhost:2'
+        clearly_multiprocess=yes
+        clearly_mpirun_node='mpirun --map-by ppr:1:node'
+        clearly_mpirun_core="mpirun ${clearly_mpirun_np}"
+        clearly_mpirun_2='mpirun -np 2'
+        clearly_mpirun_2_1node='mpirun -np 2 --host localhost:2'
     else
-        ch_multiprocess=
-        ch_mpirun_node=''
-        ch_mpirun_core=false
-        ch_mpirun_2=false
-        ch_mpirun_2_1node=false
+        clearly_multiprocess=
+        clearly_mpirun_node=''
+        clearly_mpirun_core=false
+        clearly_mpirun_2=false
+        clearly_mpirun_2_1node=false
     fi
 fi
 
@@ -470,5 +470,5 @@ if    [[ $CLEARLY_TEST_SUDO ]] \
    && sudo true > /dev/null 2>&1; then
     # This isn’t super reliable; it returns true if we have *any* sudo
     # privileges, not specifically to run the commands we want to run.
-    ch_have_sudo=yes
+    clearly_have_sudo=yes
 fi

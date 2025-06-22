@@ -1,9 +1,9 @@
-CLEARLY_TEST_TAG=$ch_test_tag
+CLEARLY_TEST_TAG=$clearly_test_tag
 load "${CHTEST_DIR}/common.bash"
 
 setup () {
     scope full
-    prerequisites_ok "$ch_tag"
+    prerequisites_ok "$clearly_tag"
     pmix_or_skip
     # One iteration on most of these tests because we just care about
     # correctness, not performance. (If we let the benchmark choose, there is
@@ -41,11 +41,11 @@ check_process_ct () {
 }
 
 # one from "Single Transfer Benchmarks"
-@test "${ch_tag}/pingpong (guest launch)" {
+@test "${clearly_tag}/pingpong (guest launch)" {
     openmpi_or_skip
     # shellcheck disable=SC2086
-    run clearly run $ch_unslurm "$ch_img" -- \
-               "$ch_mpi_exe" $ch_mpirun_np "$imb_mpi1" $imb_args PingPong
+    run clearly run $clearly_unslurm "$clearly_img" -- \
+               "$clearly_mpi_exe" $clearly_mpirun_np "$imb_mpi1" $imb_args PingPong
     echo "$output"
     [[ $status -eq 0 ]]
     check_errors "$output"
@@ -54,34 +54,34 @@ check_process_ct () {
 }
 
 # one from "Parallel Transfer Benchmarks"
-@test "${ch_tag}/sendrecv (guest launch)" {
+@test "${clearly_tag}/sendrecv (guest launch)" {
     openmpi_or_skip
     # shellcheck disable=SC2086
-    run clearly run $ch_unslurm "$ch_img" -- \
-               "$ch_mpi_exe" $ch_mpirun_np "$imb_mpi1" $imb_args Sendrecv
+    run clearly run $clearly_unslurm "$clearly_img" -- \
+               "$clearly_mpi_exe" $clearly_mpirun_np "$imb_mpi1" $imb_args Sendrecv
     echo "$output"
     [[ $status -eq 0 ]]
     check_errors "$output"
-    check_process_ct "$ch_cores_node" "$output"
+    check_process_ct "$clearly_cores_node" "$output"
     check_finalized "$output"
 }
 
 # one from "Collective Benchmarks"
-@test "${ch_tag}/allreduce (guest launch)" {
+@test "${clearly_tag}/allreduce (guest launch)" {
     openmpi_or_skip
     # shellcheck disable=SC2086
-    run clearly run $ch_unslurm "$ch_img" -- \
-               "$ch_mpi_exe" $ch_mpirun_np "$imb_mpi1" $imb_args Allreduce
+    run clearly run $clearly_unslurm "$clearly_img" -- \
+               "$clearly_mpi_exe" $clearly_mpirun_np "$imb_mpi1" $imb_args Allreduce
     echo "$output"
     [[ $status -eq 0 ]]
     check_errors "$output"
-    check_process_ct "$ch_cores_node" "$output"
+    check_process_ct "$clearly_cores_node" "$output"
     check_finalized "$output"
 }
 
-@test "${ch_tag}/inject cray mpi ($cray_prov)" {
-    cray_ofi_or_skip "$ch_img"
-    run clearly run "$ch_img" -- fi_info
+@test "${clearly_tag}/inject cray mpi ($cray_prov)" {
+    cray_ofi_or_skip "$clearly_img"
+    run clearly run "$clearly_img" -- fi_info
     echo "$output"
     [[ $output == *"provider: $cray_prov"* ]]
     [[ $output == *"fabric: $cray_prov"* ]]
@@ -91,10 +91,10 @@ check_process_ct () {
 # This test compares OpenMPI’s point to point bandwidth with all high speed
 # plugins enabled against the performance just using TCP. Pass if HSN
 # performance is at least double TCP.
-@test "${ch_tag}/using the high-speed network (host launch)" {
+@test "${clearly_tag}/using the high-speed network (host launch)" {
     multiprocess_ok
-    [[ $ch_multinode ]] || skip "multinode only"
-    if [[ $ch_cray ]]; then
+    [[ $clearly_multinode ]] || skip "multinode only"
+    if [[ $clearly_cray ]]; then
         [[ $cray_prov == 'gni' ]] && skip "gni doesn't support tcp"
     fi
     openmpi_or_skip
@@ -104,13 +104,13 @@ check_process_ct () {
         pedantic_fail "no high speed network detected"
     fi
     # shellcheck disable=SC2086
-    hsn_enabled_bw=$($ch_mpirun_2_2node clearly run \
-                       "$ch_img" -- "$imb_mpi1" $imb_perf_args Sendrecv \
+    hsn_enabled_bw=$($clearly_mpirun_2_2node clearly run \
+                       "$clearly_img" -- "$imb_mpi1" $imb_perf_args Sendrecv \
                      | tail -n +35 | sort -nrk6 | head -1 | awk '{print $6}')
     # Configure network transport plugins to TCP only.
     # shellcheck disable=SC2086
     hsn_disabled_bw=$(OMPI_MCA_pml=ob1 OMPI_MCA_btl=tcp,self \
-                      $ch_mpirun_2_2node clearly run "$ch_img" -- \
+                      $clearly_mpirun_2_2node clearly run "$clearly_img" -- \
                       "$imb_mpi1" $imb_perf_args Sendrecv | tail -n +35 \
                       | sort -nrk6 | head -1 | awk '{print $6}')
     echo "Max bandwidth with high speed network: $hsn_enabled_bw MB/s"
@@ -118,10 +118,10 @@ check_process_ct () {
     [[ ${hsn_disabled_bw%\.*} -lt $((${hsn_enabled_bw%\.*} / 2)) ]]
 }
 
-@test "${ch_tag}/pingpong (host launch)" {
+@test "${clearly_tag}/pingpong (host launch)" {
     multiprocess_ok
     # shellcheck disable=SC2086
-    run $ch_mpirun_core clearly run --join "$ch_img" -- \
+    run $clearly_mpirun_core clearly run --join "$clearly_img" -- \
                                "$imb_mpi1" $imb_args PingPong
     echo "$output"
     [[ $status -eq 0 ]]
@@ -130,30 +130,30 @@ check_process_ct () {
     check_finalized "$output"
 }
 
-@test "${ch_tag}/sendrecv (host launch)" {
+@test "${clearly_tag}/sendrecv (host launch)" {
     multiprocess_ok
     # shellcheck disable=SC2086
-    run $ch_mpirun_core clearly run --join "$ch_img" -- \
+    run $clearly_mpirun_core clearly run --join "$clearly_img" -- \
                                "$imb_mpi1" $imb_args Sendrecv
     echo "$output"
     [[ $status -eq 0 ]]
     check_errors "$output"
-    check_process_ct "$ch_cores_total" "$output"
+    check_process_ct "$clearly_cores_total" "$output"
     check_finalized "$output"
 }
 
-@test "${ch_tag}/allreduce (host launch)" {
+@test "${clearly_tag}/allreduce (host launch)" {
     multiprocess_ok
     # shellcheck disable=SC2086
-    run $ch_mpirun_core clearly run --join "$ch_img" -- \
+    run $clearly_mpirun_core clearly run --join "$clearly_img" -- \
                                "$imb_mpi1" $imb_args Allreduce
     echo "$output"
     [[ $status -eq 0 ]]
     check_errors "$output"
-    check_process_ct "$ch_cores_total" "$output"
+    check_process_ct "$clearly_cores_total" "$output"
     check_finalized "$output"
 }
 
-@test "${ch_tag}/revert image" {
-    unpack_img_all_nodes "$ch_cray"
+@test "${clearly_tag}/revert image" {
+    unpack_img_all_nodes "$clearly_cray"
 }

@@ -30,29 +30,29 @@ setup () {
 
 @test 'user and group as specified' {
     # shellcheck disable=SC2086
-    g=$(clearly run $uid_args $gid_args "$ch_timg" -- id -un)
+    g=$(clearly run $uid_args $gid_args "$clearly_timg" -- id -un)
     [[ $GUEST_USER = "$g" ]]
     # shellcheck disable=SC2086
-    g=$(clearly run $uid_args $gid_args "$ch_timg" -- id -u)
+    g=$(clearly run $uid_args $gid_args "$clearly_timg" -- id -u)
     [[ $guest_uid = "$g" ]]
     # shellcheck disable=SC2086
-    g=$(clearly run $uid_args $gid_args "$ch_timg" -- id -gn)
+    g=$(clearly run $uid_args $gid_args "$clearly_timg" -- id -gn)
     [[ $GUEST_GROUP = "$g" ]]
     # shellcheck disable=SC2086
-    g=$(clearly run $uid_args $gid_args "$ch_timg" -- id -g)
+    g=$(clearly run $uid_args $gid_args "$clearly_timg" -- id -g)
     [[ $guest_gid = "$g" ]]
 }
 
 @test 'chroot escape' {
     # Try to escape a chroot(2) using the standard approach.
     # shellcheck disable=SC2086
-    clearly run $uid_args $gid_args "$ch_timg" -- /test/chroot-escape
+    clearly run $uid_args $gid_args "$clearly_timg" -- /test/chroot-escape
 }
 
 @test '/dev /proc /sys' {
     # Read some files in /dev, /proc, and /sys that I shouldn’t have access to.
     # shellcheck disable=SC2086
-    clearly run $uid_args $gid_args "$ch_timg" -- /test/dev_proc_sys.py
+    clearly run $uid_args $gid_args "$clearly_timg" -- /test/dev_proc_sys.py
 }
 
 @test 'filesystem permission enforcement' {
@@ -62,7 +62,7 @@ setup () {
         echo "verifying: ${d}"
         # shellcheck disable=SC2086
         clearly run --private-tmp \
-               $uid_args $gid_args -b "$d:/mnt/0" "$ch_timg" -- \
+               $uid_args $gid_args -b "$d:/mnt/0" "$clearly_timg" -- \
                /test/fs_perms.py /mnt/0
     done
 }
@@ -71,7 +71,7 @@ setup () {
     # Make some device files. If this works, we might be able to later read or
     # write them to do things we shouldn’t. Try on all mount points.
     # shellcheck disable=SC2016,SC2086
-    clearly run $uid_args $gid_args "$ch_timg" -- \
+    clearly run $uid_args $gid_args "$clearly_timg" -- \
            sh -c '/test/mknods $(cat /proc/mounts | cut -d" " -f2)'
 }
 
@@ -82,7 +82,7 @@ setup () {
     # Hence the awk voodoo.
     addrs=$(ip -o addr | awk '/inet / {gsub(/\/.*/, " ",$4); print $4}')
     # shellcheck disable=SC2086
-    clearly run $uid_args $gid_args "$ch_timg" -- /test/bind_priv.py $addrs
+    clearly run $uid_args $gid_args "$clearly_timg" -- /test/bind_priv.py $addrs
 }
 
 @test 'remount host root' {
@@ -97,13 +97,13 @@ setup () {
     #     over-mount something else.
     #
     # shellcheck disable=SC2086
-    clearly run $uid_args $gid_args "$ch_timg" -- \
+    clearly run $uid_args $gid_args "$clearly_timg" -- \
            sh -c '[ -f /bin/mount -a -x /bin/mount ]'
     dev=$(findmnt -n -o SOURCE -T /)
     type=$(findmnt -n -o FSTYPE -T /)
     opts=$(findmnt -n -o OPTIONS -T /)
     # shellcheck disable=SC2086
-    run clearly run $uid_args $gid_args "$ch_timg" -- \
+    run clearly run $uid_args $gid_args "$clearly_timg" -- \
                /bin/mount -n -o "$opts" -t "$type" "$dev" /mnt/0
     echo "$output"
     # return codes from http://man7.org/linux/man-pages/man8/mount.8.html
@@ -139,13 +139,13 @@ setup () {
 @test 'setgroups(2)' {
     # Can we change our supplemental groups?
     # shellcheck disable=SC2086
-    clearly run $uid_args $gid_args "$ch_timg" -- /test/setgroups
+    clearly run $uid_args $gid_args "$clearly_timg" -- /test/setgroups
 }
 
 @test 'seteuid(2)' {
     # Try to seteuid(2) to another UID we shouldn’t have access to
     # shellcheck disable=SC2086
-    clearly run $uid_args $gid_args "$ch_timg" -- /test/setuid
+    clearly run $uid_args $gid_args "$clearly_timg" -- /test/setuid
 }
 
 @test 'signal process outside container' {
@@ -157,5 +157,5 @@ setup () {
     # documentation on how to configure this. See also e.g. issue #840.
     [[ $(pgrep -c getty) -eq 0 ]] && pedantic_fail 'no getty process found'
     # shellcheck disable=SC2086
-    clearly run $uid_args $gid_args "$ch_timg" -- /test/signal_out.py
+    clearly run $uid_args $gid_args "$clearly_timg" -- /test/signal_out.py
 }

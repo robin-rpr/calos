@@ -13,7 +13,7 @@ source common.bash  # for ShellCheck; removed by ch-test
             false  # unknown format
             ;;
     esac
-    archive=${ch_tardir}/%(tag)s.${ext}
+    archive=${clearly_tardir}/%(tag)s.${ext}
     clearly convert -i "$CLEARLY_TEST_BUILDER" '%(tag)s' "$archive"
     archive_grep "$archive"
     archive_ok "$archive"

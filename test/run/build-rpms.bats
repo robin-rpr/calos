@@ -12,7 +12,7 @@ setup () {
 @test 'build/install el7 RPMs' {
     scope full
     prerequisites_ok centos_7ch
-    img=${ch_imgdir}/centos_7ch
+    img=${clearly_imgdir}/centos_7ch
     image_ok "$img"
     rm -rf --one-file-system "${BATS_TMPDIR}/rpmbuild"
 
@@ -24,7 +24,7 @@ setup () {
 @test 'check el7 RPM files' {
     scope full
     prerequisites_ok centos_7ch
-    img=${ch_imgdir}/centos_7ch
+    img=${clearly_imgdir}/centos_7ch
     # Do installed RPMs look sane?
     run clearly run "$img" -- rpm -qa "clearly*"
     echo "$output"
@@ -65,7 +65,7 @@ setup () {
 @test 'remove el7 RPMs' {
     scope full
     prerequisites_ok centos_7ch
-    img=${ch_imgdir}/centos_7ch
+    img=${clearly_imgdir}/centos_7ch
     # Uninstall to avoid interfering with the rest of the test suite.
     run clearly run -w "$img" -- rpm -v --erase clearly-test \
                                            clearly-debuginfo \
@@ -89,7 +89,7 @@ setup () {
 @test 'build/install el8 RPMS' {
     scope standard
     prerequisites_ok almalinux_8ch
-    img=${ch_imgdir}/almalinux_8ch
+    img=${clearly_imgdir}/almalinux_8ch
     image_ok "$img"
     rm -Rf --one-file-system "${BATS_TMPDIR}/rpmbuild"
 
@@ -101,7 +101,7 @@ setup () {
 @test 'check el8 RPM files' {
     scope standard
     prerequisites_ok almalinux_8ch
-    img=${ch_imgdir}/almalinux_8ch
+    img=${clearly_imgdir}/almalinux_8ch
     # Do installed RPMs look sane?
     run clearly run "$img" -- rpm -qa "clearly*"
     echo "$output"
@@ -134,7 +134,7 @@ setup () {
 @test 'remove el8 RPMs' {
     scope standard
     prerequisites_ok almalinux_8ch
-    img=${ch_imgdir}/almalinux_8ch
+    img=${clearly_imgdir}/almalinux_8ch
     # Uninstall to avoid interfering with the rest of the test suite.
     run clearly run -w "$img" -- rpm -v --erase clearly-debuginfo \
                                            clearly-doc \

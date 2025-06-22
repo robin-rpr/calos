@@ -1,48 +1,48 @@
-CLEARLY_TEST_TAG=$ch_test_tag
+CLEARLY_TEST_TAG=$clearly_test_tag
 load "${CHTEST_DIR}/common.bash"
 
 setup () {
     prerequisites_ok multistage
 }
 
-@test "${ch_tag}/hello" {
-    run clearly run "$ch_img" -- hello -g 'Hello, Clearly!'
+@test "${clearly_tag}/hello" {
+    run clearly run "$clearly_img" -- hello -g 'Hello, Clearly!'
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = 'Hello, Clearly!' ]]
 }
 
-@test "${ch_tag}/man hello" {
-    clearly run "$ch_img" -- man hello > /dev/null
+@test "${clearly_tag}/man hello" {
+    clearly run "$clearly_img" -- man hello > /dev/null
 }
 
-@test "${ch_tag}/files seem OK" {
+@test "${clearly_tag}/files seem OK" {
     [[ $CLEARLY_TEST_PACK_FMT = squash-mount ]] && skip 'need directory image'
     # hello executable itself.
-    test -x "${ch_img}/usr/local/bin/hello"
+    test -x "${clearly_img}/usr/local/bin/hello"
     # Present by default.
-    test -d "${ch_img}/usr/local/share/applications"
-    test -d "${ch_img}/usr/local/share/info"
-    test -d "${ch_img}/usr/local/share/man"
+    test -d "${clearly_img}/usr/local/share/applications"
+    test -d "${clearly_img}/usr/local/share/info"
+    test -d "${clearly_img}/usr/local/share/man"
     # Copied from first stage.
-    test -d "${ch_img}/usr/local/share/locale"
+    test -d "${clearly_img}/usr/local/share/locale"
     # Correct file count in directories.
-    ls -lh "${ch_img}/usr/local/bin"
-    [[ $(find "${ch_img}/usr/local/bin" -mindepth 1 -maxdepth 1 | wc -l) -eq 1 ]]
-    ls -lh "${ch_img}/usr/local/share"
-    [[ $(find "${ch_img}/usr/local/share" -mindepth 1 -maxdepth 1 | wc -l) -eq 4 ]]
+    ls -lh "${clearly_img}/usr/local/bin"
+    [[ $(find "${clearly_img}/usr/local/bin" -mindepth 1 -maxdepth 1 | wc -l) -eq 1 ]]
+    ls -lh "${clearly_img}/usr/local/share"
+    [[ $(find "${clearly_img}/usr/local/share" -mindepth 1 -maxdepth 1 | wc -l) -eq 4 ]]
 }
 
-@test "${ch_tag}/no first-stage stuff present" {
+@test "${clearly_tag}/no first-stage stuff present" {
     # Can’t run GCC.
-    run clearly run "$ch_img" -- gcc --version
+    run clearly run "$clearly_img" -- gcc --version
     echo "$output"
     [[ $status -eq $CLEARLY_ERR_CMD ]]
     [[ $output = *'gcc: No such file or directory'* ]]
 
     # No GCC or Make.
-    ls -lh "${ch_img}/usr/bin/gcc" || true
-    [[ ! -f "${ch_img}/usr/bin/gcc" ]]
-    ls -lh "${ch_img}/usr/bin/make" || true
-    [[ ! -f "${ch_img}/usr/bin/make" ]]
+    ls -lh "${clearly_img}/usr/bin/gcc" || true
+    [[ ! -f "${clearly_img}/usr/bin/gcc" ]]
+    ls -lh "${clearly_img}/usr/bin/make" || true
+    [[ ! -f "${clearly_img}/usr/bin/make" ]]
 }

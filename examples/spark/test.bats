@@ -1,4 +1,4 @@
-CLEARLY_TEST_TAG=$ch_test_tag
+CLEARLY_TEST_TAG=$clearly_test_tag
 load "${CHTEST_DIR}/common.bash"
 
 # Note: If you get output like the following (piping through cat turns off
@@ -30,7 +30,7 @@ setup () {
     spark_config=$spark_dir
     spark_log=/tmp/sparklog
     confbind=${spark_config}:/mnt/0
-    if [[ $ch_multinode ]]; then
+    if [[ $clearly_multinode ]]; then
         # We use hostname to determine the interface to use for this test,
         # avoiding complicated logic determining which interface is the HSN.
         # In many environments this likely results in the tests running over
@@ -50,14 +50,14 @@ setup () {
 }
 
 
-@test "${ch_tag}/configure" {
+@test "${clearly_tag}/configure" {
     # check for restrictive umask
     run umask -S
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = 'u=rwx,g=,o=' ]]
     # create config
-    $ch_mpirun_node mkdir -p "$spark_config"
+    $clearly_mpirun_node mkdir -p "$spark_config"
     # We set JAVA_HOME in the spark environment file as this appears to be the
     # idiomatic method for ensuring spark finds the java install.
     tee <<EOF > "${spark_config}/spark-env.sh"
@@ -73,18 +73,18 @@ EOF
 spark.authenticate.true
 spark.authenticate.secret ${my_secret}
 EOF
-    if [[ $ch_multinode ]]; then
+    if [[ $clearly_multinode ]]; then
         sbcast -f "${spark_config}/spark-env.sh" "${spark_config}/spark-env.sh"
         sbcast -f "${spark_config}/spark-defaults.conf" "${spark_config}/spark-defaults.conf"
     fi
 }
 
 
-@test "${ch_tag}/start" {
+@test "${clearly_tag}/start" {
     # remove old master logs so new one has predictable name
     rm -Rf --one-file-system "$spark_log"
     # start the master
-    clearly run -b "$confbind" "$ch_img" -- /opt/spark/sbin/start-master.sh
+    clearly run -b "$confbind" "$clearly_img" -- /opt/spark/sbin/start-master.sh
     sleep 15
     # shellcheck disable=SC2086
     cat $master_log
@@ -92,20 +92,20 @@ EOF
     grep -Fq 'New state: ALIVE' $master_log
     # start the workers
     # shellcheck disable=SC2086
-    $pernode clearly run -b "$confbind" "$ch_img" -- \
+    $pernode clearly run -b "$confbind" "$clearly_img" -- \
                     /opt/spark/sbin/start-worker.sh "$master_url"
     sleep 15
 }
 
 
-@test "${ch_tag}/worker count" {
+@test "${clearly_tag}/worker count" {
     # Note that in the log, each worker shows up as 127.0.0.1, which might
     # lead you to believe that all the workers started on the same (master)
     # node. However, I believe this string is self-reported by the workers and
     # is an artifact of SPARK_LOCAL_IP=127.0.0.1 above, which AFAICT just
     # tells the workers to put their web interfaces on localhost. They still
     # connect to the master and get work OK.
-    [[ -z $ch_multinode ]] && SLURM_NNODES=1
+    [[ -z $clearly_multinode ]] && SLURM_NNODES=1
     # shellcheck disable=SC2086
     worker_ct=$(grep -Fc 'Registering worker' $master_log || true)
     echo "node count: $SLURM_NNODES; worker count: ${worker_ct}"
@@ -113,8 +113,8 @@ EOF
 }
 
 
-@test "${ch_tag}/pi" {
-    run clearly run -b "$confbind" "$ch_img" -- \
+@test "${clearly_tag}/pi" {
+    run clearly run -b "$confbind" "$clearly_img" -- \
                /opt/spark/bin/spark-submit --master "$master_url" \
                /opt/spark/examples/src/main/python/pi.py 64
     echo "$output"
@@ -125,9 +125,9 @@ EOF
 }
 
 
-@test "${ch_tag}/stop" {
-    $pernode clearly run -b "$confbind" "$ch_img" -- /opt/spark/sbin/stop-worker.sh
-    clearly run -b "$confbind" "$ch_img" -- /opt/spark/sbin/stop-master.sh
+@test "${clearly_tag}/stop" {
+    $pernode clearly run -b "$confbind" "$clearly_img" -- /opt/spark/sbin/stop-worker.sh
+    clearly run -b "$confbind" "$clearly_img" -- /opt/spark/sbin/stop-master.sh
     sleep 2
     # Any Spark processes left?
     # (Use egrep instead of fgrep so we don’t match the grep process.)
@@ -136,7 +136,7 @@ EOF
 }
 
 
-@test "${ch_tag}/hang" {
+@test "${clearly_tag}/hang" {
     # If there are any test processes remaining, this test will hang.
     true
 }

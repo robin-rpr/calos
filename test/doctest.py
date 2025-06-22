@@ -35,8 +35,8 @@ if (module_name in ("-h", "--help", "-?")):
 
 # Import target module.
 
-ch_lib = os.path.dirname(os.path.abspath(__file__)) + "/../lib"
-sys.path.insert(0, ch_lib)
+clearly_lib = os.path.dirname(os.path.abspath(__file__)) + "/../lib"
+sys.path.insert(0, clearly_lib)
 import _clearly as clearly  # avoid circular import problems
 print("imported %s from %s" % (clearly.__name__, clearly.__file__))
 module = importlib.import_module(module_name)

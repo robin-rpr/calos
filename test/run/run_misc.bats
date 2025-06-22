@@ -18,20 +18,20 @@ demand-overlayfs () {
 
 @test 'relative path to image' {  # issue #6
     scope full
-    cd "$(dirname "$ch_timg")" && clearly run "$(basename "$ch_timg")" -- /bin/true
+    cd "$(dirname "$clearly_timg")" && clearly run "$(basename "$clearly_timg")" -- /bin/true
 }
 
 
 @test 'symlink to image' {  # issue #50
     scope full
-    ln -sf "$ch_timg" "${BATS_TMPDIR}/symlink-test"
+    ln -sf "$clearly_timg" "${BATS_TMPDIR}/symlink-test"
     clearly run "${BATS_TMPDIR}/symlink-test" -- /bin/true
 }
 
 
 @test 'mount image read-only' {
     scope standard
-    run clearly run "$ch_timg" sh <<EOF
+    run clearly run "$clearly_timg" sh <<EOF
 set -e
 dd if=/dev/zero bs=1 count=1 of=/out
 EOF
@@ -44,19 +44,19 @@ EOF
 @test 'mount image read-write' {
     scope standard
     [[ $CLEARLY_TEST_PACK_FMT = *-unpack ]] || skip 'needs writeable image'
-    clearly run -w "$ch_timg" -- sh -c 'echo writable > write'
-    clearly run -w "$ch_timg" rm write
+    clearly run -w "$clearly_timg" -- sh -c 'echo writable > write'
+    clearly run -w "$clearly_timg" rm write
 }
 
 
 @test 'optional default bind mounts silently skipped' {
     scope standard
 
-    [[ ! -e "${ch_timg}/var/opt/cray/alps/spool" ]]
-    [[ ! -e "${ch_timg}/var/opt/cray/hugetlbfs" ]]
+    [[ ! -e "${clearly_timg}/var/opt/cray/alps/spool" ]]
+    [[ ! -e "${clearly_timg}/var/opt/cray/hugetlbfs" ]]
 
-    clearly run "$ch_timg" -- mount | ( ! grep -F /var/opt/cray/alps/spool )
-    clearly run "$ch_timg" -- mount | ( ! grep -F /var/opt/cray/hugetlbfs )
+    clearly run "$clearly_timg" -- mount | ( ! grep -F /var/opt/cray/alps/spool )
+    clearly run "$clearly_timg" -- mount | ( ! grep -F /var/opt/cray/hugetlbfs )
 }
 
 
@@ -68,7 +68,7 @@ EOF
       false
     fi
 
-    run clearly run "$ch_timg" -- /bin/sh -c 'env | grep -E ^CLEARLY_RUNNING'
+    run clearly run "$clearly_timg" -- /bin/sh -c 'env | grep -E ^CLEARLY_RUNNING'
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = 'CLEARLY_RUNNING=Weird Al Yankovic' ]]
@@ -87,27 +87,27 @@ EOF
 
     # default: no change
     # shellcheck disable=SC2016,SC2154
-    run clearly run "${ch_imgdir}"/quick -- /bin/sh -c 'echo $HOME'
+    run clearly run "${clearly_imgdir}"/quick -- /bin/sh -c 'echo $HOME'
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = "/root" ]]
 
     # default: no “/root”
     # shellcheck disable=SC2016
-    run clearly run "$ch_timg" -- /bin/sh -c 'echo $HOME'
+    run clearly run "$clearly_timg" -- /bin/sh -c 'echo $HOME'
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = "/" ]]
 
     # set $HOME if --home
     # shellcheck disable=SC2016
-    run clearly run --home "$ch_timg" -- /bin/sh -c 'echo $HOME'
+    run clearly run --home "$clearly_timg" -- /bin/sh -c 'echo $HOME'
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = /home/$USER ]]
 
     # /home is merged if --home
-    run clearly run --home "$ch_timg" -- ls -1 /home
+    run clearly run --home "$clearly_timg" -- ls -1 /home
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = *directory-in-home* ]]
@@ -118,7 +118,7 @@ EOF
     home_tmp=$HOME
     unset HOME
     # shellcheck disable=SC2016
-    run clearly run --home "$ch_timg" -- /bin/sh -c 'echo $HOME'
+    run clearly run --home "$clearly_timg" -- /bin/sh -c 'echo $HOME'
     export HOME="$home_tmp"
     echo "$output"
     [[ $status -eq $CLEARLY_ERR_MISC ]]
@@ -132,25 +132,25 @@ EOF
     echo "$PATH"
     # if /bin is in $PATH, latter passes through unchanged
     # shellcheck disable=SC2154
-    PATH2="$ch_bin:/bin:/usr/bin"
+    PATH2="$clearly_bin:/bin:/usr/bin"
     echo "$PATH2"
     # shellcheck disable=SC2016
-    PATH=$PATH2 run clearly run "$ch_timg" -- /bin/sh -c 'echo $PATH'
+    PATH=$PATH2 run clearly run "$clearly_timg" -- /bin/sh -c 'echo $PATH'
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = "$PATH2" ]]
-    PATH2="/bin:$ch_bin:/usr/bin"
+    PATH2="/bin:$clearly_bin:/usr/bin"
     echo "$PATH2"
     # shellcheck disable=SC2016
-    PATH=$PATH2 run clearly run "$ch_timg" -- /bin/sh -c 'echo $PATH'
+    PATH=$PATH2 run clearly run "$clearly_timg" -- /bin/sh -c 'echo $PATH'
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = "$PATH2" ]]
     # if /bin isn’t in $PATH, former is added to end
-    PATH2="$ch_bin:/usr/bin"
+    PATH2="$clearly_bin:/usr/bin"
     echo "$PATH2"
     # shellcheck disable=SC2016
-    PATH=$PATH2 run clearly run "$ch_timg" -- /bin/sh -c 'echo $PATH'
+    PATH=$PATH2 run clearly run "$clearly_timg" -- /bin/sh -c 'echo $PATH'
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = $PATH2:/bin ]]
@@ -162,7 +162,7 @@ EOF
     old_path=$PATH
     unset PATH
     # shellcheck disable=SC2154
-    run "$ch_runfile" "$ch_timg" -- \
+    run "$clearly_runfile" "$clearly_timg" -- \
         /usr/bin/python3 -c 'import os; print(os.getenv("PATH") is None)'
     PATH=$old_path
     echo "$output"
@@ -177,7 +177,7 @@ EOF
     scope standard
     mkdir -p "${BATS_TMPDIR}/tmpdir"
     touch "${BATS_TMPDIR}/tmpdir/file-in-tmpdir"
-    TMPDIR=${BATS_TMPDIR}/tmpdir run clearly run "$ch_timg" -- ls -1 /tmp
+    TMPDIR=${BATS_TMPDIR}/tmpdir run clearly run "$clearly_timg" -- ls -1 /tmp
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = file-in-tmpdir ]]
@@ -187,19 +187,19 @@ EOF
 @test 'clearly run --cd' {
     scope quick
     # Default initial working directory is /.
-    run clearly run "$ch_timg" -- pwd
+    run clearly run "$clearly_timg" -- pwd
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = '/' ]]
 
     # Specify initial working directory.
-    run clearly run --cd /dev "$ch_timg" -- pwd
+    run clearly run --cd /dev "$clearly_timg" -- pwd
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = '/dev' ]]
 
     # Error if directory does not exist.
-    run clearly run --cd /goops "$ch_timg" -- /bin/true
+    run clearly run --cd /goops "$clearly_timg" -- /bin/true
     echo "$output"
     [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output =~ "can't cd to /goops: No such file or directory" ]]
@@ -211,32 +211,32 @@ EOF
     demand-overlayfs
 
     # one bind, default destination
-    clearly run -b /mnt "$ch_timg" -- ls -lh /mnt
+    clearly run -b /mnt "$clearly_timg" -- ls -lh /mnt
     # one bind, explicit destination
-    clearly run -b "${bind1_dir}:/mnt/9" "$ch_timg" -- cat /mnt/9/file1
+    clearly run -b "${bind1_dir}:/mnt/9" "$clearly_timg" -- cat /mnt/9/file1
 
     # one bind, create destination, one level
-    clearly run -W -b "${bind1_dir}:/bind3" "$ch_timg" -- cat /bind3/file1
+    clearly run -W -b "${bind1_dir}:/bind3" "$clearly_timg" -- cat /bind3/file1
     # one bind, create destination, two levels
-    clearly run -W -b "${bind1_dir}:/bind4/a" "$ch_timg" -- cat /bind4/a/file1
+    clearly run -W -b "${bind1_dir}:/bind4/a" "$clearly_timg" -- cat /bind4/a/file1
 
     # two binds, default destination
-    clearly run -b /mnt -b /var "$ch_timg" -- ls -lh /mnt /var
+    clearly run -b /mnt -b /var "$clearly_timg" -- ls -lh /mnt /var
     # two binds, explicit destinations
-    clearly run -b "${bind1_dir}:/mnt/8" -b "${bind2_dir}:/mnt/9" "$ch_timg" \
+    clearly run -b "${bind1_dir}:/mnt/8" -b "${bind2_dir}:/mnt/9" "$clearly_timg" \
            -- cat /mnt/8/file1 /mnt/9/file2
     # two binds, default/explicit
-    clearly run -b /var -b "${bind2_dir}:/mnt/9" "$ch_timg" \
+    clearly run -b /var -b "${bind2_dir}:/mnt/9" "$clearly_timg" \
            -- ls -lh /var /mnt/9/file2
     # two binds, explicit/default
-    clearly run -b "${bind1_dir}:/mnt/8" -b /var "$ch_timg" \
+    clearly run -b "${bind1_dir}:/mnt/8" -b /var "$clearly_timg" \
            -- ls -lh /mnt/8/file1 /var
 
     # bind one source at two destinations
-    clearly run -b "${bind1_dir}:/mnt/8" -b "${bind1_dir}:/mnt/9" "$ch_timg" \
+    clearly run -b "${bind1_dir}:/mnt/8" -b "${bind1_dir}:/mnt/9" "$clearly_timg" \
            -- diff -u /mnt/8/file1 /mnt/9/file1
     # bind two sources at one destination
-    clearly run -b "${bind1_dir}:/mnt/9" -b "${bind2_dir}:/mnt/9" "$ch_timg" \
+    clearly run -b "${bind1_dir}:/mnt/9" -b "${bind2_dir}:/mnt/9" "$clearly_timg" \
            -- sh -c '[ ! -e /mnt/9/file1 ] && cat /mnt/9/file2'
 }
 
@@ -261,7 +261,7 @@ EOF
 
     rm-img
     # shellcheck disable=SC2154
-    clearly convert "$ch_tardir"/chtest.* "$img"
+    clearly convert "$clearly_tardir"/chtest.* "$img"
     ls -l "$img"
     mkdir "$img"/foo
     touch "$img"/foo/file-in-foo
@@ -302,118 +302,118 @@ EOF
     demand-overlayfs
 
     # no argument to --bind
-    run clearly run "$ch_timg" -b
+    run clearly run "$clearly_timg" -b
     echo "$output"
     [[ $status -eq 64 ]]
     [[ $output = *'option requires an argument'* ]]
 
     # empty argument to --bind
-    run clearly run -b '' "$ch_timg" -- /bin/true
+    run clearly run -b '' "$clearly_timg" -- /bin/true
     echo "$output"
     [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output = *'--bind: no source provided'* ]]
 
     # source not provided
-    run clearly run -b :/mnt/9 "$ch_timg" -- /bin/true
+    run clearly run -b :/mnt/9 "$clearly_timg" -- /bin/true
     echo "$output"
     [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output = *'--bind: no source provided'* ]]
 
     # destination not provided
-    run clearly run -b "${bind1_dir}:" "$ch_timg" -- /bin/true
+    run clearly run -b "${bind1_dir}:" "$clearly_timg" -- /bin/true
     echo "$output"
     [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output = *'--bind: no destination provided'* ]]
 
     # destination is /
-    run clearly run -b "${bind1_dir}:/" "$ch_timg" -- /bin/true
+    run clearly run -b "${bind1_dir}:/" "$clearly_timg" -- /bin/true
     echo "$output"
     [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output = *"--bind: destination can't be /"* ]]
 
     # destination is relative
-    run clearly run -b "${bind1_dir}:foo" "$ch_timg" -- /bin/true
+    run clearly run -b "${bind1_dir}:foo" "$clearly_timg" -- /bin/true
     echo "$output"
     [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output = *"--bind: destination must be absolute"* ]]
 
     # destination climbs out of image, exists
-    run clearly run -b "${bind1_dir}:/.." "$ch_timg" -- /bin/true
+    run clearly run -b "${bind1_dir}:/.." "$clearly_timg" -- /bin/true
     echo "$output"
     [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output = *"can't bind: "*"/${USER}.clearly not subdirectory of "*"/${USER}.clearly/mnt"* ]]
 
     # destination climbs out of image, does not exist
-    run clearly run -b "${bind1_dir}:/../doesnotexist/a" "$ch_timg" -- /bin/true
+    run clearly run -b "${bind1_dir}:/../doesnotexist/a" "$clearly_timg" -- /bin/true
     echo "$output"
     [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output = *"can't mkdir: "*"/${USER}.clearly/doesnotexist not subdirectory of "*"/${USER}.clearly/mnt"* ]]
-    [[ ! -e ${ch_imgdir}/doesnotexist ]]
+    [[ ! -e ${clearly_imgdir}/doesnotexist ]]
 
     # source does not exist
-    run clearly run -b "/doesnotexist" "$ch_timg" -- /bin/true
+    run clearly run -b "/doesnotexist" "$clearly_timg" -- /bin/true
     echo "$output"
     [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output = *"can't bind: source not found: /doesnotexist"* ]]
 
     # destination does not exist and image is not writeable
-    run clearly run -b "${bind1_dir}:/doesnotexist" "$ch_timg" -- /bin/true
+    run clearly run -b "${bind1_dir}:/doesnotexist" "$clearly_timg" -- /bin/true
     echo "$output"
     [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output = *"can't mkdir: "*"/${USER}.clearly/mnt/doesnotexist: Read-only file system"* ]]
 
     # neither source nor destination exist
-    run clearly run -b /doesnotexist-out:/doesnotexist-in "$ch_timg" -- /bin/true
+    run clearly run -b /doesnotexist-out:/doesnotexist-in "$clearly_timg" -- /bin/true
     echo "$output"
     [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output = *"can't bind: source not found: /doesnotexist-out"* ]]
 
     # correct bind followed by source does not exist
-    run clearly run -b "${bind1_dir}:/mnt/0" -b /doesnotexist "$ch_timg" -- /bin/true
+    run clearly run -b "${bind1_dir}:/mnt/0" -b /doesnotexist "$clearly_timg" -- /bin/true
     echo "$output"
     [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output = *"can't bind: source not found: /doesnotexist"* ]]
 
     # correct bind followed by destination does not exist
     run clearly run -b "${bind1_dir}:/mnt/0" -b "${bind2_dir}:/doesnotexist" \
-               "$ch_timg" -- /bin/true
+               "$clearly_timg" -- /bin/true
     echo "$output"
     [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output = *"can't mkdir: "*"/${USER}.clearly/mnt/doesnotexist: Read-only file system"* ]]
 
     # destination is broken symlink
-    run clearly run -b "${bind1_dir}:/mnt/link-b0rken-abs" "$ch_timg" -- /bin/true
+    run clearly run -b "${bind1_dir}:/mnt/link-b0rken-abs" "$clearly_timg" -- /bin/true
     echo "$output"
     [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output = *"can't mkdir: symlink not relative: "*"/${USER}.clearly/mnt/mnt/link-b0rken-abs"* ]]
 
     # destination is absolute symlink outside image
-    run clearly run -b "${bind1_dir}:/mnt/link-bad-abs" "$ch_timg" -- /bin/true
+    run clearly run -b "${bind1_dir}:/mnt/link-bad-abs" "$clearly_timg" -- /bin/true
     echo "$output"
     [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output = *"can't bind: "*" not subdirectory of"* ]]
 
     # destination relative symlink outside image
-    run clearly run -b "${bind1_dir}:/mnt/link-bad-rel" "$ch_timg" -- /bin/true
+    run clearly run -b "${bind1_dir}:/mnt/link-bad-rel" "$clearly_timg" -- /bin/true
     echo "$output"
     [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output = *"can't bind: "*" not subdirectory of"* ]]
 
     # mkdir(2) under existing bind-mount, default, first level
-    run clearly run -b "${bind1_dir}:/proc/doesnotexist" "$ch_timg" -- /bin/true
+    run clearly run -b "${bind1_dir}:/proc/doesnotexist" "$clearly_timg" -- /bin/true
     echo "$output"
     [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output = *"can't mkdir: "*"/${USER}.clearly/mnt/proc/doesnotexist under existing bind-mount "*"/${USER}.clearly/mnt/proc "* ]]
 
     # mkdir(2) under existing bind-mount, user-supplied, first level
     run clearly run -b "${bind1_dir}:/mnt/0" \
-               -b "${bind2_dir}:/mnt/0/foo" "$ch_timg" -- /bin/true
+               -b "${bind2_dir}:/mnt/0/foo" "$clearly_timg" -- /bin/true
     echo "$output"
     [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output = *"can't mkdir: "*"/${USER}.clearly/mnt/mnt/0/foo under existing bind-mount "*"/${USER}.clearly/mnt/mnt/0 "* ]]
 
     # mkdir(2) under existing bind-mount, default, 2nd level
-    run clearly run -b "${bind1_dir}:/proc/sys/doesnotexist" "$ch_timg" -- /bin/true
+    run clearly run -b "${bind1_dir}:/proc/sys/doesnotexist" "$clearly_timg" -- /bin/true
     echo "$output"
     [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output = *"can't mkdir: "*"/${USER}.clearly/mnt/proc/sys/doesnotexist under existing bind-mount "*"/${USER}.clearly/mnt/proc "* ]]
@@ -552,7 +552,7 @@ EOF
 ('chse_fF', ':')
 EOF
 )
-    run clearly run --set-env="$f_in" "$ch_timg" -- python3 -c 'import os; [print((k,v)) for (k,v) in sorted(os.environ.items()) if "chse_" in k]'
+    run clearly run --set-env="$f_in" "$clearly_timg" -- python3 -c 'import os; [print((k,v)) for (k,v) in sorted(os.environ.items()) if "chse_" in k]'
     echo "$output"
     [[ $status -eq 0 ]]
     diff -u <(echo "$output_expected") <(echo "$output")
@@ -580,7 +580,7 @@ EOF
 ('chse_g1', 'foo\nbar')
 EOF
 )
-    run clearly run --set-env0="$f_in" "$ch_timg" -- python3 -c 'import os; [print((k,v)) for (k,v) in sorted(os.environ.items()) if "chse_" in k]'
+    run clearly run --set-env0="$f_in" "$clearly_timg" -- python3 -c 'import os; [print((k,v)) for (k,v) in sorted(os.environ.items()) if "chse_" in k]'
     echo "$output"
     [[ $status -eq 0 ]]
     diff -u <(echo "$output_expected") <(echo "$output")
@@ -590,7 +590,7 @@ EOF
 @test 'clearly run --set-env from Dockerfile' {
     scope standard
     prerequisites_ok argenv
-    img=${ch_imgdir}/argenv
+    img=${clearly_imgdir}/argenv
 
     output_expected=$(cat <<'EOF'
 chse_env1_df=env1
@@ -610,13 +610,13 @@ EOF
     f_in=${BATS_TMPDIR}/env.txt
 
     # file does not exist
-    run clearly run --set-env=doesnotexist.txt "$ch_timg" -- /bin/true
+    run clearly run --set-env=doesnotexist.txt "$clearly_timg" -- /bin/true
     echo "$output"
     [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output = *"can't open: doesnotexist.txt: No such file or directory"* ]]
 
     # /ch/environment missing
-    run clearly run --set-env "$ch_timg" -- /bin/true
+    run clearly run --set-env "$clearly_timg" -- /bin/true
     echo "$output"
     [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output = *"can't open: /ch/environment: No such file or directory"* ]]
@@ -626,14 +626,14 @@ EOF
 
     # invalid line: missing “=”
     echo 'FOO bar' > "$f_in"
-    run clearly run --set-env="$f_in" "$ch_timg" -- /bin/true
+    run clearly run --set-env="$f_in" "$clearly_timg" -- /bin/true
     echo "$output"
     [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output = *"can't parse variable: no delimiter: ${f_in}:1"* ]]
 
     # invalid line: no name
     echo '=bar' > "$f_in"
-    run clearly run --set-env="$f_in" "$ch_timg" -- /bin/true
+    run clearly run --set-env="$f_in" "$clearly_timg" -- /bin/true
     echo "$output"
     [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output = *"can't parse variable: empty name: ${f_in}:1"* ]]
@@ -646,13 +646,13 @@ EOF
 
     # missing “'”
     # shellcheck disable=SC2086
-    run clearly run --set-env=foo='$test:app' --env-no-expand -v "$ch_timg" -- /bin/true
+    run clearly run --set-env=foo='$test:app' --env-no-expand -v "$clearly_timg" -- /bin/true
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = *'environment: foo=$test:app'* ]]
 
     # missing environment variable
-    run clearly run --set-env='$PATH:foo' "$ch_timg" -- /bin/true
+    run clearly run --set-env='$PATH:foo' "$clearly_timg" -- /bin/true
     echo "$output"
     [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output = *'$PATH:foo: No such file or directory'* ]]
@@ -666,7 +666,7 @@ EOF
     export chue_2=bar
 
     printf '\n# Nothing\n\n'
-    run clearly run --unset-env=doesnotmatch "$ch_timg" -- env
+    run clearly run --unset-env=doesnotmatch "$clearly_timg" -- env
     echo "$output" | sort
     [[ $status -eq 0 ]]
     ex='^(_|CLEARLY_RUNNING|HOME|PATH|SHLVL|TMPDIR)='  # expected to change
@@ -674,32 +674,32 @@ EOF
             <(echo "$output" | grep -Ev "$ex" | sort)
 
     printf '\n# Everything\n\n'
-    run clearly run --unset-env='*' "$ch_timg" -- env
+    run clearly run --unset-env='*' "$clearly_timg" -- env
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = 'CLEARLY_RUNNING=Weird Al Yankovic' ]]
 
     printf '\n# Everything, plus shell re-adds\n\n'
-    run clearly run --unset-env='*' "$ch_timg" -- /bin/sh -c 'env | sort'
+    run clearly run --unset-env='*' "$clearly_timg" -- /bin/sh -c 'env | sort'
     echo "$output"
     [[ $status -eq 0 ]]
     diff -u <(printf 'CLEARLY_RUNNING=Weird Al Yankovic\nPWD=/\nSHLVL=1\n') \
             <(echo "$output")
 
     printf '\n# Without wildcards\n\n'
-    run clearly run --unset-env=chue_1 "$ch_timg" -- env
+    run clearly run --unset-env=chue_1 "$clearly_timg" -- env
     echo "$output"
     [[ $status -eq 0 ]]
     diff -u <(printf 'chue_2=bar\n') <(echo "$output" | grep -E '^chue_')
 
     printf '\n# With wildcards\n\n'
-    run clearly run --unset-env='chue_*' "$ch_timg" -- env
+    run clearly run --unset-env='chue_*' "$clearly_timg" -- env
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $(echo "$output" | grep -E '^chue_') = '' ]]
 
     printf '\n# Empty string\n\n'
-    run clearly run --unset-env= "$ch_timg" -- env
+    run clearly run --unset-env= "$clearly_timg" -- env
     echo "$output"
     [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output = *'--unset-env: GLOB must have non-zero length'* ]]
@@ -714,13 +714,13 @@ EOF
     export chue_2=bar
 
     printf '\n# With extended globs to select\n\n'
-    run clearly run --unset-env='chue_@(1|2)' "$ch_timg" -- env
+    run clearly run --unset-env='chue_@(1|2)' "$clearly_timg" -- env
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $(echo "$output" | grep -E '^chue_') = '' ]]
 
     printf '\n# With extended globs to deselect\n\n'
-    run clearly run --unset-env='!(chue_*)' "$ch_timg" -- env
+    run clearly run --unset-env='!(chue_*)' "$clearly_timg" -- env
     echo "$output"
     [[ $status -eq 0 ]]
     output_expected=$(cat <<'EOF'
@@ -756,7 +756,7 @@ EOF
 chmix_a3=x
 EOF
 )
-    run clearly run --unset-env=chmix_a1 --unset-env=chmix_a2 "$ch_timg" -- \
+    run clearly run --unset-env=chmix_a1 --unset-env=chmix_a2 "$clearly_timg" -- \
                sh -c 'env | grep -E ^chmix_ | sort'
     echo "$output"
     [[ $status -eq 0 ]]
@@ -773,7 +773,7 @@ chmix_c1=u
 chmix_c2=t
 EOF
 )
-    run clearly run --set-env="$f1_in" --set-env="$f2_in" "$ch_timg" -- \
+    run clearly run --set-env="$f1_in" --set-env="$f2_in" "$clearly_timg" -- \
                sh -c 'env | grep -E ^chmix_ | sort'
     echo "$output"
     [[ $status -eq 0 ]]
@@ -787,7 +787,7 @@ chmix_b1=w
 chmix_b2=v
 EOF
 )
-    run clearly run --unset-env=chmix_a1 --set-env="$f1_in" "$ch_timg" -- \
+    run clearly run --unset-env=chmix_a1 --set-env="$f1_in" "$clearly_timg" -- \
                sh -c 'env | grep -E ^chmix_ | sort'
     echo "$output"
     [[ $status -eq 0 ]]
@@ -801,7 +801,7 @@ chmix_a3=x
 chmix_b1=w
 EOF
 )
-    run clearly run  --set-env="$f1_in" --unset-env=chmix_b2 "$ch_timg" -- \
+    run clearly run  --set-env="$f1_in" --unset-env=chmix_b2 "$clearly_timg" -- \
                sh -c 'env | grep -E ^chmix_ | sort'
     echo "$output"
     [[ $status -eq 0 ]]
@@ -817,7 +817,7 @@ EOF
     run clearly run --unset-env=chmix_a1 \
                --set-env="$f1_in" \
                --unset-env=chmix_b2 \
-               "$ch_timg" -- sh -c 'env | grep -E ^chmix_ | sort'
+               "$clearly_timg" -- sh -c 'env | grep -E ^chmix_ | sort'
     echo "$output"
     [[ $status -eq 0 ]]
     diff -u <(echo "$output_expected") <(echo "$output")
@@ -835,7 +835,7 @@ EOF
     run clearly run --set-env="$f1_in" \
                --unset-env=chmix_b2 \
                --set-env="$f2_in" \
-               "$ch_timg" -- sh -c 'env | grep -E ^chmix_ | sort'
+               "$clearly_timg" -- sh -c 'env | grep -E ^chmix_ | sort'
     echo "$output"
     [[ $status -eq 0 ]]
     diff -u <(echo "$output_expected") <(echo "$output")
@@ -846,22 +846,22 @@ EOF
     scope standard
     [[ $CLEARLY_TEST_PACK_FMT == squash-mount ]] || skip 'squash-mount format only'
 
-    ch_mnt="/var/tmp/${USER}.clearly/mnt"
+    clearly_mnt="/var/tmp/${USER}.clearly/mnt"
 
     # default mount point
-    run clearly run -v "$ch_timg" -- /bin/true
+    run clearly run -v "$clearly_timg" -- /bin/true
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = *"newroot: (null)"* ]]
-    [[ $output = *"using default mount point: ${ch_mnt}"* ]]
-    [[ -d ${ch_mnt} ]]
-    rmdir "${ch_mnt}"
+    [[ $output = *"using default mount point: ${clearly_mnt}"* ]]
+    [[ -d ${clearly_mnt} ]]
+    rmdir "${clearly_mnt}"
 
     # -m option
     mountpt="${BATS_TMPDIR}/sqfs_tmpdir"
     mountpt_real=$(realpath "$mountpt")
     [[ -e $mountpt ]] || mkdir "$mountpt"
-    run clearly run -m "$mountpt" -v "$ch_timg" -- /bin/true
+    run clearly run -m "$mountpt" -v "$clearly_timg" -- /bin/true
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = *"newroot: ${mountpt_real}"* ]]
@@ -869,7 +869,7 @@ EOF
 
     # -m with non-sqfs img
     img=$(realpath "${BATS_TMPDIR}/dirimg")
-    clearly convert -i squash "$ch_timg" "$img"
+    clearly convert -i squash "$clearly_timg" "$img"
     run clearly run -m /doesnotexist -v "$img" -- /bin/true
     echo "$output"
     [[ $status -eq 0 ]]
@@ -884,19 +884,19 @@ EOF
     [[ $CLEARLY_TEST_PACK_FMT == squash-mount ]] || skip 'squash-mount format only'
 
     # mount point is empty string
-    run clearly run --mount= "$ch_timg" -- /bin/true
+    run clearly run --mount= "$clearly_timg" -- /bin/true
     echo "$output"
     [[ $status -ne 0 ]]  # exits with status of 139
     [[ $output = *"mount point can't be empty string"* ]]
 
     # mount point doesn’t exist
-    run clearly run -m /doesnotexist "$ch_timg" -- /bin/true
+    run clearly run -m /doesnotexist "$clearly_timg" -- /bin/true
     echo "$output"
     [[ $status -ne 0 ]]  # exits with status of 139
     [[ $output = *"can't stat mount point: /doesnotexist: No such file or directory"* ]]
 
     # mount point is a file
-    run clearly run -m ./fixtures/README "$ch_timg" -- /bin/true
+    run clearly run -m ./fixtures/README "$clearly_timg" -- /bin/true
     echo "$output"
     [[ $status -ne 0 ]]
     [[ $output = *'not a directory: '*'/fixtures/README'* ]]
@@ -910,10 +910,10 @@ EOF
 
     # image is a broken sqfs
     sq_tmp="$BATS_TMPDIR"/b0rken.sqfs
-    cp "$ch_timg" "$sq_tmp"
+    cp "$clearly_timg" "$sq_tmp"
     # corrupt inode count (bytes 4–7, 0-indexed)
     printf '\xED\x5F\x84\x00' | dd of="$sq_tmp" bs=1 count=4 seek=4 conv=notrunc
-    ls -l "$ch_timg" "$sq_tmp"
+    ls -l "$clearly_timg" "$sq_tmp"
     run clearly run -vv "$sq_tmp" -- ls -l /
     echo "$output"
     [[ $status -ne 0 ]]
@@ -1051,19 +1051,19 @@ EOF
     gid_bad=8675310
 
     # UID
-    run clearly run -v --uid="$uid_bad" "$ch_timg" -- /bin/true
+    run clearly run -v --uid="$uid_bad" "$clearly_timg" -- /bin/true
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = *"UID ${uid_bad} not found; using dummy info"* ]]
 
     # GID
-    run clearly run -v --gid="$gid_bad" "$ch_timg" -- /bin/true
+    run clearly run -v --gid="$gid_bad" "$clearly_timg" -- /bin/true
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = *"GID ${gid_bad} not found; using dummy info"* ]]
 
     # both
-    run clearly run -v --uid="$uid_bad" --gid="$gid_bad" "$ch_timg" -- /bin/true
+    run clearly run -v --uid="$uid_bad" --gid="$gid_bad" "$clearly_timg" -- /bin/true
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = *"UID ${uid_bad} not found; using dummy info"* ]]
@@ -1076,10 +1076,10 @@ EOF
     # it on GitHub Actions.
     [[ -n $GITHUB_ACTIONS ]] || skip 'GitHub Actions only'
     [[ -n $CLEARLY_TEST_SUDO ]] || skip 'sudo required'
-    expected="uid=$(id -u) args=6: clearly run ${ch_timg} -- echo foo \"b a}\\\$r\""
+    expected="uid=$(id -u) args=6: clearly run ${clearly_timg} -- echo foo \"b a}\\\$r\""
     echo "$expected"
     #shellcheck disable=SC2016
-    clearly run "$ch_timg" -- echo foo  'b a}$r'
+    clearly run "$clearly_timg" -- echo foo  'b a}$r'
     text=$(sudo tail -n 10 /var/log/syslog)
     echo "$text"
     echo "$text" | grep -F "$expected"
@@ -1134,7 +1134,7 @@ EOF
     [[ $output != *'warning: warning'* ]]
 
     # subprocess failure at quiet level 2
-    run clearly run -qq "$ch_timg" -- doesnotexist
+    run clearly run -qq "$clearly_timg" -- doesnotexist
     echo "$output"
     [[ $status -eq $CLEARLY_ERR_CMD ]]
     [[ $output = *"error: can't execve(2): doesnotexist: No such file or directory"* ]]
@@ -1147,7 +1147,7 @@ EOF
     [[ $output != *"warning: warning"* ]]
 
     # subprocess failure at quiet level 3
-    run clearly run -qqq "$ch_timg" -- doesnotexist
+    run clearly run -qqq "$clearly_timg" -- doesnotexist
     echo "$output"
     [[ $status -eq $CLEARLY_ERR_CMD ]]
     [[ $output != *"error: can't execve(2): doesnotexist: No such file or directory"* ]]
@@ -1164,7 +1164,7 @@ EOF
     demand-overlayfs
 
     # bad tmpfs size
-    run clearly run --write-fake=foo "$ch_timg" -- true
+    run clearly run --write-fake=foo "$clearly_timg" -- true
     echo "$output"
     [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output == *'cannot mount tmpfs for overlay: Invalid argument'* ]]

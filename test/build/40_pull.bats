@@ -357,8 +357,8 @@ EOF
     # /ch/environment contents
     diff -u - "${img}/ch/environment" <<'EOF'
 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-ch_bar=bar-ev
-ch_foo=foo-ev
+clearly_bar=bar-ev
+clearly_foo=foo-ev
 EOF
 
     # /ch/metadata.json contents
@@ -373,8 +373,8 @@ EOF
   "cwd": "/mnt",
   "env": {
     "PATH": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
-    "ch_bar": "bar-ev",
-    "ch_foo": "foo-ev"
+    "clearly_bar": "bar-ev",
+    "clearly_foo": "foo-ev"
   },
   "history": [
     {
@@ -403,7 +403,7 @@ EOF
     },
     {
       "created": "2021-01-16T00:12:10.147564398Z",
-      "created_by": "/bin/sh -c #(nop)  ENV ch_foo=foo-ev ch_bar=bar-ev",
+      "created_by": "/bin/sh -c #(nop)  ENV clearly_foo=foo-ev clearly_bar=bar-ev",
       "empty_layer": true
     },
     {
@@ -418,7 +418,7 @@ EOF
     },
     {
       "created": "2021-01-16T00:12:10.749205247Z",
-      "created_by": "/bin/sh -c #(nop)  LABEL ch_foo=foo-label ch_bar=bar-label",
+      "created_by": "/bin/sh -c #(nop)  LABEL clearly_foo=foo-label clearly_bar=bar-label",
       "empty_layer": true
     },
     {
@@ -477,8 +477,8 @@ EOF
     }
   ],
   "labels": {
-    "ch_bar": "bar-label",
-    "ch_foo": "foo-label"
+    "clearly_bar": "bar-label",
+    "clearly_foo": "foo-label"
   },
   "shell": [
     "/bin/ash",

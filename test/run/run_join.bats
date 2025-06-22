@@ -111,7 +111,7 @@ unset_vars () {
     ipc_clean_p
 
     # --join-ct
-    run clearly run -v --join-ct=1 "$ch_timg" -- /test/printns
+    run clearly run -v --join-ct=1 "$clearly_timg" -- /test/printns
     joined_ok 1 1 1 "$status" "$output"
     r='join: 1 1 [0-9]+ 0'   # status from getppid(2) is all digits
     [[ $output =~ $r ]]
@@ -119,24 +119,24 @@ unset_vars () {
     ipc_clean_p
 
     # join count from an environment variable
-    SLURM_CPUS_ON_NODE=1 run clearly run -v --join "$ch_timg" -- /test/printns
+    SLURM_CPUS_ON_NODE=1 run clearly run -v --join "$clearly_timg" -- /test/printns
     joined_ok 1 1 1 "$status" "$output"
     [[ $output = *'join: peer group size from SLURM_CPUS_ON_NODE'* ]]
     ipc_clean_p
 
     # join count from an environment variable with extra goop
-    SLURM_CPUS_ON_NODE=1foo clearly run --join "$ch_timg" -- /test/printns
+    SLURM_CPUS_ON_NODE=1foo clearly run --join "$clearly_timg" -- /test/printns
     joined_ok 1 1 1 "$status" "$output"
     [[ $output = *'join: peer group size from SLURM_CPUS_ON_NODE'* ]]
     ipc_clean_p
 
     # join tag
-    run clearly run -v --join-ct=1 --join-tag=foo "$ch_timg" -- /test/printns
+    run clearly run -v --join-ct=1 --join-tag=foo "$clearly_timg" -- /test/printns
     joined_ok 1 1 1 "$status" "$output"
     [[ $output = *'join: 1 1 foo 0'* ]]
     [[ $output = *'join: peer group tag from command line'* ]]
     ipc_clean_p
-    SLURM_STEP_ID=bar run clearly run -v --join-ct=1 "$ch_timg" -- /test/printns
+    SLURM_STEP_ID=bar run clearly run -v --join-ct=1 "$clearly_timg" -- /test/printns
     joined_ok 1 1 1 "$status" "$output"
     [[ $output = *'join: 1 1 bar 0'* ]]
     [[ $output = *'join: peer group tag from SLURM_STEP_ID'* ]]
@@ -149,7 +149,7 @@ unset_vars () {
     rm -f "$BATS_TMPDIR"/join.?.*
 
     # first peer (winner)
-    clearly run -v --join-ct=2 --join-tag=foo "$ch_timg" -- \
+    clearly run -v --join-ct=2 --join-tag=foo "$clearly_timg" -- \
            /test/printns 10 "${BATS_TMPDIR}/join.1.ns" \
            >& "${BATS_TMPDIR}/join.1.err" &
     sleepcat 2 "${BATS_TMPDIR}/join.1.ns"
@@ -164,7 +164,7 @@ unset_vars () {
     [[ -e /dev/shm/run_sem-foo || -e /dev/shm/sem.run_sem-foo ]]
 
     # second peer (loser)
-    run clearly run -v --join-ct=2 --join-tag=foo "$ch_timg" -- \
+    run clearly run -v --join-ct=2 --join-tag=foo "$clearly_timg" -- \
                /test/printns 0 "${BATS_TMPDIR}/join.2.ns"
     echo "$output"
     [[ $status -eq 0 ]]
@@ -189,7 +189,7 @@ unset_vars () {
     rm -f "$BATS_TMPDIR"/join.?.*
 
     # first peer (winner)
-    clearly run -v --join-ct=3 --join-tag=foo "$ch_timg" -- \
+    clearly run -v --join-ct=3 --join-tag=foo "$clearly_timg" -- \
            /test/printns 15 "${BATS_TMPDIR}/join.1.ns" \
            >& "${BATS_TMPDIR}/join.1.err" &
     sleepcat 2 "${BATS_TMPDIR}/join.1.ns"
@@ -200,7 +200,7 @@ unset_vars () {
     grep -Fq 'join: cleaning up IPC' "${BATS_TMPDIR}/join.1.err" && exit 1
 
     # second peer (loser, no cleanup)
-    clearly run -v --join-ct=3 --join-tag=foo "${ch_timg}" -- \
+    clearly run -v --join-ct=3 --join-tag=foo "${clearly_timg}" -- \
            /test/printns 0 "${BATS_TMPDIR}/join.2.ns" \
            >& "${BATS_TMPDIR}/join.2.err" &
     sleepcat 6 "${BATS_TMPDIR}/join.2.ns"
@@ -217,7 +217,7 @@ unset_vars () {
     [[ -e /dev/shm/run_sem-foo || -e /dev/shm/sem.run_sem-foo ]]
 
     # third peer (loser, cleanup)
-    clearly run -v --join-ct=3 --join-tag=foo "$ch_timg" -- \
+    clearly run -v --join-ct=3 --join-tag=foo "$clearly_timg" -- \
            /test/printns 0 "${BATS_TMPDIR}/join.3.ns" \
            >& "${BATS_TMPDIR}/join.3.err" &
     sleepcat 6 "${BATS_TMPDIR}/join.3.ns"
@@ -244,19 +244,19 @@ unset_vars () {
     # Two peers, one node. Should be one of each of the namespaces. Make sure
     # everyone chdir(2)s properly.
     # shellcheck disable=SC2086
-    run $ch_mpirun_2_1node clearly run -v --join --cd /test "$ch_timg" -- ./printns 2
+    run $clearly_mpirun_2_1node clearly run -v --join --cd /test "$clearly_timg" -- ./printns 2
     echo "$output"
     [[ $status -eq 0 ]]
     ipc_clean_p
     joined_ok 2 2 1 "$status" "$output"
 
-    # One peer per core across the allocation. Should be $ch_nodes of each
+    # One peer per core across the allocation. Should be $clearly_nodes of each
     # of the namespaces.
     # shellcheck disable=SC2086
-    run $ch_mpirun_core clearly run -v --join "$ch_timg" -- /test/printns 4
+    run $clearly_mpirun_core clearly run -v --join "$clearly_timg" -- /test/printns 4
     echo "$output"
     [[ $status -eq 0 ]]
-    joined_ok "$ch_cores_total" "$ch_cores_node" "$ch_nodes" \
+    joined_ok "$clearly_cores_total" "$clearly_cores_node" "$clearly_nodes" \
               "$status" "$output"
     ipc_clean_p
 }
@@ -265,36 +265,36 @@ unset_vars () {
     unset_vars
 
     # --join but no join count
-    run clearly run --join "$ch_timg" -- true
+    run clearly run --join "$clearly_timg" -- true
     echo "$output"
     [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output =~ 'join: no valid peer group size found' ]]
     ipc_clean_p
 
     # join count no digits
-    run clearly run --join-ct=a "$ch_timg" -- true
+    run clearly run --join-ct=a "$clearly_timg" -- true
     echo "$output"
     [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output =~ 'join-ct: no digits found' ]]
-    SLURM_CPUS_ON_NODE=a run clearly run --join "$ch_timg" -- true
+    SLURM_CPUS_ON_NODE=a run clearly run --join "$clearly_timg" -- true
     echo "$output"
     [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output =~ 'SLURM_CPUS_ON_NODE: no digits found' ]]
     ipc_clean_p
 
     # join count empty string
-    run clearly run --join-ct='' "$ch_timg" -- true
+    run clearly run --join-ct='' "$clearly_timg" -- true
     echo "$output"
     [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output =~ '--join-ct: no digits found' ]]
-    SLURM_CPUS_ON_NODE=-1 run clearly run --join "$ch_timg" -- true
+    SLURM_CPUS_ON_NODE=-1 run clearly run --join "$clearly_timg" -- true
     echo "$output"
     [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output =~ 'join: no valid peer group size found' ]]
     ipc_clean_p
 
     # --join-ct digits followed by extra goo (OK from environment variable)
-    run clearly run --join-ct=1a "$ch_timg" -- true
+    run clearly run --join-ct=1a "$clearly_timg" -- true
     echo "$output"
     [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output =~ '--join-ct: extra characters after digits' ]]
@@ -304,48 +304,48 @@ unset_vars () {
     range_re='.*: .*out of range'
 
     # join count above INT_MAX
-    run clearly run --join-ct=2147483648 "$ch_timg" -- true
+    run clearly run --join-ct=2147483648 "$clearly_timg" -- true
     echo "$output"
     [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output =~ $range_re ]]
     SLURM_CPUS_ON_NODE=2147483648 \
-        run clearly run --join "$ch_timg" -- true
+        run clearly run --join "$clearly_timg" -- true
     echo "$output"
     [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output =~ $range_re ]]
     ipc_clean_p
 
     # join count below INT_MIN
-    run clearly run --join-ct=-2147483649 "$ch_timg" -- true
+    run clearly run --join-ct=-2147483649 "$clearly_timg" -- true
     echo "$output"
     [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output =~ $range_re ]]
     SLURM_CPUS_ON_NODE=-2147483649 \
-        run clearly run --join "$ch_timg" -- true
+        run clearly run --join "$clearly_timg" -- true
     echo "$output"
     [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output =~ $range_re ]]
     ipc_clean_p
 
     # join count above LONG_MAX
-    run clearly run --join-ct=9223372036854775808 "$ch_timg" -- true
+    run clearly run --join-ct=9223372036854775808 "$clearly_timg" -- true
     echo "$output"
     [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output =~ $range_re ]]
     SLURM_CPUS_ON_NODE=9223372036854775808 \
-        run clearly run --join "$ch_timg" -- true
+        run clearly run --join "$clearly_timg" -- true
     echo "$output"
     [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output =~ $range_re ]]
     ipc_clean_p
 
     # join count below LONG_MIN
-    run clearly run --join-ct=-9223372036854775809 "$ch_timg" -- true
+    run clearly run --join-ct=-9223372036854775809 "$clearly_timg" -- true
     echo "$output"
     [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output =~ $range_re ]]
     SLURM_CPUS_ON_NODE=-9223372036854775809 \
-        run clearly run --join "$ch_timg" -- true
+        run clearly run --join "$clearly_timg" -- true
     echo "$output"
     [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output =~ $range_re ]]
@@ -359,11 +359,11 @@ unset_vars () {
     export SLURM_CPUS_ON_NODE=1
 
     # join tag empty string
-    run clearly run --join-tag='' "$ch_timg" -- true
+    run clearly run --join-tag='' "$clearly_timg" -- true
     echo "$output"
     [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output =~ 'join: peer group tag cannot be empty string' ]]
-    SLURM_STEP_ID='' run clearly run --join "$ch_timg" -- true
+    SLURM_STEP_ID='' run clearly run --join "$clearly_timg" -- true
     echo "$output"
     [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output =~ 'join: peer group tag cannot be empty string' ]]
@@ -376,7 +376,7 @@ unset_vars () {
     rm -f "$BATS_TMPDIR"/join.?.*
 
     # First clearly run creates the namespaces with no joining at all.
-    clearly run -v "$ch_timg" -- \
+    clearly run -v "$clearly_timg" -- \
            /test/printns 5 "${BATS_TMPDIR}/join.1.ns" \
            >& "${BATS_TMPDIR}/join.1.err" &
     sleepcat 3 "${BATS_TMPDIR}/join.1.ns"
@@ -390,7 +390,7 @@ unset_vars () {
     [[ -n $pid ]]
 
     # Second clearly run joins the first’s namespaces.
-    run clearly run -v --join-pid="$pid" "$ch_timg" -- \
+    run clearly run -v --join-pid="$pid" "$clearly_timg" -- \
                /test/printns 0 "${BATS_TMPDIR}/join.2.ns"
     echo "$output"
     [[ $status -eq 0 ]]
@@ -412,7 +412,7 @@ unset_vars () {
     rm -f "$BATS_TMPDIR"/join.?.*
 
     # First of two peers (winner).
-    clearly run -v --join-ct=2 --join-tag=bar "$ch_timg" -- \
+    clearly run -v --join-ct=2 --join-tag=bar "$clearly_timg" -- \
            /test/printns 5 "${BATS_TMPDIR}/join.1.ns" \
            >& "${BATS_TMPDIR}/join.1.err" &
     sleepcat 3 "${BATS_TMPDIR}/join.1.ns"
@@ -428,7 +428,7 @@ unset_vars () {
     [[ -n $pid ]]
 
     # Second of two peers (loser).
-    clearly run -v --join-ct=2 --join-tag=bar "${ch_timg}" -- \
+    clearly run -v --join-ct=2 --join-tag=bar "${clearly_timg}" -- \
            /test/printns 10 "${BATS_TMPDIR}/join.2.ns" \
            >& "${BATS_TMPDIR}/join.2.err" &
     sleepcat 6 "${BATS_TMPDIR}/join.2.ns"
@@ -440,7 +440,7 @@ unset_vars () {
     grep -Fq  'join: cleaning up IPC' "${BATS_TMPDIR}/join.2.err"
 
     # Third clearly run simulates unplanned, joins existing namespaces.
-    run clearly run -v --join-pid="$pid" "$ch_timg" -- \
+    run clearly run -v --join-pid="$pid" "$clearly_timg" -- \
                /test/printns 0 "${BATS_TMPDIR}/join.3.ns"
     echo "$output"
     [[ $status -eq 0 ]]
@@ -469,14 +469,14 @@ unset_vars () {
     fi
 
     # Can’t join namespaces of processes we don’t own.
-    run clearly run -v --join-pid=1 "$ch_timg" -- true
+    run clearly run -v --join-pid=1 "$clearly_timg" -- true
     echo "$output"
     [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output = *"join: can't open /proc/1/ns/user: Permission denied"* ]]
 
     # Can’t join namespaces of processes that don’t exist.
     pid=2147483647
-    run clearly run -v --join-pid="$pid" "$ch_timg" -- true
+    run clearly run -v --join-pid="$pid" "$clearly_timg" -- true
     echo "$output"
     [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output = *"join: no PID ${pid}: /proc/${pid}/ns/user not found"* ]]

@@ -1,4 +1,4 @@
-CLEARLY_TEST_TAG=$ch_test_tag
+CLEARLY_TEST_TAG=$clearly_test_tag
 load "${CHTEST_DIR}/common.bash"
 
 setup () {
@@ -9,10 +9,10 @@ setup () {
     outdir=$BATS_TMPDIR/paraview
     inbind=${indir}:/mnt/0
     outbind=${outdir}:/mnt/1
-    if [[ $ch_multinode ]]; then
+    if [[ $clearly_multinode ]]; then
         # Bats only creates $BATS_TMPDIR on the first node.
         # shellcheck disable=SC2086
-        $ch_mpirun_node mkdir -p "$outdir"
+        $clearly_mpirun_node mkdir -p "$outdir"
     else
         mkdir -p "$outdir"
     fi
@@ -34,63 +34,63 @@ setup () {
 # We do not check .pvtp (and its companion .vtp) output because it’s a
 # collection of XML files containing binary data and it seems too hairy to me.
 
-@test "${ch_tag}/inject cray mpi ($cray_prov)" {
-    cray_ofi_or_skip "$ch_img"
-    run clearly run "$ch_img" -- fi_info
+@test "${clearly_tag}/inject cray mpi ($cray_prov)" {
+    cray_ofi_or_skip "$clearly_img"
+    run clearly run "$clearly_img" -- fi_info
     echo "$output"
     [[ $output == *"provider: $cray_prov"* ]]
     [[ $output == *"fabric: $cray_prov"* ]]
     [[ $status -eq 0 ]]
 }
 
-@test "${ch_tag}/cone serial" {
-    [[ -z $ch_cray ]] || skip 'serial launches unsupported on Cray'
+@test "${clearly_tag}/cone serial" {
+    [[ -z $clearly_cray ]] || skip 'serial launches unsupported on Cray'
     # shellcheck disable=SC2086
-    clearly run $ch_unslurm -b "$inbind" -b "$outbind" "$ch_img" -- \
+    clearly run $clearly_unslurm -b "$inbind" -b "$outbind" "$clearly_img" -- \
            pvbatch /mnt/0/cone.py /mnt/1
     mv "$outdir"/cone.png "$outdir"/cone.serial.png
     ls -l "$outdir"/cone*
     diff -u "${indir}/cone.serial.vtk" "${outdir}/cone.vtk"
 }
 
-@test "${ch_tag}/cone serial PNG" {
-    [[ -z $ch_cray ]] || skip 'serial launches unsupported on Cray'
+@test "${clearly_tag}/cone serial PNG" {
+    [[ -z $clearly_cray ]] || skip 'serial launches unsupported on Cray'
     pict_ok
     pict_assert_equal "${indir}/cone.png" "${outdir}/cone.serial.png" 1000
 }
 
-@test "${ch_tag}/cone ranks=2" {
+@test "${clearly_tag}/cone ranks=2" {
     multiprocess_ok
     # shellcheck disable=SC2086
-    $ch_mpirun_2 clearly run --join -b "$inbind" -b "$outbind" "$ch_img" -- \
+    $clearly_mpirun_2 clearly run --join -b "$inbind" -b "$outbind" "$clearly_img" -- \
               pvbatch /mnt/0/cone.py /mnt/1
     mv "$outdir"/cone.png "$outdir"/cone.2ranks.png
     ls -l "$outdir"/cone*
     diff -u "${indir}/cone.2ranks.vtk" "${outdir}/cone.vtk"
 }
 
-@test "${ch_tag}/cone ranks=2 PNG" {
+@test "${clearly_tag}/cone ranks=2 PNG" {
     multiprocess_ok
     pict_ok
     pict_assert_equal "${indir}/cone.png" "${outdir}/cone.2ranks.png" 1000
 }
 
-@test "${ch_tag}/cone ranks=N" {
+@test "${clearly_tag}/cone ranks=N" {
     multiprocess_ok
     # shellcheck disable=SC2086
-    $ch_mpirun_core clearly run --join -b "$inbind" -b "$outbind" "$ch_img" -- \
+    $clearly_mpirun_core clearly run --join -b "$inbind" -b "$outbind" "$clearly_img" -- \
                  pvbatch /mnt/0/cone.py /mnt/1
     mv "$outdir"/cone.png "$outdir"/cone.nranks.png
     ls -l "$outdir"/cone*
     diff -u "${indir}/cone.nranks.vtk" "${outdir}/cone.vtk"
 }
 
-@test "${ch_tag}/cone ranks=N PNG" {
+@test "${clearly_tag}/cone ranks=N PNG" {
     multiprocess_ok
     pict_ok
     pict_assert_equal "${indir}/cone.png" "${outdir}/cone.nranks.png" 1000
 }
 
-@test "${ch_tag}/revert image" {
-    unpack_img_all_nodes "$ch_cray"
+@test "${clearly_tag}/revert image" {
+    unpack_img_all_nodes "$clearly_cray"
 }

@@ -231,17 +231,17 @@ PYTHON_CFLAGS=`python3-config --includes`
 PYTHON_VER=`python3 -V 2>&1 | cut -d' ' -f2 | cut -d. -f1,2`
 PYTHON_LDFLAGS=`python3-config --ldflags`
 PYTHON_LIB="-lpython$PYTHON_VER"
-ch_cflags="-std=c99 -Wall $PYTHON_CFLAGS"
+clearly_cflags="-std=c99 -Wall $PYTHON_CFLAGS"
 AS_IF([test -n "$lib_libsquashfuse"],
-      [ch_cflags="$ch_cflags -I$inc_libsquashfuse -L$lib_libsquashfuse"
+      [clearly_cflags="$clearly_cflags -I$inc_libsquashfuse -L$lib_libsquashfuse"
        # Without this, clang fails with “error: argument unused during
        # compilation” on the -L. GCC ignores it.
-       ch_cflags="$ch_cflags -Wno-unused-command-line-argument"])
+       clearly_cflags="$clearly_cflags -Wno-unused-command-line-argument"])
 AS_IF([test $use_werror = yes],
-      [ch_cflags="$ch_cflags -Werror"])
+      [clearly_cflags="$clearly_cflags -Werror"])
 
-AX_CHECK_COMPILE_FLAG([$ch_cflags], [
-  CFLAGS="$CFLAGS $ch_cflags"
+AX_CHECK_COMPILE_FLAG([$clearly_cflags], [
+  CFLAGS="$CFLAGS $clearly_cflags"
   LDFLAGS="$LDFLAGS $PYTHON_LDFLAGS $PYTHON_LIB"
 ], [
   AC_MSG_ERROR([no suitable C99 compiler found])

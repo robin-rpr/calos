@@ -2,9 +2,9 @@
 
 ## preamble ##################################################################
 
-ch_lib=$(cd "$(dirname "$0")" && pwd)/../../lib
-. "${ch_lib}/_base.sh"
-PATH=${ch_bin}:$PATH
+clearly_lib=$(cd "$(dirname "$0")" && pwd)/../../lib
+. "${clearly_lib}/_base.sh"
+PATH=${clearly_bin}:$PATH
 
 usage=$(cat <<EOF
 Convert an image from one format to another.

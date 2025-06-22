@@ -1,12 +1,12 @@
 # shellcheck shell=sh
 set -e
 
-ch_bin="$(cd "$(dirname "$0")" && pwd)"
+clearly_bin="$(cd "$(dirname "$0")" && pwd)"
 # shellcheck disable=SC2034
-ch_base=${ch_bin%/*}
+clearly_base=${clearly_bin%/*}
 
-ch_lib=${ch_bin}/../../lib
-. "${ch_lib}/_version.sh"
+clearly_lib=${clearly_bin}/../../lib
+. "${clearly_lib}/_version.sh"
 
 
 # Log level. Incremented by “--verbose” and decremented by “--quiet”, as in the
@@ -77,7 +77,7 @@ exist_p () {
 parse_basic_arg () {
     case $1 in
         --_lib-path)  # undocumented
-            echo "$ch_lib"
+            echo "$clearly_lib"
             exit 0
             ;;
         --help)
@@ -130,7 +130,7 @@ usage () {
 }
 
 version () {
-    echo 1>&2 "$ch_version"
+    echo 1>&2 "$clearly_version"
     exit 0
 }
 

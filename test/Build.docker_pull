@@ -19,7 +19,7 @@ cd "$workdir"
 sudo docker pull "$addr"
 sudo docker tag "$addr" "$tag"
 
-# FIXME: do we need a ch_version_docker equivalent?
+# FIXME: do we need a clearly_version_docker equivalent?
 sudo docker tag "$tag" "$img"
 
 

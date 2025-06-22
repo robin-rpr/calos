@@ -510,9 +510,9 @@ FROM charliecloud/metadata:2021-01-15
 RUN echo "cwd1: $PWD"
 WORKDIR /usr
 RUN echo "cwd2: $PWD"
-RUN env | egrep '^(PATH=|ch_)' | sed -E 's/^/env1: /' | sort
-ENV ch_baz=baz-ev
-RUN env | egrep '^(PATH=|ch_)' | sed -E 's/^/env2: /' | sort
+RUN env | egrep '^(PATH=|clearly_)' | sed -E 's/^/env1: /' | sort
+ENV clearly_baz=baz-ev
+RUN env | egrep '^(PATH=|clearly_)' | sed -E 's/^/env2: /' | sort
 RUN echo "shell1: $0"
 SHELL ["/bin/sh", "-v", "-c"]
 RUN echo "shell2: $0"
@@ -523,12 +523,12 @@ EOF
         [[ $output = *'cwd1: /mnt'* ]]
         [[ $output = *'cwd2: /usr'* ]]
         [[ $output = *'env1: PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'* ]]
-        [[ $output = *'env1: ch_bar=bar-ev'* ]]
-        [[ $output = *'env1: ch_foo=foo-ev'* ]]
+        [[ $output = *'env1: clearly_bar=bar-ev'* ]]
+        [[ $output = *'env1: clearly_foo=foo-ev'* ]]
         [[ $output = *'env2: PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'* ]]
-        [[ $output = *'env2: ch_bar=bar-ev'* ]]
-        [[ $output = *'env2: ch_baz=baz-ev'* ]]
-        [[ $output = *'env2: ch_foo=foo-ev'* ]]
+        [[ $output = *'env2: clearly_bar=bar-ev'* ]]
+        [[ $output = *'env2: clearly_baz=baz-ev'* ]]
+        [[ $output = *'env2: clearly_foo=foo-ev'* ]]
         [[ $output = *'shell1: /bin/ash'* ]]
         [[ $output = *'shell2: /bin/sh'* ]]
     fi
@@ -541,9 +541,9 @@ EOF
     # /ch/environment contents
     diff -u - "${img}/ch/environment" <<'EOF'
 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-ch_bar=bar-ev
-ch_baz=baz-ev
-ch_foo=foo-ev
+clearly_bar=bar-ev
+clearly_baz=baz-ev
+clearly_foo=foo-ev
 EOF
 
     # /ch/metadata.json contents
@@ -558,9 +558,9 @@ EOF
   "cwd": "/usr",
   "env": {
     "PATH": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
-    "ch_bar": "bar-ev",
-    "ch_baz": "baz-ev",
-    "ch_foo": "foo-ev"
+    "clearly_bar": "bar-ev",
+    "clearly_baz": "baz-ev",
+    "clearly_foo": "foo-ev"
   },
   "history": [
     {
@@ -589,7 +589,7 @@ EOF
     },
     {
       "created": "2021-01-16T00:12:10.147564398Z",
-      "created_by": "/bin/sh -c #(nop)  ENV ch_foo=foo-ev ch_bar=bar-ev",
+      "created_by": "/bin/sh -c #(nop)  ENV clearly_foo=foo-ev clearly_bar=bar-ev",
       "empty_layer": true
     },
     {
@@ -604,7 +604,7 @@ EOF
     },
     {
       "created": "2021-01-16T00:12:10.749205247Z",
-      "created_by": "/bin/sh -c #(nop)  LABEL ch_foo=foo-label ch_bar=bar-label",
+      "created_by": "/bin/sh -c #(nop)  LABEL clearly_foo=foo-label clearly_bar=bar-label",
       "empty_layer": true
     },
     {
@@ -675,15 +675,15 @@ EOF
     },
     {
       "created": "2021-11-30T20:40:24Z",
-      "created_by": "RUN.S env | egrep '^(PATH=|ch_)' | sed -E 's/^/env1: /' | sort"
+      "created_by": "RUN.S env | egrep '^(PATH=|clearly_)' | sed -E 's/^/env1: /' | sort"
     },
     {
       "created": "2021-11-30T20:40:24Z",
-      "created_by": "ENV ch_baz='baz-ev'"
+      "created_by": "ENV clearly_baz='baz-ev'"
     },
     {
       "created": "2021-11-30T20:40:24Z",
-      "created_by": "RUN.S env | egrep '^(PATH=|ch_)' | sed -E 's/^/env2: /' | sort"
+      "created_by": "RUN.S env | egrep '^(PATH=|clearly_)' | sed -E 's/^/env2: /' | sort"
     },
     {
       "created": "2021-11-30T20:40:25Z",
@@ -699,8 +699,8 @@ EOF
     }
   ],
   "labels": {
-    "ch_bar": "bar-label",
-    "ch_foo": "foo-label"
+    "clearly_bar": "bar-label",
+    "clearly_foo": "foo-label"
   },
   "shell": [
     "/bin/sh",

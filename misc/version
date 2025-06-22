@@ -9,8 +9,8 @@
 
 set -e
 
-ch_base=$(cd "$(dirname "$0")" && pwd)/..
-version_file=${ch_base}/VERSION
+clearly_base=$(cd "$(dirname "$0")" && pwd)/..
+version_file=${clearly_base}/VERSION
 version_simple=$(cat "$version_file")
 case $version_simple in
     *~*)
@@ -21,7 +21,7 @@ case $version_simple in
         ;;
 esac
 
-if [ ! -e "${ch_base}/.git" ] || [ -z "$prerelease" ]; then
+if [ ! -e "${clearly_base}/.git" ] || [ -z "$prerelease" ]; then
     # no Git or release version; use simple version
     printf "%s\n" "$version_simple"
 else

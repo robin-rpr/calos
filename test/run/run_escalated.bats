@@ -2,46 +2,46 @@ load ../common
 
 @test 'clearly run refuses to run if setgid' {
     scope standard
-    ch_run_tmp=$BATS_TMPDIR/run.setgid
+    clearly_run_tmp=$BATS_TMPDIR/run.setgid
     gid=$(id -g)
     gid2=$(id -G | cut -d' ' -f2)
     echo "gids: ${gid} ${gid2}"
     [[ $gid != "$gid2" ]]
-    cp -a "$ch_runfile" "$ch_run_tmp"
-    ls -l "$ch_run_tmp"
-    chgrp "$gid2" "$ch_run_tmp"
-    chmod g+s "$ch_run_tmp"
-    ls -l "$ch_run_tmp"
-    [[ -g $ch_run_tmp ]]
-    run "$ch_run_tmp" --version
+    cp -a "$clearly_runfile" "$clearly_run_tmp"
+    ls -l "$clearly_run_tmp"
+    chgrp "$gid2" "$clearly_run_tmp"
+    chmod g+s "$clearly_run_tmp"
+    ls -l "$clearly_run_tmp"
+    [[ -g $clearly_run_tmp ]]
+    run "$clearly_run_tmp" --version
     echo "$output"
     [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output = *': please report this bug ('* ]]
-    rm "$ch_run_tmp"
+    rm "$clearly_run_tmp"
 }
 
 @test 'clearly run refuses to run if setuid' {
     scope standard
-    [[ -n $ch_have_sudo ]] || skip 'sudo not available'
-    ch_run_tmp=$BATS_TMPDIR/run.setuid
-    cp -a "$ch_runfile" "$ch_run_tmp"
-    ls -l "$ch_run_tmp"
-    sudo chown root "$ch_run_tmp"
-    sudo chmod u+s "$ch_run_tmp"
-    ls -l "$ch_run_tmp"
-    [[ -u $ch_run_tmp ]]
-    run "$ch_run_tmp" --version
+    [[ -n $clearly_have_sudo ]] || skip 'sudo not available'
+    clearly_run_tmp=$BATS_TMPDIR/run.setuid
+    cp -a "$clearly_runfile" "$clearly_run_tmp"
+    ls -l "$clearly_run_tmp"
+    sudo chown root "$clearly_run_tmp"
+    sudo chmod u+s "$clearly_run_tmp"
+    ls -l "$clearly_run_tmp"
+    [[ -u $clearly_run_tmp ]]
+    run "$clearly_run_tmp" --version
     echo "$output"
     [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output = *': please report this bug ('* ]]
-    sudo rm "$ch_run_tmp"
+    sudo rm "$clearly_run_tmp"
 }
 
 @test 'clearly run as root: --version and --test' {
     scope standard
-    [[ -n $ch_have_sudo ]] || skip 'sudo not available'
-    sudo "$ch_runfile" --version
-    sudo "$ch_runfile" --help
+    [[ -n $clearly_have_sudo ]] || skip 'sudo not available'
+    sudo "$clearly_runfile" --version
+    sudo "$clearly_runfile" --help
 }
 
 @test 'clearly run as root: run image' {
@@ -53,23 +53,23 @@ load ../common
     #
     # but when run manually (with same arguments?) it fails differently with:
     #
-    #   $ sudo clearly run $ch_imgdir/chtest -- true
+    #   $ sudo clearly run $clearly_imgdir/chtest -- true
     #   clearly run: [...]/chtest: Permission denied (run.c:195:13)
     #
     skip 'issue #76'
-    sudo "$ch_runfile" "$ch_timg" -- true
+    sudo "$clearly_runfile" "$clearly_timg" -- true
 }
 
 @test 'clearly run as root: root with non-zero gid refused' {
     scope standard
-    [[ -n $ch_have_sudo ]] || skip 'sudo not available'
+    [[ -n $clearly_have_sudo ]] || skip 'sudo not available'
     if ! (sudo -u root -g "$(id -gn)" true); then
         # Allowing sudo to user root but group non-root is an unusual
         # configuration. You need e.g. “%foo ALL=(ALL:ALL)” instead of the
         # more common “%foo ALL=(ALL)”. See issue #485.
         pedantic_fail 'sudo not configured for user root and group non-root'
     fi
-    run sudo -u root -g "$(id -gn)" "$ch_runfile" -v --version
+    run sudo -u root -g "$(id -gn)" "$clearly_runfile" -v --version
     echo "$output"
     [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output = *'please report this bug ('* ]]

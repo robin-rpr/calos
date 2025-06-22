@@ -20,7 +20,7 @@ FROM alpine:3.17
 
 CMD ["bar", "baz"]
 ENTRYPOINT ["/bin/echo","foo"]
-ENV ch_foo=foo-ev ch_bar=bar-ev
+ENV clearly_foo=foo-ev clearly_bar=bar-ev
 EXPOSE 867 5309/udp
 HEALTHCHECK --interval=60s --timeout=5s CMD ["/bin/true"]
 LABEL ch-foo=foo-label ch-bar=bar-label

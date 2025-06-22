@@ -2,9 +2,9 @@ source common.bash  # for ShellCheck; removed by ch-test
 
 @test 'custom build %(tag)s' {
     scope %(scope)s
-    out="${ch_tardir}/%(tag)s"
-    pq="${ch_tardir}/%(tag)s.pq_missing"
-    workdir="${ch_tardir}/%(tag)s.tmp"
+    out="${clearly_tardir}/%(tag)s"
+    pq="${clearly_tardir}/%(tag)s.pq_missing"
+    workdir="${clearly_tardir}/%(tag)s.tmp"
     rm -f "$pq"
     mkdir "$workdir"
     cd "%(dirname)s"

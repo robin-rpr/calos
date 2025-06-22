@@ -148,7 +148,7 @@ convert-img () {
             in_desc=tmpimg
             ;;
         dir)
-            in_desc=$ch_timg
+            in_desc=$clearly_timg
             ;;
         docker)
             in_desc=tmpimg
@@ -254,7 +254,7 @@ test_from () {
         ct=$((ct+1))
         convert-img "$ct" "$j" dir
         image_ok "$end"
-        compare "$ch_timg" "$end"
+        compare "$clearly_timg" "$end"
         chtest_fixtures_ok "$end"
     done
 }
@@ -339,16 +339,16 @@ test_from () {
     [[ $status -eq 1 ]]
     [[ $output = *"error: exists in image storage, not deleting per --no-clobber: tmpimg" ]]
 
-    # convert ch_timg into image format
+    # convert clearly_timg into image format
     clearly image delete timg || true
-    if [[ $(stat -c %F "$ch_timg") = 'symbolic link' ]]; then
+    if [[ $(stat -c %F "$clearly_timg") = 'symbolic link' ]]; then
         # symlink to squash archive
         fmt="squash"
     else
         # directory
         fmt="dir"
     fi
-    clearly convert -i "$fmt" -o image "$ch_timg" timg
+    clearly convert -i "$fmt" -o image "$clearly_timg" timg
 
     # dir
     clearly convert -i image -o dir timg "$BATS_TMPDIR/timg"
@@ -454,13 +454,13 @@ test_from () {
     [[ $CLEARLY_TEST_PACK_FMT = tar-unpack ]] || skip 'tar mode only'
     out=${BATS_TMPDIR}/convert.dir
     # Are /dev fixtures present in tarball? (issue #157)
-    present=$(tar tf "$ch_ttar" | grep -F deleteme)
+    present=$(tar tf "$clearly_ttar" | grep -F deleteme)
     echo "$present"
     [[ $(echo "$present" | wc -l) -eq 2 ]]
     echo "$present" | grep -E '^img/dev/deleteme$'
     echo "$present" | grep -E '^img/mnt/dev/dontdeleteme$'
     # Convert to dir.
-    clearly convert "$ch_ttar" "$out"
+    clearly convert "$clearly_ttar" "$out"
     image_ok "$out"
     chtest_fixtures_ok "$out"
 }

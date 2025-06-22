@@ -1088,7 +1088,7 @@ class Storage:
 
    @property
    def bucache_needs_ignore_upgrade(self):
-      return self.build_cache // "ch_upgrade-ignore"
+      return self.build_cache // "clearly_upgrade-ignore"
 
    @property
    def build_cache(self):

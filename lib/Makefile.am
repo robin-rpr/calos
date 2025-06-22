@@ -44,8 +44,8 @@ mylib_LTLIBRARIES =
 _contributors.bash: ../README.rst
 	rm -f $@
 	printf '# shellcheck shell=bash\n' >> $@
-	printf 'declare -a ch_contributors\n' >> $@
-	sed -En 's/^\*.+<(.+@.+)>.*$$/ch_contributors+=('"'"'\1'"'"')/p' < $< >> $@
+	printf 'declare -a clearly_contributors\n' >> $@
+	sed -En 's/^\*.+<(.+@.+)>.*$$/clearly_contributors+=('"'"'\1'"'"')/p' < $< >> $@
 
 _version.txt: ../configure
 	printf '@PACKAGE_VERSION@\n' > $@
@@ -55,7 +55,7 @@ _version.py: ../configure
 
 _version.sh: ../configure
 	printf "# shellcheck shell=sh disable=SC2034\n" > $@
-	printf "ch_version='@PACKAGE_VERSION@'\n" >> $@
+	printf "clearly_version='@PACKAGE_VERSION@'\n" >> $@
 	chmod +x $@
 
 uninstall-hook:

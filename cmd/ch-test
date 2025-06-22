@@ -34,21 +34,21 @@ warning () {
 
 ### Setup
 
-ch_lib=$(cd "$(dirname "$0")" && pwd)/../../lib
-if [[ ! -f ${ch_lib}/_base.sh ]]; then
-    fatal "install or build problem: not found: ${ch_lib}/_base.sh"
+clearly_lib=$(cd "$(dirname "$0")" && pwd)/../../lib
+if [[ ! -f ${clearly_lib}/_base.sh ]]; then
+    fatal "install or build problem: not found: ${clearly_lib}/_base.sh"
 fi
-. "${ch_lib}/_base.sh"
-. "${ch_lib}/_contributors.bash"
-export ch_bin
-export ch_lib
+. "${clearly_lib}/_base.sh"
+. "${clearly_lib}/_contributors.bash"
+export clearly_bin
+export clearly_lib
 
 if docker info > /dev/null 2>&1; then
-    ch_docker_nosudo=yes
+    clearly_docker_nosudo=yes
 else
-    ch_docker_nosudo=
+    clearly_docker_nosudo=
 fi
-export ch_docker_nosudo
+export clearly_docker_nosudo
 
 usage=$(cat <<EOF
 Run some or all of the Clearly test suite.
@@ -95,10 +95,10 @@ builder_check () {
     printf 'checking builder ...\n'
     case $CLEARLY_TEST_BUILDER in
     image)
-        if ! "${ch_bin}/image" --dependencies; then
+        if ! "${clearly_bin}/image" --dependencies; then
             fatal 'builder: image: missing dependencies'
         fi
-        bl=$(readlink -f "${ch_bin}/image")
+        bl=$(readlink -f "${clearly_bin}/image")
         bv=$("$bl" --version)
         ;;
     buildah)
@@ -155,8 +155,8 @@ builder_set () {
 dir_img_mk () {
     dir_img_rm
     printf "creating %s\n\n" "$CLEARLY_TEST_IMGDIR"
-    $ch_mpirun_node mkdir "$CLEARLY_TEST_IMGDIR"
-    $ch_mpirun_node touch "$CLEARLY_TEST_IMGDIR/WEIRD_AL_YANKOVIC"
+    $clearly_mpirun_node mkdir "$CLEARLY_TEST_IMGDIR"
+    $clearly_mpirun_node touch "$CLEARLY_TEST_IMGDIR/WEIRD_AL_YANKOVIC"
 }
 
 dir_img_rm () {
@@ -178,7 +178,7 @@ dir_rm_safe () {
     if [[    $(find "$1" -maxdepth 1 -mindepth 1 | wc -l) == 0 \
           || -e ${1}/WEIRD_AL_YANKOVIC ]]; then
         echo "removing $1"
-        $ch_mpirun_node rm -rf --one-file-system "$1"
+        $clearly_mpirun_node rm -rf --one-file-system "$1"
     else
         fatal "non-empty and missing sentinel file; manually delete: $1"
     fi
@@ -207,8 +207,8 @@ dir_tar_check_file () {
 dir_tar_mk () {
     dir_tar_rm
     printf "creating %s\n\n" "$CLEARLY_TEST_TARDIR"
-    $ch_mpirun_node mkdir "$CLEARLY_TEST_TARDIR"
-    $ch_mpirun_node touch "${CLEARLY_TEST_TARDIR}/WEIRD_AL_YANKOVIC"
+    $clearly_mpirun_node mkdir "$CLEARLY_TEST_TARDIR"
+    $clearly_mpirun_node touch "${CLEARLY_TEST_TARDIR}/WEIRD_AL_YANKOVIC"
 }
 
 dir_tar_rm () {
@@ -235,7 +235,7 @@ pack_fmt_set () {
     else
         have_mksquashfs=
     fi
-    if [[ $(ldd "${ch_bin}/run") = *"libsquashfuse"* ]]; then
+    if [[ $(ldd "${clearly_bin}/run") = *"libsquashfuse"* ]]; then
         have_libsquashfuse=yes
     else
         have_libsquashfuse=
@@ -292,12 +292,12 @@ pedantry_set () {
     width=$1
     default=no
     # Default to pedantic on CI or if user is a contributor.
-    if [[ -n $ch_contributor || -n $CI ]]; then
+    if [[ -n $clearly_contributor || -n $CI ]]; then
         default=yes
     fi
-    vset ch_pedantic "$pedantic" '' $default "$width" 'pedantic mode'
-    if [[ $ch_pedantic == no ]]; then
-        ch_pedantic=  # proper boolean
+    vset clearly_pedantic "$pedantic" '' $default "$width" 'pedantic mode'
+    if [[ $clearly_pedantic == no ]]; then
+        clearly_pedantic=  # proper boolean
     fi
     # Motivation here: In pedantic mode, we want to run all the tests we
     # reasonably can. So, if the user *has* sudo, then default --sudo to yes.
@@ -307,7 +307,7 @@ pedantry_set () {
     # exit code) and it generates a failed password log message if there is
     # not already a sudo session going. We also used to use “sudo -v”, which
     # prompts for a password even if you have passwordless sudo set up.
-    if    [[ -n $ch_pedantic ]] \
+    if    [[ -n $clearly_pedantic ]] \
        && command -v sudo > /dev/null \
        && sudo true > /dev/null 2>&1; then
         use_sudo_default=yes
@@ -444,10 +444,10 @@ test_make () {
                 bat_file=$(dirname "$i")/test.bats
                 tag=$(test_make_tag_from_path "$i")
                 cp "$bat_file" "${TMP_}/${tag}_example.bats"
-                # Substitute $ch_test_tag here with sed because we run all the
+                # Substitute $clearly_test_tag here with sed because we run all the
                 # examples together later, but the value needs to vary between
                 # the files. Watch the escaping here.
-                sed -i "s/\\\$ch_test_tag/${tag}/g" \
+                sed -i "s/\\\$clearly_test_tag/${tag}/g" \
                        "${TMP_}/${tag}_example.bats"
                 echo "found: $(dirname "$i")"
             fi
@@ -661,10 +661,10 @@ test_make_template_print () {
 test_one_file () {
     if [[ $one_file != *.bats ]]; then
         # Assume it's a Dockerfile or Build file; derive tag and test.bats.
-        ch_test_tag=$(test_make_tag_from_path "$one_file")
-        export ch_test_tag
+        clearly_test_tag=$(test_make_tag_from_path "$one_file")
+        export clearly_test_tag
         one_file=$(dirname "$one_file")/test.bats
-        printf 'tag:   %s\n' "$ch_test_tag"
+        printf 'tag:   %s\n' "$clearly_test_tag"
     fi
     printf 'file:  %s\n' "$one_file"
     bats "$one_file"
@@ -726,17 +726,17 @@ USER=$(id -un)
 export USER
 
 # Ensure run has been compiled (issue #329).
-if ! "${ch_bin}/run" --version > /dev/null 2>&1; then
-    fatal "no working run found in $ch_bin"
+if ! "${clearly_bin}/run" --version > /dev/null 2>&1; then
+    fatal "no working run found in $clearly_bin"
 fi
 
 # Some tests have specific libc requirements.
-case $(readelf -p .interp "${ch_bin}/run") in
+case $(readelf -p .interp "${clearly_bin}/run") in
     *musl*)            # e.g. /lib/ld-musl-x86_64.so.1
-        export ch_libc=musl
+        export clearly_libc=musl
         ;;
     *)                 # e.g. /lib64/ld-linux-x86-64.so.2
-        export ch_libc=glibc
+        export clearly_libc=glibc
         ;;
 esac
 
@@ -757,10 +757,10 @@ fi
 if [[ -z $email ]]; then
     email="$USER@$(hostname --domain)"
 fi
-ch_contributor=
-for i in "${ch_contributors[@]}"; do
+clearly_contributor=
+for i in "${clearly_contributors[@]}"; do
     if [[ $i == "$email" ]]; then
-        ch_contributor=yes
+        clearly_contributor=yes
     fi
 done
 
@@ -788,22 +788,22 @@ fi
 echo no > "$TMP_/rootemu"
 
 # Find test directories. Note some of this gets rewritten at install time.
-CHTEST_DIR=${ch_base}/test
-CHTEST_EXAMPLES_DIR=${ch_base}/examples
-if [[ ! -f ${ch_base}/VERSION ]]; then
+CHTEST_DIR=${clearly_base}/test
+CHTEST_EXAMPLES_DIR=${clearly_base}/examples
+if [[ ! -f ${clearly_base}/VERSION ]]; then
     # installed
     CHTEST_INSTALLED=yes
     CHTEST_GITWD=
 else
     # build dir
     CHTEST_INSTALLED=
-    if [[ -e ${ch_base}/.git ]]; then
+    if [[ -e ${clearly_base}/.git ]]; then
         CHTEST_GITWD=yes
     else
         CHTEST_GITWD=
     fi
 fi
-export ch_base
+export clearly_base
 export CHTEST_INSTALLED
 export CHTEST_GITWD
 export CHTEST_DIR
@@ -951,7 +951,7 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-printf 'run:       %s (%s)\n' "${ch_bin}/run" "$ch_libc"
+printf 'run:       %s (%s)\n' "${clearly_bin}/run" "$clearly_libc"
 printf 'bats:         %s (%s)\n' "$bats" "$bats_version"
 if [[    $(printf "%s\n%s" "$bats_version" "$bats_vmin" | sort -V | head -1) \
       != "$bats_vmin" ]]; then
@@ -961,18 +961,18 @@ printf 'tests:        %s\n' "$CHTEST_DIR"
 printf 'installed:    %s\n' "${CHTEST_INSTALLED:-no}"
 printf 'locale:       %s\n' "$LC_ALL"
 printf 'git workdir:  %s\n' "${CHTEST_GITWD:-no}"
-if [[ -n $ch_contributor ]]; then
-    ch_contributor_note="yes; $email in README.rst"
+if [[ -n $clearly_contributor ]]; then
+    clearly_contributor_note="yes; $email in README.rst"
 else
-    ch_contributor_note="no; $email not in README.rst"
+    clearly_contributor_note="no; $email not in README.rst"
 fi
-printf 'contributor:  %s\n\n' "$ch_contributor_note"
+printf 'contributor:  %s\n\n' "$clearly_contributor_note"
 
 if [[ $phase = one-file ]]; then
     if [[ $one_file == *:* ]]; then
         x=$one_file
         one_file=${x%%:*}            # before first colon
-        export ch_one_test=${x#*:}   # after first colon
+        export clearly_one_test=${x#*:}   # after first colon
     fi
     if [[ ! -f $one_file ]]; then
         fatal "not a file: $one_file"
@@ -985,7 +985,7 @@ fi
 
 printf "%-21s %s" 'phase:' "$phase"
 if [[ $phase = one-file ]]; then
-    printf ': %s (%s)' "$one_file" "$ch_one_test"
+    printf ': %s (%s)' "$one_file" "$clearly_one_test"
 fi
 if [[ -z $phase ]]; then
     fatal 'phase: no phase specified'
@@ -1022,20 +1022,20 @@ if [[ $phase == *'perm'* ]] && [[ $CLEARLY_TEST_PERMDIRS == skip ]]; then
 fi
 
 # Check that different sources of version number are consistent.
-printf 'ch-test version: %s\n' "$ch_version"
-run_version=$("${ch_bin}/run" --version 2>&1)
-if [[ $ch_version != "$run_version" ]]; then
+printf 'ch-test version: %s\n' "$clearly_version"
+run_version=$("${clearly_bin}/run" --version 2>&1)
+if [[ $clearly_version != "$run_version" ]]; then
     warning "inconsistent run version: ${run_version}"
 fi
 if [[ -z $CHTEST_INSTALLED ]]; then
-    cf_version=$("${ch_base}/configure" --version | head -1 | cut -d' ' -f3)
-    if [[ $ch_version != "$cf_version" ]]; then
+    cf_version=$("${clearly_base}/configure" --version | head -1 | cut -d' ' -f3)
+    if [[ $clearly_version != "$cf_version" ]]; then
         warning "inconsistent configure version: ${cf_version}"
     fi
     # Clearly version. Prefer git; otherwise use simple version.
-    src_version=$(   "${ch_base}/misc/version" 2> /dev/null \
-                  || cat "${ch_base}/VERSION")
-    if [[ $ch_version != "$src_version" ]]; then
+    src_version=$(   "${clearly_base}/misc/version" 2> /dev/null \
+                  || cat "${clearly_base}/VERSION")
+    if [[ $clearly_version != "$src_version" ]]; then
         warning "inconsistent source version: ${src_version}"
     fi
 fi
@@ -1076,7 +1076,7 @@ fi
 
 # Ensure namespaces are configured properly.
 printf 'checking namespaces ...\n'
-if ! "${ch_bin}/checkns"; then
+if ! "${clearly_bin}/checkns"; then
     fatal 'namespace sanity check (clearly checkns) failed'
 fi
 printf '\n'
@@ -1089,7 +1089,7 @@ fi
 
 if [[ -n $is_pedantic ]]; then
     printf 'exiting per --is-pedantic\n'
-    if [[ -n $ch_pedantic ]]; then exit 0; else exit 1; fi
+    if [[ -n $clearly_pedantic ]]; then exit 0; else exit 1; fi
 fi
 
 if [[ -n $is_sudo ]]; then
@@ -1104,7 +1104,7 @@ fi
 
 cd "$CHTEST_DIR"
 
-export PATH=$ch_bin:$PATH
+export PATH=$clearly_bin:$PATH
 
 # Now that CLEARLY_TEST_* variables, PATH, and BATS_TMPDIR has been set and checked,
 # we source CHTEST_DIR/common.bash.

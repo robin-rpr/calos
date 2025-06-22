@@ -1,4 +1,4 @@
-CLEARLY_TEST_TAG=$ch_test_tag
+CLEARLY_TEST_TAG=$clearly_test_tag
 load "${CHTEST_DIR}/common.bash"
 
 setup () {
@@ -6,8 +6,8 @@ setup () {
     prerequisites_ok distroless
 }
 
-@test "${ch_tag}/hello" {
-    run clearly run "$ch_img" -- /hello.py
+@test "${clearly_tag}/hello" {
+    run clearly run "$clearly_img" -- /hello.py
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = 'Hello, World!' ]]

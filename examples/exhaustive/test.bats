@@ -1,4 +1,4 @@
-CLEARLY_TEST_TAG=$ch_test_tag
+CLEARLY_TEST_TAG=$clearly_test_tag
 load "${CHTEST_DIR}/common.bash"
 
 setup () {
@@ -6,7 +6,7 @@ setup () {
     prerequisites_ok exhaustive
 }
 
-@test "${ch_tag}/WORKDIR" {
+@test "${clearly_tag}/WORKDIR" {
     output_expected=$(cat <<'EOF'
 /workdir:
 abs2
@@ -25,7 +25,7 @@ rel2
 file
 EOF
 )
-    run clearly run "$ch_img" -- ls -R /workdir
+    run clearly run "$clearly_img" -- ls -R /workdir
     echo "$output"
     [[ $status -eq 0 ]]
     diff -u <(echo "$output_expected") <(echo "$output")

@@ -1,12 +1,12 @@
-CLEARLY_TEST_TAG=$ch_test_tag
+CLEARLY_TEST_TAG=$clearly_test_tag
 load "${CHTEST_DIR}/common.bash"
 
-@test "${ch_tag}/ls" {
+@test "${clearly_tag}/ls" {
     scope standard
     prerequisites_ok copy
 
     # “ls -F” trailing symbol list: https://unix.stackexchange.com/a/82358
-    diff -u - <(clearly run --cd /test "$ch_img" -- ls -1FR .) <<EOF
+    diff -u - <(clearly run --cd /test "$clearly_img" -- ls -1FR .) <<EOF
 .:
 dir01a/
 dir01b/
@@ -217,11 +217,11 @@ file19b1
 EOF
 }
 
-@test "${ch_tag}/content of regular files" {
+@test "${clearly_tag}/content of regular files" {
     scope standard
     prerequisites_ok copy
 
-    diff -u - <(clearly run --cd /test "$ch_img" \
+    diff -u - <(clearly run --cd /test "$clearly_img" \
                 --   find . -type f -printf '%y: %p: ' -a -exec cat {} \; \
                    | sort) <<EOF
 f: ./dir01a/fileA: fileA
@@ -292,11 +292,11 @@ f: ./symlink-to-fileA: fileA
 EOF
 }
 
-@test "${ch_tag}/symlink targets" {
+@test "${clearly_tag}/symlink targets" {
     scope standard
     prerequisites_ok copy
 
-    diff -u - <(clearly run --cd /test "$ch_img" \
+    diff -u - <(clearly run --cd /test "$clearly_img" \
                 -- find . -type l -printf '%y: %p -> %l\n' | sort) <<EOF
 l: ./dir14/symlink-to-fileDa -> fileDa
 l: ./dir15/symlink-to-fileDa -> fileDa

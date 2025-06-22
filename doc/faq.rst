@@ -201,7 +201,7 @@ handling.
 For example::
 
   $ ch-run /var/tmp/hello -- /bin/echo foo
-  ch-run[154334]: error: can’t execve(2): /bin/echo: Permission denied (ch_core.c:387 13)
+  ch-run[154334]: error: can’t execve(2): /bin/echo: Permission denied (core.c:387 13)
 
 But :code:`/bin/echo` *does* have execute permission::
 
@@ -359,7 +359,7 @@ Recall that bind-mounting to a path that does not exist in a read-only image
 fails::
 
   $ ch-run -b /tmp/baz:/mnt/baz /var/tmp/image -- ls /mnt
-  ch-run[40498]: error: can't mkdir: /var/tmp/image/mnt/baz: Read-only file system (ch_misc.c:582 30)
+  ch-run[40498]: error: can't mkdir: /var/tmp/image/mnt/baz: Read-only file system (clearly_misc.c:582 30)
 
 That’s fine; we’ll just use :code:`--write-fake` to create a writeable overlay
 on the container. Then we can make any mount points we need. Right?

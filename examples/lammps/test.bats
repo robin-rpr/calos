@@ -1,4 +1,4 @@
-CLEARLY_TEST_TAG=$ch_test_tag
+CLEARLY_TEST_TAG=$clearly_test_tag
 load "${CHTEST_DIR}/common.bash"
 
 # LAMMPS does have a test suite, but we do not use it, because it seems too
@@ -37,38 +37,38 @@ load "${CHTEST_DIR}/common.bash"
 
 setup () {
     scope full
-    prerequisites_ok "$ch_tag"
+    prerequisites_ok "$clearly_tag"
     multiprocess_ok
     pmix_or_skip
-    [[ -n "$ch_cray" ]] && export FI_PROVIDER=$cray_prov
+    [[ -n "$clearly_cray" ]] && export FI_PROVIDER=$cray_prov
 }
 
 lammps_try () {
     # These examples cd because some (not all) of the LAMMPS tests expect to
     # find things based on $CWD.
-    infiles=$(clearly run --cd "/lammps/examples/${1}" "$ch_img" -- \
+    infiles=$(clearly run --cd "/lammps/examples/${1}" "$clearly_img" -- \
                      bash -c "ls in.*")
     for i in $infiles; do
         printf '\n\n%s\n' "$i"
         # shellcheck disable=SC2086
-        $ch_mpirun_core clearly run --join --cd /lammps/examples/$1 "$ch_img" -- \
+        $clearly_mpirun_core clearly run --join --cd /lammps/examples/$1 "$clearly_img" -- \
                         lmp_mpi -log none -in "$i"
     done
 
 }
 
-@test "${ch_tag}/inject host cray mpi ($cray_prov)" {
-    cray_ofi_or_skip "$ch_img"
-    run clearly run "$ch_img" -- fi_info
+@test "${clearly_tag}/inject host cray mpi ($cray_prov)" {
+    cray_ofi_or_skip "$clearly_img"
+    run clearly run "$clearly_img" -- fi_info
     echo "$output"
     [[ $output == *"provider: $cray_prov"* ]]
     [[ $output == *"fabric: $cray_prov"* ]]
     [[ $status -eq 0 ]]
 }
 
-@test "${ch_tag}/using all cores" {
+@test "${clearly_tag}/using all cores" {
     # shellcheck disable=SC2086
-    run $ch_mpirun_core clearly run --join "$ch_img" -- \
+    run $clearly_mpirun_core clearly run --join "$clearly_img" -- \
                         lmp_mpi -log none -in /lammps/examples/melt/in.melt
     echo "$output"
     [[ $status -eq 0 ]]
@@ -76,22 +76,22 @@ lammps_try () {
                   | grep -F 'MPI tasks' \
                   | tail -1 \
                   | sed -r 's/^.+with ([0-9]+) MPI tasks.+$/\1/')
-    echo "ranks expected: ${ch_cores_total}"
+    echo "ranks expected: ${clearly_cores_total}"
     echo "ranks found: ${ranks_found}"
-    [[ $ranks_found -eq "$ch_cores_total" ]]
+    [[ $ranks_found -eq "$clearly_cores_total" ]]
 }
 
-@test "${ch_tag}/crack"    { lammps_try crack; }
-@test "${ch_tag}/dipole"   { lammps_try dipole; }
-@test "${ch_tag}/flow"     { lammps_try flow; }
-@test "${ch_tag}/friction" { lammps_try friction; }
-@test "${ch_tag}/melt"     { lammps_try melt; }
+@test "${clearly_tag}/crack"    { lammps_try crack; }
+@test "${clearly_tag}/dipole"   { lammps_try dipole; }
+@test "${clearly_tag}/flow"     { lammps_try flow; }
+@test "${clearly_tag}/friction" { lammps_try friction; }
+@test "${clearly_tag}/melt"     { lammps_try melt; }
 
-@test "${ch_tag}/mpi4py simple" {
-    $ch_mpirun_core clearly run --join --cd /lammps/python/examples "$ch_img" -- \
+@test "${clearly_tag}/mpi4py simple" {
+    $clearly_mpirun_core clearly run --join --cd /lammps/python/examples "$clearly_img" -- \
                     ./simple.py in.simple
 }
 
-@test "${ch_tag}/revert image" {
-    unpack_img_all_nodes "$ch_cray"
+@test "${clearly_tag}/revert image" {
+    unpack_img_all_nodes "$clearly_cray"
 }

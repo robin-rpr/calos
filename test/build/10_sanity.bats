@@ -21,14 +21,14 @@ load ../common
     # consistent with anything, because so far that level of strictness has
     # yielded hundreds of false positives but zero actual bugs.
     scope quick
-    echo "version: ${ch_version}"
+    echo "version: ${clearly_version}"
     re='^0\.[0-9]+(\.[0-9]+)?(~pre\+([A-Za-z0-9]+\.)?([0-9a-f]+(\.dirty)?)?)?$'
-    [[ $ch_version =~ $re ]]
+    [[ $clearly_version =~ $re ]]
 }
 
 @test 'executables seem sane' {
     scope quick
-    # Assume that everything in $ch_bin is ours if it starts with “ch-” and
+    # Assume that everything in $clearly_bin is ours if it starts with “ch-” and
     # either (1) is executable or (2) ends in “.c”. Demand satisfaction from
     # each. The latter is to catch cases when we haven't compiled everything;
     # if we have, the test makes duplicate demands, but that’s low cost.
@@ -62,7 +62,7 @@ load ../common
         ls -l "$path"
         [[ ! -u $path ]]
         [[ ! -g $path ]]
-    done < <( find "$ch_bin" -name 'ch-*' -a \( -executable -o -name '*.c' \) \
+    done < <( find "$clearly_bin" -name 'ch-*' -a \( -executable -o -name '*.c' \) \
                    -print0 )
 }
 
@@ -102,8 +102,8 @@ load ../common
     # For awk program, see: https://unix.stackexchange.com/a/66099
     while IFS= read -r i; do
         echo "shellcheck: ${i}"
-        shellcheck -x -P "$ch_lib" -P SCRIPTDIR -e SC1112,SC2002 "$i"
-    done < <( find "$ch_base" \
+        shellcheck -x -P "$clearly_lib" -P SCRIPTDIR -e SC1112,SC2002 "$i"
+    done < <( find "$clearly_base" \
                    \(    -name .git \
                       -o -name build-aux \) -prune \
                 -o \( -name '*.sh' -print \) \
@@ -131,7 +131,7 @@ load ../common
                        -e 's/^load /source /g' \
         | shellcheck -s bash -e SC1112,SC2002,SC2030,SC2031,SC2103,SC2164 \
                      - "$CHTEST_DIR"/common.bash
-    done < <( find "$ch_base" -name '*.bats' -o -name '*.bats.in' )
+    done < <( find "$clearly_base" -name '*.bats' -o -name '*.bats.in' )
 }
 
 @test 'proxy variables' {
@@ -191,7 +191,7 @@ load ../common
 @test 'python object order' {
     scope standard
     status_all=0
-    for f in "$ch_lib"/*.py; do
+    for f in "$clearly_lib"/*.py; do
         run ./order-py "$f"
         echo "$output"
         status_all=$((status_all+status))

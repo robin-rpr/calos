@@ -110,12 +110,12 @@ rpmbuild root:      %(rpmbuild)s
        "--", "make")
    cmd(CLEARLY_BASE + "/cmd/run", "-b", "%s:/mnt/0" % git_tmp, "-c", "/mnt/0", args.image,
        "--", "make", "dist")
-   ch_version = open(git_tmp + "/lib/_version.txt").read()[:-1]
-   ch_tarball = "charliecloud-%s.tar.gz" % ch_version
-   print("# Clearly version: %s" % ch_version)
-   print("# source tarball: %s" % ch_tarball)
-   os.rename("%s/%s" % (git_tmp, ch_tarball),
-             "%s/%s" % (rpm_sources, ch_tarball))
+   clearly_version = open(git_tmp + "/lib/_version.txt").read()[:-1]
+   clearly_tarball = "charliecloud-%s.tar.gz" % clearly_version
+   print("# Clearly version: %s" % clearly_version)
+   print("# source tarball: %s" % clearly_tarball)
+   os.rename("%s/%s" % (git_tmp, clearly_tarball),
+             "%s/%s" % (rpm_sources, clearly_tarball))
 
    # Copy lint configuration and patchs.
    # FIXME: Put version into destination sometime?
@@ -129,10 +129,10 @@ rpmbuild root:      %(rpmbuild)s
    shutil.rmtree(git_tmp)
 
    # Copy and patch spec file.
-   rpm_vr = "%s-%s" % (ch_version, rpm_release)
+   rpm_vr = "%s-%s" % (clearly_version, rpm_release)
    # Fedora requires no version in spec file. Add a version for pre-release
    # specs to make it hard to upload one to Fedora by mistake.
-   if ("~pre" not in ch_version):
+   if ("~pre" not in clearly_version):
       spec = "charliecloud.spec"
    else:
       spec = "charliecloud-%s.spec" % rpm_vr
@@ -140,9 +140,9 @@ rpmbuild root:      %(rpmbuild)s
         open("%s/%s" % (rpm_specs, spec), "wt") as out:
       print("# writing %s" % out.name)
       t = in_.read()
-      t = t.replace("@VERSION@", ch_version)
+      t = t.replace("@VERSION@", clearly_version)
       t = t.replace("@RELEASE@", rpm_release)
-      if ("~pre" in ch_version):
+      if ("~pre" in clearly_version):
          # Add dummy changelog entry.
          timestamp = time.strftime("%a %b %d %Y")  # required format
          name = pwd.getpwuid(os.geteuid()).pw_gecos.split(",")[0]

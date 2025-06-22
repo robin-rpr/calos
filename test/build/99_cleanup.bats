@@ -2,7 +2,7 @@ load ../common
 
 @test 'nothing unexpected in tarball directory' {
     scope quick
-    run find "$ch_tardir" -mindepth 1 -maxdepth 1 \
+    run find "$clearly_tardir" -mindepth 1 -maxdepth 1 \
         -not \(    -name 'WEIRD_AL_YANKOVIC'      \
                 -o -name '*.sqfs'                 \
                 -o -name '*.tar.gz'               \

@@ -2,7 +2,7 @@ load ../common
 
 setup () {
     [[ $CLEARLY_TEST_PACK_FMT = *-unpack ]] || skip 'need writeable image'
-    [[ $ch_libc = glibc ]] || skip 'glibc only'
+    [[ $clearly_libc = glibc ]] || skip 'glibc only'
     fi_provider_path=$FI_PROVIDER_PATH
 }
 
@@ -55,7 +55,7 @@ glibc_version_ok () {
 @test 'ch-fromhost (CentOS)' {
     scope standard
     prerequisites_ok almalinux_8ch
-    img=${ch_imgdir}/almalinux_8ch
+    img=${clearly_imgdir}/almalinux_8ch
 
     # check glibc version compatibility.
     glibc_version_ok "$img"
@@ -138,7 +138,7 @@ glibc_version_ok () {
 @test 'ch-fromhost (Debian)' {
     scope full
     prerequisites_ok debian_9ch
-    img=${ch_imgdir}/debian_9ch
+    img=${clearly_imgdir}/debian_9ch
 
     # check glibc version compatibility.
     glibc_version_ok "$img"
@@ -164,7 +164,7 @@ glibc_version_ok () {
 @test 'ch-fromhost errors' {
     scope standard
     prerequisites_ok almalinux_8ch
-    img=${ch_imgdir}/almalinux_8ch
+    img=${clearly_imgdir}/almalinux_8ch
 
     # no image
     run ch-fromhost --path sotest/sotest.c
@@ -322,7 +322,7 @@ glibc_version_ok () {
 @test 'ch-fromhost --path with libfabric' {
     scope full
     prerequisites_ok openmpi
-    img=${ch_imgdir}/openmpi
+    img=${clearly_imgdir}/openmpi
     unset FI_PROVIDER_PATH
 
     ofidest=$(ch-fromhost --print-fi "$img")
@@ -334,7 +334,7 @@ glibc_version_ok () {
     # where libfabric.so is found.
     #
     # Inferred dest from image libfabric.so.
-    img=${ch_imgdir}/openmpi
+    img=${clearly_imgdir}/openmpi
     ofi=${CHTEST_DIR}/sotest/lib/libfabric/libsotest-fi.so
     run ch-fromhost -p "${ofi}" "$img"
     echo "$output"
@@ -358,7 +358,7 @@ glibc_version_ok () {
     prerequisites_ok nvidia
     command -v nvidia-container-cli >/dev/null 2>&1 \
         || skip 'nvidia-container-cli not in PATH'
-    img=${ch_imgdir}/nvidia
+    img=${clearly_imgdir}/nvidia
 
     # nvidia-container-cli --version (to make sure it’s linked correctly)
     nvidia-container-cli --version
@@ -419,7 +419,7 @@ glibc_version_ok () {
 @test 'ch-fromhost --nvidia without GPU' {
     scope full
     prerequisites_ok nvidia
-    img=${ch_imgdir}/nvidia
+    img=${clearly_imgdir}/nvidia
 
     # --nvidia should give a proper error whether or not nvidia-container-cli
     # is available.

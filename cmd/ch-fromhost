@@ -34,8 +34,8 @@
 #   3. Here string, e.g. 'while IFS= read -r FILE; do ... done <<< "$FILES"'.
 #      This is a bashism.
 
-ch_lib=$(cd "$(dirname "$0")" && pwd)/../../lib
-. "${ch_lib}/_base.sh"
+clearly_lib=$(cd "$(dirname "$0")" && pwd)/../../lib
+. "${clearly_lib}/_base.sh"
 
 set -e
 
@@ -341,7 +341,7 @@ if [ -n "$lib_found" ]; then
     else                             # DEBUG or higher
         stderr_filter=weird_al_yankovic_will_not_appear_in_ldconfig_output
     fi
-    lib_dest=$( { "${ch_bin}/run" "$image" -- /sbin/ldconfig -Nv \
+    lib_dest=$( { "${clearly_bin}/run" "$image" -- /sbin/ldconfig -Nv \
                   2>&1 1>&3 3>&- | grep -Ev "$stderr_filter" ; } \
                 3>&1 1>&2 | grep -E '^/' | cut -d: -f1 | head -1 )
     [ -n "$lib_dest" ] || FATAL 'empty path from ldconfig'
@@ -361,10 +361,10 @@ if [ -n "$fi_prov_found" ]; then
     # does not exist, create it. Warn if FI_PROVIDER_PATH or FI_PROVIDER is
     # found in the the image's /ch/environment file.
     VERBOSE "searching ${image} for libfabric shared provider destination"
-    ch_env_p=$(grep -E '^FI_PROVIDER_PATH=' "${image}/ch/environment") \
+    clearly_env_p=$(grep -E '^FI_PROVIDER_PATH=' "${image}/ch/environment") \
              || true # avoid -e exit
-    ch_env_p=${ch_env_p##*=}
-    if  [ -n "$ch_env_p" ]; then
+    clearly_env_p=${clearly_env_p##*=}
+    if  [ -n "$clearly_env_p" ]; then
        warn "FI_PROVIDER_PATH in ${image}/ch/environment; consider --dest"
     fi
     img_libfabric=$(find "$image" -name 'libfabric.so')
@@ -509,13 +509,13 @@ if       [ -z "$no_ldconfig" ] \
          || [ "$fi_prov_found" ] \
          || [ "$cray_fi_found" ] ;} then
     VERBOSE "running ldconfig"
-    "${ch_bin}/run" -w "$image" -- /sbin/ldconfig 2> /dev/null \
+    "${clearly_bin}/run" -w "$image" -- /sbin/ldconfig 2> /dev/null \
         || FATAL 'ldconfig error'
     if [ -n "$fi_prov_found" ] || [ -n "$cray_fi_found" ]; then
         VERBOSE "validating ldconfig cache"
         for file in $inject_files; do
             f="$(basename "${file%%:*}")"
-            f=$(   "${ch_bin}/run" "$image" \
+            f=$(   "${clearly_bin}/run" "$image" \
                 -- find / \
                         -not \( -path /proc -prune \) \
                         -not \( -path /dev -prune \) \
@@ -524,8 +524,8 @@ if       [ -z "$no_ldconfig" ] \
                         -not \( -path /var/opt/cray -prune \) \
                         -not \( -path /etc/opt/cray -prune \) \
                         -name  "$f")
-            if [ "$("${ch_bin}/run" "$image" -- ldd "$f" | grep -c 'not found ')" -ne 0 ]; then
-                FATAL "ldconfig: '${ch_bin}/run $image -- ldd $f' failed"
+            if [ "$("${clearly_bin}/run" "$image" -- ldd "$f" | grep -c 'not found ')" -ne 0 ]; then
+                FATAL "ldconfig: '${clearly_bin}/run $image -- ldd $f' failed"
             fi
         done
     fi

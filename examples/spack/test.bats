@@ -1,4 +1,4 @@
-CLEARLY_TEST_TAG=$ch_test_tag
+CLEARLY_TEST_TAG=$clearly_test_tag
 load "${CHTEST_DIR}/common.bash"
 
 setup() {
@@ -7,24 +7,24 @@ setup() {
     export PATH=/spack/bin:$PATH
 }
 
-@test "${ch_tag}/version" {
+@test "${clearly_tag}/version" {
     # Spack likes to write to $HOME/.spack; thus, we bind it.
-    clearly run --home "$ch_img" -- spack --version
+    clearly run --home "$clearly_img" -- spack --version
 }
 
-@test "${ch_tag}/compilers" {
+@test "${clearly_tag}/compilers" {
     echo "spack compiler list"
-    clearly run --home "$ch_img" -- spack compiler list
+    clearly run --home "$clearly_img" -- spack compiler list
     echo "spack compiler list --scope=system"
-    clearly run --home "$ch_img" -- spack compiler list --scope=system
+    clearly run --home "$clearly_img" -- spack compiler list --scope=system
     echo "spack compiler list --scope=user"
-    clearly run --home "$ch_img" -- spack compiler list --scope=user
+    clearly run --home "$clearly_img" -- spack compiler list --scope=user
     echo "spack compilers"
-    clearly run --home "$ch_img" -- spack compilers
+    clearly run --home "$clearly_img" -- spack compilers
 }
 
-@test "${ch_tag}/find" {
-    run clearly run --home "$ch_img" -- spack find charliecloud
+@test "${clearly_tag}/find" {
+    run clearly run --home "$clearly_img" -- spack find charliecloud
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = *'charliecloud@'* ]]
