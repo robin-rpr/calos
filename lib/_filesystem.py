@@ -1075,7 +1075,7 @@ class Storage:
 
    @staticmethod
    def root_default():
-      return Path("/var/tmp/%s.ch" % clearly.user())
+      return Path("/var/tmp/%s.clearly" % clearly.user())
 
    @staticmethod
    def root_env():

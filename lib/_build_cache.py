@@ -1407,7 +1407,7 @@ class Disabled_Cache(Rebuild_Cache):
       # Some distributions create unreadable files; e.g., CentOS 7 after
       # installing “openssh”:
       #
-      #   $ ls -lh /scratch/reidpr.ch/img/centos_7ch/usr/bin/ssh-agent
+      #   $ ls -lh /scratch/reidpr.clearly/img/centos_7ch/usr/bin/ssh-agent
       #   ---x--s--x 1 reidpr reidpr 374K Nov 24  2021 [...]/ssh-agent
       #
       # This makes the image un-copyable, so it can’t be used as a base image.

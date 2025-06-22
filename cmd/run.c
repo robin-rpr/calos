@@ -640,7 +640,7 @@ char *storage_default(void)
    char *storage = getenv("CLEARLY_IMAGE_STORAGE");
 
    if (storage == NULL)
-      T_ (1 <= asprintf(&storage, "/var/tmp/%s.ch", username));
+      T_ (1 <= asprintf(&storage, "/var/tmp/%s.clearly", username));
 
    return storage;
 }

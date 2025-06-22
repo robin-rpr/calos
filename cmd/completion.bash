@@ -727,7 +727,7 @@ _clearly_find_storage () {
     elif [[ -n "$CLEARLY_IMAGE_STORAGE" ]]; then
         echo "$CLEARLY_IMAGE_STORAGE" | sed -Ee 's|/$||g'
     else
-        echo "/var/tmp/$USER.ch"
+        echo "/var/tmp/$USER.clearly"
     fi
 }
 

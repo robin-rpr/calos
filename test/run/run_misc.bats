@@ -341,13 +341,13 @@ EOF
     run clearly run -b "${bind1_dir}:/.." "$ch_timg" -- /bin/true
     echo "$output"
     [[ $status -eq $CLEARLY_ERR_MISC ]]
-    [[ $output = *"can't bind: "*"/${USER}.ch not subdirectory of "*"/${USER}.ch/mnt"* ]]
+    [[ $output = *"can't bind: "*"/${USER}.clearly not subdirectory of "*"/${USER}.clearly/mnt"* ]]
 
     # destination climbs out of image, does not exist
     run clearly run -b "${bind1_dir}:/../doesnotexist/a" "$ch_timg" -- /bin/true
     echo "$output"
     [[ $status -eq $CLEARLY_ERR_MISC ]]
-    [[ $output = *"can't mkdir: "*"/${USER}.ch/doesnotexist not subdirectory of "*"/${USER}.ch/mnt"* ]]
+    [[ $output = *"can't mkdir: "*"/${USER}.clearly/doesnotexist not subdirectory of "*"/${USER}.clearly/mnt"* ]]
     [[ ! -e ${ch_imgdir}/doesnotexist ]]
 
     # source does not exist
@@ -360,7 +360,7 @@ EOF
     run clearly run -b "${bind1_dir}:/doesnotexist" "$ch_timg" -- /bin/true
     echo "$output"
     [[ $status -eq $CLEARLY_ERR_MISC ]]
-    [[ $output = *"can't mkdir: "*"/${USER}.ch/mnt/doesnotexist: Read-only file system"* ]]
+    [[ $output = *"can't mkdir: "*"/${USER}.clearly/mnt/doesnotexist: Read-only file system"* ]]
 
     # neither source nor destination exist
     run clearly run -b /doesnotexist-out:/doesnotexist-in "$ch_timg" -- /bin/true
@@ -379,13 +379,13 @@ EOF
                "$ch_timg" -- /bin/true
     echo "$output"
     [[ $status -eq $CLEARLY_ERR_MISC ]]
-    [[ $output = *"can't mkdir: "*"/${USER}.ch/mnt/doesnotexist: Read-only file system"* ]]
+    [[ $output = *"can't mkdir: "*"/${USER}.clearly/mnt/doesnotexist: Read-only file system"* ]]
 
     # destination is broken symlink
     run clearly run -b "${bind1_dir}:/mnt/link-b0rken-abs" "$ch_timg" -- /bin/true
     echo "$output"
     [[ $status -eq $CLEARLY_ERR_MISC ]]
-    [[ $output = *"can't mkdir: symlink not relative: "*"/${USER}.ch/mnt/mnt/link-b0rken-abs"* ]]
+    [[ $output = *"can't mkdir: symlink not relative: "*"/${USER}.clearly/mnt/mnt/link-b0rken-abs"* ]]
 
     # destination is absolute symlink outside image
     run clearly run -b "${bind1_dir}:/mnt/link-bad-abs" "$ch_timg" -- /bin/true
@@ -403,20 +403,20 @@ EOF
     run clearly run -b "${bind1_dir}:/proc/doesnotexist" "$ch_timg" -- /bin/true
     echo "$output"
     [[ $status -eq $CLEARLY_ERR_MISC ]]
-    [[ $output = *"can't mkdir: "*"/${USER}.ch/mnt/proc/doesnotexist under existing bind-mount "*"/${USER}.ch/mnt/proc "* ]]
+    [[ $output = *"can't mkdir: "*"/${USER}.clearly/mnt/proc/doesnotexist under existing bind-mount "*"/${USER}.clearly/mnt/proc "* ]]
 
     # mkdir(2) under existing bind-mount, user-supplied, first level
     run clearly run -b "${bind1_dir}:/mnt/0" \
                -b "${bind2_dir}:/mnt/0/foo" "$ch_timg" -- /bin/true
     echo "$output"
     [[ $status -eq $CLEARLY_ERR_MISC ]]
-    [[ $output = *"can't mkdir: "*"/${USER}.ch/mnt/mnt/0/foo under existing bind-mount "*"/${USER}.ch/mnt/mnt/0 "* ]]
+    [[ $output = *"can't mkdir: "*"/${USER}.clearly/mnt/mnt/0/foo under existing bind-mount "*"/${USER}.clearly/mnt/mnt/0 "* ]]
 
     # mkdir(2) under existing bind-mount, default, 2nd level
     run clearly run -b "${bind1_dir}:/proc/sys/doesnotexist" "$ch_timg" -- /bin/true
     echo "$output"
     [[ $status -eq $CLEARLY_ERR_MISC ]]
-    [[ $output = *"can't mkdir: "*"/${USER}.ch/mnt/proc/sys/doesnotexist under existing bind-mount "*"/${USER}.ch/mnt/proc "* ]]
+    [[ $output = *"can't mkdir: "*"/${USER}.clearly/mnt/proc/sys/doesnotexist under existing bind-mount "*"/${USER}.clearly/mnt/proc "* ]]
 }
 
 
@@ -846,7 +846,7 @@ EOF
     scope standard
     [[ $CLEARLY_TEST_PACK_FMT == squash-mount ]] || skip 'squash-mount format only'
 
-    ch_mnt="/var/tmp/${USER}.ch/mnt"
+    ch_mnt="/var/tmp/${USER}.clearly/mnt"
 
     # default mount point
     run clearly run -v "$ch_timg" -- /bin/true
@@ -1037,11 +1037,11 @@ EOF
 
     # At this point, there should be exactly two each of passwd and group
     # temporary files. Remove them.
-    [[ $(find -H "$tmpdir" -maxdepth 1 -name 'ch-run_passwd*' | wc -l) -eq 2 ]]
-    [[ $(find -H "$tmpdir" -maxdepth 1 -name 'ch-run_group*'  | wc -l) -eq 2 ]]
-    rm -v "$tmpdir"/ch-run_{passwd,group}*
-    [[ $(find -H "$tmpdir" -maxdepth 1 -name 'ch-run_passwd*' | wc -l) -eq 0 ]]
-    [[ $(find -H "$tmpdir" -maxdepth 1 -name 'ch-run_group*'  | wc -l) -eq 0 ]]
+    [[ $(find -H "$tmpdir" -maxdepth 1 -name 'run_passwd*' | wc -l) -eq 2 ]]
+    [[ $(find -H "$tmpdir" -maxdepth 1 -name 'run_group*'  | wc -l) -eq 2 ]]
+    rm -v "$tmpdir"/run_{passwd,group}*
+    [[ $(find -H "$tmpdir" -maxdepth 1 -name 'run_passwd*' | wc -l) -eq 0 ]]
+    [[ $(find -H "$tmpdir" -maxdepth 1 -name 'run_group*'  | wc -l) -eq 0 ]]
 }
 
 

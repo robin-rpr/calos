@@ -35,11 +35,11 @@ make-auto.d/unpack.bats.in \
 registry-config.yml \
 run/build-rpms.bats \
 run/ch-fromhost.bats \
-run/ch-run_escalated.bats \
-run/ch-run_isolation.bats \
-run/ch-run_join.bats \
-run/ch-run_misc.bats \
-run/ch-run_uidgid.bats \
+run/run_escalated.bats \
+run/run_isolation.bats \
+run/run_join.bats \
+run/run_misc.bats \
+run/run_uidgid.bats \
 run_first.bats \
 sotest/files_inferrable.txt \
 sotest/libsotest.c \

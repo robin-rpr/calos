@@ -160,8 +160,8 @@ unset_vars () {
 
     # IPC resources present? (glibc and musl naming patterns are different)
     ls -lh /dev/shm
-    [[ -e /dev/shm/ch-run_shm-foo ]]
-    [[ -e /dev/shm/ch-run_sem-foo || -e /dev/shm/sem.ch-run_sem-foo ]]
+    [[ -e /dev/shm/run_shm-foo ]]
+    [[ -e /dev/shm/run_sem-foo || -e /dev/shm/sem.run_sem-foo ]]
 
     # second peer (loser)
     run clearly run -v --join-ct=2 --join-tag=foo "$ch_timg" -- \
@@ -213,8 +213,8 @@ unset_vars () {
 
     # IPC resources present?
     ls -lh /dev/shm
-    [[ -e /dev/shm/ch-run_shm-foo ]]
-    [[ -e /dev/shm/ch-run_sem-foo || -e /dev/shm/sem.ch-run_sem-foo ]]
+    [[ -e /dev/shm/run_shm-foo ]]
+    [[ -e /dev/shm/run_sem-foo || -e /dev/shm/sem.run_sem-foo ]]
 
     # third peer (loser, cleanup)
     clearly run -v --join-ct=3 --join-tag=foo "$ch_timg" -- \
