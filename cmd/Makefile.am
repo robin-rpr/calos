@@ -15,7 +15,7 @@ run_SOURCES += fuse.h fuse.c
 endif
 
 # additional build flags for run
-run_CFLAGS = $(PTHREAD_CFLAGS)
+run_CFLAGS = $(PTHREAD_CFLAGS) -DLIBEXECDIR="\"$(pkglibexecdir)\""
 run_LDADD = $(CLEARLY_RUN_LIBS)
 
 

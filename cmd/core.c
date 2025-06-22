@@ -14,6 +14,7 @@
 #include <pwd.h>
 #include <sched.h>
 #include <semaphore.h>
+#include <stdbool.h>
 #include <stdio.h>
 #ifdef HAVE_SECCOMP
 #include <stddef.h>
@@ -27,6 +28,7 @@
 #include <sys/stat.h>
 #include <sys/syscall.h>
 #include <sys/sysmacros.h>
+#include <sys/wait.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -218,6 +220,7 @@ void setup_namespaces(const struct container *c, uid_t uid_out, uid_t uid_in,
                       gid_t gid_out, gid_t gid_in);
 void setup_passwd(const struct container *c);
 void tmpfs_mount(const char *dst, const char *newroot, const char *data);
+bool pull_image(const char *ref, const char *storage_dir);
 
 
 /** Functions **/
@@ -403,7 +406,15 @@ enum img_type image_type(const char *ref, const char *storage_dir)
       return IMG_NAME;
 
    // Now we know ref is a path of some kind, so find it.
-   Zf (stat(ref, &st), "can't stat: %s", ref);
+   if (stat(ref, &st) != 0) {
+      // If stat fails, we assume the image is not local and try to pull it.
+      if (pull_image(ref, storage_dir)) {
+         if (path_exists(img_name2path(ref, storage_dir), NULL, false))
+            return IMG_NAME;
+      }
+      // If we get here, either pull failed or the image still doesn't exist
+      Zf (stat(ref, &st), "can't stat: %s", ref);
+   }
 
    // If ref is the path to a directory, then it’s a directory.
    if (S_ISDIR(st.st_mode))
@@ -857,4 +868,73 @@ void tmpfs_mount(const char *dst, const char *newroot, const char *data)
 
    Zf (mount(NULL, dst_full, "tmpfs", 0, data),
        "can't mount tmpfs at %s", dst_full);
+}
+
+/* Try to pull an image from a remote registry. Returns true if successful,
+   false otherwise. */
+bool pull_image(const char *ref, const char *storage_dir)
+{
+   char *image_cmd;
+   char *storage_arg = NULL;
+   char *argv[8];
+   int argc = 0;
+   pid_t pid;
+   int status;
+
+   // Check if this looks like an image reference (contains ':' or '/')
+   bool looks_like_image = (strchr(ref, ':') != NULL || strchr(ref, '/') != NULL);
+   if (!looks_like_image) {
+      return false;
+   }
+
+   // Log that we're attempting to pull the image
+   INFO("Unable to find image '%s' locally", ref);
+
+   // Build the command: clearly image pull <ref>
+   // First, find the image command
+   T_ (1 <= asprintf(&image_cmd, "%s/image", LIBEXECDIR));
+
+   // Build argv array
+   argv[argc++] = image_cmd;
+   argv[argc++] = "pull";
+   
+   // Add storage directory if specified
+   if (storage_dir != NULL && strcmp(storage_dir, "/var/tmp/$USER.clearly") != 0) {
+      T_ (1 <= asprintf(&storage_arg, "--storage=%s", storage_dir));
+      argv[argc++] = storage_arg;
+   }
+   
+   argv[argc++] = (char *)ref;
+   argv[argc] = NULL;
+
+   pid = fork();
+   if (pid == -1) {
+      WARNING("can't fork to pull image: %s", ref);
+      free(image_cmd);
+      if (storage_arg) free(storage_arg);
+      return false;
+   }
+
+   if (pid == 0) {
+      execvp(image_cmd, argv);
+      // If we get here, execvp failed
+      ERROR(errno, "can't exec clearly image pull: %s", image_cmd);
+      exit(EXIT_FAILURE);
+   }
+
+   if (waitpid(pid, &status, 0) == -1) {
+      WARNING("can't wait for image pull process");
+      free(image_cmd);
+      if (storage_arg) free(storage_arg);
+      return false;
+   }
+
+   free(image_cmd);
+   if (storage_arg) free(storage_arg);
+
+   if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
+      return true;
+   } else {
+      return false;
+   }
 }
