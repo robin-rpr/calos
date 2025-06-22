@@ -37,7 +37,7 @@ properties:
 
   3. The result of:
 
-       $ rm -Rf $(clearly image storage-path) && ch-test -b image build
+       $ rm -Rf $(clearly image storage-path) && clearly test -b image build
 
      or equivalent, though mostly rather than fully successful tests are fine.
 
@@ -117,7 +117,7 @@ for oldtar in $oldtars; do
     clearly image pull archlinux:latest
 
     INFO "testing"
-    if (ch-test -b image --pedantic=no -s "$scope" all); then
+    if (clearly test -b image --pedantic=no -s "$scope" all); then
         pass_ct=$((pass_ct + 1))
         summary+="😁  ${oldtar}: PASS"$'\n'
     else

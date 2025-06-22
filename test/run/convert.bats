@@ -76,7 +76,7 @@ compare () {
     # Ensure build cache metadata is not in $2.
     [[ ! -e ./.git ]]
     [[ ! -e ./.gitignore ]]
-    [[ ! -e ./ch/git.pickle ]]
+    [[ ! -e ./clearly/git.pickle ]]
 }
 
 # This prints a not very nicely formatted recursive directory listing, with
@@ -118,10 +118,10 @@ compare-ls () {
     cd "$1" || exit  # to make -path reasonable
       find . -mindepth 1 \
               \(    -path ./.dockerenv \
-                 -o -path ./ch  \
+                 -o -path ./clearly  \
 	         -o -path ./run \) -prune \
            -o -not \(    -path ./.git \
-                      -o -path ./ch/git.pickle \
+                      -o -path ./clearly/git.pickle \
                       -o -path ./dev \
                       -o -path ./etc \
                       -o -path ./etc/hostname \
@@ -255,7 +255,7 @@ test_from () {
         convert-img "$ct" "$j" dir
         image_ok "$end"
         compare "$clearly_timg" "$end"
-        chtest_fixtures_ok "$end"
+        test_fixtures_ok "$end"
     done
 }
 
@@ -462,7 +462,7 @@ test_from () {
     # Convert to dir.
     clearly convert "$clearly_ttar" "$out"
     image_ok "$out"
-    chtest_fixtures_ok "$out"
+    test_fixtures_ok "$out"
 }
 
 

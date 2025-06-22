@@ -1,29 +1,29 @@
 examplesdir = $(docdir)/examples
 
 execs = \
-chtest/Build \
-chtest/bind_priv.py \
-chtest/dev_proc_sys.py \
-chtest/fs_perms.py \
-chtest/printns \
-chtest/signal_out.py \
+test/Build.alpine \
+test/bind_priv.py \
+test/dev_proc_sys.py \
+test/fs_perms.py \
+test/printns \
+test/signal_out.py \
 distroless/hello.py \
 hello/hello.sh \
 obspy/hello.py
 
 noexecs = \
-Dockerfile.centos_7ch \
-Dockerfile.almalinux_8ch \
-Dockerfile.debian_11ch \
+Dockerfile.centos_7clearly \
+Dockerfile.almalinux_8clearly \
+Dockerfile.debian_11clearly \
 Dockerfile.libfabric \
 Dockerfile.mpich \
 Dockerfile.nvidia \
 Dockerfile.openmpi \
-chtest/Makefile \
-chtest/chroot-escape.c \
-chtest/mknods.c \
-chtest/setgroups.c \
-chtest/setuid.c \
+test/Makefile \
+test/chroot-escape.c \
+test/mknods.c \
+test/setgroups.c \
+test/setuid.c \
 copy/Dockerfile \
 copy/dirA/fileAa \
 copy/dirB/fileBa \

@@ -1,4 +1,4 @@
-# ch-test-scope: standard
+# test-scope: standard
 FROM almalinux:8
 
 # This image has three purposes: (1) demonstrate we can build a AlmaLinux 8

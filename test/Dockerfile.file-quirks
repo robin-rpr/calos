@@ -11,7 +11,7 @@
 #   $ sudo docker images | fgrep file-quirks
 #   $ sudo docker push charliecloud/file-quirks:$VERSION
 #
-# ch-test-scope: skip
+# test-scope: skip
 
 FROM alpine:3.17
 WORKDIR /test

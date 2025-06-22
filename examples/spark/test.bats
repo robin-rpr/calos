@@ -1,5 +1,5 @@
 CLEARLY_TEST_TAG=$clearly_test_tag
-load "${CHTEST_DIR}/common.bash"
+load "${CLEARLYTEST_DIR}/common.bash"
 
 # Note: If you get output like the following (piping through cat turns off
 # BATS terminal magic):

@@ -1,4 +1,4 @@
-:code:`ch-fromhost`
+:code:`clearly fromhost`
 +++++++++++++++++++
 
 .. only:: not man
@@ -11,7 +11,7 @@ Synopsis
 
 ::
 
-  $ ch-fromhost [OPTION ...] [FILE_OPTION ...] IMGDIR
+  $ clearly fromhost [OPTION ...] [FILE_OPTION ...] IMGDIR
 
 
 Description
@@ -30,7 +30,7 @@ necessary to access host specific resources; usually GPU or proprietary
 interconnects. **It is not a general copy-to-image tool**; see further
 discussion on use cases below.
 
-It should be run after:code:`ch-convert` and before :code:`ch-run`. After
+It should be run after:code:`clearly convert` and before :code:`clearly run`. After
 invocation, the image is no longer portable to other hosts.
 
 Injection is not atomic; if an error occurs partway through injection, the
@@ -52,7 +52,7 @@ libraries and are placed in the first-priority directory reported by
 directory specified by :code:`--dest`.
 
 If any shared libraries are injected, run :code:`ldconfig` inside the
-container (using :code:`ch-run -w`) after injection.
+container (using :code:`clearly run -w`) after injection.
 
 Libfabric
 ---------
@@ -149,13 +149,13 @@ Additional arguments
    everything is going well. By default, we suppress these, but you can see
    them with sufficient verbosity. For example::
 
-     $ ch-fromhost --print-lib /var/tmp/bullseye
+     $ clearly fromhost --print-lib /var/tmp/bullseye
      /usr/local/lib
-     $ ch-fromhost -v --print-lib /var/tmp/bullseye
+     $ clearly fromhost -v --print-lib /var/tmp/bullseye
      asking ldconfig for inferred shared library destination
      inferred shared library destination: /var/tmp/bullseye//usr/local/lib
      /usr/local/lib
-     $ ch-fromhost -v -v --print-lib /var/tmp/bullseye
+     $ clearly fromhost -v -v --print-lib /var/tmp/bullseye
      asking ldconfig for inferred shared library destination
      /sbin/ldconfig: Can't stat /usr/local/lib/x86_64-linux-gnu: No such file or directory
      /sbin/ldconfig: Path `/lib/x86_64-linux-gnu' given more than once
@@ -168,7 +168,7 @@ Additional arguments
    example of how this was confusing for users.
 
 
-When to use :code:`ch-fromhost`
+When to use :code:`clearly fromhost`
 ===============================
 
 This command does a lot of heuristic magic; while it *can* copy arbitrary
@@ -189,7 +189,7 @@ some use cases and the recommended approach:
 
 3. *I have some shared libraries that I need in the image for functionality or
    performance, and they aren't available in a place where I can use*
-   :code:`COPY`. This is the intended use case of :code:`ch-fromhost`. You can
+   :code:`COPY`. This is the intended use case of :code:`clearly fromhost`. You can
    use :code:`--cmd`, :code:`--file`, :code:`--ofi`, and/or :code:`--path` to
    put together a custom solution. But, please consider filing an issue so we
    can package your functionality with a tidy option like :code:`--nvidia`.
@@ -217,7 +217,7 @@ experimental and has a couple quirks.
    :code:`FI_PROVIDER`. The path to search for shared providers can be specified
    with :code:`FI_PROVIDER_PATH`. These variables can be inherited from the host
    or explicitly set with the container's environment file
-   :code:`/ch/environent` via :code:`--set-env`.
+   :code:`/clearly/environent` via :code:`--set-env`.
 
    To avoid issues and reduce complexity, the inferred injection destination
    for libfabric providers and replacement will always at the path in the image
@@ -227,7 +227,7 @@ experimental and has a couple quirks.
    compiler(s) in the programming environment by default. For example, if it
    is built under the :code:`PrgEnv-intel` programming environment, it will have
    links to files at paths :code:`/opt/gcc` and :code:`/opt/intel` that
-   :code:`ch-run` will not bind automatically.
+   :code:`clearly run` will not bind automatically.
 
    Managing all possible bind mount paths is untenable. Thus, this experimental
    implementation injects libraries linked to a :code:`libgnix-fi.so` built
@@ -273,7 +273,7 @@ re-created by :code:`ldconfig`.
 
 There are two alternate approaches for nVidia GPU libraries:
 
-  1. Link :code:`libnvidia-containers` into :code:`ch-run` and call the
+  1. Link :code:`libnvidia-containers` into :code:`clearly run` and call the
      library functions directly. However, this would mean that Charliecloud
      would either (a) need to be compiled differently on machines with and
      without nVidia GPUs or (b) have :code:`libnvidia-containers` available
@@ -313,7 +313,7 @@ libfabric at host path :code:`/opt/cray-libfabric/lib64/libfabric.so`.
 
 ::
 
-  $ ch-fromhost -v --path /opt/cray-libfabric/lib64/libfabric.so /tmp/ompi
+  $ clearly fromhost -v --path /opt/cray-libfabric/lib64/libfabric.so /tmp/ompi
   [ debug ] queueing files
   [ debug ]    cray libfabric: /opt/cray-libfabric/lib64/libfabric.so
   [ debug ] searching image for inferred libfabric destination
@@ -339,7 +339,7 @@ libfabric at host path :code:`/opt/cray-libfabric/lib64/libfabric.so`.
   [ debug ] injecting into image: /tmp/ompi/
   [ debug ]    mkdir -p /tmp/ompi//var/lib/hugetlbfs
   [ debug ]    mkdir -p /tmp/ompi//var/spool/slurmd
-  [ debug ]    echo '/usr/lib64' >> /tmp/ompi//etc/ld.so.conf.d/ch-ofi.conf
+  [ debug ]    echo '/usr/lib64' >> /tmp/ompi//etc/ld.so.conf.d/clearly-ofi.conf
   [ debug ]    /opt/cray-libfabric/lib64/libfabric.so -> /usr/local/lib (inferred)
   [ debug ]    /usr/lib64/libcxi.so.1 -> /usr/local/lib (inferred)
   [ debug ]    /usr/lib64/libcxi.so.1.2.1 -> /usr/local/lib (inferred)
@@ -348,7 +348,7 @@ libfabric at host path :code:`/opt/cray-libfabric/lib64/libfabric.so`.
   [ debug ]    /usr/lib64/libssh.so.4 -> /usr/local/lib (inferred)
   [ debug ]    /usr/lib64/libssh.so.4.7.4 -> /usr/local/lib (inferred)
   [ debug ] running ldconfig
-  [ debug ]    ch-run -w /tmp/ompi/ -- /sbin/ldconfig
+  [ debug ]    clearly run -w /tmp/ompi/ -- /sbin/ldconfig
   [ debug ] validating ldconfig cache
   done
 
@@ -357,12 +357,12 @@ provider access.
 
 ::
 
-  $ ch-fromhost -v --path /opt/cray/libfabric/1.15.0.0/lib64/libfabric.so \
+  $ clearly fromhost -v --path /opt/cray/libfabric/1.15.0.0/lib64/libfabric.so \
                 -d /usr/local/bin \
                 --path /opt/cray/libfabric/1.15.0.0/lib64/libfabric.so \
                 /tmp/ompi
   [...]
-  $ ch-run /tmp/ompi/ -- fi_info -p cxi
+  $ clearly run /tmp/ompi/ -- fi_info -p cxi
   provider: cxi
     fabric: cxi
     [...]
@@ -377,7 +377,7 @@ with :code:`fi_info`.
 
 ::
 
-  $ ch-fromhost -v --path /home/ofi/libgnix-fi.so /tmp/ompi
+  $ clearly fromhost -v --path /home/ofi/libgnix-fi.so /tmp/ompi
   [ debug ] queueing files
   [ debug ]    libfabric shared provider: /home/ofi/libgnix-fi.so
   [ debug ] searching /tmp/ompi for libfabric shared provider destination
@@ -393,20 +393,20 @@ with :code:`fi_info`.
   [ debug ]    mkdir -p /tmp/ompi/opt/cray/xpmem
   [ debug ]    mkdir -p /tmp/ompi/opt/cray/ugni
   [ debug ]    mkdir -p /tmp/ompi/opt/cray/alps
-  [ debug ]    echo '/lib64' >> /tmp/ompi/etc/ld.so.conf.d/ch-ofi.conf
-  [ debug ]    echo '/opt/cray/alps/lib64' >> /tmp/ompi/etc/ld.so.conf.d/ch-ofi.conf
-  [ debug ]    echo '/opt/cray/udreg/lib64' >> /tmp/ompi/etc/ld.so.conf.d/ch-ofi.conf
-  [ debug ]    echo '/opt/cray/ugni/lib64' >> /tmp/ompi/etc/ld.so.conf.d/ch-ofi.conf
-  [ debug ]    echo '/opt/cray/wlm_detect/lib64' >> /tmp/ompi/etc/ld.so.conf.d/ch-ofi.conf
-  [ debug ]    echo '/opt/cray/xpmem/lib64' >> /tmp/ompi/etc/ld.so.conf.d/ch-ofi.conf
-  [ debug ]    echo '/usr/lib64' >> /tmp/ompi/etc/ld.so.conf.d/ch-ofi.conf
+  [ debug ]    echo '/lib64' >> /tmp/ompi/etc/ld.so.conf.d/clearly-ofi.conf
+  [ debug ]    echo '/opt/cray/alps/lib64' >> /tmp/ompi/etc/ld.so.conf.d/clearly-ofi.conf
+  [ debug ]    echo '/opt/cray/udreg/lib64' >> /tmp/ompi/etc/ld.so.conf.d/clearly-ofi.conf
+  [ debug ]    echo '/opt/cray/ugni/lib64' >> /tmp/ompi/etc/ld.so.conf.d/clearly-ofi.conf
+  [ debug ]    echo '/opt/cray/wlm_detect/lib64' >> /tmp/ompi/etc/ld.so.conf.d/clearly-ofi.conf
+  [ debug ]    echo '/opt/cray/xpmem/lib64' >> /tmp/ompi/etc/ld.so.conf.d/clearly-ofi.conf
+  [ debug ]    echo '/usr/lib64' >> /tmp/ompi/etc/ld.so.conf.d/clearly-ofi.conf
   [ debug ]    /home/ofi/libgnix-fi.so -> //usr/local/lib/libfabric (inferred)
   [ debug ] running ldconfig
-  [ debug ]    ch-run -w /tmp/ompi -- /sbin/ldconfig
+  [ debug ]    clearly run -w /tmp/ompi -- /sbin/ldconfig
   [ debug ] validating ldconfig cache
   done
 
-  $ ch-run /tmp/ompi -- fi_info -p gni
+  $ clearly run /tmp/ompi -- fi_info -p gni
   provider: gni
     fabric: gni
     [...]
@@ -428,30 +428,30 @@ update the :code:`ld.so` cache.
   $ cat qux.txt
   /bin/bar
   /usr/lib64/libfoo.so
-  $ ch-fromhost --file qux.txt /var/tmp/baz
+  $ clearly fromhost --file qux.txt /var/tmp/baz
 
 Same as above::
 
-  $ ch-fromhost --cmd 'cat qux.txt' /var/tmp/baz
+  $ clearly fromhost --cmd 'cat qux.txt' /var/tmp/baz
 
 Same as above::
 
-  $ ch-fromhost --path /bin/bar --path /usr/lib64/libfoo.so /var/tmp/baz
+  $ clearly fromhost --path /bin/bar --path /usr/lib64/libfoo.so /var/tmp/baz
 
 Same as above, but place the files into :code:`/corge` instead (and the shared
 library will not be found by :code:`ldconfig`)::
 
-  $ ch-fromhost --dest /corge --file qux.txt /var/tmp/baz
+  $ clearly fromhost --dest /corge --file qux.txt /var/tmp/baz
 
 Same as above, and also place file :code:`/etc/quux` at :code:`/etc/quux`
 within the container::
 
-  $ ch-fromhost --file qux.txt --dest /etc --path /etc/quux /var/tmp/baz
+  $ clearly fromhost --file qux.txt --dest /etc --path /etc/quux /var/tmp/baz
 
 Inject the executables and libraries recommended by nVidia into the image, and
 then run :code:`ldconfig`::
 
-  $ ch-fromhost --nvidia /var/tmp/baz
+  $ clearly fromhost --nvidia /var/tmp/baz
   asking ldconfig for shared library destination
   /sbin/ldconfig: Can’t stat /libx32: No such file or directory
   /sbin/ldconfig: Can’t stat /usr/libx32: No such file or directory

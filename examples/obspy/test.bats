@@ -1,10 +1,10 @@
 CLEARLY_TEST_TAG=$clearly_test_tag
-load "${CHTEST_DIR}/common.bash"
+load "${CLEARLYTEST_DIR}/common.bash"
 
 setup () {
     scope standard
     prerequisites_ok obspy
-    indir=$CHTEST_EXAMPLES_DIR/obspy
+    indir=$CLEARLYTEST_EXAMPLES_DIR/obspy
     outdir=$BATS_TMPDIR/obspy
 }
 

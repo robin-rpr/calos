@@ -2,7 +2,7 @@ load ../common
 
 setup () {
     [[ $CLEARLY_TEST_PACK_FMT = *-unpack ]] || skip 'need writeable image'
-    [[ $CHTEST_GITWD ]] || skip "not in Git working directory"
+    [[ $TEST_GITWD ]] || skip "not in Git working directory"
     if     ! command -v sphinx-build > /dev/null 2>&1 \
         && ! command -v sphinx-build-3.6 > /dev/null 2>&1; then
         skip 'Sphinx is not installed'
@@ -53,7 +53,7 @@ setup () {
     run clearly run "$img" -- rpm -ql "clearly-test"
     echo "$output"
     [[ $status -eq 0 ]]
-    [[ $output = *'/usr/bin/ch-test'* ]]
+    [[ $output = *'/usr/libexec/clearly/test'* ]]
     [[ $output = *'/usr/libexec/clearly/test/Build.centos7xz'* ]]
     [[ $output = *'/usr/libexec/clearly/test/sotest/lib/libsotest.so.1.0'* ]]
     run clearly run "$img" -- rpm -ql "clearly-doc"

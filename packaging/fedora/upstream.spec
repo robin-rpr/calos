@@ -128,14 +128,14 @@ ln -s "${sphinxdir}/js"    %{buildroot}%{_pkgdocdir}/html/_static/js
 %files
 %license LICENSE
 %doc README.rst %{?el7:README.EL7}
-%{_bindir}/checkns
-%{_bindir}/convert
-%{_bindir}/ch-fromhost
-%{_bindir}/run
-%{_bindir}/run-oci
+%{_libexecdir}/checkns
+%{_libexecdir}/convert
+%{_libexecdir}/fromhost
+%{_libexecdir}/run
+%{_libexecdir}/run-oci
 %{_mandir}/man1/checkns.1*
 %{_mandir}/man1/convert.1*
-%{_mandir}/man1/ch-fromhost.1*
+%{_mandir}/man1/fromhost.1*
 %{_mandir}/man1/run.1*
 %{_mandir}/man1/run-oci.1*
 %{_mandir}/man7/charliecloud.7*
@@ -145,7 +145,7 @@ ln -s "${sphinxdir}/js"    %{buildroot}%{_pkgdocdir}/html/_static/js
 %{_prefix}/lib/%{name}/_version.txt
 
 %files builder
-%{_bindir}/image
+%{_libexecdir}/image
 %{_mandir}/man1/image.1*
 %{_prefix}/lib/%{name}/_build.py
 %{_prefix}/lib/%{name}/_clearly.py
@@ -162,9 +162,9 @@ ln -s "${sphinxdir}/js"    %{buildroot}%{_pkgdocdir}/html/_static/js
 %{?el7:%exclude %{_pkgdocdir}/examples/*/__pycache__}
 
 %files test
-%{_bindir}/ch-test
+%{_libexecdir}/test
 %{_libexecdir}/%{name}/test
-%{_mandir}/man1/ch-test.1*
+%{_mandir}/man1/test.1*
 
 %changelog
 * Mon Jan 24 2022 Jordan Ogas <jogas@lanl.gov 0.26-1

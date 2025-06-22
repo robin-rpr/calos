@@ -1,7 +1,7 @@
 #!/bin/bash
-# ch-test-scope: quick
-# ch-test-builder-include: docker
-# ch-test-need-sudo
+# test-scope: quick
+# test-builder-include: docker
+# test-need-sudo
 #
 # Pull a docker image directly from Dockerhub and pack it into an image tarball.
 

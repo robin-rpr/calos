@@ -20,14 +20,14 @@ Overview
 
    install
    tutorial
-   ch-checkns
-   ch-completion.bash
-   ch-convert
-   ch-fromhost
-   ch-image
-   ch-run
-   ch-run-oci
-   ch-test
+   clearly-checkns
+   completion.bash
+   clearly-convert
+   clearly-fromhost
+   clearly-image
+   clearly-run
+   clearly-run-oci
+   clearly-test
    faq
    best_practices
    dev

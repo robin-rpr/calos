@@ -56,9 +56,9 @@ STANDARD_DIRS = { "bin", "dev", "etc", "mnt", "proc", "sys", "tmp", "usr" }
 # Where the .git "directory" in the image is located. (Normally it's a
 # directory, and that's what the Git docs call it, but it's a file for
 # worktrees.) We deliberately do not call it ".git" because that makes it
-# hidden, but also more importantly it confuses Git into thinking /ch is a
+# hidden, but also more importantly it confuses Git into thinking /clearly is a
 # different Git repo.
-GIT_DIR = "ch/git"
+GIT_DIR = "clearly/git"
 
 ## Classes ##
 
@@ -121,7 +121,7 @@ class Image:
 
    @property
    def metadata_path(self):
-      return self.unpack_path // "ch"
+      return self.unpack_path // "clearly"
 
    @property
    def unpack_cache_linked(self):
@@ -286,7 +286,7 @@ class Image:
 
    def metadata_save(self):
       """Dump image's metadata to disk, including the main data structure but
-         also all auxiliary files, e.g. ch/environment."""
+         also all auxiliary files, e.g. clearly/environment."""
       # Adjust since we don't save everything.
       metadata = copy.deepcopy(self.metadata)
       for k in ARGS_MAGIC:
@@ -299,7 +299,7 @@ class Image:
       path = self.metadata_path // "metadata.json"
       clearly.VERBOSE("writing metadata file: %s" % path)
       path.file_write(out + "\n")
-      # /ch/environment
+      # /clearly/environment
       path = self.metadata_path // "environment"
       clearly.VERBOSE("writing environment file: %s" % path)
       path.file_write( (  "\n".join("%s=%s" % (k,v) for (k,v)
@@ -382,8 +382,8 @@ class Image:
          present will be left unchanged. After this, self.unpack_path is a
          valid Clearly image directory."""
       # Metadata directory.
-      (self.unpack_path // "ch").mkdir()
-      (self.unpack_path // "ch/environment").file_ensure_exists()
+      (self.unpack_path // "clearly").mkdir()
+      (self.unpack_path // "clearly/environment").file_ensure_exists()
       # Essential directories & mount points. Do nothing if something already
       # exists, without dereferencing, in case it's a symlink, which will work
       # for bind-mount later but won't resolve correctly now outside the

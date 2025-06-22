@@ -1,4 +1,4 @@
-source common.bash  # for ShellCheck; removed by ch-test
+source common.bash  # for ShellCheck; removed by clearly test
 
 @test 'builder to archive %(tag)s' {
     scope %(scope)s

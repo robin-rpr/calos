@@ -261,7 +261,7 @@ EOF
 
     rm-img
     # shellcheck disable=SC2154
-    clearly convert "$clearly_tardir"/chtest.* "$img"
+    clearly convert "$clearly_tardir"/test.* "$img"
     ls -l "$img"
     mkdir "$img"/foo
     touch "$img"/foo/file-in-foo
@@ -615,11 +615,11 @@ EOF
     [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output = *"can't open: doesnotexist.txt: No such file or directory"* ]]
 
-    # /ch/environment missing
+    # /clearly/environment missing
     run clearly run --set-env "$clearly_timg" -- /bin/true
     echo "$output"
     [[ $status -eq $CLEARLY_ERR_MISC ]]
-    [[ $output = *"can't open: /ch/environment: No such file or directory"* ]]
+    [[ $output = *"can't open: /clearly/environment: No such file or directory"* ]]
 
     # Note: I’m not sure how to test an error during reading, i.e., getline(3)
     # rather than fopen(3). Hence no test for “error reading”.

@@ -1,4 +1,4 @@
-# ch-test-scope: full
+# test-scope: full
 
 # See Dockerfile.libfabric for MPI goals and details.
 FROM libfabric

@@ -1,5 +1,5 @@
 #!/bin/bash
-# ch-test-scope: quick
+# test-scope: quick
 
 # This image’s prerequisites can never be satisfied.
 exit 65

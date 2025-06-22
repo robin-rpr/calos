@@ -1,4 +1,4 @@
-# ch-test-scope: standard
+# test-scope: standard
 FROM debian:bullseye
 
 ARG DEBIAN_FRONTEND=noninteractive

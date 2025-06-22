@@ -1,4 +1,4 @@
-:code:`ch-image`
+:code:`clearly image`
 ++++++++++++++++
 
 .. only:: not man
@@ -13,24 +13,24 @@ Synopsis
 
 ::
 
-   $ ch-image [...] build [-t TAG] [-f DOCKERFILE] [...] CONTEXT
-   $ ch-image [...] build-cache [...]
-   $ ch-image [...] delete IMAGE_GLOB [IMAGE_GLOB ...]
-   $ ch-image [...] gestalt [SELECTOR]
-   $ ch-image [...] import PATH IMAGE_REF
-   $ ch-image [...] list [-l] [IMAGE_REF]
-   $ ch-image [...] pull [...] IMAGE_REF [DEST_REF]
-   $ ch-image [...] push [--image DIR] IMAGE_REF [DEST_REF]
-   $ ch-image [...] reset
-   $ ch-image [...] undelete IMAGE_REF
-   $ ch-image { --help | --version | --dependencies }
+   $ clearly image [...] build [-t TAG] [-f DOCKERFILE] [...] CONTEXT
+   $ clearly image [...] build-cache [...]
+   $ clearly image [...] delete IMAGE_GLOB [IMAGE_GLOB ...]
+   $ clearly image [...] gestalt [SELECTOR]
+   $ clearly image [...] import PATH IMAGE_REF
+   $ clearly image [...] list [-l] [IMAGE_REF]
+   $ clearly image [...] pull [...] IMAGE_REF [DEST_REF]
+   $ clearly image [...] push [--image DIR] IMAGE_REF [DEST_REF]
+   $ clearly image [...] reset
+   $ clearly image [...] undelete IMAGE_REF
+   $ clearly image { --help | --version | --dependencies }
 
 
 Description
 ===========
 
-:code:`ch-image` is a tool for building and manipulating container images, but
-not running them (for that you want :code:`ch-run`). It is completely
+:code:`clearly image` is a tool for building and manipulating container images, but
+not running them (for that you want :code:`clearly run`). It is completely
 unprivileged, with no setuid/setgid/setcap helpers. Many operations can use
 caching for speed. The action to take is specified by a sub-command.
 
@@ -57,7 +57,7 @@ Common options placed before or after the sub-command:
 
   :code:`--always-download`
     Download all files when pulling, even if they are already in builder
-    storage. Note that :code:`ch-image pull` will always retrieve the most
+    storage. Note that :code:`clearly image pull` will always retrieve the most
     up-to-date image; this option is mostly for debugging.
 
   :code:`--auth`
@@ -70,7 +70,7 @@ Common options placed before or after the sub-command:
     Set a `PDB <https://docs.python.org/3/library/pdb.html>`_ breakpoint at
     line number :code:`LINE` of module named :code:`MODULE` (typically the
     filename with :code:`.py` removed, or :code:`__main__` for
-    :code:`ch-image` itself). That is, a PDB debugger shell will open before
+    :code:`clearly image` itself). That is, a PDB debugger shell will open before
     executing the specified line.
 
     This is accomplished by re-parsing the module, injecting :code:`import
@@ -85,14 +85,14 @@ Common options placed before or after the sub-command:
 
   :code:`--cache`
     Enable build cache. Default if a sufficiently new Git is available. See
-    section :ref:`Build cache <ch-image_build-cache>` for details.
+    section :ref:`Build cache <clearly image_build-cache>` for details.
 
   :code:`--cache-large SIZE`
     Set the cache’s large file threshold to :code:`SIZE` MiB, or :code:`0` for
     no large files, which is the default. Values greater than zero can speed
     up many builds but can also cause performance degradation.
     **Experimental.** See section :ref:`Large file threshold
-    <ch-image_bu-large>` for details.
+    <clearly image_bu-large>` for details.
 
   :code:`--debug`
     Add a stack trace to fatal error hints. This can also be done by setting
@@ -106,7 +106,7 @@ Common options placed before or after the sub-command:
 
   :code:`--no-lock`
     Disable storage directory locking. This lets you run as many concurrent
-    :code:`ch-image` instances as you want against the same storage directory,
+    :code:`clearly image` instances as you want against the same storage directory,
     which risks corruption but may be OK for some workloads.
 
   :code:`--no-xattrs`
@@ -163,9 +163,9 @@ architecture is not available, the error message will list which ones are.
 
 **Notes:**
 
-1. :code:`ch-image` is limited to one image per image reference in
+1. :code:`clearly image` is limited to one image per image reference in
    builder storage at a time, regardless of architecture. For example, if
-   you say :code:`ch-image pull --arch=foo baz` and then :code:`ch-image
+   you say :code:`clearly image pull --arch=foo baz` and then :code:`clearly image
    pull --arch=bar baz`, builder storage will contain one image called
    "baz", with architecture "bar".
 
@@ -218,7 +218,7 @@ see issue `#1318 <https://github.com/hpc/charliecloud/issues/1318>`_.)
 The username and password are remembered for the life of the process and
 silently re-offered to the registry if needed. One case when this happens is
 on push to a private registry: many registries will first offer a read-only
-token when :code:`ch-image` checks if something exists, then re-authenticate
+token when :code:`clearly image` checks if something exists, then re-authenticate
 when upgrading the token to read-write for upload. If your site uses one-time
 passwords such as provided by a security device, you can specify
 :code:`--password-many` to provide a new secret each time.
@@ -263,7 +263,7 @@ treatment, so we cannot guarantee they will never reach non-volatile storage.
 Storage directory
 =================
 
-:code:`ch-image` maintains state using normal files and directories located in
+:code:`clearly image` maintains state using normal files and directories located in
 its *storage directory*; contents include various caches and temporary images
 used for building.
 
@@ -277,10 +277,10 @@ In descending order of priority, this directory is located at:
     likely set in a very different context than when it’s used, which seems
     error-prone on what a relative path is relative to.
 
-  :code:`/var/tmp/$USER.ch`
-    Default. (Previously, the default was :code:`/var/tmp/$USER/ch-image`. If
+  :code:`/var/tmp/$USER.clearly`
+    Default. (Previously, the default was :code:`/var/tmp/$USER/clearly image`. If
     a valid storage directory is found at the old default path,
-    :code:`ch-image` tries to move it to the new default path.)
+    :code:`clearly image` tries to move it to the new default path.)
 
 Unlike many container implementations, there is no notion of storage drivers,
 graph drivers, etc., to select and/or configure.
@@ -291,20 +291,20 @@ and metadata traffic can be intense. For example, the Charliecloud test suite
 uses approximately 400,000 files and directories in the storage directory as
 of this writing. Place it on a filesystem appropriate for this; tmpfs’es such
 as :code:`/var/tmp` are a good choice if you have enough RAM (:code:`/tmp` is
-not recommended because :code:`ch-run` bind-mounts it into containers by
+not recommended because :code:`clearly run` bind-mounts it into containers by
 default).
 
 While you can currently poke around in the storage directory and find unpacked
-images runnable with :code:`ch-run`, this is not a supported use case. The
-supported workflow uses :code:`ch-convert` to obtain a packed image; see the
+images runnable with :code:`clearly run`, this is not a supported use case. The
+supported workflow uses :code:`clearly convert` to obtain a packed image; see the
 tutorial for details.
 
 The storage directory format changes on no particular schedule.
-:code:`ch-image` is normally able to upgrade directories produced by a given
+:code:`clearly image` is normally able to upgrade directories produced by a given
 Charliecloud version up to one year after that version’s release. Upgrades
 outside this window and downgrades are not supported. In these cases,
-:code:`ch-image` will refuse to run until you delete and re-initialize the
-storage directory with :code:`ch-image reset`.
+:code:`clearly image` will refuse to run until you delete and re-initialize the
+storage directory with :code:`clearly image reset`.
 
 .. warning::
 
@@ -313,7 +313,7 @@ storage directory with :code:`ch-image reset`.
    will likely have strong opinions.
 
 
-.. _ch-image_build-cache:
+.. _clearly image_build-cache:
 
 Build cache
 ===========
@@ -342,7 +342,7 @@ belonging to unprivileged xattr namespaces (e.g. :code:`user`) can be enabled by
 specifying the :code:`--xattrs` option or by setting the :code:`CLEARLY_XATTRS`
 environment variable. If :code:`CLEARLY_XATTRS` is set, you override it with
 :code:`--no-xattrs`. **Note that extended attributes in privileged xattr
-namespaces (e.g. :code:`trusted`) cannot be read by :code:`ch-image` and will
+namespaces (e.g. :code:`trusted`) cannot be read by :code:`clearly image` and will
 always be lost without warning.**
 
 The cache has three modes: *enabled*, *disabled*, and a hybrid mode called
@@ -429,7 +429,7 @@ between their container images. Files are de-duplicated at different times
 depending on whether they are identical or merely similar.
 
 *Identical* files are de-duplicated at :code:`git add` time; in
-:code:`ch-image build` terms, that’s upon committing a successful instruction.
+:code:`clearly image build` terms, that’s upon committing a successful instruction.
 That is, it’s impossible to store two files with the same content in the build
 cache. If you try — say with :code:`RUN yum install -y foo` in one Dockerfile
 and :code:`RUN yum install -y foo bar` in another, which are different
@@ -464,14 +464,14 @@ completes; you may see Git processes using a lot of CPU.
 An important limitation of the automatic garbage is that large packfiles
 (again, this is in flux, but it’s several GiB) will not be re-packed, limiting
 the scope of similar file detection. To address this, a heavier garbage
-collection can be run manually with :code:`ch-image build-cache --gc`. This
+collection can be run manually with :code:`clearly image build-cache --gc`. This
 will re-pack (and re-write) the entire build cache, de-duplicating all similar
 files. In both cases, garbage uses all available cores.
 
 :code:`git build-cache` prints the specific garbage collection parameters in
 use, and :code:`-v` can be added for more detail.
 
-.. _ch-image_bu-large:
+.. _clearly image_bu-large:
 
 Large file threshold
 --------------------
@@ -483,7 +483,7 @@ than the experimental *large file threshold* are stored outside the Git
 repository, somewhat like `Git Large File Storage
 <https://git-lfs.github.com/>`_.
 
-:code:`ch-image` copies large files in and out of images at each instruction
+:code:`clearly image` copies large files in and out of images at each instruction
 commit. It tries to do this with a fast metadata-only copy-on-write operation
 called “reflink”, but that is only supported with the right Python version,
 Linux kernel version, and filesystem. If unsupported, Charliecloud falls back
@@ -497,7 +497,7 @@ de-duplication does not apply. *However*, on filesystems with reflink support,
 files can share extents (e.g., each of the two files will have its own extent
 containing the changed byte, but the rest of the extents will remain shared).
 This provides de-duplication between large files images that share ancestry.
-Also, unused large files are deleted by :code:`ch-image build-cache --gc`.
+Also, unused large files are deleted by :code:`clearly image build-cache --gc`.
 
 A final caveat: Large files in any image with the same path, mode, size, and
 mtime (to nanosecond precision if possible) are considered identical, even if
@@ -523,7 +523,7 @@ Suppose we have this Dockerfile::
 
 On our first build, we get::
 
-  $ ch-image build -t foo -f a.df .
+  $ clearly image build -t foo -f a.df .
     1. FROM alpine:3.17
   [ ... pull chatter omitted ... ]
     2. RUN echo foo
@@ -539,7 +539,7 @@ instruction was executed. You can also see this by the output of the two
 
 But on our second build, we get::
 
-  $ ch-image build -t foo -f a.df .
+  $ clearly image build -t foo -f a.df .
     1* FROM alpine:3.17
     2* RUN echo foo
     3* RUN echo bar
@@ -560,7 +560,7 @@ three instructions are the same, but the third is different::
   FROM alpine:3.17
   RUN echo foo
   RUN echo qux
-  $ ch-image build -t c -f c.df .
+  $ clearly image build -t c -f c.df .
     1* FROM alpine:3.17
     2* RUN echo foo
     3. RUN echo qux
@@ -573,7 +573,7 @@ third is a miss, so Charliecloud retrieves that state and continues building.
 
 We can also inspect the cache::
 
-  $ ch-image build-cache --tree
+  $ clearly image build-cache --tree
   *  (c) RUN echo qux
   | *  (a) RUN echo bar
   |/
@@ -594,7 +594,7 @@ not allowed in Git branch names), and the empty base of everything
 common instruction :code:`RUN echo foo`.
 
 
-.. _ch-image_build:
+.. _clearly image_build:
 
 :code:`build`
 =============
@@ -606,7 +606,7 @@ Synopsis
 
 ::
 
-   $ ch-image [...] build [-t TAG] [-f DOCKERFILE] [...] CONTEXT
+   $ clearly image [...] build [-t TAG] [-f DOCKERFILE] [...] CONTEXT
 
 Description
 -----------
@@ -638,7 +638,7 @@ Options:
     an empty directory, though images do have ten directories
     :code:`/mnt/[0-9]` already available as mount points. Can be repeated.
 
-    **Note:** See documentation for :code:`ch-run --bind` for important
+    **Note:** See documentation for :code:`clearly run --bind` for important
     caveats and gotchas.
 
     **Note:** Other instructions that modify the image filesystem, e.g.
@@ -698,7 +698,7 @@ Options:
 
     If no colon present in the name, append :code:`:latest`.
 
-Uses :code:`ch-run -w -u0 -g0 --no-passwd --unsafe` to execute :code:`RUN`
+Uses :code:`clearly run -w -u0 -g0 --no-passwd --unsafe` to execute :code:`RUN`
 instructions.
 
 Privilege model
@@ -707,7 +707,7 @@ Privilege model
 Overview
 ~~~~~~~~
 
-:code:`ch-image` is a *fully* unprivileged image builder. It does not use any
+:code:`clearly image` is a *fully* unprivileged image builder. It does not use any
 setuid or setcap helper programs, and it does not use configuration files
 :code:`/etc/subuid` or :code:`/etc/subgid`. This contrasts with the “rootless”
 or “`fakeroot <https://sylabs.io/guides/3.7/user-guide/fakeroot.html>`_” modes
@@ -718,8 +718,8 @@ Without root emulation, this approach does confuse programs that expect to have
 real root privileges, most notably distribution package installers. This
 subsection describes why that happens and what you can do about it.
 
-:code:`ch-image` executes all instructions as the normal user who invokes it.
-For :code:`RUN`, this is accomplished with :code:`ch-run` arguments including
+:code:`clearly image` executes all instructions as the normal user who invokes it.
+For :code:`RUN`, this is accomplished with :code:`clearly run` arguments including
 :code:`-w --uid=0 --gid=0`. That is, your host EUID and EGID are both mapped to
 zero inside the container, and only one UID (zero) and GID (zero) are available
 inside the container. Under this arrangement, processes running in the container
@@ -788,9 +788,9 @@ This mode has three basic steps:
 :code:`RUN` instructions that *do not* seem to need modification are
 unaffected by this mode.
 
-The details are specific to each distribution. :code:`ch-image` analyzes image
+The details are specific to each distribution. :code:`clearly image` analyzes image
 content (e.g., grepping :code:`/etc/debian_version`) to select a
-configuration; see :code:`lib/force.py` for details. :code:`ch-image` prints
+configuration; see :code:`lib/force.py` for details. :code:`clearly image` prints
 exactly what it is doing.
 
 .. warning::
@@ -857,7 +857,7 @@ indicates that neither form of root emulation was used (:code:`--force=none`).
 Compatibility and behavior differences
 --------------------------------------
 
-:code:`ch-image` is an independent implementation and shares no code with
+:code:`clearly image` is an independent implementation and shares no code with
 other Dockerfile interpreters. It uses a formal Dockerfile parsing grammar
 developed from the `Dockerfile reference documentation
 <https://docs.docker.com/engine/reference/builder/>`_ and miscellaneous other
@@ -871,7 +871,7 @@ all share the same Dockerfile parser). Third, because it is a much smaller
 code base, it illustrates how Dockerfiles work more clearly. Finally, it
 allows straightforward extensions if needed to support scientific computing.
 
-:code:`ch-image` tries hard to be compatible with Docker and other
+:code:`clearly image` tries hard to be compatible with Docker and other
 interpreters, though as an independent implementation, it is not
 bug-compatible.
 
@@ -907,7 +907,7 @@ cache-excluded variables that never cause misses, listed below.
 Note that :code:`ARG` and :code:`ENV` have different syntax despite very
 similar semantics.
 
-:code:`ch-image` passes the following proxy environment variables in to the
+:code:`clearly image` passes the following proxy environment variables in to the
 build. Changes to these variables do not cause a cache miss. They do not
 require an :code:`ARG` instruction, as `documented
 <https://docs.docker.com/engine/reference/builder/#predefined-args>`_ in the
@@ -938,7 +938,7 @@ environment:
 
 .. code-block:: sh
 
-   PATH=/ch/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+   PATH=/clearly/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
    TAR_OPTIONS=--no-same-owner
 
 :code:`ARG`
@@ -981,7 +981,7 @@ many things you can do in one :code:`cp(1)` command require multiple
 :code:`COPY` instructions.
 
 Also, the reference documentation is incomplete. In our experience, Docker
-also behaves as follows; :code:`ch-image` does the same in an attempt to be
+also behaves as follows; :code:`clearly image` does the same in an attempt to be
 bug-compatible.
 
 1. You can use absolute paths in the source; the root is the context
@@ -1051,7 +1051,7 @@ Features we do not plan to support
   focus on that and will not introduce the volume management features that
   Docker has.
 
-.. _ch-image_rsync:
+.. _clearly image_rsync:
 
 :code:`RSYNC` (Dockerfile extension)
 ------------------------------------
@@ -1094,7 +1094,7 @@ detailed explanation of all the options (with possible emphasis on its
 `symlink options
 <https://man7.org/linux/man-pages/man1/rsync.1.html#SYMBOLIC_LINKS>`_).
 Sources are relative to the context directory even if they look absolute with
-a leading slash. Any globbed sources are processed by :code:`ch-image(1)`
+a leading slash. Any globbed sources are processed by :code:`clearly image(1)`
 using Python rules, i.e., :code:`rsync(1)` sees the expanded sources with no
 wildcards. Relative destinations are relative to the image’s current working
 directory, while absolute destinations refer to the image’s root.
@@ -1706,21 +1706,21 @@ Examples
 Build image :code:`bar` using :code:`./foo/bar/Dockerfile` and context
 directory :code:`./foo/bar`::
 
-   $ ch-image build -t bar -f ./foo/bar/Dockerfile ./foo/bar
+   $ clearly image build -t bar -f ./foo/bar/Dockerfile ./foo/bar
    [...]
    grown in 4 instructions: bar
 
 Same, but infer the image name and Dockerfile from the context directory
 path::
 
-   $ ch-image build ./foo/bar
+   $ clearly image build ./foo/bar
    [...]
    grown in 4 instructions: bar
 
 Build using humongous vendor compilers you want to bind-mount instead of
 installing into the image::
 
-   $ ch-image build --bind /opt/bigvendor:/opt .
+   $ clearly image build --bind /opt/bigvendor:/opt .
    $ cat Dockerfile
    FROM centos:7
 
@@ -1734,7 +1734,7 @@ installing into the image::
 
 ::
 
-   $ ch-image [...] build-cache [...]
+   $ clearly image [...] build-cache [...]
 
 Print basic information about the cache. If :code:`-v` is given, also print
 some Git statistics and the Git repository configuration.
@@ -1767,13 +1767,13 @@ this order.
 
 ::
 
-   $ ch-image [...] delete IMAGE_GLOB [IMAGE_GLOB ... ]
+   $ clearly image [...] delete IMAGE_GLOB [IMAGE_GLOB ... ]
 
 Delete the image(s) described by each :code:`IMAGE_GLOB` from the storage
 directory (including all build stages).
 
 :code:`IMAGE_GLOB` can be either a plain image reference or an image reference
-with glob characters to match multiple images. For example, :code:`ch-image
+with glob characters to match multiple images. For example, :code:`clearly image
 delete 'foo*'` will delete all images whose names start with :code:`foo`.
 Multiple images and/or globs can also be given in a single command line.
 
@@ -1791,10 +1791,10 @@ trading off the time needed to retrieve an image from cache.
 
 ::
 
-   $ ch-image [...] gestalt [SELECTOR]
+   $ clearly image [...] gestalt [SELECTOR]
 
 Provide information about the `configuration and available features
-<https://apple.fandom.com/wiki/Gestalt>`_ of :code:`ch-image`. End users
+<https://apple.fandom.com/wiki/Gestalt>`_ of :code:`clearly image`. End users
 generally will not need this; it is intended for testing and debugging.
 
 :code:`SELECTOR` is one of:
@@ -1825,7 +1825,7 @@ Synopsis
 
 ::
 
-   $ ch-image [...] list [-l] [IMAGE_REF]
+   $ clearly image [...] list [-l] [IMAGE_REF]
 
 Description
 -----------
@@ -1847,14 +1847,14 @@ Examples
 
 List images in builder storage::
 
-   $ ch-image list
+   $ clearly image list
    alpine:3.17 (amd64)
    alpine:latest (amd64)
    debian:buster (amd64)
 
 Print details about Debian Buster image::
 
-   $ ch-image list debian:buster
+   $ clearly image list debian:buster
    details of image:    debian:buster
    in local storage:    no
    full remote ref:     registry-1.docker.io:443/library/debian:buster
@@ -1876,7 +1876,7 @@ listed beside each available architecture. Importantly, this feature does
 
 ::
 
-   $ ch-image [...] import PATH IMAGE_REF
+   $ clearly image [...] import PATH IMAGE_REF
 
 Copy the image at :code:`PATH` into builder storage with name
 :code:`IMAGE_REF`. :code:`PATH` can be:
@@ -1886,7 +1886,7 @@ Copy the image at :code:`PATH` into builder storage with name
 * a standard tarball with one top-level directory
 
 If the imported image contains Charliecloud metadata, that will be imported
-unchanged, i.e., images exported from :code:`ch-image` builder storage will be
+unchanged, i.e., images exported from :code:`clearly image` builder storage will be
 functionally identical when re-imported.
 
 .. warning::
@@ -1908,7 +1908,7 @@ Synopsis
 
 ::
 
-   $ ch-image [...] pull [...] IMAGE_REF [DEST_REF]
+   $ clearly image [...] pull [...] IMAGE_REF [DEST_REF]
 
 See the FAQ for the gory details on specifying image references.
 
@@ -1948,8 +1948,8 @@ know!)
     downstream Dockerfiles.
 
   * Environment variables set with :code:`ENV` are effective in downstream
-    Dockerfiles and also written to :code:`/ch/environment` for use in
-    :code:`ch-run --set-env`.
+    Dockerfiles and also written to :code:`/clearly/environment` for use in
+    :code:`clearly run --set-env`.
 
   * Mount point directories specified with :code:`VOLUME` are created in the
     image if they don’t exist, but no other action is taken.
@@ -1981,7 +1981,7 @@ in the storage directory::
 
 Same, specifying the architecture explicitly::
 
-   $ ch-image --arch=arm/v7 pull debian:buster
+   $ clearly image --arch=arm/v7 pull debian:buster
    pulling image:    debian:buster
    requesting arch:  arm/v7
    manifest list: downloading
@@ -2007,7 +2007,7 @@ Synopsis
 
 ::
 
-   $ ch-image [...] push [--image DIR] IMAGE_REF [DEST_REF]
+   $ clearly image [...] push [--image DIR] IMAGE_REF [DEST_REF]
 
 See the FAQ for the gory details on specifying image references.
 
@@ -2042,7 +2042,7 @@ image must be named to match that remote reference.
 
 ::
 
-   $ ch-image push example.com:5000/foo/bar:latest
+   $ clearly image push example.com:5000/foo/bar:latest
    pushing image:   example.com:5000/foo/bar:latest
    layer 1/1: gathering
    layer 1/1: preparing
@@ -2061,7 +2061,7 @@ name does not have to match the destination reference.
 
 ::
 
-   $ ch-image push alpine:3.17 example.com:5000/foo/bar:latest
+   $ clearly image push alpine:3.17 example.com:5000/foo/bar:latest
    pushing image:   alpine:3.17
    destination:     example.com:5000/foo/bar:latest
    layer 1/1: gathering
@@ -2077,12 +2077,12 @@ name does not have to match the destination reference.
    done
 
 Same, except use unpacked image located at :code:`/var/tmp/image` rather than
-an image in :code:`ch-image` storage. (Also, the sole layer is already present
+an image in :code:`clearly image` storage. (Also, the sole layer is already present
 in the remote registry, so we don’t upload it again.)
 
 ::
 
-   $ ch-image push --image /var/tmp/image example.com:5000/foo/bar:latest
+   $ clearly image push --image /var/tmp/image example.com:5000/foo/bar:latest
    pushing image:   example.com:5000/foo/bar:latest
    image path:      /var/tmp/image
    layer 1/1: gathering
@@ -2103,9 +2103,9 @@ in the remote registry, so we don’t upload it again.)
 
 ::
 
-   $ ch-image [...] reset
+   $ clearly image [...] reset
 
-Delete all images and cache from ch-image builder storage.
+Delete all images and cache from clearly image builder storage.
 
 
 :code:`modify`
@@ -2118,7 +2118,7 @@ Synopsis
 
 ::
 
-   $ ch-image [...] shell [...] SOURCE DEST [SCRIPT]
+   $ clearly image [...] shell [...] SOURCE DEST [SCRIPT]
 
 Description
 -----------
@@ -2141,8 +2141,8 @@ Options:
   :code:`-S`, :code:`--shell SHELL`
     Use :code:`SHELL` instead of the default :code:`/bin/sh`.
 
-The following options are shared with :code:`ch-image build`. For more details
-about these options, see the section on :ref:`build <ch-image_build>`.
+The following options are shared with :code:`clearly image build`. For more details
+about these options, see the section on :ref:`build <clearly image_build>`.
 
   :code:`-b`, :code:`--bind SRC[:DST]`
    For :code:`RUN` instructions only, bind-mount :code:`SRC` at guest
@@ -2159,7 +2159,7 @@ about these options, see the section on :ref:`build <ch-image_build>`.
    If command :code:`CMD` is found in a :code:`RUN` instruction, add the
    comma-separated :code:`ARGs` to it.
 
-:code:`ch-image modify` operates in one of the following three modes. If the
+:code:`clearly image modify` operates in one of the following three modes. If the
 mode desired is ambiguous, that is an error.
 
 Non-interactive mode, commands specified with :code:`-c`
@@ -2167,18 +2167,18 @@ Non-interactive mode, commands specified with :code:`-c`
 
 The following are equivalent::
 
-  $ ch-image modify -S /bin/ash -c 'echo hello' -c 'echo world' foo bar
+  $ clearly image modify -S /bin/ash -c 'echo hello' -c 'echo world' foo bar
 
 and::
 
-  $ ch-image build -t bar <<'EOF'
+  $ clearly image build -t bar <<'EOF'
   FROM foo
   SHELL /bin/ash
   RUN echo hello
   RUN echo world
   EOF
 
-:code:`ch-image` simply builds a Dockerfile internally that uses :code:`foo` as
+:code:`clearly image` simply builds a Dockerfile internally that uses :code:`foo` as
 a base image, starts with an appropriate :code:`SHELL` if :code:`-S` was given,
 converts each :code:`-c` to a :code:`RUN` command, and executes this Dockerfile
 to produce image :code:`bar`. As with regular Dockerfiles, if any command fails,
@@ -2191,16 +2191,16 @@ Non-interactive mode using a shell script
 
 The following are equivalent::
 
-  $ ch-image modify foo bar /baz/qux.sh
+  $ clearly image modify foo bar /baz/qux.sh
 
 and::
 
-  $ ch-image build -t bar -f - / <<'EOF'
+  $ clearly image build -t bar -f - / <<'EOF'
   FROM foo
-  COPY /baz/qux.sh /ch/script.sh
-  RUN /bin/sh /ch/script.sh
+  COPY /baz/qux.sh /clearly/script.sh
+  RUN /bin/sh /clearly/script.sh
 
-That is, :code:`ch-image` uses :code:`COPY` to put the script inside the
+That is, :code:`clearly image` uses :code:`COPY` to put the script inside the
 image, then runs it.
 
 If :code:`SCRIPT` is not provided, standard input is not a TTY, and :code:`-i`
@@ -2210,7 +2210,7 @@ context. The file’s modification time is set to 1993-10-21T10:00:00Z and its
 name to a hash of the content, so the cache hits if the content is the same and
 misses if not. That is, the following are equivalent::
 
-  $ ch-image modify foo bar <<'EOF'
+  $ clearly image modify foo bar <<'EOF'
   echo hello world
   EOF
 
@@ -2223,10 +2223,10 @@ and::
   $ hash=$(md5sum $ctx/foo)
   $ mv $ctx/foo $ctx/$hash
   $ touch -d 1993-10-21T10:00:00Z $ctx/$hash
-  $ ch-image build -t bar -f - $ctx <<EOF
+  $ clearly image build -t bar -f - $ctx <<EOF
   FROM foo
-  COPY $hash /ch/script.sh   # note: substituted by shell, not ch-image(1)
-  RUN /bin/sh /ch/script.sh
+  COPY $hash /clearly/script.sh   # note: substituted by shell, not clearly image(1)
+  RUN /bin/sh /clearly/script.sh
 
 Importantly:
 
@@ -2259,32 +2259,32 @@ Interactive mode
    shell script. Only use it if you really know what you are doing.
 
 If :code:`SCRIPT` is not provided and standard input *is* a TTY, or if
-:code:`-i` is specified :code:`ch-image modify` opens an interactive shell. That
+:code:`-i` is specified :code:`clearly image modify` opens an interactive shell. That
 is, the following are roughly equivalent (assuming a terminal)::
 
-  $ ch-image modify foo bar
+  $ clearly image modify foo bar
 
 and::
 
-  $ ch-convert foo /tmp/foo
-  $ ch-run -w /tmp/foo -- /bin/sh -i
+  $ clearly convert foo /tmp/foo
+  $ clearly run -w /tmp/foo -- /bin/sh -i
   [... interactive session ...]
-  $ ch-convert /tmp/foo bar
+  $ clearly convert /tmp/foo bar
 
 except that the parent of image :code:`bar` is :code:`foo` rather than the
 empty root image.
 
 This mode largely defeats the cache. While images descending from :code:`DEST`
 will use the latest version (as :code:`FROM` normally behaves), no other
-operations can re-use the results with a cache hit, and :code:`ch-image modify`
+operations can re-use the results with a cache hit, and :code:`clearly image modify`
 cannot have a cache hit itself. (This is implemented with a random state ID.)
 We reasoned that making an interactive session cache-aware would be too
 difficult both conceptually and to implement. The mode is much like
-:code:`ch-image import` in this regard.
+:code:`clearly image import` in this regard.
 
 For example, starting with a non-empty cache::
 
-  $ ch-image build-cache --tree
+  $ clearly image build-cache --tree
    *  (bar) IMPORT bar
    | *  (foo) IMPORT foo
    |/
@@ -2296,11 +2296,11 @@ For example, starting with a non-empty cache::
    commits:            3
    internal files:     7 K
    disk used:        227 MiB
-   $ ch-image modify foo baz
+   $ clearly image modify foo baz
    copying image from cache ...
    [...]
    > exit
-   $ ch-image build-cache --tree
+   $ clearly image build-cache --tree
    *  (baz) MODIFY interactive
    *  (foo) IMPORT foo
    | *  (bar) IMPORT bar
@@ -2320,7 +2320,7 @@ For example, starting with a non-empty cache::
 
 ::
 
-   $ ch-image [...] undelete IMAGE_REF
+   $ clearly image [...] undelete IMAGE_REF
 
 If :code:`IMAGE_REF` has been deleted but is in the build cache, recover it
 from the cache. Only available when the cache is enabled, and will not

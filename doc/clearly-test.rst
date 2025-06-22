@@ -1,4 +1,4 @@
-:code:`ch-test`
+:code:`clearly test`
 +++++++++++++++
 
 .. only:: not man
@@ -11,7 +11,7 @@ Synopsis
 
 ::
 
-  $ ch-test [PHASE] [--scope SCOPE] [--pack-fmt FMT] [ARGS]
+  clearly test [PHASE] [--scope SCOPE] [--pack-fmt FMT] [ARGS]
 
 
 Description
@@ -19,10 +19,10 @@ Description
 
 Charliecloud comes with a comprehensive test suite that exercises the
 container workflow itself as well as a few example applications.
-:code:`ch-test` coordinates running the test suite.
+:code:`clearly test` coordinates running the test suite.
 
 While the CLI has lots of options, the defaults are reasonable, and bare
-:code:`ch-test` will give useful results in a few minutes on single-node,
+:code:`clearly test` will give useful results in a few minutes on single-node,
 internet-connected systems with a few GB available in :code:`/var/tmp`.
 
 The test suite requires a few GB (standard scope) or tens of GB (full scope)
@@ -51,10 +51,10 @@ The contents of these directories are deleted before the build and run phases,
 respectively.
 
 In all four cases, when creating directories, only the final path component is
-created. Parent directories must already exist, i.e., :code:`ch-test` uses the
+created. Parent directories must already exist, i.e., :code:`clearly test` uses the
 behavior of :code:`mkdir` rather than :code:`mkdir -p`.
 
-Some of the tests exercise parallel functionality. If :code:`ch-test` is run
+Some of the tests exercise parallel functionality. If :code:`clearly test` is run
 on a single node, multiple cores will be used; if in a Slurm allocation,
 multiple nodes too.
 
@@ -133,7 +133,7 @@ Image format is specified with:
     :code:`FMT` must be one of the following:
 
     * :code:`squash-mount` or 🐘: SquashFS archive, run directly from the
-      archive using :code:`ch-run`’s internal SquashFUSE functionality. In
+      archive using :code:`clearly run`’s internal SquashFUSE functionality. In
       this mode, tests that require writing to the image are skipped.
 
     * :code:`tar-unpack` or 📠: Tarball, and the images are unpacked before
@@ -143,7 +143,7 @@ Image format is specified with:
       before running.
 
     Default: :code:`$CLEARLY_TEST_PACK_FMT` if set. Otherwise, if
-    :code:`mksquashfs(1)` is available and :code:`ch-run` was built with
+    :code:`mksquashfs(1)` is available and :code:`clearly run` was built with
     :code:`libsquashfuse` support, then :code:`squash-mount`, else
     :code:`tar-unpack`.
 
@@ -151,7 +151,7 @@ Additional arguments:
 
   :code:`-b`, :code:`--builder BUILDER`
     Image builder to use. Default: :code:`$CLEARLY_TEST_BUILDER` if set, otherwise
-    :code:`ch-image`.
+    :code:`clearly image`.
 
   :code:`--dry-run`
     Print summary of what would be tested and then exit.
@@ -214,7 +214,7 @@ Bugs
 
 Bats will wait until all descendant processes finish before exiting, so if you
 get into a failure mode where a test sequence doesn’t clean up all its
-processes, :code:`ch-test` will hang.
+processes, :code:`clearly test` will hang.
 
 
 Examples
@@ -224,10 +224,10 @@ Many systems can simply use the defaults. To run the :code:`build`,
 :code:`run`, and :code:`examples` phases on a single system, without the
 filesystem permissions tests::
 
-  $ ch-test
-  ch-test version 0.12
+  clearly test
+  clearly test version 0.12
 
-  ch-run: 0.12 /usr/local/bin/ch-run
+  clearly run: 0.12 /usr/local/libexec/run
   bats:   0.4.0 /usr/bin/bats
   tests:  /usr/local/libexec/charliecloud/test
 
@@ -264,10 +264,10 @@ Output has been omitted.
 ::
 
    (mybox)$ ssh hpc-admin
-   (hpc-admin)$ ch-test mk-perm-dirs --perm-dir /scratch/$USER/perms \
+   (hpc-admin)clearly test mk-perm-dirs --perm-dir /scratch/$USER/perms \
                                      --perm-dir /home/$USER/perms
    (hpc-admin)$ exit
-   (mybox)$ ch-test build --scope full
+   (mybox)clearly test build --scope full
    (mybox)$ scp -r /var/tmp/pack hpc:/scratch/$USER/pack
    (mybox)$ ssh hpc
    (hpc)$ salloc -N2
@@ -275,8 +275,8 @@ Output has been omitted.
    (cn001)$ export CLEARLY_TEST_IMGDIR=/local/tmp
    (cn001)$ export CLEARLY_TEST_PERMDIRS="/scratch/$USER/perms /home/$USER/perms"
    (cn001)$ export CLEARLY_TEST_SCOPE=full
-   (cn001)$ ch-test run
-   (cn001)$ ch-test examples
+   (cn001)clearly test run
+   (cn001)clearly test examples
 
 
 .. include:: ./bugs.rst

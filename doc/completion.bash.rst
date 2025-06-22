@@ -1,6 +1,6 @@
-.. _ch-completion.bash:
+.. _completion.bash:
 
-:code:`ch-completion.bash`
+:code:`completion.bash`
 ++++++++++++++++++++++++++
 
 .. only:: not man
@@ -13,29 +13,29 @@ Synopsis
 
 ::
 
-    $ source ch-completion.bash
+    $ source completion.bash
 
 
 Description
 ===========
 
-:code:`ch-completion.bash` provides tab completion for the charliecloud
+:code:`completion.bash` provides tab completion for the charliecloud
 command line. Currently, tab completion is available for Bash users for the
-executables :code:`ch-image`, :code:`ch-run`, and :code:`ch-convert`.
+executables :code:`clearly image`, :code:`clearly run`, and :code:`clearly convert`.
 
 We do not currently install the file if Charliecloud is built from source (see
 `issue #1842 <https://github.com/hpc/charliecloud/issues/1842>`_). In this
 case, source it from the Charliecloud source code::
 
-    $ source $CHARLIECLOUD_SOURCE_PATH/bin/ch-completion.bash
+    $ source $CHARLIECLOUD_SOURCE_PATH/bin/completion.bash
 
 If you installed with a distribution package, the procedure is probably nicer.
 See your distro’s docs if you installed a package.)
 
-Disable completion with the utility function :code:`ch-completion` added to
+Disable completion with the utility function :code:`clearly-completion` added to
 your environment when the above is sourced::
 
-    $ ch-completion --disable
+    $ clearly-completion --disable
 
 
 Dependencies
@@ -53,23 +53,23 @@ Tab completion has these additional dependencies:
 
 .. _ch-completion_func:
 
-:code:`ch-completion`
+:code:`clearly-completion`
 =====================
 
-Utility function for :code:`ch-completion.bash`.
+Utility function for :code:`completion.bash`.
 
 Synopsis
 --------
 
 ::
 
-    $ ch-completion [ OPTIONS ]
+    $ clearly-completion [ OPTIONS ]
 
 
 Description
 -----------
 
-:code:`ch-completion` is a function to manage Charliecloud’s tab completion.
+:code:`clearly-completion` is a function to manage Charliecloud’s tab completion.
 It is added to the environment when completion is sourced. The option(s) given
 specify what to do:
 
@@ -84,13 +84,13 @@ specify what to do:
 
 :code:`--version-ok`
     Verify that tab completion version is consistent with that of
-    :code:`ch-image`.
+    :code:`clearly image`.
 
 
 Debugging
 =========
 
-Tab completion can write debugging logs to :code:`/tmp/ch-completion.log`.
+Tab completion can write debugging logs to :code:`/tmp/clearly-completion.log`.
 Enable this by setting the environment variable :code:`CLEARLY_COMPLETION_DEBUG`.
 (This is primarily intended for developers.)
 

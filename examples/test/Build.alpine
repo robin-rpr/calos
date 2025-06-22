@@ -14,7 +14,7 @@
 # because we are also creating some rather bizarre tar edge cases. These
 # should be moved to a separate script.
 #
-# ch-test-scope: quick
+# test-scope: quick
 
 set -ex
 

@@ -1,4 +1,4 @@
-# ch-test-scope: full
+# test-scope: full
 FROM openmpi
 WORKDIR /usr/local/src
 

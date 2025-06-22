@@ -10,8 +10,8 @@ EXTRA_DIST = LICENSE README.rst VERSION autogen.sh clearly.service
 install-exec-hook:
 	@echo '### re-writing embedded paths ###'
 	for i in $(DESTDIR)@libexecdir@/clearly/convert \
-	         $(DESTDIR)@libexecdir@/clearly/ch-fromhost \
-	         $(DESTDIR)@libexecdir@/clearly/ch-test \
+	         $(DESTDIR)@libexecdir@/clearly/fromhost \
+	         $(DESTDIR)@libexecdir@/clearly/test \
 			 $(DESTDIR)@datadir@/clearly/common.bash \
 	         $(DESTDIR)@datadir@/clearly/doctest \
 			 $(DESTDIR)@libdir@/clearly/_base.sh; \
@@ -19,8 +19,8 @@ install-exec-hook:
 	  if [ -e $$i ]; then \
 	    sed -Ei -e 's|^(clearly_lib ?= ?).+/lib"?$$|\1"@libdir@/clearly"|' \
 				-e 's|^(clearly_libexec ?= ?).+/libexec"?$$|\1"@libexecdir@/clearly"|' \
-	            -e 's|^(CHTEST_DIR=).+$$|\1@datadir@/clearly|' \
-	            -e 's|^(CHTEST_EXAMPLES_DIR=).+$$|\1@docdir@/examples|' \
+	            -e 's|^(TEST_DIR=).+$$|\1@datadir@/clearly|' \
+	            -e 's|^(TEST_EXAMPLES_DIR=).+$$|\1@docdir@/examples|' \
                 $$i; \
 	  fi \
 	done

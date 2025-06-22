@@ -7,7 +7,7 @@
 #
 # shellcheck disable=SC2034
 if false; then
-    # from ch-test
+    # from `clearly test`
     clearly_base=
     clearly_bin=
     clearly_lib=
@@ -31,10 +31,10 @@ archive_grep () {
     image="$1"
     case $image in
         *.sqfs)
-            unsquashfs -l "$image" | grep 'squashfs-root/ch/environment'
+            unsquashfs -l "$image" | grep 'squashfs-root/clearly/environment'
             ;;
         *)
-            tar -tf "$image" | grep -E '^([^/]*/)?ch/environment$'
+            tar -tf "$image" | grep -E '^([^/]*/)?clearly/environment$'
             ;;
     esac
 }
@@ -104,8 +104,8 @@ builder_tag_p () {
     return 1
 }
 
-chtest_fixtures_ok () {
-    echo "checking chtest fixtures in: ${1}"
+test_fixtures_ok () {
+    echo "checking test fixtures in: ${1}"
     # Did we raise hidden files correctly?
     [[ -e ${1}/.hiddenfile1 ]]
     [[ -e ${1}/..hiddenfile2 ]]
@@ -127,16 +127,16 @@ cray_ofi_or_skip () {
         [[ -z "$FI_PROVIDER_PATH" ]] || skip 'host FI_PROVIDER_PATH set'
         if [[ $cray_prov == 'gni' ]]; then
             export CLEARLY_FROMHOST_OFI_GNI=$CLEARLY_TEST_OFI_PATH
-            $clearly_mpirun_node ch-fromhost -v --cray-gni "$1"
+            $clearly_mpirun_node clearly fromhost -v --cray-gni "$1"
         fi
         if [[ $cray_prov == 'cxi' ]]; then
             export CLEARLY_FROMHOST_OFI_CXI=$CLEARLY_TEST_OFI_PATH
-            $clearly_mpirun_node ch-fromhost --cray-cxi "$1"
+            $clearly_mpirun_node clearly fromhost --cray-cxi "$1"
             # Examples use libfabric's fi_info to ensure injection works; when
             # replacing libfabric we also need to replace this binary.
             fi_info="$(dirname "$(dirname "$CLEARLY_TEST_OFI_PATH")")/bin/fi_info"
             [[ -x "$fi_info" ]]
-            $clearly_mpirun_node ch-fromhost -v -d /usr/local/bin \
+            $clearly_mpirun_node clearly fromhost -v -d /usr/local/bin \
                                            -p "$fi_info" \
                                               "$1"
         fi
@@ -329,7 +329,7 @@ chmod 700 "$btnew"
 export BATS_TMPDIR=$btnew
 [[ $(stat -c %a "$BATS_TMPDIR") = '700' ]]
 
-# clearly run exit codes. (see also: clearly_misc.h, lib/build.py)
+# clearly run exit codes. (see also: misc.h, lib/build.py)
 CLEARLY_ERR_MISC=31
 CLEARLY_ERR_CMD=49
 #CLEARLY_ERR_SQUASH=84 # Currently not used
@@ -339,6 +339,7 @@ clearly_bin="$(cd "$(dirname "$0")" && pwd)"
 clearly_base=${clearly_bin%/*}
 
 clearly_lib=${clearly_bin}/../../lib
+clearly_share=${clearly_bin}/../../share
 clearly_libexec=${clearly_bin}/../../libexec
 
 # Run file.
@@ -370,8 +371,8 @@ clearly_tardir=$(readlink -m "$CLEARLY_TEST_TARDIR")
 clearly_tag=${CLEARLY_TEST_TAG:-NO_TAG_SET}  # set by Makefile; many tests don’t need it
 clearly_img=${clearly_imgdir}/${clearly_tag}
 clearly_tar=${clearly_tardir}/${clearly_tag}.tar.gz
-clearly_ttar=${clearly_tardir}/chtest.tar.gz
-clearly_timg=${clearly_imgdir}/chtest
+clearly_ttar=${clearly_tardir}/test.tar.gz
+clearly_timg=${clearly_imgdir}/test
 
 if [[ $clearly_tag = *'-mpich' ]]; then
     clearly_mpi=mpich

@@ -1,4 +1,4 @@
-# ch-test-scope: full
+# test-scope: full
 FROM openmpi
 
 # This example

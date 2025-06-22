@@ -516,7 +516,7 @@ LABEL chsl_2b=value2b \
 #5"
 
 # Print output with Python to avoid ambiguity.
-RUN python3 -c 'import os; import json; labels = json.loads(open("/ch/metadata.json", "r").read())["labels"]; \
+RUN python3 -c 'import os; import json; labels = json.loads(open("/clearly/metadata.json", "r").read())["labels"]; \
                 [print((k,v)) for (k,v) in sorted(labels.items()) if "chsl_" in k]'
 EOF
   echo "$output"
@@ -1305,7 +1305,7 @@ EOF
     scope standard
     [[ $CLEARLY_TEST_BUILDER == image ]] || skip 'image only'
 
-    cp ../examples/Dockerfile.mpich Dockerfile.tmp
+    cp ${clearly_share}/doc/clearly/examples/Dockerfile.mpich Dockerfile.tmp
 
     truncate -s -1 Dockerfile.tmp
 

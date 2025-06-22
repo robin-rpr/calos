@@ -5,7 +5,7 @@
 # run/run_misc.bats. The latter is why this is a separate Dockerfile
 # instead of embedded in a .bats file.
 
-# ch-test-scope: standard
+# test-scope: standard
 FROM alpine:3.17
 
 ARG chse_arg1_df

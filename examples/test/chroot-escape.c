@@ -31,7 +31,7 @@ int main()
    struct stat before, after;
    int fd;
    int status = EXIT_FAILURE;
-   char tmpdir_template[] = "/tmp/chtest.tmp.chroot.XXXXXX";
+   char tmpdir_template[] = "/tmp/test.tmp.chroot.XXXXXX";
    char * tmpdir_name;
 
    if (stat("/", &before)) fatal("stat before");

@@ -33,20 +33,20 @@ How large is Charliecloud?
 Errors
 ======
 
-How do I read the :code:`ch-run` error messages?
+How do I read the :code:`clearly run` error messages?
 ------------------------------------------------
 
-:code:`ch-run` error messages look like this::
+:code:`clearly run` error messages look like this::
 
-  $ ch-run foo -- echo hello
-  ch-run[25750]: can’t find image: foo: No such file or directory (ch-run.c:107 2)
+  $ clearly run foo -- echo hello
+  clearly run[25750]: can’t find image: foo: No such file or directory (clearly run.c:107 2)
 
 There is a lot of information here, and it comes in this order:
 
-1. Name of the executable; always :code:`ch-run`.
+1. Name of the executable; always :code:`clearly run`.
 
 2. Process ID in square brackets; here :code:`25750`. This is useful when
-   debugging parallel :code:`ch-run` invocations.
+   debugging parallel :code:`clearly run` invocations.
 
 3. Colon.
 
@@ -64,8 +64,8 @@ There is a lot of information here, and it comes in this order:
 
 7. Open parenthesis.
 
-8. Name of the source file where the error occurred; here :code:`ch-run.c`.
-   This and the following item tell developers exactly where :code:`ch-run`
+8. Name of the source file where the error occurred; here :code:`clearly run.c`.
+   This and the following item tell developers exactly where :code:`clearly run`
    became confused, which greatly improves our ability to provide help and/or
    debug.
 
@@ -80,10 +80,10 @@ There is a lot of information here, and it comes in this order:
 *Note:* Despite the structured format, the error messages are not guaranteed
 to be machine-readable.
 
-:code:`ch-run` fails with “can’t re-mount image read-only”
+:code:`clearly run` fails with “can’t re-mount image read-only”
 ----------------------------------------------------------
 
-Normally, :code:`ch-run` re-mounts the image directory read-only within the
+Normally, :code:`clearly run` re-mounts the image directory read-only within the
 container. This fails if the image resides on certain filesystems, such as NFS
 (see `issue #9 <https://github.com/hpc/charliecloud/issues/9>`_). There are
 two solutions:
@@ -99,12 +99,12 @@ two solutions:
    processes and one writes a file in the image that another is reading or
    writing).
 
-:code:`ch-image` fails with "certificate verify failed"
+:code:`clearly image` fails with "certificate verify failed"
 -------------------------------------------------------
 
-When :code:`ch-image` interacts with a remote registry (e.g., via :code:`push`
+When :code:`clearly image` interacts with a remote registry (e.g., via :code:`push`
 or :code:`pull` subcommands), it will verify the registry’s HTTPS certificate.
-If this fails, :code:`ch-image` will exit with the error "certificate verify
+If this fails, :code:`clearly image` will exit with the error "certificate verify
 failed".
 
 This situation tends to arise with self-signed or institutionally-signed
@@ -121,7 +121,7 @@ Requests documentation
 for details.) For example::
 
   $ export REQUESTS_CA_BUNDLE=/usr/local/share/ca-certificates/registry.crt
-  $ ch-image pull registry.example.com/image:tag
+  $ clearly image pull registry.example.com/image:tag
 
 Alternatively, certificate verification can be disabled entirely with the
 :code:`--tls-no-verify` flag. However, users should enable this option only if
@@ -130,7 +130,7 @@ they have other means to be confident in the registry’s identity.
 "storage directory seems invalid"
 ---------------------------------
 
-Charliecloud uses its *storage directory* (:code:`/var/tmp/$USER.ch` by
+Charliecloud uses its *storage directory* (:code:`/var/tmp/$USER.clearly` by
 default) for various internal uses. As such, Charliecloud needs complete
 control over this directory’s contents. This error happens when the storage
 directory exists but its contents do not match what’s expected, including if
@@ -163,7 +163,7 @@ For example::
   FROM alpine:3.17
   RUN apk add git
   RUN git config --global http.sslVerify false
-  $ ch-image build -t foo -f Dockerfile .
+  $ clearly image build -t foo -f Dockerfile .
     1 FROM alpine:3.17
     2 RUN ['/bin/sh', '-c', 'apk add git']
   [...]
@@ -171,15 +171,15 @@ For example::
   fatal: $HOME not set
   error: build failed: RUN command exited with 128
 
-The reason this happens is that :code:`ch-image build` executes :code:`RUN`
-instructions with :code:`ch-run` options including the absence of
+The reason this happens is that :code:`clearly image build` executes :code:`RUN`
+instructions with :code:`clearly run` options including the absence of
 :code:`--home`, under which the environment variable :code:`$HOME` is unset.
 Thus, tools like Git that try to use it will fail.
 
 The reasoning for leaving the variable unset is that because Charliecloud runs
 unprivileged, it isn’t really meaningful for a container to have multiple
 users, and thus building images with things in the home directory is an
-antipattern. In fact, with :code:`--home` specified, :code:`ch-run` sets
+antipattern. In fact, with :code:`--home` specified, :code:`clearly run` sets
 :code:`$HOME` to :code:`/home/$USER` and bind-mounts the user’s host home
 directory at that path.
 
@@ -192,16 +192,16 @@ The recommended workaround and best practice is to put configuration at the
 system level, not the user level. In the example above, this means changing
 :code:`git config --global` to :code:`git config --system`.
 
-See the man page for :code:`ch-run` for more on environment variable
+See the man page for :code:`clearly run` for more on environment variable
 handling.
 
-:code:`ch-run` fails with “can’t execve(2): permission denied”
+:code:`clearly run` fails with “can’t execve(2): permission denied”
 --------------------------------------------------------------
 
 For example::
 
-  $ ch-run /var/tmp/hello -- /bin/echo foo
-  ch-run[154334]: error: can’t execve(2): /bin/echo: Permission denied (core.c:387 13)
+  $ clearly run /var/tmp/hello -- /bin/echo foo
+  clearly run[154334]: error: can’t execve(2): /bin/echo: Permission denied (core.c:387 13)
 
 But :code:`/bin/echo` *does* have execute permission::
 
@@ -288,9 +288,9 @@ For example::
   ---------- 1 reidpr reidpr 9 Oct  3 15:03 /home/reidpr/cantreadme
   $ cat ~/cantreadme
   cat: /home/reidpr/cantreadme: Permission denied
-  $ ch-run /var/tmp/hello cat ~/cantreadme
+  $ clearly run /var/tmp/hello cat ~/cantreadme
   cat: /home/reidpr/cantreadme: Permission denied
-  $ ch-run --uid 0 /var/tmp/hello cat ~/cantreadme
+  $ clearly run --uid 0 /var/tmp/hello cat ~/cantreadme
   surprise
 
 At first glance, it seems that we’ve found an escalation -- we were able to
@@ -299,7 +299,7 @@ bad.
 
 However, what is really going on here is more prosaic but complicated:
 
-1. After :code:`unshare(CLONE_NEWUSER)`, :code:`ch-run` gains all capabilities
+1. After :code:`unshare(CLONE_NEWUSER)`, :code:`clearly run` gains all capabilities
    inside the namespace. (Outside, capabilities are unchanged.)
 
 2. This include :code:`CAP_DAC_OVERRIDE`, which enables a process to
@@ -308,22 +308,22 @@ However, what is really going on here is more prosaic but complicated:
 
 3. Within the container, :code:`exec(2)` capability rules are followed.
    Normally, this basically means that all capabilities are dropped when
-   :code:`ch-run` replaces itself with the user command. However, if EUID is
+   :code:`clearly run` replaces itself with the user command. However, if EUID is
    0, which it is inside the namespace given :code:`--uid 0`, then the
    subprocess keeps all its capabilities. (This makes sense: if root creates a
    new process, it stays root.)
 
 4. :code:`CAP_DAC_OVERRIDE` within a user namespace is honored for a file or
    directory only if its UID and GID are both mapped. In this case,
-   :code:`ch-run` maps :code:`reidpr` to container :code:`root` and group
+   :code:`clearly run` maps :code:`reidpr` to container :code:`root` and group
    :code:`reidpr` to itself.
 
 5. Thus, files and directories owned by the host EUID and EGID (here
-   :code:`reidpr:reidpr`) are available for all access with :code:`ch-run
+   :code:`reidpr:reidpr`) are available for all access with :code:`clearly run
    --uid 0`.
 
 This is not an escalation. The quirk applies only to files owned by the
-invoking user, because :code:`ch-run` is unprivileged outside the namespace,
+invoking user, because :code:`clearly run` is unprivileged outside the namespace,
 and thus he or she could simply :code:`chmod` the file to read it. Access
 inside and outside the container remains equivalent.
 
@@ -342,7 +342,7 @@ Consider this image::
 
   $ ls /var/tmp/image
   bin  dev  home  media  opt   root  sbin  sys  usr
-  ch   etc  lib   mnt    proc  run   srv   tmp  var
+  clearly   etc  lib   mnt    proc  run   srv   tmp  var
   $ ls -ld /var/tmp/image/mnt
   drwxr-xr-x 4 root root 80 Jan  5 09:52 /var/tmp/image/mnt
   $ ls /var/tmp/image/mnt
@@ -358,16 +358,16 @@ a new directory there::
 Recall that bind-mounting to a path that does not exist in a read-only image
 fails::
 
-  $ ch-run -b /tmp/baz:/mnt/baz /var/tmp/image -- ls /mnt
-  ch-run[40498]: error: can't mkdir: /var/tmp/image/mnt/baz: Read-only file system (clearly_misc.c:582 30)
+  $ clearly run -b /tmp/baz:/mnt/baz /var/tmp/image -- ls /mnt
+  clearly run[40498]: error: can't mkdir: /var/tmp/image/mnt/baz: Read-only file system (misc.c:582 30)
 
 That’s fine; we’ll just use :code:`--write-fake` to create a writeable overlay
 on the container. Then we can make any mount points we need. Right?
 
 ::
 
-  $ ch-run -W /var/tmp/image -- mkdir /qux      # succeeds
-  $ ch-run -W /var/tmp/image -- mkdir /mnt/baz  # fails
+  $ clearly run -W /var/tmp/image -- mkdir /qux      # succeeds
+  $ clearly run -W /var/tmp/image -- mkdir /mnt/baz  # fails
   mkdir: can't create directory '/mnt/baz': Permission denied
 
 Wait — why could we create a subdirectory of (container path) :code:`/` but
@@ -376,23 +376,23 @@ host path :code:`/var/tmp/image/mnt`, is not writeable by us: the overlayfs
 propagates the directory’s no-write permissions. Despite this, we can in fact
 use paths that do not yet exist for bind-mount destinations::
 
-  $ ch-run -W -b /tmp/baz:/mnt/baz /var/tmp/image -- ls /mnt
+  $ clearly run -W -b /tmp/baz:/mnt/baz /var/tmp/image -- ls /mnt
   bar  baz  foo
 
-What’s happening is bind-mount trickery and a symlink ranch. :code:`ch-run`
+What’s happening is bind-mount trickery and a symlink ranch. :code:`clearly run`
 creates a new directory on the overlaid tmpfs, bind-mounts the old (host path)
 :code:`/var/tmp/images/mnt` to a subdirectory of it, symlinks the old
 contents, and finally overmounts the old, un-writeable directory with the new
 one::
 
-  $ ch-run -W -b /tmp/baz:/mnt/baz /var/tmp/image -- ls -la /mnt
+  $ clearly run -W -b /tmp/baz:/mnt/baz /var/tmp/image -- ls -la /mnt
   drwxr-x---    4 reidpr   reidpr         120 Jan  5 17:11 .
   drwx------    1 reidpr   reidpr          40 Jan  5 17:11 ..
   drwxr-xr-x    4 nobody   nogroup         80 Jan  5 16:52 .orig
   lrwxrwxrwx    1 reidpr   reidpr           9 Jan  5 17:11 bar -> .orig/bar
   drwxr-x---    2 reidpr   reidpr          40 Jan  3 23:49 baz
   lrwxrwxrwx    1 reidpr   reidpr           9 Jan  5 17:11 foo -> .orig/foo
-  $ ch-run -W -b /tmp/baz:/mnt/baz /var/tmp/image -- cat /proc/mounts | fgrep ' /mnt'
+  $ clearly run -W -b /tmp/baz:/mnt/baz /var/tmp/image -- cat /proc/mounts | fgrep ' /mnt'
   none /mnt tmpfs rw,relatime,size=3943804k,uid=1000,gid=1000,inode64 0 0
   none /mnt/.orig overlay rw,relatime,lowerdir=/var/tmp/image,upperdir=/mnt/upper,workdir=/mnt/work,volatile,userxattr 0 0
   tmpfs /mnt/baz tmpfs rw,relatime,size=8388608k,inode64 0 0
@@ -417,10 +417,10 @@ Why does :code:`ping` not work?
 :code:`ping` fails with “permission denied” or similar under Charliecloud,
 even if you’re UID 0 inside the container::
 
-  $ ch-run $IMG -- ping 8.8.8.8
+  $ clearly run $IMG -- ping 8.8.8.8
   PING 8.8.8.8 (8.8.8.8): 56 data bytes
   ping: permission denied (are you root?)
-  $ ch-run --uid=0 $IMG -- ping 8.8.8.8
+  $ clearly run --uid=0 $IMG -- ping 8.8.8.8
   PING 8.8.8.8 (8.8.8.8): 56 data bytes
   ping: permission denied (are you root?)
 
@@ -472,13 +472,13 @@ of the default 1001:1001), i.e. :code:`--gid=5`. Then, step 4 succeeds because
 the call is mapped to :code:`chown("/dev/pts/0", 1000, 1001)` and MATLAB is
 happy.
 
-:code:`ch-convert` from Docker incorrect image sizes
+:code:`clearly convert` from Docker incorrect image sizes
 ----------------------------------------------------
 
-When converting from Docker, :code:`ch-convert` often finishes before the
+When converting from Docker, :code:`clearly convert` often finishes before the
 progress bar is complete. For example::
 
-  $ ch-convert -i docker foo /var/tmp/foo.tar.gz
+  $ clearly convert -i docker foo /var/tmp/foo.tar.gz
   input:   docker    foo
   output:  tar       /var/tmp/foo.tar.gz
   exporting ...
@@ -498,7 +498,7 @@ But Docker thinks the image is 597 MB::
 
 We’ve also seen cases where the Docker-reported size is an *under*\ estimate::
 
-  $ ch-convert -i docker bar /var/tmp/bar.tar.gz
+  $ clearly convert -i docker bar /var/tmp/bar.tar.gz
   input:   docker    bar
   output:  tar       /var/tmp/bar.tar.gz
   exporting ...
@@ -544,21 +544,21 @@ files.
 Note the non-preserved bits may *sometimes* be retained, but this is undefined
 behavior. The specified behavior is that they may be zeroed at any time.
 
-Why is my wildcard in :code:`ch-run` not working?
+Why is my wildcard in :code:`clearly run` not working?
 -------------------------------------------------
-Be aware that wildcards in the :code:`ch-run` command are interpreted by the
+Be aware that wildcards in the :code:`clearly run` command are interpreted by the
 host, not the container, unless protected. One workaround is to use a
 sub-shell. For example::
 
   $ ls /usr/bin/oldfind
   ls: cannot access '/usr/bin/oldfind': No such file or directory
-  $ ch-run /var/tmp/hello.sqfs -- ls /usr/bin/oldfind
+  $ clearly run /var/tmp/hello.sqfs -- ls /usr/bin/oldfind
   /usr/bin/oldfind
   $ ls /usr/bin/oldf*
   ls: cannot access '/usr/bin/oldf*': No such file or directory
-  $ ch-run /var/tmp/hello.sqfs -- ls /usr/bin/oldf*
+  $ clearly run /var/tmp/hello.sqfs -- ls /usr/bin/oldf*
   ls: cannot access /usr/bin/oldf*: No such file or directory
-  $ ch-run /var/tmp/hello.sqfs -- sh -c 'ls /usr/bin/oldf*'
+  $ clearly run /var/tmp/hello.sqfs -- sh -c 'ls /usr/bin/oldf*'
   /usr/bin/oldfind
 
 
@@ -576,9 +576,9 @@ other stuff cannot be written anywhere in the image. You have three options:
 
 2. Use :code:`RUN` commands in your Dockerfile to create symlinks that point
    somewhere writeable, e.g. :code:`/tmp`, or :code:`/mnt/0` with
-   :code:`ch-run --bind`.
+   :code:`clearly run --bind`.
 
-3. Run the image read-write with :code:`ch-run -w`. Be careful that multiple
+3. Run the image read-write with :code:`clearly run -w`. Be careful that multiple
    containers do not try to write to the same files.
 
 OpenMPI Charliecloud jobs don’t work
@@ -591,7 +591,7 @@ MPI can be finicky. This section documents some of the problems we’ve seen.
 
 For example, you might see::
 
-  $ mpirun -np 1 ch-run /var/tmp/mpihello-openmpi -- /hello/hello
+  $ mpirun -np 1 clearly run /var/tmp/mpihello-openmpi -- /hello/hello
   App launch reported: 2 (out of 2) daemons - 0 (out of 1) procs
   [cn001:27101] PMIX ERROR: BAD-PARAM in file src/dstore/pmix_esh.c at line 996
 
@@ -627,7 +627,7 @@ default.
 
 We can demonstrate the problem with LAMMPS molecular dynamics application::
 
-  $ srun --cpus-per-task 1 ch-run /var/tmp/lammps_mpi -- \
+  $ srun --cpus-per-task 1 clearly run /var/tmp/lammps_mpi -- \
     lmp_mpi -log none -in /lammps/examples/melt/in.melt
   [cn002:21512] Read -1, expected 6144, errno = 1
   [cn001:23947] Read -1, expected 6144, errno = 1
@@ -655,8 +655,8 @@ similarly disallow this access.
 So what can you do? There are a few options:
 
 * We recommend simply using the :code:`--join` family of arguments to
-  :code:`ch-run`. This puts a group of :code:`ch-run` peers in the same
-  namespaces; then, the system calls work. See the :doc:`ch-run` man page for
+  :code:`clearly run`. This puts a group of :code:`clearly run` peers in the same
+  namespaces; then, the system calls work. See the :doc:`clearly run` man page for
   details.
 
 * You can also sometimes turn off single-copy. For example, for :code:`vader`,
@@ -686,7 +686,7 @@ I get a bunch of independent rank-0 processes when launching with :code:`srun`
 
 For example, you might be seeing this::
 
-  $ srun ch-run /var/tmp/mpihello-openmpi -- /hello/hello
+  $ srun clearly run /var/tmp/mpihello-openmpi -- /hello/hello
   0: init ok cn036.localdomain, 1 ranks, userns 4026554634
   0: send/receive ok
   0: finalize ok
@@ -718,7 +718,7 @@ enable Slurm’s PMIx support, or (b) rebuild your container MPI against an PMI
 in the list. If it is in the list, but you’re seeing this problem, that means
 it is not the default, and you need to tell Slurm you want it. Try::
 
-  $ srun --mpi=pmix ch-run /var/tmp/mpihello-openmpi -- /hello/hello
+  $ srun --mpi=pmix clearly run /var/tmp/mpihello-openmpi -- /hello/hello
   0: init ok wc035.localdomain, 2 ranks, userns 4026554634
   1: init ok wc036.localdomain, 2 ranks, userns 4026554634
   0: send/receive ok
@@ -737,7 +737,7 @@ X11 applications should “just work”. For example, try this Dockerfile:
 
 Build it and unpack it to :code:`/var/tmp`. Then::
 
-  $ ch-run /scratch/ch/xterm -- xterm
+  $ clearly run /scratch/clearly/xterm -- xterm
 
 should pop an xterm.
 
@@ -748,7 +748,7 @@ How do I specify an image reference?
 ------------------------------------
 
 You must specify an image for many use cases, including :code:`FROM`
-instructions, the source of an image pull (e.g. :code:`ch-image pull` or
+instructions, the source of an image pull (e.g. :code:`clearly image pull` or
 :code:`docker pull`), the destination of an image push, and adding image tags.
 Charliecloud calls this an *image reference*, but there appears to be no
 established name for this concept.
@@ -866,14 +866,14 @@ Alpine 3.9 image pulled from Docker hub::
   $ ls /tmp/alpine:3.17/rootfs
   bin  etc   lib    mnt  proc  run   srv  tmp  var
   dev  home  media  opt  root  sbin  sys  usr
-  $ ch-run /tmp/alpine:3.17/rootfs -- cat /etc/alpine-release
+  $ clearly run /tmp/alpine:3.17/rootfs -- cat /etc/alpine-release
   3.9.5
 
-How do I authenticate with SSH during :code:`ch-image` build?
+How do I authenticate with SSH during :code:`clearly image` build?
 -------------------------------------------------------------
 
 The simplest approach is to run the `SSH agent
-<https://man.openbsd.org/ssh-agent>`_ on the host. :code:`ch-image` then
+<https://man.openbsd.org/ssh-agent>`_ on the host. :code:`clearly image` then
 leverages this with two steps:
 
   1. pass environment variable :code:`SSH_AUTH_SOCK` into the build, with no
@@ -901,7 +901,7 @@ and site-specific::
   RUN apk add openssh
   RUN echo $SSH_AUTH_SOCK
   RUN ssh git@github.com
-  $ ch-image build -t foo -f ./Dockerfile .
+  $ clearly image build -t foo -f ./Dockerfile .
   [...]
     3 RUN ['/bin/sh', '-c', 'echo $SSH_AUTH_SOCK']
     /tmp/ssh-rHsFFqwwqh/agent.49041
@@ -914,7 +914,7 @@ rarely make sense. In practice, SSH is used as a transport to fetch something,
 e.g. with :code:`scp(1)` or :code:`git(1)`. See the next entry for a more
 realistic example.
 
-SSH stops :code:`ch-image` build with interactive queries
+SSH stops :code:`clearly image` build with interactive queries
 ---------------------------------------------------------
 
 This often occurs during an SSH-based Git clone. For example:
@@ -927,7 +927,7 @@ This often occurs during an SSH-based Git clone. For example:
 
 .. code-block:: console
 
-  $ ch-image build -t foo -f ./Dockerfile .
+  $ clearly image build -t foo -f ./Dockerfile .
   [...]
   3 RUN ['/bin/sh', '-c', 'git clone git@github.com:hpc/charliecloud.git']
   Cloning into 'charliecloud'...
@@ -939,7 +939,7 @@ At this point, the build stops while SSH waits for input.
 
 This happens even if you have :code:`github.com` in your
 :code:`~/.ssh/known_hosts`. This file is not available to the build because
-:code:`ch-image` runs :code:`ch-run` without :code:`--home`, so :code:`RUN`
+:code:`clearly image` runs :code:`clearly run` without :code:`--home`, so :code:`RUN`
 instructions can’t see anything in your home directory.
 
 Solutions include:
@@ -1009,7 +1009,7 @@ How do I use Docker to build Charliecloud images?
 -------------------------------------------------
 
 The short version is to run Docker commands like :code:`docker build` and
-:code:`docker pull` like usual, and then use :code:`ch-convert` to copy the
+:code:`docker pull` like usual, and then use :code:`clearly convert` to copy the
 image from Docker storage to a SquashFS archive, tarball, or directory. If you
 are behind an HTTP proxy, that requires some extra setup for Docker; see
 below.
@@ -1145,11 +1145,11 @@ target architecture. In case it doesn’t install “binfmt” hooks (telling Li
 how to run foreign binaries), you’ll need to make that work — perhaps it’s in
 another package.
 
-That’s all you need to make building with :code:`ch-image` work with a base
+That’s all you need to make building with :code:`clearly image` work with a base
 foreign architecture image and the :code:`--arch` option. It’s significantly
 slower than native, but quite usable — about half the speed of native for the
 ppc64le target with a build taking minutes on a laptop with a magnetic disc.
-There’s a catch that images in :code:`ch-image` storage aren’t distinguished
+There’s a catch that images in :code:`clearly image` storage aren’t distinguished
 by architecture except by any name you give them, e.g., a base image like
 :code:`debian:11` pulled with :code:`--arch ppc64le` will overwrite a native
 x86 one.
@@ -1159,10 +1159,10 @@ For example, to build a ppc64le image on a Debian Buster amd64 host::
   $ uname -m
   x86_64
   $ sudo apt install qemu-user-static
-  $ ch-image pull --arch ppc64le alpine:3.17
-  $ printf 'FROM alpine:3.17\nRUN apk add coreutils\n' | ch-image build -t foo -
-  $ ch-convert alpine:3.17 /var/tmp/foo
-  $ ch-run /var/tmp/foo -- uname -m
+  $ clearly image pull --arch ppc64le alpine:3.17
+  $ printf 'FROM alpine:3.17\nRUN apk add coreutils\n' | clearly image build -t foo -
+  $ clearly convert alpine:3.17 /var/tmp/foo
+  $ clearly run /var/tmp/foo -- uname -m
   ppc64le
 
 PRoot
@@ -1190,7 +1190,7 @@ linuxcontainers.org uses the opposite order for “le” in the architecture nam
 ::
 
   $ wget https://uk.lxd.images.canonical.com/images/alpine/3.15/ppc64el/default/20220304_13:00/rootfs.tar.xz
-  $ ch-image import rootfs.tar.xz ppc64le/alpine:3.17
+  $ clearly image import rootfs.tar.xz ppc64le/alpine:3.17
 
 .. _faq_verbosity:
 
@@ -1198,7 +1198,7 @@ How can I control Charliecloud’s quietness or verbosity?
 --------------------------------------------------------
 
 Charliecloud logs various chatter about what is going on to standard error.
-This is distinct from *output*, e.g., :code:`ch-image list` prints the list of
+This is distinct from *output*, e.g., :code:`clearly image list` prints the list of
 images to standard output. We use reasonably standard log levels:
 
   1. **Error**. Some error condition that makes it impossible to proceed. The
@@ -1207,17 +1207,17 @@ images to standard output. We use reasonably standard log levels:
      “fatal” and “error” levels, but this isn’t really meaningful to users.)
 
   2. **Warning**. Unexpected condition the user needs to know about but that
-     should not stop the program. Examples: :code:`ch-run --mount` with a
+     should not stop the program. Examples: :code:`clearly run --mount` with a
      directory image (which does not use a mount point), unsupported
      Dockerfile instructions that are ignored.
 
   3. **Info**. Chatter useful enough to be printed by default. Example:
-     progress messages during image download and unpacking. (:code:`ch-run` is
+     progress messages during image download and unpacking. (:code:`clearly run` is
      silent during normal operations and does not have any “info” logging.)
 
   4. **Verbose**. Diagnostic information useful for debugging user containers,
      the Charliecloud installation, and Charliecloud itself. Examples:
-     :code:`ch-run --join` coordination progress, :code:`ch-image` internal
+     :code:`clearly run --join` coordination progress, :code:`clearly image` internal
      paths, Dockerfile parse tree.
 
   5. **Debug**. More detailed diagnostic information useful for debugging
@@ -1345,36 +1345,36 @@ Notes:
    :code:`git(1)` invocations).
 
 
-2. In the case of :code:`ch-run`, the user command is considered a subprocess,
-   e.g. :code:`ch-run -q example -- echo foo` will produce no output.
+2. In the case of :code:`clearly run`, the user command is considered a subprocess,
+   e.g. :code:`clearly run -q example -- echo foo` will produce no output.
 
 .. _faq_xattrs:
 
 How do I handle extended attributes in Charliecloud?
 ----------------------------------------------------
 
-As noted in section :ref:`ch-image_build-cache`, Charliecloud doesn’t support
+As noted in section :ref:`clearly image_build-cache`, Charliecloud doesn’t support
 extended attributes (xattrs) by default. Support for xattrs  can be enabled for
-:code:`ch-image` and :code:`ch-convert` by specifying :code:`--xattrs` or
-setting :code:`$CLEARLY_XATTRS`. This will make :code:`ch-image` save and restore
-xattrs via the build cache, and will make :code:`ch-convert` preserve xattrs on
+:code:`clearly image` and :code:`clearly convert` by specifying :code:`--xattrs` or
+setting :code:`$CLEARLY_XATTRS`. This will make :code:`clearly image` save and restore
+xattrs via the build cache, and will make :code:`clearly convert` preserve xattrs on
 conversion. Important caveats include:
 
-1. :code:`ch-image` and :code:`ch-convert` cannot read xattrs in privileged
+1. :code:`clearly image` and :code:`clearly convert` cannot read xattrs in privileged
    namespaces (e.g. :code:`trusted` and :code:`security`). Extended attributes
    in these namespaces will never be saved or restored via the cache, and will
    never be preserved when converting between image formats.
 
-2. :code:`ch-image import` cannot handle xattrs. This is a limitation of the
+2. :code:`clearly image import` cannot handle xattrs. This is a limitation of the
    Python `tarfile <https://docs.python.org/3/library/tarfile.html>`_ library,
    which as of version 3.12.1 doesn’t support xattrs (see CPython issue `#113293
    <https://github.com/python/cpython/issues/113293>`_).
 
-3. :code:`ch-convert -o ch-image` uses :code:`ch-image import` under the hood.
-   This in conjunction with (2) means that :code:`ch-convert` cannot preserve
-   xattrs when converting to the :code:`ch-image` format.
+3. :code:`clearly convert -o clearly image` uses :code:`clearly image import` under the hood.
+   This in conjunction with (2) means that :code:`clearly convert` cannot preserve
+   xattrs when converting to the :code:`clearly image` format.
 
-4. :code:`ch-image pull` uses the tarfile library, so xattrs will be lost when
+4. :code:`clearly image pull` uses the tarfile library, so xattrs will be lost when
    pulling from a registry.
 
 5. Support for xattrs varies among filesystems, e.g. tmpfs didn’t support xattrs
@@ -1389,18 +1389,18 @@ How do I source a file automatically when container starts?
 There are ways to have Bash source an arbitrary script at start-up (`docs
 <https://www.gnu.org/software/bash/manual/html_node/Invoking-Bash.html>`_).
 
-For example, :code:`ch-run ... -- bash --rcfile /my/start.sh` will give you an
+For example, :code:`clearly run ... -- bash --rcfile /my/start.sh` will give you an
 interactive shell with :code:`/my/start.sh` sourced first.
 
-Or: :code:`ch-run ... -- bash --login` will give you an interactive login shell
+Or: :code:`clearly run ... -- bash --login` will give you an interactive login shell
 and so it will source :code:`/etc/profile`.
 
 Finally, you can have a file :code:`$HOME/.bashrc` (where :code:`$HOME` is set
-by default, as described `here <ch-run#environment-variables>`_), which Bash
-will source automatically with :code:`ch-run ... -- bash`.
+by default, as described `here <clearly run#environment-variables>`_), which Bash
+will source automatically with :code:`clearly run ... -- bash`.
 
 Alternately, if you want the interactive Bash shell to source :code:`.bashrc`
-of your host system, you can use :code:`ch-run --home`, which binds your home
+of your host system, you can use :code:`clearly run --home`, which binds your home
 directory into the container.
 
 

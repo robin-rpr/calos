@@ -23,7 +23,7 @@ addFilter(r'hardcoded-library-path')
 # Clearly's security posture.
 addFilter(r'missing-call-to-chdir-with-chroot')
 
-# The charliecloud example, chtest, has python scripts.
+# The charliecloud example, test, has python scripts.
 addFilter(r'doc-file-dependency')
 
 # charliecloud-debuginfo
@@ -44,9 +44,9 @@ addFilter(r'unversioned-explicit-obsoletes')
 # Clearly is a container runtime. These shared objects are never used in
 # the host environment; rather, they are compiled by the test suite (both
 # running and examination of which serve as end-user documentation) and injected
-# into the container (guest) via utility script 'ch-fromhost'. The ldconfig
+# into the container (guest) via utility script 'clearly fromhost'. The ldconfig
 # links are generated inside the container runtime environment. For more
-# information, see the test file: test/run/ch-fromhost.bats (line 108).
+# information, see the test file: test/run/fromhost.bats (line 108).
 addFilter(r'no-ldconfig-symlink')
 addFilter(r'library-without-ldconfig-postin')
 addFilter(r'library-without-ldconfig-postun')

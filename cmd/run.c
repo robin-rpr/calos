@@ -293,7 +293,7 @@ void fix_environment(struct args *args)
          Te (false, "unreachable code reached");
          break;
       case ENV_SET_DEFAULT:
-         ed.arg.vars = env_file_read("/ch/environment", ed.arg.delim);
+         ed.arg.vars = env_file_read("/clearly/environment", ed.arg.delim);
          // fall through
       case ENV_SET_VARS:
          for (size_t j = 0; ed.arg.vars[j].name != NULL; j++)

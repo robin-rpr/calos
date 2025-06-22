@@ -6,7 +6,7 @@ both examples included with the source code as well as new ones you create
 from scratch.
 
 This tutorial assumes that: (a) Charliecloud is in your path, including
-Charliecloud’s fully unprivileged image builder :code:`ch-image` and
+Charliecloud’s fully unprivileged image builder :code:`clearly image` and
 (b) Charliecloud is installed under :code:`/usr/local`. (If the second
 assumption isn’t true, you will just need to modify some paths.)
 
@@ -41,12 +41,12 @@ should be able to tell you if this is linked in.
 ::
 
   $ cd /usr/local/share/doc/charliecloud/examples/hello
-  $ ch-image build .
+  $ clearly image build .
   inferred image name: hello
   [...]
   grown in 3 instructions: hello
-  $ ch-convert hello /var/tmp/hello.sqfs
-  input:   ch-image  hello
+  $ clearly convert hello /var/tmp/hello.sqfs
+  input:   clearly image  hello
   output:  squash    /var/tmp/hello.sqfs
   packing ...
   Parallel mksquashfs: Using 8 processors
@@ -54,7 +54,7 @@ should be able to tell you if this is linked in.
   [=============================================|] 10411/10411 100%
   [...]
   done
-  $ ch-run /var/tmp/hello.sqfs -- echo "I’m in a container"
+  $ clearly run /var/tmp/hello.sqfs -- echo "I’m in a container"
   I’m in a container
 
 Using a directory image
@@ -67,16 +67,16 @@ section.
 ::
 
   $ cd /usr/local/share/doc/charliecloud/examples/hello
-  $ ch-image build .
+  $ clearly image build .
   inferred image name: hello
   [...]
   grown in 4 instructions: hello
-  $ ch-convert hello /var/tmp/hello
-  input:   ch-image  hello
+  $ clearly convert hello /var/tmp/hello
+  input:   clearly image  hello
   output:  dir       /var/tmp/hello
   exporting ...
   done
-  $ ch-run /var/tmp/hello -- echo "I’m in a container"
+  $ clearly run /var/tmp/hello -- echo "I’m in a container"
   I’m in a container
 
 .. note::
@@ -92,12 +92,12 @@ Getting help
 All the executables have decent help and can tell you what version of
 Charliecloud you have (if not, please report a bug). For example::
 
-  $ ch-run --help
-  Usage: ch-run [OPTION...] IMAGE -- COMMAND [ARG...]
+  $ clearly run --help
+  Usage: clearly run [OPTION...] IMAGE -- COMMAND [ARG...]
 
   Run a command in a Charliecloud container.
   [...]
-  $ ch-run --version
+  $ clearly run --version
   0.26
 
 Man pages for all commands are provided in this documentation (see table of
@@ -116,10 +116,10 @@ First, browse the Docker Hub repository of `official AlmaLinux images
 partial list of image versions that are available. We’ll use the tag
 “:code:`8`”.
 
-Use the Charliecloud program :code:`ch-image` to pull this image to
+Use the Charliecloud program :code:`clearly image` to pull this image to
 Charliecloud’s internal storage directory::
 
-   $ ch-image pull almalinux:8
+   $ clearly image pull almalinux:8
    pulling image:    almalinux:8
    requesting arch:  amd64
    manifest list: downloading: 100%
@@ -135,20 +135,20 @@ Charliecloud’s internal storage directory::
    layer 1/1: 3239c63: extracting
    image arch: amd64
    done
-   $ ch-image list
+   $ clearly image list
    almalinux:8
 
-Images come in lots of different formats; :code:`ch-run` can use directories
+Images come in lots of different formats; :code:`clearly run` can use directories
 and SquashFS archives. For this example, we’ll use SquashFS. We use the
-command :code:`ch-convert` to create a SquashFS image from the image in
+command :code:`clearly convert` to create a SquashFS image from the image in
 internal storage, then run it::
 
-   $ ch-convert almalinux:8 almalinux.sqfs
-   $ ch-run almalinux.sqfs -- /bin/bash
+   $ clearly convert almalinux:8 almalinux.sqfs
+   $ clearly run almalinux.sqfs -- /bin/bash
    > pwd
    /
    > ls
-   bin  ch  dev  etc  home  lib  lib64  media  mnt  opt  proc  root  run
+   bin  clearly  dev  etc  home  lib  lib64  media  mnt  opt  proc  root  run
    sbin  srv  sys  tmp  usr  var
    > cat /etc/redhat-release
    AlmaLinux release 8.7 (Stone Smilodon)
@@ -156,12 +156,12 @@ internal storage, then run it::
 
 What do these commands do?
 
-  1. Create a SquashFS-format image (:code:`ch-convert ...`).
+  1. Create a SquashFS-format image (:code:`clearly convert ...`).
 
-  2. Create a running container using that image (:code:`ch-run
+  2. Create a running container using that image (:code:`clearly run
      almalinux.sqfs`).
 
-  3. Stop processing :code:`ch-run` options (:code:`--`). (This is
+  3. Stop processing :code:`clearly run` options (:code:`--`). (This is
      standard notation for UNIX command line programs.)
 
   4. Run the program :code:`/bin/bash` inside the container, which starts an
@@ -210,7 +210,7 @@ so we run :code:`/bin/sh` instead.)
 
 ::
 
-  $ ch-run ./alpine -- /bin/sh
+  $ clearly run ./alpine -- /bin/sh
   > pwd
   /
   > ls
@@ -238,8 +238,8 @@ into builder storage. We can then extract the image from builder storage to a
 directory and run it.
 
 Charliecloud supports arbitrary image builders. In this tutorial, we use
-:code:`ch-image`, which comes with Charliecloud, but you can also use others,
-e.g. Docker or Podman. :code:`ch-image` is a big deal because it is completely
+:code:`clearly image`, which comes with Charliecloud, but you can also use others,
+e.g. Docker or Podman. :code:`clearly image` is a big deal because it is completely
 unprivileged. Other builders typically run as root or require setuid root
 helper programs; this raises a number of security questions.
 
@@ -285,11 +285,11 @@ These four instructions say:
 
    :code:`COPY` is a standard instruction but has a number of disadvantages in
    its corner cases. Charliecloud also has :code:`RSYNC`, which addresses
-   these; see :ref:`its documentation <ch-image_rsync>` for details.
+   these; see :ref:`its documentation <clearly image_rsync>` for details.
 
 Let’s build this image::
 
-  $ ch-image build -t hello -f Dockerfile .
+  $ clearly image build -t hello -f Dockerfile .
     1. FROM almalinux:8
   [...]
     4. RUN chmod 755 /hello.py
@@ -297,24 +297,24 @@ Let’s build this image::
 
 This command says:
 
-  1. Build (:code:`ch-image build`) an image named (a.k.a. tagged) “hello”
+  1. Build (:code:`clearly image build`) an image named (a.k.a. tagged) “hello”
      (:code:`-t hello`).
 
   2. Use the Dockerfile called “Dockerfile” (:code:`-f Dockerfile`).
 
   3. Use the current directory as the context directory (:code:`.`).
 
-Now, list the images :code:`ch-image` knows about::
+Now, list the images :code:`clearly image` knows about::
 
-  $ ch-image list
+  $ clearly image list
   almalinux:8
   hello
 
 And run the image we just made::
 
   $ cd ..
-  $ ch-convert hello hello.sqfs
-  $ ch-run hello.sqfs -- /hello.py
+  $ clearly convert hello hello.sqfs
+  $ clearly run hello.sqfs -- /hello.py
   Hello World!
 
 This time, we’ve run our application directly rather than starting an
@@ -352,7 +352,7 @@ Create a private container registry:
      stored for this project”.
 
 At this point, we have a container registry set up, and we need to teach
-:code:`ch-image` how to log into it. On :code:`gitlab.com` and some other
+:code:`clearly image` how to log into it. On :code:`gitlab.com` and some other
 instances, you can use your GitLab password. However, GitLab has a thing
 called a *personal access token* (PAT) that can be used no matter how you log
 into the GitLab web app. To create one:
@@ -372,7 +372,7 @@ into the GitLab web app. To create one:
 Push
 ----
 
-We can now use :code:`ch-image push` to push the image to GitLab. (Note that
+We can now use :code:`clearly image push` to push the image to GitLab. (Note that
 the tagging step you would need for Docker is unnecessary here, because we can
 just specify a destination reference at push time.)
 
@@ -391,7 +391,7 @@ copy-paste the PAT you created earlier (or enter your password).
 
 ::
 
-  $ ch-image push hello gitlab.com:5050/$USER/myproj/hello:latest
+  $ clearly image push hello gitlab.com:5050/$USER/myproj/hello:latest
   pushing image:   hello
   destination:     gitlab.com:5050/$USER/myproj/hello:latest
   layer 1/1: gathering
@@ -416,17 +416,17 @@ Pull and compare
 
 Let’s pull that image and see how it looks::
 
-  $ ch-image pull --auth registry.gitlab.com/$USER/myproj/hello:latest hello.2
+  $ clearly image pull --auth registry.gitlab.com/$USER/myproj/hello:latest hello.2
   pulling image:   gitlab.com:5050/$USER/myproj/hello:latest
   destination:     hello.2
   [...]
-  $ ch-image list
+  $ clearly image list
   almalinux:8
   hello
   hello.2
-  $ ch-convert hello.2 ./hello.2
+  $ clearly convert hello.2 ./hello.2
   $ ls ./hello.2
-  bin  ch  dev  etc  hello.py  home  lib  lib64  media  mnt
+  bin  clearly  dev  etc  hello.py  home  lib  lib64  media  mnt
   opt  proc  root  run  sbin  srv  sys  tmp  usr  var
 
 
@@ -454,10 +454,10 @@ don’t need to specify :code:`-t`.
 
 ::
 
-  $ ch-image build \
+  $ clearly image build \
        -f /usr/local/share/doc/charliecloud/examples/Dockerfile.almalinux_8ch \
        /usr/local/share/doc/charliecloud/examples
-  $ ch-image build \
+  $ clearly image build \
        -f /usr/local/share/doc/charliecloud/examples/Dockerfile.openmpi \
           /usr/local/share/doc/charliecloud/examples
 
@@ -514,8 +514,8 @@ Now build. The default Dockerfile is :code:`./Dockerfile`, so we can omit
 
    $ ls
    Dockerfile   mpihello.c
-   $ ch-image build -t mpihello
-   $ ch-image list
+   $ clearly image build -t mpihello
+   $ clearly image list
    almalinux:8
    almalinux_8ch
    mpihello
@@ -523,7 +523,7 @@ Now build. The default Dockerfile is :code:`./Dockerfile`, so we can omit
 
 Finally, create a squashball image and copy it to the supercomputer::
 
-   $ ch-convert mpihello mpihello.sqfs
+   $ clearly convert mpihello mpihello.sqfs
    $ scp mpihello.sqfs super-fe:
 
 Run the container
@@ -541,7 +541,7 @@ First, obtain a two-node allocation and load Charliecloud::
 
 Then, run the application on all cores in your allocation::
 
-   $ srun -c1 ch-run ~/mpihello.sqfs -- /hello/mpihello
+   $ srun -c1 clearly run ~/mpihello.sqfs -- /hello/mpihello
    hello from rank 1 of 72
    rank 1 received 0 from rank 0
    [...]
@@ -554,7 +554,7 @@ Win!
 Build cache
 ===========
 
-:code:`ch-image` subcommands that create images, such as build and pull, can
+:code:`clearly image` subcommands that create images, such as build and pull, can
 use a build cache to speed repeated operations. That is, an image is created
 by starting from the empty image and executing a sequence of instructions,
 largely Dockerfile instructions but also some others like “pull” and “import”.
@@ -563,7 +563,7 @@ their results from cache instead.
 
 Let’s set up this example by first resetting the build cache::
 
-  $ ch-image build-cache --reset
+  $ clearly image build-cache --reset
   $ mkdir cache-test
   $ cd cache-test
 
@@ -577,7 +577,7 @@ Suppose we have a Dockerfile :code:`a.df`:
 
 On our first build, we get::
 
-  $ ch-image build -t a -f a.df .
+  $ clearly image build -t a -f a.df .
     1. FROM almalinux:8
   [ ... pull chatter omitted ... ]
     2. RUN echo foo
@@ -593,7 +593,7 @@ instruction was executed. You can also see this in the output of the two
 
 But on our second build, we get::
 
-  $ ch-image build -t a -f a.df .
+  $ clearly image build -t a -f a.df .
     1* FROM almalinux:8
     2* RUN sleep 2 && echo foo
     3* RUN sleep 2 && echo bar
@@ -616,7 +616,7 @@ first two instructions are the same, but the third is different.
 
 Build it::
 
-  $ ch-image build -t b -f b.df .
+  $ clearly image build -t b -f b.df .
     1* FROM almalinux:8
     2* RUN sleep 2 && echo foo
     3. RUN sleep 2 && echo qux
@@ -629,7 +629,7 @@ third is a miss, so Charliecloud retrieves that state and continues building.
 
 Finally, inspect the cache::
 
-  $ ch-image build-cache --tree
+  $ clearly image build-cache --tree
   *  (b) RUN sleep 2 && echo qux
   | *  (a) RUN sleep 2 && echo bar
   |/
@@ -817,7 +817,7 @@ Let’s revisit the symlinks in :code:`/proc`, but this time with Charliecloud::
   lrwxrwxrwx 1 charlie charlie 0 Sep 28 11:24 pid -> pid:[4026531836]
   lrwxrwxrwx 1 charlie charlie 0 Sep 28 11:24 user -> user:[4026531837]
   lrwxrwxrwx 1 charlie charlie 0 Sep 28 11:24 uts -> uts:[4026531838]
-  $ ch-run /var/tmp/hello -- ls -l /proc/self/ns
+  $ clearly run /var/tmp/hello -- ls -l /proc/self/ns
   total 0
   lrwxrwxrwx 1 charlie charlie 0 Sep 28 17:34 ipc -> ipc:[4026531839]
   lrwxrwxrwx 1 charlie charlie 0 Sep 28 17:34 mnt -> mnt:[4026532257]
@@ -831,7 +831,7 @@ namespaces, but the rest of the namespaces are shared with the host. This
 highlights Charliecloud’s focus on functionality (make your container run),
 rather than isolation (protect the host from your container).
 
-Normally, each invocation of :code:`ch-run` creates a new container, so if you
+Normally, each invocation of :code:`clearly run` creates a new container, so if you
 have multiple simultaneous invocations, they will not share containers. In
 some cases this can cause problems with MPI programs. However, there is an
 option :code:`--join` that can solve them; see the :ref:`FAQ <faq_join>` for
@@ -930,7 +930,7 @@ prepared for.
 
 ::
 
-  $ ch-run --no-passwd ./alluneed -- /bin/bash
+  $ clearly run --no-passwd ./alluneed -- /bin/bash
   > pwd
   /
   > echo "hello world"
@@ -979,7 +979,7 @@ container is started::
   $ echo hello > /var/tmp/foo0/bar
   $ mkdir /var/tmp/foo1
   $ echo world > /var/tmp/foo1/bar
-  $ ch-run -b /var/tmp/foo0 -b /var/tmp/foo1 /var/tmp/hello -- bash
+  $ clearly run -b /var/tmp/foo0 -b /var/tmp/foo1 /var/tmp/hello -- bash
   > cat /var/tmp/foo0/bar
   hello
   > cat /var/tmp/foo1/bar
@@ -992,9 +992,9 @@ a destination that already exists, like those created under :code:`/mnt`::
   $ echo hello > /var/tmp/foo0/bar
   $ mkdir /var/tmp/foo1
   $ echo world > /var/tmp/foo1/bar
-  $ ch-run -b /var/tmp/foo0 -b /var/tmp/foo1 /var/tmp/hello -- bash
-  ch-run[1184427]: error: can’t mkdir: /var/tmp/hello/var/tmp/foo0: Read-only file system (clearly_misc.c:142 30)
-  $ ch-run -b /var/tmp/foo0:/mnt/0 -b /var/tmp/foo1:/mnt/1 /var/tmp/hello -- bash
+  $ clearly run -b /var/tmp/foo0 -b /var/tmp/foo1 /var/tmp/hello -- bash
+  clearly run[1184427]: error: can’t mkdir: /var/tmp/hello/var/tmp/foo0: Read-only file system (misc.c:142 30)
+  $ clearly run -b /var/tmp/foo0:/mnt/0 -b /var/tmp/foo1:/mnt/1 /var/tmp/hello -- bash
   > ls /mnt
   0  1  2  3  4  5  6  7  8  9
   > cat /mnt/0/bar
@@ -1016,28 +1016,28 @@ container, even if :code:`ssh` was initiated from a container::
   4026531837
   $ ssh localhost stat -L --format='%i' /proc/self/ns/user
   4026531837
-  $ ch-run /var/tmp/hello.sqfs -- /bin/bash
+  $ clearly run /var/tmp/hello.sqfs -- /bin/bash
   > stat -L --format='%i' /proc/self/ns/user
   4026532256
   > ssh localhost stat -L --format='%i' /proc/self/ns/user
   4026531837
 
 There are a couple ways to SSH to a remote node and run commands inside a
-container. The simplest is to manually invoke :code:`ch-run` in the
+container. The simplest is to manually invoke :code:`clearly run` in the
 :code:`ssh` command::
 
-  $ ssh localhost ch-run /var/tmp/hello.sqfs -- stat -L --format='%i' /proc/self/ns/user
+  $ ssh localhost clearly run /var/tmp/hello.sqfs -- stat -L --format='%i' /proc/self/ns/user
   4026532256
 
 .. note::
 
-   Recall that by default, each :code:`ch-run` invocation creates a new
+   Recall that by default, each :code:`clearly run` invocation creates a new
    container. That is, the :code:`ssh` command above has not entered an
    existing user namespace :code:`’2256`; rather, it has re-used the namespace
    ID :code:`’2256`.
 
 Another may be to edit one's shell initialization scripts to check the command
-line and :code:`exec(1)` :code:`ch-run` if appropriate. This is brittle but
+line and :code:`exec(1)` :code:`clearly run` if appropriate. This is brittle but
 avoids wrapping :code:`ssh` or altering its command line.
 
 User and group IDs
@@ -1052,7 +1052,7 @@ container. For example::
   901
   $ whoami
   charlie
-  $ ch-run /var/tmp/hello.sqfs -- bash
+  $ clearly run /var/tmp/hello.sqfs -- bash
   > id -u
   901
   > whoami
@@ -1060,11 +1060,11 @@ container. For example::
 
 More specifically, the user namespace, when created without privileges as
 Charliecloud does, lets you map any container UID to your host UID.
-:code:`ch-run` implements this with the :code:`--uid` switch. So, for example,
+:code:`clearly run` implements this with the :code:`--uid` switch. So, for example,
 you can tell Charliecloud you want to be root, and it will tell you that
 you’re root::
 
-  $ ch-run --uid 0 /var/tmp/hello.sqfs -- bash
+  $ clearly run --uid 0 /var/tmp/hello.sqfs -- bash
   > id -u
   0
   > whoami
@@ -1087,7 +1087,7 @@ looks normal::
   drwxr-xr-x 87 901 901 4096 Sep 28 12:12 /home/charlie
   $ ls -ld ~
   drwxr-xr-x 87 charlie charlie 4096 Sep 28 12:12 /home/charlie
-  $ ch-run /var/tmp/hello.sqfs -- bash
+  $ clearly run /var/tmp/hello.sqfs -- bash
   > ls -nd ~
   drwxr-xr-x 87 901 901 4096 Sep 28 18:12 /home/charlie
   > ls -ld ~
@@ -1095,7 +1095,7 @@ looks normal::
 
 But if :code:`--uid` is provided, things can seem odd. For example::
 
-  $ ch-run --uid 0 /var/tmp/hello.sqfs -- bash
+  $ clearly run --uid 0 /var/tmp/hello.sqfs -- bash
   > ls -nd /home/charlie
   drwxr-xr-x 87 0 901 4096 Sep 28 18:12 /home/charlie
   > ls -ld /home/charlie
@@ -1109,7 +1109,7 @@ up as :code:`nobody`::
   -rw-rw---- 1 902 902 0 Sep 28 15:40 /tmp/foo
   $ ls -l /tmp/foo
   -rw-rw---- 1 sig sig 0 Sep 28 15:40 /tmp/foo
-  $ ch-run /var/tmp/hello.sqfs -- bash
+  $ clearly run /var/tmp/hello.sqfs -- bash
   > ls -n /tmp/foo
   -rw-rw---- 1 65534 65534 843 Sep 28 21:40 /tmp/foo
   > ls -l /tmp/foo
@@ -1122,9 +1122,9 @@ mapped in any given container. All the rest become :code:`nogroup`::
 
   $ id
   uid=901(charlie) gid=901(charlie) groups=901(charlie),903(nerds),904(losers)
-  $ ch-run /var/tmp/hello.sqfs -- id
+  $ clearly run /var/tmp/hello.sqfs -- id
   uid=901(charlie) gid=901(charlie) groups=901(charlie),65534(nogroup)
-  $ ch-run --gid 903 /var/tmp/hello.sqfs -- id
+  $ clearly run --gid 903 /var/tmp/hello.sqfs -- id
   uid=901(charlie) gid=903(nerds) groups=903(nerds),65534(nogroup)
 
 However, this doesn’t affect access. The container process retains the same
@@ -1134,7 +1134,7 @@ access::
   $ ls -l /tmp/primary /tmp/supplemental
   -rw-rw---- 1 sig charlie 0 Sep 28 15:47 /tmp/primary
   -rw-rw---- 1 sig nerds  0 Sep 28 15:48 /tmp/supplemental
-  $ ch-run /var/tmp/hello.sqfs -- bash
+  $ clearly run /var/tmp/hello.sqfs -- bash
   > cat /tmp/primary > /dev/null
   > cat /tmp/supplemental > /dev/null
 
@@ -1144,11 +1144,11 @@ group is a no-op because it’s mapped back to the host GID::
 
   $ ls -l /tmp/bar
   rw-rw---- 1 charlie charlie 0 Sep 28 16:12 /tmp/bar
-  $ ch-run /var/tmp/hello.sqfs -- chgrp nerds /tmp/bar
+  $ clearly run /var/tmp/hello.sqfs -- chgrp nerds /tmp/bar
   chgrp: changing group of '/tmp/bar': Invalid argument
-  $ ch-run /var/tmp/hello.sqfs -- chgrp nogroup /tmp/bar
+  $ clearly run /var/tmp/hello.sqfs -- chgrp nogroup /tmp/bar
   chgrp: changing group of '/tmp/bar': Invalid argument
-  $ ch-run --gid 903 /var/tmp/hello.sqfs -- chgrp nerds /tmp/bar
+  $ clearly run --gid 903 /var/tmp/hello.sqfs -- chgrp nerds /tmp/bar
   $ ls -l /tmp/bar
   -rw-rw---- 1 charlie charlie 0 Sep 28 16:12 /tmp/bar
 
@@ -1160,7 +1160,7 @@ directories::
   $ chmod 2770 /tmp/baz
   $ ls -ld /tmp/baz
   drwxrws--- 2 charlie nerds 40 Sep 28 16:19 /tmp/baz
-  $ ch-run /var/tmp/hello.sqfs -- touch /tmp/baz/foo
+  $ clearly run /var/tmp/hello.sqfs -- touch /tmp/baz/foo
   $ ls -l /tmp/baz/foo
   -rw-rw---- 1 charlie nerds 0 Sep 28 16:21 /tmp/baz/foo
 
@@ -1207,7 +1207,7 @@ you know. Edit to match your system; in particular, use local disks instead of
 
 We can now start the Spark master::
 
-  $ ch-run -b ~/sparkconf /var/tmp/spark.sqfs -- /spark/sbin/start-master.sh
+  $ clearly run -b ~/sparkconf /var/tmp/spark.sqfs -- /spark/sbin/start-master.sh
 
 Look at the log in :code:`/tmp/spark/log` to see that the master started
 correctly::
@@ -1245,7 +1245,7 @@ calls. Both of these are also quite clunky and do not scale well.
 
 ::
 
-  $ srun sh -c "   ch-run -b ~/sparkconf /var/tmp/spark.sqfs -- \
+  $ srun sh -c "   clearly run -b ~/sparkconf /var/tmp/spark.sqfs -- \
                           spark/sbin/start-slave.sh $MASTER_URL \
                 && sleep infinity" &
 
@@ -1275,7 +1275,7 @@ on each compute node. For example (note single quotes)::
 
 We can now start an interactive shell to do some Spark computing::
 
-  $ ch-run -b ~/sparkconf /var/tmp/spark.sqfs -- /spark/bin/pyspark --master $MASTER_URL
+  $ clearly run -b ~/sparkconf /var/tmp/spark.sqfs -- /spark/bin/pyspark --master $MASTER_URL
 
 Let’s use this shell to estimate 𝜋 (this is adapted from one of the Spark
 `examples <http://spark.apache.org/examples.html>`_):
@@ -1304,7 +1304,7 @@ omitted.)
 
 ::
 
-  $ ch-run -b ~/sparkconf /var/tmp/spark.sqfs -- \
+  $ clearly run -b ~/sparkconf /var/tmp/spark.sqfs -- \
            /spark/bin/spark-submit --master $MASTER_URL \
            /spark/examples/src/main/python/pi.py 1024
   [...]

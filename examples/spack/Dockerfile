@@ -1,4 +1,4 @@
-# ch-test-scope: full
+# test-scope: full
 FROM almalinux:8
 
 # Note: Spack is a bit of an odd duck testing wise. Because it’s a package
@@ -78,8 +78,8 @@ RUN patch -p 0 < libfuse.patch
 # (see: https://github.com/spack/spack/issues/19310).
 RUN source /spack/share/spack/setup-env.sh \
     && spack --version \
-    && spack env create ch \
-    && spack env activate ch \
+    && spack env create clearly \
+    && spack env activate clearly \
     && spack compiler find \
     && spack compiler list --scope=system \
     && spack compiler list --scope=user \

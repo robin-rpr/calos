@@ -860,7 +860,7 @@ size_t string_append(char *addr, char *str, size_t size, size_t offset)
 }
 
 /* Set the username global by looking up EUID in the password database. Logic
-   musc match ch.user(). Formerly, we used $USER, but that’s not reliably set.
+   musc match clearly.user(). Formerly, we used $USER, but that’s not reliably set.
    See #1162. This approach does require that EUID *have* a corresponding
    username. */
 void username_set(void)

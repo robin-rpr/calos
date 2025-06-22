@@ -17,24 +17,24 @@ export CLEARLY_TEST_IMGDIR=/mnt/img
 export CLEARLY_TEST_TARDIR=/mnt/pack
 
 # Target directory.
-sudo rm -Rf /ch
-sudo mkdir /ch
-sudo chmod 1777 /ch
+sudo rm -Rf /clearly
+sudo mkdir /clearly
+sudo chmod 1777 /clearly
 
 # Build configure.
 ./autogen.sh
 
 # Build and install from Git WD.
-test/gitlab.com/install.bash . /ch/from-git
+test/gitlab.com/install.bash . /clearly/from-git
 
 # Build and install from tarball.
-mkdir /ch/src-tar
-tar -C /ch/src-tar --strip=1 -xf charliecloud-*.tar.gz
-test/gitlab.com/install.bash /ch/src-tar /ch/from-tar
+mkdir /clearly/src-tar
+tar -C /clearly/src-tar --strip=1 -xf charliecloud-*.tar.gz
+test/gitlab.com/install.bash /clearly/src-tar /clearly/from-tar
 
 # Run test suite in various directories. Note these all use the same storage
 # directory, including build cache.
 test/gitlab.com/test.bash .             # source dir, Git
-test/gitlab.com/test.bash /ch/from-git  # installed from Git
-test/gitlab.com/test.bash /ch/src-tar   # source dir, tarball
-test/gitlab.com/test.bash /ch/from-tar  # installed from tarball
+test/gitlab.com/test.bash /clearly/from-git  # installed from Git
+test/gitlab.com/test.bash /clearly/src-tar   # source dir, tarball
+test/gitlab.com/test.bash /clearly/from-tar  # installed from tarball

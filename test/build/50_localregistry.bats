@@ -34,7 +34,7 @@ FROM alpine:3.17
 EOF
 
     clearly convert tmpimg "$BATS_TMPDIR/tmpimg"
-    rm -rf "$BATS_TMPDIR/tmpimg/ch"
+    rm -rf "$BATS_TMPDIR/tmpimg/clearly"
 
     clearly image delete tmpimg
     clearly image import "$BATS_TMPDIR/tmpimg" tmpimg
@@ -80,10 +80,10 @@ EOF
     [[ $(stat -c '%A' "$img"/setgid_dir) =  drwxr-s--- ]]
 
     # Create fake history.
-    mkdir -p "$img"/ch
-    cat <<'EOF' > "$img"/ch/metadata.json
+    mkdir -p "$img"/clearly
+    cat <<'EOF' > "$img"/clearly/metadata.json
 {
-   "history": [ {"created_by": "ch-test" } ]
+   "history": [ {"created_by": "clearly" } ]
 }
 EOF
 

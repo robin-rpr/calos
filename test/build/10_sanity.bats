@@ -28,9 +28,9 @@ load ../common
 
 @test 'executables seem sane' {
     scope quick
-    # Assume that everything in $clearly_bin is ours if it starts with “ch-” and
-    # either (1) is executable or (2) ends in “.c”. Demand satisfaction from
-    # each. The latter is to catch cases when we haven't compiled everything;
+    # Assume that everything in $clearly_libexec is ours and either (1) 
+    # is executable or (2) ends in “.c”. Demand satisfaction from each.
+    # The latter is to catch cases when we haven't compiled everything;
     # if we have, the test makes duplicate demands, but that’s low cost.
     while IFS= read -r -d '' path; do
         path=${path%.c}
@@ -49,7 +49,7 @@ load ../common
         # Most, but not all, executables should print usage and exit
         # unsuccessfully when run without arguments.
         case $filename in
-            ch-checkns)
+            checkns)
                 ;;
             *)
                 run "$path"
@@ -62,7 +62,7 @@ load ../common
         ls -l "$path"
         [[ ! -u $path ]]
         [[ ! -g $path ]]
-    done < <( find "$clearly_bin" -name 'ch-*' -a \( -executable -o -name '*.c' \) \
+    done < <( find "$clearly_libexec" -name '*' -a \( -executable -o -name '*.c' \) \
                    -print0 )
 }
 
@@ -83,7 +83,7 @@ load ../common
     # Only do this test in build directory; the reasoning is that we don’t
     # alter the shell scripts during install enough to re-test, and it means
     # we only have to find everything in one path.
-    if [[ $CHTEST_INSTALLED ]]; then
+    if [[ $TEST_INSTALLED ]]; then
         skip 'only in build directory'
     fi
     # ShellCheck present?
@@ -112,7 +112,7 @@ load ../common
                                          {nextfile}' {} + \) )
     # Bats scripts. Use sed to do several things:
     #
-    #   1. Remove ch-test substitutions “%(foo)”, which confuse Bats.
+    #   1. Remove clearly test substitutions “%(foo)”, which confuse Bats.
     #
     #   2. Add the name of each command to a “true” argument to avoid warnings
     #      about variables whos only reference is in that name.
@@ -130,7 +130,7 @@ load ../common
                        -e 's/^load (.*)common$/load common.bash/g' \
                        -e 's/^load /source /g' \
         | shellcheck -s bash -e SC1112,SC2002,SC2030,SC2031,SC2103,SC2164 \
-                     - "$CHTEST_DIR"/common.bash
+                     - "$TEST_DIR"/common.bash
     done < <( find "$clearly_base" -name '*.bats' -o -name '*.bats.in' )
 }
 
@@ -167,7 +167,7 @@ load ../common
 
 @test 'trailing whitespace' {
     scope standard
-    [[ -z $CHTEST_INSTALLED ]] || skip 'build directory only'
+    [[ -z $TEST_INSTALLED ]] || skip 'build directory only'
 
     # Can’t use a here document to store the approved trailing-whitespace
     # lines because we’re grepping *this* file, so we’d have to add the here

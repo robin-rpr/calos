@@ -165,6 +165,6 @@ RUN git config --global user.name 'Judit Polgár' \
  && git config --global user.email judit@example.com \
  && git config --global safe.directory '*' \
  && git config --global core.excludesfile ~/.gitignore \
- && echo __ch-test_ignore__ >> ~/.gitignore
+ && echo __test_ignore__ >> ~/.gitignore
 
 

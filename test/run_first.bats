@@ -14,7 +14,7 @@ load common
     done
 }
 
-@test 'ch-checkns' {
+@test 'clearly checkns' {
     scope quick
-    "${clearly_bin}/ch-checkns"
+    run clearly checkns
 }

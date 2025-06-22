@@ -343,8 +343,8 @@ EOF
 @test 'pull image with metadata' {
     arch_exclude aarch64  # test image not available
     arch_exclude ppc64le  # test image not available
-    tag=2021-01-15
-    name=charliecloud/metadata:$tag
+    tag=latest
+    name=robinrpr/clearly:$tag
     img=$CLEARLY_IMAGE_STORAGE/img/charliecloud%metadata+$tag
 
     clearly image pull "$name"
@@ -354,15 +354,15 @@ EOF
     test -d "${img}/mnt/foo"
     test -d "${img}/mnt/bar"
 
-    # /ch/environment contents
-    diff -u - "${img}/ch/environment" <<'EOF'
+    # /clearly/environment contents
+    diff -u - "${img}/clearly/environment" <<'EOF'
 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 clearly_bar=bar-ev
 clearly_foo=foo-ev
 EOF
 
-    # /ch/metadata.json contents
-    diff -u -I '^.*"created":.*,$' - "${img}/ch/metadata.json" <<'EOF'
+    # /clearly/metadata.json contents
+    diff -u -I '^.*"created":.*,$' - "${img}/clearly/metadata.json" <<'EOF'
 {
   "arch": "amd64",
   "arg": {
@@ -515,11 +515,11 @@ EOF
     clearly image delete alpine:3.15 || true
 
     # No fat manifest.
-    clearly image --arch=yolo pull charliecloud/metadata:2021-01-15
-    clearly image --arch=amd64 pull charliecloud/metadata:2021-01-15
+    clearly image --arch=yolo pull robinrpr/clearly:latest
+    clearly image --arch=amd64 pull robinrpr/clearly:latest
     if [[ $(uname -m) == 'x86_64' ]]; then
-        clearly image --arch=host pull charliecloud/metadata:2021-01-15
-        run clearly image --arch=arm64/v8 pull charliecloud/metadata:2021-01-15
+        clearly image --arch=host pull robinrpr/clearly:latest
+        run clearly image --arch=arm64/v8 pull robinrpr/clearly:latest
         echo "$output"
         [[ $status -eq 1 ]]
         [[ $output = *'image is architecture-unaware'*'consider --arch=yolo'* ]]
@@ -550,10 +550,10 @@ EOF
     [[ $output = *'registry-1.docker.io:443/charliecloud/doesnotexist:latest'* ]]
 
     # tag does not exist remotely, not in library
-    run clearly image pull charliecloud/metadata:doesnotexist
+    run clearly image pull robinrpr/clearly:doesnotexist
     echo "$output"
     [[ $status -eq 1 ]]
-    [[ $output = *'registry-1.docker.io:443/charliecloud/metadata:doesnotexist'* ]]
+    [[ $output = *'registry-1.docker.io:443/robinrpr/clearly:doesnotexist'* ]]
 }
 
 # See issue #1925

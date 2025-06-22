@@ -550,7 +550,7 @@ class Arg(Instruction):
 
    def __init__(self, *args):
       super().__init__(*args)
-      self.commit_files.add(filesystem.Path("ch/metadata.json"))
+      self.commit_files.add(filesystem.Path("clearly/metadata.json"))
       self.key = self.tree.terminal("WORD", 0)
       if (self.key in cli.build_arg):
          self.value = cli.build_arg[self.key]
@@ -880,15 +880,15 @@ class Env(Instruction):
 
    def __init__(self, *args):
       super().__init__(*args)
-      self.commit_files |= {filesystem.Path("ch/environment"),
-                            filesystem.Path("ch/metadata.json")}
+      self.commit_files |= {filesystem.Path("clearly/environment"),
+                            filesystem.Path("clearly/metadata.json")}
 
    @property
    def str_(self):
       return "%s='%s'" % (self.key, self.value)
 
    def execute(self):
-      with (self.image.unpack_path // "/ch/environment").open("wt") as fp:
+      with (self.image.unpack_path // "/clearly/environment").open("wt") as fp:
          for (k, v) in self.env_env.items():
             print("%s=%s" % (k, v), file=fp)
 
@@ -1063,7 +1063,7 @@ class Label(Instruction):
 
    def __init__(self, *args):
       super().__init__(*args)
-      self.commit_files |= {clearly.Path("ch/metadata.json")}
+      self.commit_files |= {clearly.Path("clearly/metadata.json")}
 
    @property
    def str_(self):
@@ -1303,7 +1303,7 @@ class Shell_G(Instruction):
 
    def __init__(self, *args):
       super().__init__(*args)
-      self.commit_files.add(filesystem.Path("ch/metadata.json"))
+      self.commit_files.add(filesystem.Path("clearly/metadata.json"))
 
    @property
    def str_(self):

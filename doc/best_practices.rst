@@ -53,9 +53,9 @@ including Lustre.
 File copy performance
 ---------------------
 
-:code:`ch-image` does a lot of file copying. The bulk of this is manipulating
+:code:`clearly image` does a lot of file copying. The bulk of this is manipulating
 images in the storage directory. Importantly, this includes :ref:`large files
-<ch-image_bu-large>` stored by the build cache outside its Git repository,
+<clearly image_bu-large>` stored by the build cache outside its Git repository,
 though this feature is disabled by default.
 
 Copies are costly both in time (to read, transfer, and write the duplicate
@@ -263,7 +263,7 @@ Once the image is built, we can see the results. (Install the image into
 
 ::
 
-  $ ch-run /var/tmp/mpihello-openmpi.sqfs -- ls -lh /hello
+  $ clearly run /var/tmp/mpihello-openmpi.sqfs -- ls -lh /hello
   total 32K
   -rw-rw---- 1 charlie charlie  908 Oct  4 15:52 Dockerfile
   -rw-rw---- 1 charlie charlie  157 Aug  5 22:37 Makefile
@@ -292,7 +292,7 @@ demonstrate this.
   -rw-rw---- 1 charlie charlie 1431 Aug  5 16:37 hello.c
   -rw-rw---- 1 charlie charlie  157 Aug  5 16:37 Makefile
   -rw-rw---- 1 charlie charlie 1172 Aug  5 16:37 README
-  $ ch-run -b .:/mnt/0 --cd /mnt/0 /var/tmp/mpihello.sqfs -- \
+  $ clearly run -b .:/mnt/0 --cd /mnt/0 /var/tmp/mpihello.sqfs -- \
     make mpicc -std=gnu11 -Wall hello.c -o hello
   $ ls -l
   total 32
@@ -342,7 +342,7 @@ Key concepts and related issues include:
   3. **Shared memory**. Processes in separate sibling containers cannot use
      single-copy *cross-memory attach* (CMA), as opposed to double-copy POSIX
      or SysV shared memory. The solution is to put all ranks in the *same*
-     container with :code:`ch-run --join`. (See above for details:
+     container with :code:`clearly run --join`. (See above for details:
      :ref:`faq_join`.)
 
   4. **Network fabric.** Performant MPI jobs must recognize and use a system’s
@@ -421,7 +421,7 @@ brittle but usually effective way to give containers access to the Cray
 libfabric Slingshot provider :code:`cxi`.
 
 In Charliecloud, both of these injection operations are currently done with
-:code:`ch-fromhost`, though see `issue #1861
+:code:`clearly fromhost`, though see `issue #1861
 <https://github.com/hpc/charliecloud/issues/1861>`_.
 
 Choose a compatible PMI

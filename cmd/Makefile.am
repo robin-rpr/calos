@@ -21,9 +21,7 @@ run_LDADD = $(CLEARLY_RUN_LIBS)
 
 ## Shell scripts - distributed as-is
 
-cmd_SCRIPTS = convert \
-                   ch-fromhost \
-                   ch-test
+cmd_SCRIPTS = convert fromhost test
 
 # Python modules to compile via Cython
 cython_modules = image daemon run-oci

@@ -18,15 +18,15 @@ if [[ ! (   -e $prefox/.git
 fi
 
 # Validate configuration.
-ch-test --is-pedantic all
+clearly test --is-pedantic all
 if [[ -n $ci_sudo ]]; then
-    ch-test --is-sudo all
+    clearly test --is-sudo all
 fi
 
 # Run test suite.
-ch-test all
+clearly test all
 # Validate “rootemu” didn’t run (skipped by default in standard scope).
-[[ $(cat "/tmp/ch-test.tmp.$(id -un)/rootemu") = no ]]
+[[ $(cat "/tmp/clearly-test.tmp.$(id -un)/rootemu") = no ]]
 
 # Run rootemu; image with an enabled cache is required. We only really need
 # to do this once. Since all CI tests that use image with an enabled cache
@@ -35,6 +35,6 @@ ch-test all
 if [[    $CLEARLY_TEST_BULDER == image
       && $CLEARLY_IMAGE_CACHE = enabled
       && $CLEARLY_TEST_PACK_FMT = squash-mount ]]; then
-    ch-test rootemu
-    [[ $(cat "/tmp/ch-test.tmp.$(id -un)/rootemu") = yes ]]
+    clearly test rootemu
+    [[ $(cat "/tmp/clearly-test.tmp.$(id -un)/rootemu") = yes ]]
 fi

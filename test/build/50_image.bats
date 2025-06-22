@@ -215,11 +215,11 @@ EOF
     mkdir "$fixtures" \
           "${fixtures}/empty" \
           "${fixtures}/nonempty" \
-          "${fixtures}/nonempty/ch" \
+          "${fixtures}/nonempty/clearly" \
           "${fixtures}/nonempty/bin"
     (cd "$fixtures" && ln -s nonempty nelink)
     touch "${fixtures}/nonempty/bin/foo"
-    cat <<'EOF' > "${fixtures}/nonempty/ch/metadata.json"
+    cat <<'EOF' > "${fixtures}/nonempty/clearly/metadata.json"
 { "arch": "corn",
   "cwd": "/",
   "env": {},
@@ -242,7 +242,7 @@ EOF
     [[ $output = *"importing:    ${fixtures}/bomb.tar.gz"* ]]
     [[ $output = *'conversion to tarbomb not needed'* ]]
     [[ -f "${CLEARLY_IMAGE_STORAGE}/img/imptest/bin/foo" ]]
-    grep -F '"arch": "corn"' "${CLEARLY_IMAGE_STORAGE}/img/imptest/ch/metadata.json"
+    grep -F '"arch": "corn"' "${CLEARLY_IMAGE_STORAGE}/img/imptest/clearly/metadata.json"
     clearly image delete imptest
 
     # non-tarbomb
@@ -253,7 +253,7 @@ EOF
     [[ $output = *"importing:    ${fixtures}/standard.tar.gz"* ]]
     [[ $output = *'converting to tarbomb'* ]]
     [[ -f "${CLEARLY_IMAGE_STORAGE}/img/imptest/bin/foo" ]]
-    grep -F '"arch": "corn"' "${CLEARLY_IMAGE_STORAGE}/img/imptest/ch/metadata.json"
+    grep -F '"arch": "corn"' "${CLEARLY_IMAGE_STORAGE}/img/imptest/clearly/metadata.json"
     clearly image delete imptest
 
     # non-tarbomb, but enclosing directory is a standard dir
@@ -285,7 +285,7 @@ EOF
     [[ $output = *"importing:    ${fixtures}/nonempty"* ]]
     [[ $output = *"copying image: ${fixtures}/nonempty -> ${CLEARLY_IMAGE_STORAGE}/img/imptest"* ]]
     [[ -f "${CLEARLY_IMAGE_STORAGE}/img/imptest/bin/foo" ]]
-    grep -F '"arch": "corn"' "${CLEARLY_IMAGE_STORAGE}/img/imptest/ch/metadata.json"
+    grep -F '"arch": "corn"' "${CLEARLY_IMAGE_STORAGE}/img/imptest/clearly/metadata.json"
     clearly image delete imptest
 
     # empty directory
@@ -304,7 +304,7 @@ EOF
     [[ $output = *"importing:    ${fixtures}/nelink"* ]]
     [[ $output = *"copying image: ${fixtures}/nelink -> ${CLEARLY_IMAGE_STORAGE}/img/imptest"* ]]
     [[ -f "${CLEARLY_IMAGE_STORAGE}/img/imptest/bin/foo" ]]
-    grep -F '"arch": "corn"' "${CLEARLY_IMAGE_STORAGE}/img/imptest/ch/metadata.json"
+    grep -F '"arch": "corn"' "${CLEARLY_IMAGE_STORAGE}/img/imptest/clearly/metadata.json"
     clearly image delete imptest
 
     ## Errors
@@ -322,10 +322,10 @@ EOF
     [[ $output = *'error: image ref syntax, char 8: badchar*'* ]]
 
     # non-empty file that’s not a tarball
-    run clearly image import -v "${fixtures}/nonempty/ch/metadata.json" imptest
+    run clearly image import -v "${fixtures}/nonempty/clearly/metadata.json" imptest
     echo "$output"
     [[ $status -eq 1 ]]
-    [[ $output = *"error: cannot open: ${fixtures}/nonempty/ch/metadata.json"* ]]
+    [[ $output = *"error: cannot open: ${fixtures}/nonempty/clearly/metadata.json"* ]]
 
     ## Clean up
     [[ ! -e "${CLEARLY_IMAGE_STORAGE}/img/imptest" ]]
@@ -369,7 +369,7 @@ EOF
     [[ $output = *'archs available:     n/a'* ]]
 
     # tag does not exist remotely, not in library
-    run clearly image list charliecloud/metadata:doesnotexist
+    run clearly image list robinrpr/clearly:doesnotexist
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = *'in local storage:    no'* ]]
@@ -396,7 +396,7 @@ EOF
     [[ $output = *'archs available:'*'386'*'amd64'*'arm/v7'*'arm64/v8'* ]]
 
     # in storage, exists remotely, no fat manifest
-    run clearly image list charliecloud/metadata:2021-01-15
+    run clearly image list robinrpr/clearly:latest
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = *'in local storage:    yes'* ]]
@@ -506,7 +506,7 @@ EOF
 
     # Print out current metadata, then update it.
     run clearly image build -v -t tmpimg -f - . <<'EOF'
-FROM charliecloud/metadata:2021-01-15
+FROM robinrpr/clearly:latest
 RUN echo "cwd1: $PWD"
 WORKDIR /usr
 RUN echo "cwd2: $PWD"
@@ -538,16 +538,16 @@ EOF
     test -d "${img}/mnt/foo"
     test -d "${img}/mnt/bar"
 
-    # /ch/environment contents
-    diff -u - "${img}/ch/environment" <<'EOF'
+    # /clearly/environment contents
+    diff -u - "${img}/clearly/environment" <<'EOF'
 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 clearly_bar=bar-ev
 clearly_baz=baz-ev
 clearly_foo=foo-ev
 EOF
 
-    # /ch/metadata.json contents
-    diff -u -I '^.*"created":.*,$' - "${img}/ch/metadata.json" <<'EOF'
+    # /clearly/metadata.json contents
+    diff -u -I '^.*"created":.*,$' - "${img}/clearly/metadata.json" <<'EOF'
 {
   "arch": "amd64",
   "arg": {

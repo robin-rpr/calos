@@ -23,14 +23,14 @@ _loc.rst \
 best_practices.rst \
 bugs.rst \
 charliecloud.rst \
-ch-checkns.rst \
-ch-completion.bash.rst \
-ch-convert.rst \
-ch-fromhost.rst \
-ch-image.rst \
-ch-run.rst \
-ch-run-oci.rst \
-ch-test.rst \
+checkns.rst \
+completion.bash.rst \
+convert.rst \
+fromhost.rst \
+image.rst \
+run.rst \
+run-oci.rst \
+test.rst \
 conf.py \
 dev.rst \
 faq.rst \
@@ -48,14 +48,14 @@ tutorial.rst
 if ENABLE_MAN
 man_MANS = \
 man/charliecloud.7 \
-man/ch-checkns.1 \
-man/ch-completion.bash.7 \
-man/ch-convert.1 \
-man/ch-fromhost.1 \
-man/ch-image.1 \
-man/ch-run.1 \
-man/ch-run-oci.1 \
-man/ch-test.1
+man/clearly-checkns.1 \
+man/completion.bash.7 \
+man/clearly-convert.1 \
+man/clearly-fromhost.1 \
+man/clearly-image.1 \
+man/clearly-run.1 \
+man/clearly-run-oci.1 \
+man/clearly-test.1
 endif
 
 if ENABLE_HTML
@@ -63,14 +63,14 @@ nobase_html_DATA = \
 html/searchindex.js \
 html/_images/rd100-winner.png \
 html/best_practices.html \
-html/ch-checkns.html \
-html/ch-completion.bash.html \
-html/ch-convert.html \
-html/ch-fromhost.html \
-html/ch-image.html \
-html/ch-run.html \
-html/ch-run-oci.html \
-html/ch-test.html \
+html/clearly-checkns.html \
+html/completion.bash.html \
+html/clearly-convert.html \
+html/clearly-fromhost.html \
+html/clearly-image.html \
+html/clearly-run.html \
+html/clearly-run-oci.html \
+html/clearly-test.html \
 html/command-usage.html \
 html/dev.html \
 html/faq.html \

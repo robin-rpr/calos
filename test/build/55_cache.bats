@@ -1341,21 +1341,21 @@ EOF
 
 
 @test "${tag}: ignore patterns" {
-    # fails unless “__ch-test_ignore__” is included in the global gitignore file.
-       git check-ignore -q __ch-test_ignore__ \
+    # fails unless “__test_ignore__” is included in the global gitignore file.
+       git check-ignore -q __test_ignore__ \
     || pedantic_fail 'global ignore not configured'
 
     clearly image build-cache --reset
 
     df=$(cat <<'EOF'
 FROM alpine:3.17
-RUN touch __ch-test_ignore__
+RUN touch __test_ignore__
 EOF
         )
     echo "$df" | clearly image build -t tmpimg -
     clearly image delete tmpimg
     echo "$df" | clearly image build -t tmpimg -
-    ls -lh "$CLEARLY_IMAGE_STORAGE"/img/tmpimg/__ch-test_ignore__
+    ls -lh "$CLEARLY_IMAGE_STORAGE"/img/tmpimg/__test_ignore__
 }
 
 
@@ -1547,7 +1547,7 @@ EOF
 
 
 @test "${tag}: orphaned worktrees" {  # PR #1824
-    img_metadata=$CLEARLY_IMAGE_STORAGE/img/tmpimg/ch
+    img_metadata=$CLEARLY_IMAGE_STORAGE/img/tmpimg/clearly
     img_to_git=$img_metadata/git
     git_worktrees=$CLEARLY_IMAGE_STORAGE/bucache/worktrees
     git_to_img=$git_worktrees/tmpimg

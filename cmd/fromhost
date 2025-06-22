@@ -44,7 +44,7 @@ Inject files from the host into an image directory, with various magic.
 
 Usage:
 
-  $ ch-fromhost [OPTION ...] [FILE_OPTION ...] IMGDIR
+  $ clearly fromhost [OPTION ...] [FILE_OPTION ...] IMGDIR
 
 Which files to inject (one or more required; can be repeated):
 
@@ -354,18 +354,18 @@ if [ -n "$fi_prov_found" ]; then
     # search for shared providers at can be specified with FI_PROVIDER_PATH
     # (undocumented). This complicates the inferred destination because these
     # variables can be inherited from the host or explicitly set in the
-    # image's /ch/environment file.
+    # image's /clearly/environment file.
     #
     # For simplicity, the inferred injection destination is the always the
     # 'libfabric' directory at the path where libfabric.so is found. If it
     # does not exist, create it. Warn if FI_PROVIDER_PATH or FI_PROVIDER is
-    # found in the the image's /ch/environment file.
+    # found in the the image's /clearly/environment file.
     VERBOSE "searching ${image} for libfabric shared provider destination"
-    clearly_env_p=$(grep -E '^FI_PROVIDER_PATH=' "${image}/ch/environment") \
+    clearly_env_p=$(grep -E '^FI_PROVIDER_PATH=' "${image}/clearly/environment") \
              || true # avoid -e exit
     clearly_env_p=${clearly_env_p##*=}
     if  [ -n "$clearly_env_p" ]; then
-       warn "FI_PROVIDER_PATH in ${image}/ch/environment; consider --dest"
+       warn "FI_PROVIDER_PATH in ${image}/clearly/environment; consider --dest"
     fi
     img_libfabric=$(find "$image" -name 'libfabric.so')
     img_libfabric_path=$(echo "$img_libfabric" | sed "s@$image@@")
@@ -455,12 +455,12 @@ if [ "$fi_prov_found" ] || [ "$cray_fi_found" ]; then
         DEBUG "ld.so.conf: adding 'include ld.so.conf.d/*.conf'"
         echo 'include ld.so.conf.d/*.conf' >> "${image}/etc/ld.so.conf"
     fi
-    # Prepare image ch-ofi.conf.
-    printf '' > "${image}/etc/ld.so.conf.d/ch-ofi.conf"
+    # Prepare image clearly-ofi.conf.
+    printf '' > "${image}/etc/ld.so.conf.d/clearly-ofi.conf"
     # add ofi dso provider ld library dirs.
     for c in $ld_conf; do
         DEBUG "ld.so.conf: adding ${c}"
-        echo "$c" >> "${image}/etc/ld.so.conf.d/ch-ofi.conf"
+        echo "$c" >> "${image}/etc/ld.so.conf.d/clearly-ofi.conf"
     done
 fi
 

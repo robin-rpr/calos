@@ -83,7 +83,7 @@
 /** Types **/
 
 enum env_action { ENV_END = 0,       // terminate list of environment changes
-                  ENV_SET_DEFAULT,   // set by /ch/environment within image
+                  ENV_SET_DEFAULT,   // set by /clearly/environment within image
                   ENV_SET_VARS,      // set by list of variables
                   ENV_UNSET_GLOB };  // unset glob matches
 

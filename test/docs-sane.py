@@ -18,7 +18,7 @@
 #         executables). Currently, the “correct” files in bin are:
 #
 #           - All executables
-#           - ch-completion.bash
+#           - completion.bash
 #
 #      c. There aren’t any unexpcected .rst files, man files, or charliecloud.7
 #         “See also” entries.
@@ -37,7 +37,7 @@ import sys
 # not executables should be manually added here.
 man_targets = {"charliecloud":       {"synopsis": "",
                                       "sec":  7},
-               "ch-completion.bash": {"synopsis": "Tab completion for the Charliecloud command line.",
+               "completion.bash": {"synopsis": "Tab completion for the Charliecloud command line.",
                                       "sec":  7}}
 
 
@@ -74,7 +74,7 @@ def check_man():
    # Check that all the expected .rst files are in doc/ and that no unexpected
    # .rst files are present.
    os.chdir(CLEARLY_BASE + "/doc")
-   man_rsts = set(glob.glob("ch*.rst"))
+   man_rsts = set(glob.glob("clearly*.rst"))
    man_rsts_expected = { i + ".rst" for i in man_targets }
    lose_lots("unexpected .rst", man_rsts - man_rsts_expected)
    lose_lots("missing .rst",    man_rsts_expected - man_rsts)
@@ -107,7 +107,7 @@ def check_man():
                    and "deprecated" not in s.lower() })
 
    # Check for “see also” entries in charliecloud.rst.
-   sees = { m[0] for m in re.finditer(r"ch-[a-z0-9-.]+\([1-8]\)",
+   sees = { m[0] for m in re.finditer(r"clearly-[a-z0-9-.]+\([1-8]\)",
                                       open("charliecloud.rst").read()) }
    sees_expected = { i + "(%d)" % (man_targets[i]["sec"]) for i in man_targets } - {"charliecloud(7)"}
    lose_lots("unexpected see-also in charliecloud.rst", sees - sees_expected)

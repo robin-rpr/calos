@@ -1,9 +1,9 @@
-:code:`ch-checkns`
+:code:`clearly checkns`
 ++++++++++++++++++
 
 .. only:: not man
 
-   Check :code:`ch-run` prerequisites, e.g., namespaces and :code:`pivot_root(2)`.
+   Check :code:`clearly run` prerequisites, e.g., namespaces and :code:`pivot_root(2)`.
 
 
 Synopsis
@@ -11,14 +11,14 @@ Synopsis
 
 ::
 
-  $ ch-checkns
+  $ clearly checkns
 
 Example
 =======
 
 ::
 
-  $ ch-checkns
+  $ clearly checkns
   ok
 
 

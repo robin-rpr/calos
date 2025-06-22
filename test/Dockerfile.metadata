@@ -7,14 +7,13 @@
 #
 # To build and push:
 #
-#   $ VERSION=$(date +%Y-%m-%d)             # or other date as appropriate
 #   $ sudo docker login                     # if needed
-#   $ sudo docker build -t charliecloud/metadata:$VERSION \
+#   $ sudo docker build -t robinrpr/clearly:latest \
 #                       -f Dockerfile.metadata .
 #   $ sudo docker images | fgrep metadata
-#   $ sudo docker push charliecloud/metadata:$VERSION
+#   $ sudo docker push robinrpr/clearly:latest
 #
-# ch-test-scope: skip
+# test-scope: skip
 
 FROM alpine:3.17
 
@@ -23,7 +22,7 @@ ENTRYPOINT ["/bin/echo","foo"]
 ENV clearly_foo=foo-ev clearly_bar=bar-ev
 EXPOSE 867 5309/udp
 HEALTHCHECK --interval=60s --timeout=5s CMD ["/bin/true"]
-LABEL ch-foo=foo-label ch-bar=bar-label
+LABEL clearly-foo=foo-label clearly-bar=bar-label
 MAINTAINER charlie@example.com
 ONBUILD RUN echo hello
 RUN echo hello

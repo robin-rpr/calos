@@ -8,8 +8,8 @@
 #
 # See: https://docs.docker.com/engine/reference/builder
 #
-# ch-test-scope: full
-# ch-test-builder-include: image
+# test-scope: full
+# test-builder-include: image
 
 # Use a moderately complex image reference.
 FROM registry-1.docker.io:443/library/alpine:3.17 AS stage1

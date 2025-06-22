@@ -1,4 +1,4 @@
-# ch-test-scope: full
+# test-scope: full
 FROM openmpi
 
 RUN dnf install -y which \

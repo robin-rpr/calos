@@ -137,7 +137,7 @@ def debug_lines(s):
 def image_fixup(path):
    clearly.VERBOSE("fixing up image: %s" % path)
    # Metadata directory.
-   filesystem.Path("%s/ch/bin" % path).mkdirs()
+   filesystem.Path("%s/clearly/bin" % path).mkdirs()
    # Mount points.
    filesystem.Path("%s/etc/hosts" % path).file_ensure_exists()
    filesystem.Path("%s/etc/resolv.conf" % path).file_ensure_exists()
@@ -154,11 +154,11 @@ nogroup:x:65534:
    # unprivileged user namespace. See also the default environment.
    #
    # Debian apt/dpkg/etc. want to chown(1), chgrp(1), etc. in various ways.
-   filesystem.Path(path, "ch/bin/chgrp").symlink_to("/bin/true")
-   filesystem.Path(path, "ch/bin/dpkg-statoverride").symlink_to("/bin/true")
+   filesystem.Path(path, "clearly/bin/chgrp").symlink_to("/bin/true")
+   filesystem.Path(path, "clearly/bin/dpkg-statoverride").symlink_to("/bin/true")
    # Debian package management also wants to mess around with users. This is
    # causing problems with /etc/gshadow and other files. These links don't
-   # work if they are in /ch/bin, I think because dpkg is resetting the path?
+   # work if they are in /clearly/bin, I think because dpkg is resetting the path?
    # For now we'll do this, but I don't like it. fakeroot(1) also solves the
    # problem (see issue #472).
    filesystem.Path(path, "bin/chown").symlink_to("/bin/true", clobber=True)
@@ -228,7 +228,7 @@ def op_start():
    with filesystem.Path(args.bundle + "/environment").open("wt") as fp:
       for line in (  c["process"]["env"]                  # from Dockerfile
                    + [ "TAR_OPTIONS=--no-same-owner" ]):  # ours
-         line = re.sub(r"^(PATH=)", "\\1/ch/bin:", line)
+         line = re.sub(r"^(PATH=)", "\\1/clearly/bin:", line)
          clearly.VERBOSE("env: %s" % line)
          print(line, file=fp)
 

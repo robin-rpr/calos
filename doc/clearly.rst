@@ -10,14 +10,14 @@ charliecloud man page
 See also
 --------
 
-ch-checkns(1),
-ch-completion.bash(7),
-ch-convert(1),
-ch-fromhost(1),
-ch-image(1),
-ch-run(1),
-ch-run-oci(1),
-ch-test(1),
+clearly-checkns(1),
+completion.bash(7),
+clearly-convert(1),
+clearly-fromhost(1),
+clearly-image(1),
+clearly-run(1),
+clearly-run-oci(1),
+clearly-test(1),
 
 Full documentation at: https://hpc.github.io/charliecloud
 

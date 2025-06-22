@@ -3,7 +3,7 @@
 # fresh again with a base image and copy the Hello executables. Tests
 # demonstrate that Hello runs and none of the build environment is present.
 #
-# ch-test-scope: standard
+# test-scope: standard
 
 
 FROM almalinux:8 AS buildstage

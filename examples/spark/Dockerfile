@@ -1,4 +1,4 @@
-# ch-test-scope: full
+# test-scope: full
 #
 # Use Buster because Stretch JRE install fails with:
 #

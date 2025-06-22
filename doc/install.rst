@@ -109,7 +109,7 @@ Some dependencies can be specified as follows. Note only some of these support
 
   * Path to :code:`libsquashfuse` install prefix: Link with
     :code:`libsquashfuse` found there, or error if not found, and add it to
-    :code:`ch-run`'s RPATH. (Note this argument is *not* the directory
+    :code:`clearly run`'s RPATH. (Note this argument is *not* the directory
     containing the shared library or header file.)
 
   **Note:** A very specific version and configuration of SquashFUSE is
@@ -194,7 +194,7 @@ Maintained by us:
 
   * `Spack
     <https://packages.spack.io/package.html?name=charliecloud>`_;
-    install with :code:`+builder` to get :code:`ch-image`.
+    install with :code:`+builder` to get :code:`clearly image`.
   * `Fedora/EPEL <https://bodhi.fedoraproject.org/updates/?search=charliecloud>`_;
     check for available versions with :code:`{yum,dnf} list charliecloud`.
 
@@ -381,7 +381,7 @@ Options include:
     GitLab instance.
 
   * Filesystem directory, for builders that support this (e.g.,
-    :code:`ch-image`).
+    :code:`clearly image`).
 
 Python
 ~~~~~~
@@ -432,7 +432,7 @@ SquashFS and SquashFUSE
 The SquashFS workflow requires `SquashFS Tools
 <https://github.com/plougher/squashfs-tools>`_ to create SquashFS archives.
 
-To mount these archives using :code:`ch-run`'s internal code, you need:
+To mount these archives using :code:`clearly run`'s internal code, you need:
 
 1. `libfuse3 <https://github.com/libfuse/libfuse>`_, including:
 
@@ -466,7 +466,7 @@ sudo, generic
 Privilege escalation via sudo is used in the test suite to:
 
   * Prepare fixture directories for testing filesystem permissions enforcement.
-  * Test :code:`ch-run`'s behavior under different ownership scenarios.
+  * Test :code:`clearly run`'s behavior under different ownership scenarios.
 
 (Note that Charliecloud also uses :code:`sudo docker`; see above.)
 
@@ -481,9 +481,9 @@ Command line tab completion
 ===========================
 
 Charliecloud offers experimental tab completion for Bash users. This feature is
-currently implemented for :code:`ch-image`, :code:`ch-run`, and
-:code:`ch-convert`. For details on setting up tab completion, as well as general
-documentation, see :ref:`ch-completion.bash`.
+currently implemented for :code:`clearly image`, :code:`clearly run`, and
+:code:`clearly convert`. For details on setting up tab completion, as well as general
+documentation, see :ref:`completion.bash`.
 
 
 ..  LocalWords:  Werror Flameeyes plougher deps libc’s ericonr

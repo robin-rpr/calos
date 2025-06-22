@@ -132,9 +132,9 @@ GIT_HASH_UNKNOWN = -1
 # Where the .git "directory" in the image is located. (Normally it's a
 # directory, and that's what the Git docs call it, but it's a file for
 # worktrees.) We deliberately do not call it ".git" because that makes it
-# hidden, but also more importantly it confuses Git into thinking /ch is a
+# hidden, but also more importantly it confuses Git into thinking /clearly is a
 # different Git repo. This is also defined in image.py.
-GIT_DIR = "ch/git"
+GIT_DIR = "clearly/git"
 
 ## Globals ##
 
@@ -148,7 +148,7 @@ dot_base = None
 git = None
 
 # Default path within image to metadata pickle.
-PICKLE_PATH = filesystem.Path("ch/git.pickle")
+PICKLE_PATH = filesystem.Path("clearly/git.pickle")
 
 
 ## Functions ##
@@ -344,7 +344,7 @@ class File_Metadata:
                  workaround, so we do it. See issue #1351.
 
          Return the File_Metadata tree, and if write is True, also save it in
-         “ch/git.pickle”.
+         “clearly/git.pickle”.
 
          [1]: https://en.wikipedia.org/wiki/Hard_link#Limitations"""
       # Setup.
@@ -403,7 +403,7 @@ class File_Metadata:
                      % (fm.st.st_dev, fm.st.st_ino, path))
             hardlinks[(fm.st.st_dev, fm.st.st_ino)] = path
       # Deal with large files. This comparison is a little sloppy (no files
-      # named “git.pickle” are large, not just the one in /ch), but it works
+      # named “git.pickle” are large, not just the one in /clearly), but it works
       # for now.
       if (    fm.size >= large_file_thresh
           and stat.S_ISREG(fm.mode)
@@ -816,7 +816,7 @@ class Enabled_Cache:
       if (len(files) == 0):
          git_files = ["-A"]
       else:
-         git_files = list(files) + ["ch/git.pickle"]
+         git_files = list(files) + ["clearly/git.pickle"]
       self.git(["add"] + git_files, cwd=path)
       t.log("prepared index")
       t = clearly.Timer()
@@ -1326,7 +1326,7 @@ class Enabled_Cache:
          [1]: https://git-scm.com/docs/git-worktree
          [2]: https://git-scm.com/docs/gitrepository-layout"""
       t = clearly.Timer()
-      wt_actuals = { filesystem.Path(i).parts[-(len(GIT_DIR)+1)]
+      wt_actuals = { filesystem.Path(i).parts[-(len(GIT_DIR.split("/"))+1)]
                      for i in glob.iglob(str(   clearly.storage.unpack_base
                                              // "*" // GIT_DIR)) }
       wt_gits =    { filesystem.Path(i).name
@@ -1407,7 +1407,7 @@ class Disabled_Cache(Rebuild_Cache):
       # Some distributions create unreadable files; e.g., CentOS 7 after
       # installing “openssh”:
       #
-      #   $ ls -lh /scratch/reidpr.clearly/img/centos_7ch/usr/bin/ssh-agent
+      #   $ ls -lh /scratch/reidpr.clearly/img/centos_7clearly/usr/bin/ssh-agent
       #   ---x--s--x 1 reidpr reidpr 374K Nov 24  2021 [...]/ssh-agent
       #
       # This makes the image un-copyable, so it can’t be used as a base image.

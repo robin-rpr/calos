@@ -1,12 +1,12 @@
-diff -ru charliecloud/bin/ch-test charliecloud-lib/bin/ch-test
---- charliecloud/bin/ch-test	2020-04-07 12:19:37.054609706 -0600
-+++ charliecloud-lib/bin/ch-test	2020-04-15 16:36:55.128831767 -0600
+diff -ru clearly/cmd/test clearly-lib/cmd/test
+--- clearly/cmd/test	2020-04-07 12:19:37.054609706 -0600
++++ clearly-lib/cmd/test	2020-04-15 16:36:55.128831767 -0600
 @@ -662,7 +662,7 @@
-     CHTEST_INSTALLED=yes
-     CHTEST_GITWD=
-     CHTEST_DIR=${clearly_base}/libexec/charliecloud/test
--    CHTEST_EXAMPLES_DIR=${clearly_base}/share/doc/charliecloud/examples
-+    CHTEST_EXAMPLES_DIR=${clearly_base}/share/doc/charliecloud-${clearly_version}/examples
+     TEST_INSTALLED=yes
+     TEST_GITWD=
+     TEST_DIR=${clearly_base}/libexec/clearly/test
+-    TEST_EXAMPLES_DIR=${clearly_base}/share/doc/clearly/examples
++    TEST_EXAMPLES_DIR=${clearly_base}/share/doc/clearly-${clearly_version}/examples
  else
      # build dir
-     CHTEST_INSTALLED=
+     TEST_INSTALLED=

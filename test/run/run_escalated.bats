@@ -53,8 +53,8 @@ load ../common
     #
     # but when run manually (with same arguments?) it fails differently with:
     #
-    #   $ sudo clearly run $clearly_imgdir/chtest -- true
-    #   clearly run: [...]/chtest: Permission denied (run.c:195:13)
+    #   $ sudo clearly run $clearly_imgdir/test -- true
+    #   clearly run: [...]/test: Permission denied (run.c:195:13)
     #
     skip 'issue #76'
     sudo "$clearly_runfile" "$clearly_timg" -- true

@@ -1,5 +1,5 @@
-# ch-test-scope: full
-# ch-test-arch-exclude: aarch64  # No lustre RPMS for aarch64
+# test-scope: full
+# test-arch-exclude: aarch64  # No lustre RPMS for aarch64
 
 FROM almalinux:8
 

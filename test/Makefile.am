@@ -34,7 +34,8 @@ make-auto.d/builder_to_archive.bats.in \
 make-auto.d/unpack.bats.in \
 registry-config.yml \
 run/build-rpms.bats \
-run/ch-fromhost.bats \
+run/fromhost.bats \
+run/convert.bats \
 run/run_escalated.bats \
 run/run_isolation.bats \
 run/run_join.bats \

@@ -1,9 +1,9 @@
-:code:`ch-run-oci`
+:code:`clearly run-oci`
 ++++++++++++++++++
 
 .. only:: not man
 
-   OCI wrapper for :code:`ch-run`.
+   OCI wrapper for :code:`clearly run`.
 
 
 Synopsis
@@ -11,7 +11,7 @@ Synopsis
 
 ::
 
-   $ ch-run-oci OPERATION [ARG ...]
+   $ clearly run-oci OPERATION [ARG ...]
 
 Description
 ===========
@@ -24,11 +24,11 @@ Description
    them!
 
 
-Open Containers Initiative (OCI) wrapper for :code:`ch-run(1)`. You probably
+Open Containers Initiative (OCI) wrapper for :code:`clearly run(1)`. You probably
 don’t want to run this command directly; it is intended to interface with
 other software that expects an OCI runtime. The current goal is to support
 completely unprivileged image building (e.g. :code:`buildah
---runtime=ch-run-oci`) rather than general OCI container running.
+--runtime=clearly run-oci`) rather than general OCI container running.
 
 *Support of the OCI runtime specification is only partial.* This is for two
 reasons. First, it’s an experimental and incomplete feature. More importantly,
@@ -50,7 +50,7 @@ Charliecloud. Key differences include:
   * OCI expects runtimes to maintain state throughout the container lifecycle
     in a location independent from the caller.
 
-For these reasons, :code:`ch-run-oci` is a bit of a kludge, and much of what
+For these reasons, :code:`clearly run-oci` is a bit of a kludge, and much of what
 it does is provide scaffolding to satisfy OCI requirements.
 
 Which OCI features are and are not supported is provided in the rest of this
@@ -76,7 +76,7 @@ satisfy the caller. For comparison, see also:
 
 ::
 
-   $ ch-run-oci create --bundle DIR --pid-file FILE [--no-new-keyring] CONTAINER_ID
+   $ clearly run-oci create --bundle DIR --pid-file FILE [--no-new-keyring] CONTAINER_ID
 
 Create a container. Charliecloud does not have separate create and start
 phases, so this operation only sets up OCI-related scaffolding.
@@ -112,7 +112,7 @@ Unsupported arguments:
 
 ::
 
-   $ ch-run-oci delete CONTAINER_ID
+   $ clearly run-oci delete CONTAINER_ID
 
 Clean up the OCI-related scaffolding for specified container.
 
@@ -121,7 +121,7 @@ Clean up the OCI-related scaffolding for specified container.
 
 ::
 
-   $ ch-run-oci kill CONTAINER_ID
+   $ clearly run-oci kill CONTAINER_ID
 
 No-op.
 
@@ -130,7 +130,7 @@ No-op.
 
 ::
 
-   $ ch-run-oci start CONTAINER_ID
+   $ clearly run-oci start CONTAINER_ID
 
 Eexecute the user command specified at create time in a Charliecloud
 container.
@@ -140,7 +140,7 @@ container.
 
 ::
 
-   $ ch-run-oci state CONTAINER_ID
+   $ clearly run-oci state CONTAINER_ID
 
 Print the state of the given container on standard output as an OCI compliant
 JSON document.
@@ -150,7 +150,7 @@ Unsupported OCI features
 
 As noted above, various OCI features are not supported by Charliecloud. We
 have tried to guess which features would be essential to callers;
-:code:`ch-run-oci` fails with an error if these are requested. Otherwise, the
+:code:`clearly run-oci` fails with an error if these are requested. Otherwise, the
 request is simply ignored.
 
 We are interested in hearing about scientific-computing use cases for

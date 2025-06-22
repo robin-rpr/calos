@@ -1,4 +1,4 @@
-:code:`ch-convert`
+:code:`clearly convert`
 ++++++++++++++++++
 
 .. only:: not man
@@ -11,7 +11,7 @@ Synopsis
 
 ::
 
-  $ ch-convert [-i FMT] [-o FMT] [OPTION ...] IN OUT
+  $ clearly convert [-i FMT] [-o FMT] [OPTION ...] IN OUT
 
 Description
 ===========
@@ -21,12 +21,12 @@ Copy image :code:`IN` to :code:`OUT` and convert its format. Replace
 is an error if :code:`IN` and :code:`OUT` have the same format; use the
 format’s own tools for that case.
 
-:code:`ch-run` can run container images that are plain directories or
+:code:`clearly run` can run container images that are plain directories or
 (optionally) SquashFS archives. However, images can take on a variety of other
 formats as well. The main purpose of this tool is to make images in those
-other formats available to :code:`ch-run`.
+other formats available to :code:`clearly run`.
 
-For best performance, :code:`ch-convert` should be invoked only once,
+For best performance, :code:`clearly convert` should be invoked only once,
 producing the final format actually needed.
 
   :code:`IN`
@@ -60,8 +60,8 @@ producing the final format actually needed.
     entry on verbosity <faq_verbosity>` for details.
 
   :code:`-s`, :code:`--storage DIR`
-    Set the storage directory. Equivalent to the same option for :code:`ch-image(1)`
-    and :code:`ch-run(1)`.
+    Set the storage directory. Equivalent to the same option for :code:`clearly image(1)`
+    and :code:`clearly run(1)`.
 
   :code:`--tmp DIR`
     A sub-directory for temporary storage is created in :code:`DIR` and
@@ -100,11 +100,11 @@ producing the final format actually needed.
 Image formats
 =============
 
-:code:`ch-convert` knows about these values of :code:`FMT`:
+:code:`clearly convert` knows about these values of :code:`FMT`:
 
-  :code:`ch-image`
+  :code:`clearly image`
     Internal storage for Charliecloud’s unprivileged image builder (Dockerfile
-    interpreter) :code:`ch-image`.
+    interpreter) :code:`clearly image`.
 
   :code:`dir`
     Ordinary filesystem directory (i.e., not a mount point) containing an
@@ -122,7 +122,7 @@ Image formats
   :code:`squash`
     SquashFS filesystem archive containing the flattened image. SquashFS
     archives are much like tar archives but are mountable, including by
-    :code:`ch-run`'s internal SquashFUSE mounting. Most systems have at least
+    :code:`clearly run`'s internal SquashFUSE mounting. Most systems have at least
     the SquashFS-Tools installed which allows unpacking into a directory, just
     like tar. Due to this greater flexibility, SquashFS is preferred to tar.
 
@@ -137,14 +137,14 @@ Image formats
     end in :code:`.tar.gz`; input tarballs can be any compression acceptable
     to :code:`tar(1)`.
 
-All of these are local formats; :code:`ch-convert` does not know how to push
+All of these are local formats; :code:`clearly convert` does not know how to push
 or pull images.
 
 
 Format inference
 ================
 
-:code:`ch-convert` tries to save typing by guessing formats when they are
+:code:`clearly convert` tries to save typing by guessing formats when they are
 reasonably clear. This is done against filenames, rather than file contents,
 so the rules are the same for output descriptors that do not yet exist.
 
@@ -159,7 +159,7 @@ filesystem.
   3. :code:`/*`, :code:`./*`, i.e. absolute path or relative path with
      explicit dot: Directory.
 
-  4. If `ch-image` is installed: :code:`ch-image` internal storage.
+  4. If `clearly image` is installed: :code:`clearly image` internal storage.
 
   5. If Podman is installed: Podman internal storage.
 
@@ -170,22 +170,22 @@ filesystem.
 Examples
 ========
 
-Typical build-to-run sequence for image :code:`foo/bar` using :code:`ch-run`'s
+Typical build-to-run sequence for image :code:`foo/bar` using :code:`clearly run`'s
 internal SquashFUSE code, inferring the output format::
 
   $ sudo docker build -t foo/bar -f Dockerfile .
   [...]
-  $ ch-convert foo/bar:latest /var/tmp/foobar.sqfs
+  $ clearly convert foo/bar:latest /var/tmp/foobar.sqfs
   input:   docker    foo/bar:latest
   output:  squashfs  /var/tmp/foobar.sqfs
   copying ...
   done
-  $ ch-run /var/tmp/foobar.sqfs -- echo hello
+  $ clearly run /var/tmp/foobar.sqfs -- echo hello
   hello
 
 Same conversion, but no format inference::
 
-  $ ch-convert -i ch-image -o squash foo/bar:latest /var/tmp/foobar.sqfs
+  $ clearly convert -i clearly image -o squash foo/bar:latest /var/tmp/foobar.sqfs
   input:   docker    foo/bar:latest
   output:  squashfs  /var/tmp/foobar.sqfs
   copying ...

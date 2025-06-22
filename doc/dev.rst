@@ -171,7 +171,7 @@ then fast-forward merged after the tests pass. (Note we no longer do this.)
 issue being fixed — just a couple words — with words separated by hyphens,
 then an underscore and the issue number being addressed. For example, issue
 `#1773 <https://github.com/hpc/charliecloud/issues/1773>`_ is titled
-“:code:`ch-image build`: :code:`--force=fakeroot` outputs to stderr despite
+“:code:`clearly image build`: :code:`--force=fakeroot` outputs to stderr despite
 :code:`-q`”; the corresponding branch (for `PR #1812
 <https://github.com/hpc/charliecloud/pull/1812>`_) is called
 :code:`fakeroot-quiet-rhel_1773`. Something even shorter, such as
@@ -179,7 +179,7 @@ then an underscore and the issue number being addressed. For example, issue
 
 Stand-alone PRs do the same, just without an issue number. For example, `PR
 #1804 <https://github.com/hpc/charliecloud/pull/1804>`_ is titled “add tab
-completion to :code:`ch-convert`” and the branch is
+completion to :code:`clearly convert`” and the branch is
 :code:`convert-completion`.
 
 It’s okay if the branch name misses a little. For example, if you discover
@@ -338,15 +338,15 @@ What part of Charliecloud is affected?
 Choose *one or more components* from:
 
 :code:`runtime`
-  The container runtime itself; largely :code:`ch-run`.
+  The container runtime itself; largely :code:`clearly run`.
 
 :code:`image`
   Image building and interaction with image registries; largely
-  :code:`ch-image`. (Not to be confused with image management tasks done by
+  :code:`clearly image`. (Not to be confused with image management tasks done by
   glue code.)
 
 :code:`glue`
-  The “glue” that ties the runtime and image management (:code:`ch-image` or
+  The “glue” that ties the runtime and image management (:code:`clearly image` or
   another builder) together. Largely shell scripts in :code:`bin`.
 
 :code:`install`
@@ -454,15 +454,15 @@ Timing the tests
 The :code:`ts` utility from :code:`moreutils` is quite handy. The following
 prepends each line with the elapsed time since the previous line::
 
-  $ ch-test -s quick | ts -i '%M:%.S'
+  clearly test -s quick | ts -i '%M:%.S'
 
 Note: a skipped test isn’t free; I see ~0.15 seconds to do a skip.
 
-:code:`ch-test` complains about inconsistent versions
+:code:`clearly test` complains about inconsistent versions
 -----------------------------------------------------
 
 There are multiple ways to ask Charliecloud for its version number. These
-should all give the same result. If they don’t, :code:`ch-test` will fail.
+should all give the same result. If they don’t, :code:`clearly test` will fail.
 Typically, something needs to be rebuilt. Recall that :code:`configure`
 contains the version number as a constant, so a common way to get into this
 situation is to change Git branches without rebuilding it.
@@ -486,7 +486,7 @@ Summary
 The Charliecloud test suite has a workflow that can build images by two
 methods:
 
-1. From a Dockerfile, using :code:`ch-image` or another builder (see
+1. From a Dockerfile, using :code:`clearly image` or another builder (see
    :code:`common.bash:build_()`).
 
 2. By running a custom script.
@@ -506,7 +506,7 @@ an image tagged :code:`foo`, and :code:`examples/foo/Dockerfile.bar` tagged
 
 Additional directories can be symlinked into :code:`examples` and will be
 integrated into the test suite. This allows you to create a site-specific test
-suite. :code:`ch-test` finds tests at any directory depth; e.g.
+suite. :code:`clearly test` finds tests at any directory depth; e.g.
 :code:`examples/foo/bar/Dockerfile.baz` will create a test image tagged
 :code:`bar-baz`.
 
@@ -532,27 +532,27 @@ must appear:
 
 .. code-block:: none
 
-  ch-test-scope: skip
-  ch-test-scope: quick
-  ch-test-scope: standard
-  ch-test-scope: full
+  test-scope: skip
+  test-scope: quick
+  test-scope: standard
+  test-scope: full
 
 Other stuff on the line (e.g., comment syntax) is ignored.
 
 Optional test modification directives are:
 
-  :code:`ch-test-arch-exclude: ARCH`
+  :code:`test-arch-exclude: ARCH`
     If the output of :code:`uname -m` matches :code:`ARCH`, skip the file.
 
-  :code:`ch-test-builder-exclude: BUILDER`
+  :code:`test-builder-exclude: BUILDER`
     If using :code:`BUILDER`, skip the file.
 
-  :code:`ch-test-builder-include: BUILDER`
+  :code:`test-builder-include: BUILDER`
     If specified, run only if using :code:`BUILDER`. Can be repeated to
     include multiple builders. If specified zero times, all builders are
     included.
 
-  :code:`ch-test-need-sudo`
+  :code:`test-need-sudo`
     Run only if user has sudo.
 
 How to write a :code:`Dockerfile` recipe
@@ -572,7 +572,7 @@ command line arguments:
     This can be either:
 
     * Tarball compressed with gzip or xz; append :code:`.tar.gz` or
-      :code:`.tar.xz` to :code:`$2`. If :code:`ch-test --pack-fmt=squash`,
+      :code:`.tar.xz` to :code:`$2`. If :code:`clearly test --pack-fmt=squash`,
       then this tarball will be unpacked and repacked as a SquashFS.
       Therefore, only use tarball output if the image build process naturally
       produces it and you would have to unpack it to get a directory (e.g.,
@@ -682,14 +682,14 @@ with the test suite, on any system, and leave the results in
 :code:`~/rpmbuild/RPMS` (note the test suite would also build the
 necessary image directory)::
 
-  $ bin/ch-image build -f ./examples/Dockerfile.centos_7ch ./examples
-  $ bin/ch-convert centos_7ch $CLEARLY_TEST_IMGDIR/centos_7ch
+  $ cmd/image build -f ./examples/Dockerfile.centos_7ch ./examples
+  $ cmd/convert centos_7ch $CLEARLY_TEST_IMGDIR/centos_7ch
   $ packaging/fedora/build $CLEARLY_TEST_IMGDIR/centos_7ch 0.9.7-1
 
 To build a pre-release RPM of Git HEAD using the CentOS 7 image::
 
-  $ bin/ch-image build -f ./examples/Dockerfile.centos_7ch ./examples
-  $ bin/ch-convert centos_7ch $CLEARLY_TEST_IMGDIR/centos_7ch
+  $ cmd/image build -f ./examples/Dockerfile.centos_7ch ./examples
+  $ cmd/convert centos_7ch $CLEARLY_TEST_IMGDIR/centos_7ch
   $ packaging/fedora/build ${CLEARLY_TEST_IMGDIR}/centos_7ch HEAD
 
 Gotchas and quirks
@@ -756,12 +756,12 @@ Writing English
   does. For example, do:
 
     | Inject files from the host into an image directory.
-    | Add :code:`--join-pid` option to :code:`ch-run`.
+    | Add :code:`--join-pid` option to :code:`clearly run`.
 
   Do not (indicative mood):
 
     | Injects files from the host into an image directory.
-    | Adds :code:`--join-pid` option to :code:`ch-run`.
+    | Adds :code:`--join-pid` option to :code:`clearly run`.
 
 * Use sentence case for titles, not title case.
 
@@ -807,7 +807,7 @@ essentials. Exceptions, to be used judiciously:
     the convenience would be used.
 
   * Features that only work if some other software is present can add
-    dependencies of that other software (e.g., :code:`ch-convert` depends on
+    dependencies of that other software (e.g., :code:`clearly convert` depends on
     Docker to convert to/from Docker image storage).
 
 The test suite is tricky, because we need a test framework and to set up
@@ -1034,33 +1034,33 @@ Debugging
 Python :code:`printf(3)`-style debugging
 ----------------------------------------
 
-Consider :code:`ch.ILLERI()`. This uses the same mechanism as the standard
-logging functions (:code:`ch.INFO()`, :code:`ch.VERBOSE()`, etc.) but it
+Consider :code:`clearly.ILLERI()`. This uses the same mechanism as the standard
+logging functions (:code:`clearly.INFO()`, :code:`clearly.VERBOSE()`, etc.) but it
 (1) cannot be suppressed and (2) uses a color that stands out.
 
-All :code:`ch.ILLERI()` calls must be removed before a PR can be merged.
+All :code:`clearly.ILLERI()` calls must be removed before a PR can be merged.
 
 :code:`seccomp(2)` BPF
 ----------------------
 
-:code:`ch-run --seccomp -vv` will log the BPF instructions as they are
+:code:`clearly run --seccomp -vv` will log the BPF instructions as they are
 computed, but it’s all in raw hex and hard to interpret, e.g.::
 
-  $ ch-run --seccomp -vv alpine:3.17 -- true
+  $ clearly run --seccomp -vv alpine:3.17 -- true
   [...]
-  ch-run[62763]: seccomp: arch c00000b7: found 13 syscalls (core.c:582)
-  ch-run[62763]: seccomp: arch 40000028: found 27 syscalls (core.c:582)
+  clearly run[62763]: seccomp: arch c00000b7: found 13 syscalls (core.c:582)
+  clearly run[62763]: seccomp: arch 40000028: found 27 syscalls (core.c:582)
   [...]
-  ch-run[62763]: seccomp(2) program has 156 instructions (core.c:591)
-  ch-run[62763]:    0: { op=20 k=       4 jt=  0 jf=  0 } (core.c:423)
-  ch-run[62763]:    1: { op=15 k=c00000b7 jt=  0 jf= 17 } (core.c:423)
-  ch-run[62763]:    2: { op=20 k=       0 jt=  0 jf=  0 } (core.c:423)
-  ch-run[62763]:    3: { op=15 k=      5b jt=145 jf=  0 } (core.c:423)
+  clearly run[62763]: seccomp(2) program has 156 instructions (core.c:591)
+  clearly run[62763]:    0: { op=20 k=       4 jt=  0 jf=  0 } (core.c:423)
+  clearly run[62763]:    1: { op=15 k=c00000b7 jt=  0 jf= 17 } (core.c:423)
+  clearly run[62763]:    2: { op=20 k=       0 jt=  0 jf=  0 } (core.c:423)
+  clearly run[62763]:    3: { op=15 k=      5b jt=145 jf=  0 } (core.c:423)
   [...]
-  ch-run[62763]:  154: { op= 6 k=7fff0000 jt=  0 jf=  0 } (core.c:423)
-  ch-run[62763]:  155: { op= 6 k=   50000 jt=  0 jf=  0 } (core.c:423)
-  ch-run[62763]: note: see FAQ to disassemble the above (core.c:676)
-  ch-run[62763]: executing: true (core.c:538)
+  clearly run[62763]:  154: { op= 6 k=7fff0000 jt=  0 jf=  0 } (core.c:423)
+  clearly run[62763]:  155: { op= 6 k=   50000 jt=  0 jf=  0 } (core.c:423)
+  clearly run[62763]: note: see FAQ to disassemble the above (core.c:676)
+  clearly run[62763]: executing: true (core.c:538)
 
 You can instead use `seccomp-tools
 <https://github.com/david942j/seccomp-tools>`_ to disassemble and pretty-print
@@ -1069,7 +1069,7 @@ the BPF code in a far easier format, e.g.::
   $ sudo apt install ruby-dev
   $ gem install --user-install seccomp-tools
   $ export PATH=~/.gem/ruby/3.1.0/bin:$PATH
-  $ seccomp-tools dump -c 'ch-run --seccomp alpine:3.19 -- true'
+  $ seccomp-tools dump -c 'clearly run --seccomp alpine:3.19 -- true'
    line  CODE  JT   JF      K
   =================================
    0000: 0x20 0x00 0x00 0x00000004  A = arch
@@ -1088,16 +1088,16 @@ OCI technical notes
 ===================
 
 This section describes our analysis of the Open Container Initiative (OCI)
-specification and implications for our implementations of :code:`ch-image`, and
-:code:`ch-run-oci`. Anything relevant for users goes in the respective man
+specification and implications for our implementations of :code:`clearly image`, and
+:code:`clearly run-oci`. Anything relevant for users goes in the respective man
 page; here is for technical details. The main goals are to guide Charliecloud
 development and provide and opportunity for peer-review of our work.
 
 
-ch-run-oci
+clearly run-oci
 ----------
 
-Currently, :code:`ch-run-oci` is only tested with Buildah. These notes
+Currently, :code:`clearly run-oci` is only tested with Buildah. These notes
 describe what we are seeing from Buildah’s runtime expectations.
 
 Gotchas
@@ -1133,7 +1133,7 @@ The bundle directory defines the container and is used to communicate between
 Buildah and the runtime. The root filesystem (:code:`mnt/rootfs`) is mounted
 within Buildah’s namespaces, so you’ll want to join them before examination.
 
-:code:`ch-run-oci` has restrictions on bundle directory path so it can be
+:code:`clearly run-oci` has restrictions on bundle directory path so it can be
 inferred from the container ID (see the man page). This lets us store state in
 the bundle directory instead of maintaining a second location for container
 state.
@@ -1187,13 +1187,13 @@ Observations:
   * https://github.com/opencontainers/runtime-spec/blob/master/config-linux.md
 
 This is the meat of the container configuration. Below is an example
-:code:`config.json` along with commentary and how it maps to :code:`ch-run`
+:code:`config.json` along with commentary and how it maps to :code:`clearly run`
 arguments. This was pretty-printed with :code:`jq . config.json`, and we
 re-ordered the keys to match the documentation.
 
 There are a number of additional keys that appear in the documentation but not
 in this example. These are all unsupported, either by ignoring them or
-throwing an error. The :code:`ch-run-oci` man page documents comprehensively
+throwing an error. The :code:`clearly run-oci` man page documents comprehensively
 what OCI features are and are not supported.
 
 .. code-block:: javascript
@@ -1342,7 +1342,7 @@ Maps to :code:`--cd`.
          "apk add --no-cache bc"
        ],
 
-Maps to :code:`COMMAND [ARG ...]`. Note that we do not run :code:`ch-run` via
+Maps to :code:`COMMAND [ARG ...]`. Note that we do not run :code:`clearly run` via
 the shell, so there aren’t worries about shell parsing.
 
 .. code-block:: javascript
@@ -1477,7 +1477,7 @@ The OCI spec does not say how the JSON document describing state should be
 given to the caller. Buildah is happy to get it on the runtime’s standard
 output.
 
-:code:`ch-run-oci` provides an OCI compliant state document. Status
+:code:`clearly run-oci` provides an OCI compliant state document. Status
 :code:`creating` will never be returned, because the create operation is
 essentially a no-op, and annotations are not supported, so the
 :code:`annotations` key will never be given.
@@ -1491,16 +1491,16 @@ Additional sources
 * https://github.com/opencontainers/runtime-spec/blob/master/runtime.md
 
 
-ch-image
+clearly image
 --------
 
 pull
 ~~~~
 
 Images pulled from registries come with OCI metadata, i.e. a "config blob".
-This is stored verbatim in :code:`/ch/config.pulled.json` for debugging.
+This is stored verbatim in :code:`/clearly/config.pulled.json` for debugging.
 Charliecloud metadata, which includes a translated subset of the OCI config,
-is kept up to date in :code:`/ch/metadata.json`.
+is kept up to date in :code:`/clearly/metadata.json`.
 
 push
 ~~~~
