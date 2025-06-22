@@ -261,7 +261,7 @@ EOF
 
     rm-img
     # shellcheck disable=SC2154
-    ch-convert "$ch_tardir"/chtest.* "$img"
+    clearly convert "$ch_tardir"/chtest.* "$img"
     ls -l "$img"
     mkdir "$img"/foo
     touch "$img"/foo/file-in-foo
@@ -869,7 +869,7 @@ EOF
 
     # -m with non-sqfs img
     img=$(realpath "${BATS_TMPDIR}/dirimg")
-    ch-convert -i squash "$ch_timg" "$img"
+    clearly convert -i squash "$ch_timg" "$img"
     run ch-run -m /doesnotexist -v "$img" -- /bin/true
     echo "$output"
     [[ $status -eq 0 ]]

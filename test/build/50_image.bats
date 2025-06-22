@@ -847,7 +847,7 @@ EOF
     # Rest of test uses custom storage path.
     rm -rf "$my_storage"
     mkdir -p "$my_storage"/img
-    ch-convert -i image -o dir alpine:3.17 "${my_storage}/img/alpine+3.17"
+    clearly convert -i image -o dir alpine:3.17 "${my_storage}/img/alpine+3.17"
     unset CH_IMAGE_STORAGE
 
     # Specified on command line.
@@ -887,7 +887,7 @@ EOF
     # image, and that’s missing /bin/true so it pukes if we try to run it.
     # That is, in both cases, we want run-by-name to win.
     rm -rf ./alpine+3.17
-    ch-convert -i image -o dir alpine:3.17 ./alpine+3.17
+    clearly convert -i image -o dir alpine:3.17 ./alpine+3.17
     rm ./alpine+3.17/bin/true
 
     # Default.
@@ -901,8 +901,8 @@ EOF
 @test "IMPORT cache miss" {  # issue #1638
     [[ $CH_IMAGE_CACHE = enabled ]] || skip 'build cache enabled only'
 
-    ch-convert alpine:3.17 "$BATS_TMPDIR"/alpine317.tar.gz
-    ch-convert alpine:3.16 "$BATS_TMPDIR"/alpine316.tar.gz
+    clearly convert alpine:3.17 "$BATS_TMPDIR"/alpine317.tar.gz
+    clearly convert alpine:3.16 "$BATS_TMPDIR"/alpine316.tar.gz
 
     export CH_IMAGE_STORAGE=$BATS_TMPDIR/import_1638
     rm -Rf --one-file-system "$CH_IMAGE_STORAGE"

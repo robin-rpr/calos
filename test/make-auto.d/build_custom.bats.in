@@ -32,7 +32,7 @@ source common.bash  # for ShellCheck; removed by ch-test
                 else
                     xattrs_arg=
                 fi
-                ch-convert $xattrs_arg "$tarball" "${tarball/tar.?z/sqfs}"
+                clearly convert $xattrs_arg "$tarball" "${tarball/tar.?z/sqfs}"
                 rm "$tarball"
             fi
         elif [[ -d $out ]]; then                             # directory
@@ -47,7 +47,7 @@ source common.bash  # for ShellCheck; removed by ch-test
                     false  # unknown format
                     ;;
             esac
-            ch-convert "$out" "${out}.${ext}"
+            clearly convert "$out" "${out}.${ext}"
         else
             false  # unknown format
         fi

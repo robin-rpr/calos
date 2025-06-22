@@ -282,10 +282,10 @@ unpack_img_all_nodes () {
                 $ch_mpirun_node ln -s "${ch_tardir}/${ch_tag}.sqfs" "${ch_imgdir}/${ch_tag}"
                 ;;
             squash-unpack)
-                $ch_mpirun_node ch-convert -o dir "${ch_tardir}/${ch_tag}.sqfs" "${ch_imgdir}/${ch_tag}"
+                $ch_mpirun_node clearly convert -o dir "${ch_tardir}/${ch_tag}.sqfs" "${ch_imgdir}/${ch_tag}"
                 ;;
             tar-unpack)
-                $ch_mpirun_node ch-convert -o dir "${ch_tardir}/${ch_tag}.tar.gz" "${ch_imgdir}/${ch_tag}"
+                $ch_mpirun_node clearly convert -o dir "${ch_tardir}/${ch_tag}.tar.gz" "${ch_imgdir}/${ch_tag}"
                 ;;
             *)
                 false  # unknown format

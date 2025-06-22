@@ -97,7 +97,7 @@ compare () {
 #
 #   3. Also exclude several paths which are expected not to round-trip.
 #
-#   4. %n (number of links) is omitted from -printf format because ch-convert
+#   4. %n (number of links) is omitted from -printf format because clearly convert
 #      does not round-trip hard links correctly. (They are split into multiple
 #      independent files.) See issue #1310.
 #
@@ -138,7 +138,7 @@ compare-ls () {
     cd -
 }
 
-# Kludge to cook up the right input and output descriptors for ch-convert.
+# Kludge to cook up the right input and output descriptors for clearly convert.
 convert-img () {
     ct=$1
     in_fmt=$2
@@ -199,11 +199,11 @@ convert-img () {
         clearly image delete "$in_desc"
         clearly image undelete "$in_desc"
     fi
-    ch-convert --no-clobber -v -i "$in_fmt" -o "$out_fmt" "$in_desc" "$out_desc"
+    clearly convert --no-clobber -v -i "$in_fmt" -o "$out_fmt" "$in_desc" "$out_desc"
     # Doing it twice doubles the time but also tests that both new conversions
     # and overwrite work. Hence, full scope only.
     if [[ $CH_TEST_SCOPE = full ]]; then
-        ch-convert -v -i "$in_fmt" -o "$out_fmt" "$in_desc" "$out_desc"
+        clearly convert -v -i "$in_fmt" -o "$out_fmt" "$in_desc" "$out_desc"
     fi
 }
 
@@ -260,43 +260,43 @@ test_from () {
 }
 
 
-@test 'ch-convert: format inference' {
+@test 'clearly convert: format inference' {
     # Test input only; output uses same code. Test cases match all the
     # criteria to validate the priority. We don’t exercise every possible
     # descriptor pattern, only those I thought had potential for error.
 
     # SquashFS
-    run ch-convert -n ./foo:bar.sqfs out.tar
+    run clearly convert -n ./foo:bar.sqfs out.tar
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = *'input:   squash'* ]]
 
     # tar
-    run ch-convert -n ./foo:bar.tar out.sqfs
+    run clearly convert -n ./foo:bar.tar out.sqfs
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = *'input:   tar'* ]]
-    run ch-convert -n ./foo:bar.tgz out.sqfs
+    run clearly convert -n ./foo:bar.tgz out.sqfs
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = *'input:   tar'* ]]
-    run ch-convert -n ./foo:bar.tar.Z out.sqfs
+    run clearly convert -n ./foo:bar.tar.Z out.sqfs
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = *'input:   tar'* ]]
-    run ch-convert -n ./foo:bar.tar.gz out.sqfs
+    run clearly convert -n ./foo:bar.tar.gz out.sqfs
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = *'input:   tar'* ]]
 
     # directory
-    run ch-convert -n ./foo:bar out.tar
+    run clearly convert -n ./foo:bar out.tar
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = *'input:   dir'* ]]
 
     # builders
-    run ch-convert -n foo out.tar
+    run clearly convert -n foo out.tar
     echo "$output"
     if command -v image > /dev/null 2>&1; then
         [[ $status -eq 0 ]]
@@ -314,16 +314,16 @@ test_from () {
 }
 
 
-@test 'ch-convert: errors' {
+@test 'clearly convert: errors' {
     # same format
-    run ch-convert -n foo.tar foo.tar.gz
+    run clearly convert -n foo.tar foo.tar.gz
     echo "$output"
     [[ $status -eq 1 ]]
     [[ $output = *'error: input and output formats must be different'* ]]
 
     # output directory not an image
     touch "${BATS_TMPDIR}/foo.tar"
-    run ch-convert "${BATS_TMPDIR}/foo.tar" "$BATS_TMPDIR"
+    run clearly convert "${BATS_TMPDIR}/foo.tar" "$BATS_TMPDIR"
     echo "$output"
     [[ $status -eq 1 ]]
     [[ $output = *"error: exists but does not appear to be an image and is not empty: ${BATS_TMPDIR}"* ]]
@@ -331,10 +331,10 @@ test_from () {
 }
 
 
-@test 'ch-convert: --no-clobber' {
+@test 'clearly convert: --no-clobber' {
     # image
     printf 'FROM alpine:3.17\n' | clearly image build -t tmpimg -f - "$BATS_TMPDIR"
-    run ch-convert --no-clobber -o image "$BATS_TMPDIR" tmpimg
+    run clearly convert --no-clobber -o image "$BATS_TMPDIR" tmpimg
     echo "$output"
     [[ $status -eq 1 ]]
     [[ $output = *"error: exists in image storage, not deleting per --no-clobber: tmpimg" ]]
@@ -348,11 +348,11 @@ test_from () {
         # directory
         fmt="dir"
     fi
-    ch-convert -i "$fmt" -o image "$ch_timg" timg
+    clearly convert -i "$fmt" -o image "$ch_timg" timg
 
     # dir
-    ch-convert -i image -o dir timg "$BATS_TMPDIR/timg"
-    run ch-convert --no-clobber -i image -o dir timg "$BATS_TMPDIR/timg"
+    clearly convert -i image -o dir timg "$BATS_TMPDIR/timg"
+    run clearly convert --no-clobber -i image -o dir timg "$BATS_TMPDIR/timg"
     echo "$output"
     [[ $status -eq 1 ]]
     [[ $output = *"error: exists, not deleting per --no-clobber: ${BATS_TMPDIR}/timg" ]]
@@ -360,21 +360,21 @@ test_from () {
 
     # docker
     printf 'FROM alpine:3.17\n' | docker_ build -t tmpimg -
-    run ch-convert --no-clobber -o docker "$BATS_TMPDIR" tmpimg
+    run clearly convert --no-clobber -o docker "$BATS_TMPDIR" tmpimg
     echo "$output"
     [[ $status -eq 1 ]]
     [[ $output = *"error: exists in Docker storage, not deleting per --no-clobber: tmpimg" ]]
 
     # podman
     printf 'FROM alpine:3.17\n' | podman_ build -t tmpimg -
-    run ch-convert --no-clobber -o podman "$BATS_TMPDIR" tmpimg
+    run clearly convert --no-clobber -o podman "$BATS_TMPDIR" tmpimg
     echo "$output"
     [[ $status -eq 1 ]]
     [[ $output = *"error: exists in Podman storage, not deleting per --no-clobber: tmpimg" ]]
 
     # squash
     touch "${BATS_TMPDIR}/timg.sqfs"
-    run ch-convert --no-clobber -i image -o squash timg "$BATS_TMPDIR/timg.sqfs"
+    run clearly convert --no-clobber -i image -o squash timg "$BATS_TMPDIR/timg.sqfs"
     echo "$output"
     [[ $status -eq 1 ]]
     [[ $output = *"error: exists, not deleting per --no-clobber: ${BATS_TMPDIR}/timg.sqfs" ]]
@@ -382,7 +382,7 @@ test_from () {
 
     # tar
     touch "${BATS_TMPDIR}/timg.tar.gz"
-    run ch-convert --no-clobber -i image -o tar timg "$BATS_TMPDIR/timg.tar.gz"
+    run clearly convert --no-clobber -i image -o tar timg "$BATS_TMPDIR/timg.tar.gz"
     echo "$output"
     [[ $status -eq 1 ]]
     [[ $output = *"error: exists, not deleting per --no-clobber: ${BATS_TMPDIR}/timg.tar.gz" ]]
@@ -390,7 +390,7 @@ test_from () {
 }
 
 
-@test 'ch-convert: empty target dir' {
+@test 'clearly convert: empty target dir' {
     empty=${BATS_TMPDIR}/test-empty
 
     ## setup source images ##
@@ -406,51 +406,51 @@ test_from () {
 
     # squash
     touch "${BATS_TMPDIR}/tmpimg.sqfs"
-    ch-convert -i image -o squash tmpimg "$BATS_TMPDIR/tmpimg.sqfs"
+    clearly convert -i image -o squash tmpimg "$BATS_TMPDIR/tmpimg.sqfs"
 
     # tar
-    ch-convert -i image -o tar tmpimg "$BATS_TMPDIR/tmpimg.tar.gz"
+    clearly convert -i image -o tar tmpimg "$BATS_TMPDIR/tmpimg.tar.gz"
 
     ## run test ##
 
     # image
     empty_dir_init "$empty"
-    run ch-convert -i image -o dir tmpimg "$empty"
+    run clearly convert -i image -o dir tmpimg "$empty"
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = *"using empty directory: $empty"* ]]
 
     # docker
     empty_dir_init "$empty"
-    run ch-convert -i docker -o dir tmpimg "$empty"
+    run clearly convert -i docker -o dir tmpimg "$empty"
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = *"using empty directory: $empty"* ]]
 
     # podman
     empty_dir_init "$empty"
-    run ch-convert -i podman -o dir tmpimg "$empty"
+    run clearly convert -i podman -o dir tmpimg "$empty"
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = *"using empty directory: $empty"* ]]
 
     # squash
     empty_dir_init "$empty"
-    run ch-convert -i squash -o dir "$BATS_TMPDIR/tmpimg.sqfs" "$empty"
+    run clearly convert -i squash -o dir "$BATS_TMPDIR/tmpimg.sqfs" "$empty"
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = *"using empty directory: $empty"* ]]
 
     # tar
     empty_dir_init "$empty"
-    run ch-convert -i tar -o dir "$BATS_TMPDIR/tmpimg.tar.gz" "$empty"
+    run clearly convert -i tar -o dir "$BATS_TMPDIR/tmpimg.tar.gz" "$empty"
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = *"using empty directory: $empty"* ]]
 }
 
 
-@test 'ch-convert: pathological tarballs' {
+@test 'clearly convert: pathological tarballs' {
     [[ $CH_TEST_PACK_FMT = tar-unpack ]] || skip 'tar mode only'
     out=${BATS_TMPDIR}/convert.dir
     # Are /dev fixtures present in tarball? (issue #157)
@@ -460,42 +460,42 @@ test_from () {
     echo "$present" | grep -E '^img/dev/deleteme$'
     echo "$present" | grep -E '^img/mnt/dev/dontdeleteme$'
     # Convert to dir.
-    ch-convert "$ch_ttar" "$out"
+    clearly convert "$ch_ttar" "$out"
     image_ok "$out"
     chtest_fixtures_ok "$out"
 }
 
 
 # The next three tests are for issue #1241.
-@test 'ch-convert: permissions retained (dir)' {
+@test 'clearly convert: permissions retained (dir)' {
     out=${BATS_TMPDIR}/convert.dir
-    ch-convert timg "$out"
+    clearly convert timg "$out"
     ls -ld "$out"/maxperms_*
     [[ $(stat -c %a "${out}/maxperms_dir") = 1777 ]]
     [[ $(stat -c %a "${out}/maxperms_file") = 777 ]]
 }
 
-@test 'ch-convert: permissions retained (squash)' {
+@test 'clearly convert: permissions retained (squash)' {
     squishy=${BATS_TMPDIR}/convert.sqfs
     out=${BATS_TMPDIR}/convert.dir
-    ch-convert timg "$squishy"
-    ch-convert "$squishy" "$out"
+    clearly convert timg "$squishy"
+    clearly convert "$squishy" "$out"
     ls -ld "$out"/maxperms_*
     [[ $(stat -c %a "${out}/maxperms_dir") = 1777 ]]
     [[ $(stat -c %a "${out}/maxperms_file") = 777 ]]
 }
 
-@test 'ch-convert: permissions retained (tar)' {
+@test 'clearly convert: permissions retained (tar)' {
     tarball=${BATS_TMPDIR}/convert.tar.gz
     out=${BATS_TMPDIR}/convert.dir
-    ch-convert timg "$tarball"
-    ch-convert "$tarball" "$out"
+    clearly convert timg "$tarball"
+    clearly convert "$tarball" "$out"
     ls -ld "$out"/maxperms_*
     [[ $(stat -c %a "${out}/maxperms_dir") = 1777 ]]
     [[ $(stat -c %a "${out}/maxperms_file") = 777 ]]
 }
 
-@test 'ch-convert: b0rked xattrs' {
+@test 'clearly convert: b0rked xattrs' {
     # Check if test needs to be skipped
     touch "$BATS_TMPDIR/tmpfs_test"
     if    ! setfattr -n user.foo -v bar "$BATS_TMPDIR/tmpfs_test" \
@@ -524,7 +524,7 @@ RUN touch /home/foo
 EOF
 
     # convert image to dir and actually bork it
-    ch-convert -i image -o dir tmpimg "$borked_img"
+    clearly convert -i image -o dir tmpimg "$borked_img"
     setfattr -n user.foo -v bar "$borked_file"
     sudo setfattr -n security.foo -v bar "$borked_file"
     sudo setfattr -n trusted.foo -v bar "$borked_file"
@@ -551,7 +551,7 @@ EOF
              --xattrs-include='trusted.*' \
              -czvf "$borked_tar" "$borked_img"
 
-    ch-convert -i tar -o dir "$borked_tar" "$borked_out"
+    clearly convert -i tar -o dir "$borked_tar" "$borked_out"
 
     run sudo getfattr -dm - -- "$borked_out/home/foo"
     echo "$output"
@@ -566,22 +566,22 @@ EOF
     [[ $output = *"user:$USER:r--"* ]]
 }
 
-@test 'ch-convert: dir -> image -> X' {
+@test 'clearly convert: dir -> image -> X' {
     test_from image
 }
 
-@test 'ch-convert: dir -> docker -> X' {
+@test 'clearly convert: dir -> docker -> X' {
     test_from docker
 }
 
-@test 'ch-convert: dir -> podman -> X' {
+@test 'clearly convert: dir -> podman -> X' {
     test_from podman
 }
 
-@test 'ch-convert: dir -> squash -> X' {
+@test 'clearly convert: dir -> squash -> X' {
     test_from squash
 }
 
-@test 'ch-convert: dir -> tar -> X' {
+@test 'clearly convert: dir -> tar -> X' {
     test_from tar
 }

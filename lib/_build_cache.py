@@ -791,16 +791,16 @@ class Enabled_Cache:
       """True iff image corresponding to “git_id” is in the cache."""
       return self.find_commit(git_id)[1] != None
 
-   def checkout(self, image, git_hash, base_image):
+   def checkout(self, img, git_hash, base_image):
       # base_image used in other subclasses
-      self.worktree_add(image, git_hash)
-      self.git_restore(image.unpack_path, [], False)
+      self.worktree_add(img, git_hash)
+      self.git_restore(img.unpack_path, [], False)
 
-   def checkout_ready(self, image, git_hash, base_image=None):
+   def checkout_ready(self, img, git_hash, base_image=None):
       """“checkout()” followed by “ready()” is an operation that appears several
          times throughout the code, so we wrap it here."""
-      self.checkout(image, git_hash, base_image)
-      self.ready(image)
+      self.checkout(img, git_hash, base_image)
+      self.ready(img)
 
    def commit(self, path, sid, msg, files):
       # Commit image at path into the build cache. If set files is empty, any
@@ -936,13 +936,13 @@ class Enabled_Cache:
       clearly.VERBOSE("commit-ish %s: %s %s" % (git_id, commit, sid))
       return (sid, commit)
 
-   def find_deleted_image(self, image):
-      return self.commit_find_deleted(image.ref.for_path)
+   def find_deleted_image(self, img):
+      return self.commit_find_deleted(img.ref.for_path)
 
-   def find_image(self, image):
+   def find_image(self, img):
       """Return (state ID, commit) of branch tip for image, or (None, None) if
          no such branch."""
-      return self.find_commit(image.ref.for_path)
+      return self.find_commit(img.ref.for_path)
 
    def find_sid(self, sid, branch):
       """Return the hash of the commit matching State_ID, or None if no such
@@ -1011,11 +1011,11 @@ class Enabled_Cache:
          arguments are passed through to clearly.cmd_stdout()."""
       if (cwd is None):
          cwd = self.root
-      else:
+      if cwd != self.root:
          if ("env" not in kwargs):
             kwargs["env"] = dict()
-         kwargs["env"].update({ "GIT_DIR": str(cwd // GIT_DIR),
-                                "GIT_WORK_TREE": str(cwd) })
+         kwargs["env"].setdefault("GIT_DIR", str(cwd // GIT_DIR))
+         kwargs["env"].setdefault("GIT_WORK_TREE", str(cwd))
       return (clearly.cmd_stdout if quiet else clearly.cmd)([git] + argv, cwd=cwd,
                                                   *args, **kwargs)
 
@@ -1092,13 +1092,13 @@ class Enabled_Cache:
          self.branch_nocheckout(src_ref, img.ref)
       return (sid, commit)
 
-   def ready(self, image):
-      (_, git_hash) = self.find_deleted_image(image)
+   def ready(self, img):
+      (_, git_hash) = self.find_deleted_image(img)
       if (not (git_hash is None)):
-         self.tag_delete(image.ref.for_path) # Branch was deleted.
-      self.git(["checkout", "-B", self.branch_name_ready(image.ref)],
-               cwd=image.unpack_path)
-      self.branch_delete(self.branch_name_unready(image.ref))
+         self.tag_delete(img.ref.for_path) # Branch was deleted.
+      self.git(["checkout", "-B", self.branch_name_ready(img.ref)],
+               cwd=img.unpack_path)
+      self.branch_delete(self.branch_name_unready(img.ref))
 
    def ready_p(self, branch):
       return (not branch.endswith("#"))
@@ -1236,19 +1236,19 @@ class Enabled_Cache:
       self.git(args + ["--format=%s" % fmt], quiet=False)
       print()  # blank line to separate from summary
 
-   def unpack_delete(self, image, missing_ok=False):
+   def unpack_delete(self, img, missing_ok=False):
       """Wrapper for Image.unpack_delete() that first detaches the work tree's
          head. If we delete an image's unpack path without first detaching HEAD,
          the corresponding work tree must also be deleted before the bucache
          branch. This involves multiple calls to worktrees_fix(), which is
          clunky, so we use this method instead."""
-      if (not image.unpack_exist_p and missing_ok):
+      if (not img.unpack_exist_p and missing_ok):
          return
-      (_, commit) = self.find_commit(image.ref.for_path)
+      (_, commit) = self.find_commit(img.ref.for_path)
       if (commit is not None):
          # Off with her head!
-         self.git(["checkout", "%s" % commit], cwd=image.unpack_path)
-      image.unpack_delete()
+         self.git(["checkout", "%s" % commit], cwd=img.unpack_path)
+      img.unpack_delete()
 
    def unready_of(self, branch):
       if (self.ready_p(branch)):
@@ -1256,34 +1256,34 @@ class Enabled_Cache:
       else:
          return branch
 
-   def worktree_add(self, image, base):
-      if (image.unpack_cache_linked):
-         self.git_prepare(image.unpack_path, [], write=False)  # clean worktree
-         if (self.commit_hash_p(base) and base == self.worktree_head(image)):
-            clearly.VERBOSE("already checked out: %s %s" % (image.unpack_path, base))
+   def worktree_add(self, img, base):
+      if (img.unpack_cache_linked):
+         self.git_prepare(img.unpack_path, [], write=False)  # clean worktree
+         if (self.commit_hash_p(base) and base == self.worktree_head(img)):
+            clearly.VERBOSE("already checked out: %s %s" % (img.unpack_path, base))
          else:
             clearly.INFO("updating existing image ...")
             t = clearly.Timer()
-            self.git(["checkout", "-B", self.branch_name_unready(image.ref),
-                      base], cwd=image.unpack_path)
+            self.git(["checkout", "-B", self.branch_name_unready(img.ref),
+                      base], cwd=img.unpack_path)
             t.log("adjusted worktree")
       else:
          clearly.INFO("copying image from cache ...")
-         image.unpack_clear()
+         img.unpack_clear()
          t = clearly.Timer()
          self.git(["worktree", "add", "-f", "-B",
-                   self.branch_name_unready(image.ref),
-                   image.unpack_path, base])
+                   self.branch_name_unready(img.ref),
+                   img.unpack_path, base])
          # Move GIT_DIR from default location to where we want it.
-         git_dir_default = image.unpack_path // ".git"
-         git_dir_new = image.unpack_path // GIT_DIR
+         git_dir_default = img.unpack_path // ".git"
+         git_dir_new = img.unpack_path // GIT_DIR
          git_dir_new.parent.mkdir()
          git_dir_default.rename(git_dir_new)
          t.log("created worktree")
 
-   def worktree_adopt(self, image, base):
+   def worktree_adopt(self, img, base):
       """Create a new worktree with the contents of existing directory
-         image.unpack_path. Note shenanigans because “git worktree add”
+         img.unpack_path. Note shenanigans because “git worktree add”
          *cannot* use an existing directory but shutil.copytree *must* create
          its own directory (until Python 3.8, and we have to support 3.6). So
          we use some renaming."""
@@ -1291,16 +1291,16 @@ class Enabled_Cache:
          clearly.WARNING("temporary image still exists, deleting",
                     "maybe a previous command crashed?")
          clearly.storage.image_tmp.rmtree()
-      image.unpack_path.rename(clearly.storage.image_tmp)
-      self.worktree_add(image, base)
-      (image.unpack_path // GIT_DIR).rename(   clearly.storage.image_tmp
+      img.unpack_path.rename(clearly.storage.image_tmp)
+      self.worktree_add(img, base)
+      (img.unpack_path // GIT_DIR).rename(   clearly.storage.image_tmp
                                                // GIT_DIR)
-      image.unpack_path.rmtree()
-      clearly.storage.image_tmp.rename(image.unpack_path)
+      img.unpack_path.rmtree()
+      clearly.storage.image_tmp.rename(img.unpack_path)
 
-   def worktree_head(self, image):
+   def worktree_head(self, img):
       cp = self.git(["rev-parse", "--short", "HEAD"],
-                    fail_ok=True, cwd=image.unpack_path)
+                    fail_ok=True, cwd=img.unpack_path)
       if (cp.returncode != 0):
          return None
       else:
@@ -1336,9 +1336,11 @@ class Enabled_Cache:
       wt_gits_orphaned = wt_actuals - wt_gits
       for img_dir in wt_gits_orphaned:
          link = clearly.storage.unpack_base // img_dir // GIT_DIR
-         clearly.WARNING("image erroneously marked cached, fixing: %s" % link,
-                    clearly.BUG_REPORT_PLZ)
-         link.unlink()
+         # Transient unlinks by another process are not a problem.
+         if link.exists():
+            clearly.WARNING("image erroneously marked cached, fixing: %s" % link,
+                     clearly.BUG_REPORT_PLZ)
+            link.unlink()
       wt_actuals -= wt_gits_orphaned
       # Delete worktree data for images that no longer exist or aren’t
       # Git-enabled any more.
@@ -1389,10 +1391,10 @@ class Disabled_Cache(Rebuild_Cache):
    def branch_nocheckout(self, src_ref, dest):
       pass
 
-   def checkout(self, image, git_hash, base_image):
+   def checkout(self, img, git_hash, base_image):
       clearly.INFO("copying image ...")
-      image.unpack_clear()
-      image.copy_unpacked(base_image)
+      img.unpack_clear()
+      img.copy_unpacked(base_image)
 
    def commit(self, path, *args):
       self.permissions_fix(path)

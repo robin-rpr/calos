@@ -16,7 +16,7 @@ setup () {
 
 ls_ () {
     # ls(1)-alike but more predictable output and only the fields we want. See
-    # also “compare-ls” in ch-convert.bats.
+    # also “compare-ls” in convert.bats.
     (
         cd "$1"
           find . -mindepth 1 -printf '%M %n %3s%y  %P -> %l\n' \

@@ -42,8 +42,8 @@ EOF
 # outputs do not exist). All take two parameters: $1 is the input descriptor
 # and $2 is the output descriptor.
 
-cv_chimage_dir () {
-    chimage_in_validate "$1"
+cv_image_dir () {
+    image_in_validate "$1"
     dir_out_validate "$2"
     INFO 'exporting ...'
     # Use tar(1) instead of cp(1) because (1) it supports file exclusions and
@@ -55,36 +55,36 @@ cv_chimage_dir () {
     dir_fixup "$2"
 }
 
-cv_chimage_docker () {
-    chimage_in_validate "$1"
+cv_image_docker () {
+    image_in_validate "$1"
     docker_out_validate "$2"
-    chimage_to_dockman docker_ "$1" "$2"
+    image_to_dockman docker_ "$1" "$2"
 }
 
-cv_chimage_podman () {
-    chimage_in_validate "$1"
+cv_image_podman () {
+    image_in_validate "$1"
     podman_out_validate "$2"
-    chimage_to_dockman podman_ "$1" "$2"
+    image_to_dockman podman_ "$1" "$2"
 }
 
-cv_chimage_squash () {
-    chimage_in_validate "$1"
+cv_image_squash () {
+    image_in_validate "$1"
     squash_out_validate "$2"
-    img=$(chimage_path "$1")
+    img=$(image_path "$1")
     cv_dir_squash "$img" "$2"
 }
 
-cv_chimage_tar () {
-    chimage_in_validate "$1"
+cv_image_tar () {
+    image_in_validate "$1"
     tar_out_validate "$2"
-    img=$(chimage_path "$1")
+    img=$(image_path "$1")
     INFO 'exporting ...'
     tar_ "$img" | gzip_ > "$2"
 }
 
-cv_dir_chimage () {
+cv_dir_image () {
     dir_in_validate "$1"
-    chimage_out_validate "$2"
+    image_out_validate "$2"
     INFO 'importing ...'
     # “clearly image” recognizes “-q” as an argument, but we choose to quiet it with
     # “quiet” instead here because doing so is simpler from the perspective of
@@ -139,10 +139,10 @@ cv_dir_tar () {
     tar_ "$1" | gzip_ > "$2"
 }
 
-cv_docker_chimage () {
+cv_docker_image () {
    dockman_in_validate docker_ "$1"
-   chimage_out_validate "$2"
-   dockman_to_chimage docker_ "$1" "$2"
+   image_out_validate "$2"
+   dockman_to_image docker_ "$1" "$2"
 }
 
 cv_docker_dir () {
@@ -172,10 +172,10 @@ cv_docker_tar () {
     dockman_to_tar docker_ "$1" "$2"
 }
 
-cv_podman_chimage () {
+cv_podman_image () {
     dockman_in_validate podman_ "$1"
-    chimage_out_validate "$2"
-    dockman_to_chimage podman_ "$1" "$2"
+    image_out_validate "$2"
+    dockman_to_image podman_ "$1" "$2"
 }
 
 cv_podman_dir () {
@@ -205,12 +205,12 @@ cv_podman_tar () {
     dockman_to_tar podman_ "$1" "$2"
 }
 
-cv_squash_chimage () {
+cv_squash_image () {
     squash_in_validate "$1"
-    chimage_out_validate "$2"
+    image_out_validate "$2"
     unsquash_dir=${tmpdir}/weirdal
     cv_squash_dir "$1" "$unsquash_dir"
-    cv_dir_chimage "$unsquash_dir" "$2"
+    cv_dir_image "$unsquash_dir" "$2"
     quiet rm -Rf --one-file-system "$unsquash_dir"
 }
 
@@ -280,9 +280,9 @@ cv_squash_tar () {
     quiet rm -Rf --one-file-system "$unsquash_dir"
 }
 
-cv_tar_chimage () {
+cv_tar_image () {
     tar_in_validate "$1"
-    chimage_out_validate "$2"
+    image_out_validate "$2"
     INFO 'importing ...'
     quiet image import "$1" "$2"  # FIXME: no progress meter
 }
@@ -361,11 +361,11 @@ cv_tar_squash () {
 # “dockman” function, image format is specified by the first argument
 # (“docker_” or “podman_”).
 
-chimage_to_dockman () {
-    chimage_tar=${tmpdir}/weirdal.tar.gz
-    cv_chimage_tar "$2" "$chimage_tar"  # FIXME: needlessly compresses?
-    tar_to_dockman "$1" "$chimage_tar" "$3"
-    quiet rm "$chimage_tar"
+image_to_dockman () {
+    image_tar=${tmpdir}/weirdal.tar.gz
+    cv_image_tar "$2" "$image_tar"  # FIXME: needlessly compresses?
+    tar_to_dockman "$1" "$image_tar" "$3"
+    quiet rm "$image_tar"
 }
 
 dir_to_dockman () {
@@ -398,10 +398,10 @@ dockman_in_validate () {
     [ -n "$digest" ] || FATAL "source not found in $(dm_fmt_name "$1") storage: ${2}"
 }
 
-dockman_to_chimage () {
+dockman_to_image () {
    dockman_out=${tmpdir}/weirdal.tar.gz
    "cv_${1}tar" "$2" "$dockman_out"  # FIXME: needlessly compresses
-   cv_tar_chimage "$dockman_out" "$3"
+   cv_tar_image "$dockman_out" "$3"
    quiet rm "$dockman_out"
 }
 
@@ -468,13 +468,13 @@ EOF
 # that format, and also whether it already exists if --no-clobber. Exit with
 # error on validation failure.
 
-chimage_in_validate () {
-    img=$(chimage_path "$1")
+image_in_validate () {
+    img=$(image_path "$1")
     [ -d "$img" ] || FATAL "source image not found in image storage: $1"
 }
 
-chimage_out_validate () {
-    img=$(chimage_path "$1")
+image_out_validate () {
+    img=$(image_path "$1")
     if [ -d "$img" ] && [ -n "$no_clobber" ]; then
         FATAL "exists in image storage, not deleting per --no-clobber: ${1}"
     fi
@@ -558,7 +558,7 @@ tar_out_validate () {
 ## supporting functions ######################################################
 
 # Return the path to image $1 in image storage.
-chimage_path () {
+image_path () {
     if [ -z "$cli_storage" ]; then
         echo "$(clearly image gestalt storage-path)/img/$(tag_to_path "$1")"
     else

@@ -33,7 +33,7 @@ EOF
 FROM alpine:3.17
 EOF
 
-    ch-convert tmpimg "$BATS_TMPDIR/tmpimg"
+    clearly convert tmpimg "$BATS_TMPDIR/tmpimg"
     rm -rf "$BATS_TMPDIR/tmpimg/ch"
 
     clearly image delete tmpimg
@@ -101,7 +101,7 @@ EOF
 
     # Pull it back
     clearly image -v --tls-no-verify pull localhost:5000/foo/bar:weirdal
-    ch-convert localhost:5000/foo/bar:weirdal "$img2"
+    clearly convert localhost:5000/foo/bar:weirdal "$img2"
     ls -l "$img2"
     [[ $(stat -c '%A' "$img2"/setuid_file) = -rw-r----- ]]
     [[ $(stat -c '%A' "$img2"/setgid_file) = -rw-r----- ]]
@@ -134,7 +134,7 @@ EOF
 
     clearly image push --tls-no-verify tmpimg localhost:5000/tmpimg
     clearly image pull --tls-no-verify localhost:5000/tmpimg
-    ch-convert localhost:5000/tmpimg "$BATS_TMPDIR"/tmpimg
+    clearly convert localhost:5000/tmpimg "$BATS_TMPDIR"/tmpimg
 
     run ch-run "$BATS_TMPDIR"/tmpimg --unset-env='*' --set-env -- env
     echo "$output"
