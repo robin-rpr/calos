@@ -2,7 +2,7 @@
 FROM almalinux:8
 
 # This image has three purposes: (1) demonstrate we can build a AlmaLinux 8
-# image, (2) provide a build environment for Clearstack EPEL 8 RPMs, and (3)
+# image, (2) provide a build environment for Clearly EPEL 8 RPMs, and (3)
 # provide image packages necessary for Obspy and Paraview.
 #
 # Quirks:

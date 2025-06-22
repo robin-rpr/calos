@@ -4,7 +4,7 @@
 
    fuse_     libfuse; docs: https://libfuse.github.io/doxygen/globals.html
    sqfs_ll_  SquashFUSE; no docs but: https://github.com/vasi/squashfuse
-   sq_       Clearstack */
+   sq_       Clearly */
 
 #define _GNU_SOURCE
 #include <dirent.h>

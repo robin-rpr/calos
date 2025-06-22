@@ -24,7 +24,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 class ContainerManager:
-    """Manages Clearstack containers"""
+    """Manages Clearly containers"""
     
     def __init__(self):
         self.containers = {}  # container_id -> container_info
@@ -33,7 +33,7 @@ class ContainerManager:
         os.makedirs(self.temp_dir, exist_ok=True)
     
     def start_container(self, container_id, image_path, command=None, env_vars=None):
-        """Start a Clearstack container"""
+        """Start a Clearly container"""
         try:
             with self.lock:
                 if container_id in self.containers:
@@ -96,7 +96,7 @@ class ContainerManager:
             return {"error": str(e)}
     
     def stop_container(self, container_id):
-        """Stop a Clearstack container"""
+        """Stop a Clearly container"""
         try:
             with self.lock:
                 if container_id not in self.containers:
@@ -190,8 +190,8 @@ class ContainerManager:
         except Exception as e:
             logger.error(f"Error collecting logs for container {container_id}: {e}")
 
-class ClearstackRequestHandler(BaseHTTPRequestHandler):
-    """HTTP request handler for Clearstack daemon"""
+class ClearlyRequestHandler(BaseHTTPRequestHandler):
+    """HTTP request handler for Clearly daemon"""
     
     def __init__(self, *args, container_manager=None, **kwargs):
         self.container_manager = container_manager
@@ -299,7 +299,7 @@ class ClearstackRequestHandler(BaseHTTPRequestHandler):
         """Override to use our logger"""
         logger.info(f"{self.address_string()} - {format % args}")
 
-class ClearstackDaemon:
+class ClearlyDaemon:
     """Main daemon class"""
     
     def __init__(self, host='0.0.0.0', port=8080, max_workers=10):
@@ -320,19 +320,19 @@ class ClearstackDaemon:
         try:
             # Create custom request handler with container manager
             def handler(*args, **kwargs):
-                return ClearstackRequestHandler(*args, container_manager=self.container_manager, **kwargs)
+                return ClearlyRequestHandler(*args, container_manager=self.container_manager, **kwargs)
             
             self.server = HTTPServer((self.host, self.port), handler)
             self.running = True
             
-            logger.info(f"Clearstack daemon starting on {self.host}:{self.port}")
+            logger.info(f"Clearly daemon starting on {self.host}:{self.port}")
             logger.info(f"Thread pool size: {self.max_workers}")
             
             # Start server in a separate thread
             server_thread = threading.Thread(target=self.server.serve_forever, daemon=True)
             server_thread.start()
             
-            logger.info("Clearstack daemon started successfully")
+            logger.info("Clearly daemon started successfully")
             
             # Keep main thread alive
             while self.running:
@@ -344,7 +344,7 @@ class ClearstackDaemon:
     
     def stop(self):
         """Stop the daemon"""
-        logger.info("Stopping Clearstack daemon...")
+        logger.info("Stopping Clearly daemon...")
         self.running = False
         
         if self.server:
@@ -359,7 +359,7 @@ class ClearstackDaemon:
         # Shutdown thread pool
         self.executor.shutdown(wait=True)
         
-        logger.info("Clearstack daemon stopped")
+        logger.info("Clearly daemon stopped")
     
     def _signal_handler(self, signum, frame):
         """Handle shutdown signals"""
@@ -372,7 +372,7 @@ def main():
     try:
         # Parse command line arguments
         import argparse
-        parser = argparse.ArgumentParser(description='Clearstack Daemon')
+        parser = argparse.ArgumentParser(description='Clearly Daemon')
         parser.add_argument('--host', default='0.0.0.0', help='Host to bind to')
         parser.add_argument('--port', type=int, default=4242, help='Port to bind to')
         parser.add_argument('--max-workers', type=int, default=10, help='Maximum thread pool workers')
@@ -381,7 +381,7 @@ def main():
         args = parser.parse_args()
         
         # Create and start daemon
-        daemon = ClearstackDaemon(
+        daemon = ClearlyDaemon(
             host=args.host,
             port=args.port,
             max_workers=args.max_workers

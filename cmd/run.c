@@ -35,7 +35,7 @@ char *WRITE_FAKE_DEFAULT = "12%";
 
 const char usage[] = "\
 \n\
-Run a command in a Clearstack container.\n\
+Run a command in a Clearly container.\n\
 \v\
 Example:\n\
 \n\

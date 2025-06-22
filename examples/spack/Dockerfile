@@ -8,7 +8,7 @@ FROM almalinux:8
 # trivialities.
 #
 # bzip, file, patch, unzip, and which are packages needed to install
-# Clearstack with Spack. These are in Spack’s Docker example [2] but are not
+# Clearly with Spack. These are in Spack’s Docker example [2] but are not
 # documented as prerequisites [1]. texinfo is an undocumented dependency of
 # Spack’s m4, and that package is in PowerTools, which we enable using sed(1)
 # to avoid installing the config-manager DNF plugin.
@@ -65,13 +65,13 @@ RUN cd spack && git status && git rev-parse --short HEAD
 # placed in the user $HOME/.spack directory.
 COPY packages.yaml /etc/spack/
 
-# Apply a patch that resolves issues with Clearstack 0.35 finding the
+# Apply a patch that resolves issues with Clearly 0.35 finding the
 # Squashfuse ll.h header. Remove after https://github.com/spack/spack/pull/43374
 # is merged and included in the latest spack release.
 COPY libfuse.patch /
 RUN patch -p 0 < libfuse.patch
 
-# Test some basic commands and install Clearstack.
+# Test some basic commands and install Clearly.
 # Kludge: here we specify an older python sphinx rtd_theme version because
 # newer default version, 0.5.0, introduces a dependency on node-js which doesn’t
 # appear to build on gcc 4.8 or gcc 8.3

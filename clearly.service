@@ -1,5 +1,5 @@
 [Unit]
-Description=Clearstack Daemon
+Description=Clearly Daemon
 Documentation=https://clearly.run/docs
 After=network.target
 Wants=network.target

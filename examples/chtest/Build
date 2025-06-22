@@ -139,7 +139,7 @@ else
     gzip_cmd=gzip
 fi
 
-# Clearstack supports images both with a single top level directory and
+# Clearly supports images both with a single top level directory and
 # without (tarbomb). The Docker images in the test suite are all tarbombs
 # (because that’s what “docker export” gives us), so use a containing
 # directory for this one.

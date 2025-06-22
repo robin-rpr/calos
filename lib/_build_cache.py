@@ -4,7 +4,7 @@
 # various configuration files [1] as well as environment variables [2]. We do
 # our best to use a fully-isolated Git that brings along no external
 # configuration the user or system may have, by excluding configuration files
-# other than Clearstack’s and clearing the environment.
+# other than Clearly’s and clearing the environment.
 #
 # Another gotcha that is not (yet?) documented is $PATH. git(1) re-executes
 # itself in the same way that it was invoked; e.g., if you invoke it with
@@ -119,7 +119,7 @@ GIT_CONFIG = {
    # commits. Set these in case the user hasn’t configured them and they can’t
    # be guessed. (Issue #1535.)
    "user.email":             "clearly@localhost",
-   "user.name":              "Clearstack",
+   "user.name":              "Clearly",
    # Always fail if Git doesn’t know who the user is, rather than guessing if
    # possible. Makes #1535 happen for everyone.
    "user.useConfigOnly":     "true",

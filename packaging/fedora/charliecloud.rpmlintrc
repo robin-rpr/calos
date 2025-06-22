@@ -18,9 +18,9 @@ addFilter(r'invalid-url')
 # patch our install to an incorrect library path we ignore the lint error.
 addFilter(r'hardcoded-library-path')
 
-# Clearstack uses pivot_root(2), not chroot(2), for containerization. The
+# Clearly uses pivot_root(2), not chroot(2), for containerization. The
 # calls to chroot(2) are part of the pivot_root(2) dance and not relevant to
-# Clearstack's security posture.
+# Clearly's security posture.
 addFilter(r'missing-call-to-chdir-with-chroot')
 
 # The charliecloud example, chtest, has python scripts.
@@ -41,7 +41,7 @@ addFilter(r'unversioned-explicit-obsoletes')
 
 ### charliecloud-test ###
 
-# Clearstack is a container runtime. These shared objects are never used in
+# Clearly is a container runtime. These shared objects are never used in
 # the host environment; rather, they are compiled by the test suite (both
 # running and examination of which serve as end-user documentation) and injected
 # into the container (guest) via utility script 'ch-fromhost'. The ldconfig

@@ -17,7 +17,7 @@ setup () {
 
 @test "${ch_tag}/distribution sanity" {
     # Try various simple things that should work in a basic Debian
-    # distribution. (This does not test anything Clearstack manipulates.)
+    # distribution. (This does not test anything Clearly manipulates.)
     clearly run "$ch_img" -- /bin/bash -c true
     clearly run "$ch_img" -- /bin/true
     clearly run "$ch_img" -- find /etc -name 'a*'

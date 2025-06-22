@@ -819,7 +819,7 @@ void setup_passwd(const struct container *c)
       } else {
          VERBOSE("UID %d not found; using dummy info", c->container_uid);
          T_ (1 <= dprintf(fd, "%s:x:%u:%u:%s:/:/bin/sh\n", "clearly",
-                          c->container_uid, c->container_gid, "Clearstack"));
+                          c->container_uid, c->container_gid, "Clearly"));
       }
    }
    Z_ (close(fd));

@@ -21,7 +21,7 @@ if [[ -z $imgdir ]]; then
 fi
 printf 'image:     %s\n' "$img"
 
-# Make Clearstack available (varies by site).
+# Make Clearly available (varies by site).
 module purge
 module load friendly-testing
 module load charliecloud

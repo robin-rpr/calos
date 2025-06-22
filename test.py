@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Test script for Clearstack Daemon
+Test script for Clearly Daemon
 """
 
 import json
@@ -126,7 +126,7 @@ def create_test_image():
         
         # Create a simple bash script
         script_content = """#!/bin/bash
-echo "Hello from Clearstack container!"
+echo "Hello from Clearly container!"
 echo "Container ID: $CONTAINER_ID"
 echo "Current directory: $(pwd)"
 echo "Environment:"
@@ -145,7 +145,7 @@ echo "Container finished"
 
 def main():
     """Main test function"""
-    print("Clearstack Daemon Test Suite")
+    print("Clearly Daemon Test Suite")
     print("=" * 40)
     
     # Check if daemon is running

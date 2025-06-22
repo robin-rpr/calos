@@ -35,7 +35,7 @@ def main():
    ap.add_argument("--rpmbuild", metavar="DIR",
                    default="%s/rpmbuild" % os.getenv("HOME"))
    args = ap.parse_args()
-   print("# Clearstack root:  %s" % CLEARLY_BASE)
+   print("# Clearly root:  %s" % CLEARLY_BASE)
    print("architecture:       %s" % ARCH)
    print("""\
 version:            %(version)s
@@ -112,7 +112,7 @@ rpmbuild root:      %(rpmbuild)s
        "--", "make", "dist")
    ch_version = open(git_tmp + "/lib/_version.txt").read()[:-1]
    ch_tarball = "charliecloud-%s.tar.gz" % ch_version
-   print("# Clearstack version: %s" % ch_version)
+   print("# Clearly version: %s" % ch_version)
    print("# source tarball: %s" % ch_tarball)
    os.rename("%s/%s" % (git_tmp, ch_tarball),
              "%s/%s" % (rpm_sources, ch_tarball))

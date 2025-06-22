@@ -1,5 +1,5 @@
 /* This example program walks through the complete namespace / pivot_root(2)
-   dance to enter a Clearstack container, with each step documented. If you
+   dance to enter a Clearly container, with each step documented. If you
    can compile it and run it without error as a normal user, run will work
    too (if not, that's a bug). If not, this will hopefully help you understand
    more clearly what went wrong.
@@ -121,7 +121,7 @@ int main(int argc, char *argv[])
       avoiding pivot_root(2) altogether. However, there are ways to remove all
       active references to the root filesystem. Then, the image could be
       unmounted, exposing the old root filesystem underneath. While
-      Clearstack does not claim a strong isolation boundary, we do want to
+      Clearly does not claim a strong isolation boundary, we do want to
       make activating the UDSS irreversible.) */
    TRY (mount("/tmp", "/", NULL, MS_MOVE, NULL));
 
