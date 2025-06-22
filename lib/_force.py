@@ -1,7 +1,7 @@
 import re
 
-import charliecloud as ch
-import filesystem as fs
+import _clearly as clearly
+import _filesystem as filesystem
 
 
 ## Globals ##
@@ -298,10 +298,10 @@ def force_cmd_parse(text):
    args = re.split(r"(?<!\\)(?:\\\\)*,", text)
    # 2. Reject list of length < 2.
    if (len(args) < 2):
-      ch.FATAL("--force-cmd: need at least one ARG")
+      clearly.FATAL("--force-cmd: need at least one ARG")
    # 3. Reject list with empty first item.
    if (args[0] == ""):
-      ch.FATAL("--force-cmd: CMD can’t be empty")
+      clearly.FATAL("--force-cmd: CMD can’t be empty")
    # 4. Replace “\x” for any char x ⇒ literal “x”.
    args = [re.sub(r"\\(.)", r"\1", a) for a in args]
    return (args[0], args[1:])
@@ -309,11 +309,11 @@ def force_cmd_parse(text):
 def new(image_path, force_mode, force_cmds):
    """Return a new forcer object appropriate for image at image_path in mode
       force_mode. If no such object can be found, exit with error."""
-   if (force_mode == ch.Force_Mode.NONE):
+   if (force_mode == clearly.Force_Mode.NONE):
       return Nope()
-   elif (force_mode == ch.Force_Mode.FAKEROOT):
+   elif (force_mode == clearly.Force_Mode.FAKEROOT):
       return Fakeroot(image_path)
-   elif (force_mode == ch.Force_Mode.SECCOMP):
+   elif (force_mode == clearly.Force_Mode.SECCOMP):
       return Seccomp(force_cmds)
    else:
       assert False, "unreachable code reached"
@@ -341,7 +341,7 @@ class Base:
       args_new = self.run_modified_(args, env)
       if (args_new != args):
          self.run_modified_ct += 1
-         ch.INFO("--force: RUN: new command: %s" % args_new)
+         clearly.INFO("--force: RUN: new command: %s" % args_new)
       return args_new
 
    def run_modified_(self, args, env):
@@ -362,33 +362,33 @@ class Fakeroot(Base):
       super().__init__()
       match = False
       for (tag, cfg) in FAKEROOT_DEFAULT_CONFIGS.items():
-         ch.VERBOSE("workarounds: testing config: %s" % tag)
-         file_path = fs.Path("%s/%s" % (image_path, cfg["match"][0]))
+         clearly.VERBOSE("workarounds: testing config: %s" % tag)
+         file_path = filesystem.Path("%s/%s" % (image_path, cfg["match"][0]))
          if (file_path.is_file() and file_path.grep_p(cfg["match"][1])):
             match = True
             break
       if (not match):
-         ch.FATAL("--force=fakeroot not available (no suitable config found)")
+         clearly.FATAL("--force=fakeroot not available (no suitable config found)")
       self.image_path = image_path
       self.tag = tag
       for i in ("name", "init", "cmds", "each"):
          setattr(self, i, cfg[i])
       self.install_done = False
-      ch.INFO("--force=fakeroot: will use: %s: %s" % (self.tag, self.name))
+      clearly.INFO("--force=fakeroot: will use: %s: %s" % (self.tag, self.name))
 
    def install(self, img_path, env):
       for (i, (test_cmd, init_cmd)) in enumerate(self.init, 1):
-         ch.INFO("--force=fakeroot: init step %s: checking: $ %s"
+         clearly.INFO("--force=fakeroot: init step %s: checking: $ %s"
                  % (i, test_cmd))
          args = ["/bin/sh", "-c", test_cmd]
-         exit_code = ch.run_modify(img_path, args, env, fail_ok=True)
+         exit_code = clearly.run_modify(img_path, args, env, fail_ok=True)
          if (exit_code == 0):
-            ch.INFO("--force=fakeroot: init step %d: exit %d, step not needed"
+            clearly.INFO("--force=fakeroot: init step %d: exit %d, step not needed"
                     % (i, exit_code))
          else:
-            ch.INFO("--force=fakeroot: init step %d: $ %s" % (i, init_cmd))
+            clearly.INFO("--force=fakeroot: init step %d: $ %s" % (i, init_cmd))
             args = ["/bin/sh", "-c", init_cmd]
-            ch.run_modify(img_path, args, env)
+            clearly.run_modify(img_path, args, env)
 
    def needs_inject(self, args):
       """Return True if the command in args seems to need fakeroot injection,
@@ -401,10 +401,10 @@ class Fakeroot(Base):
 
    def run_modified_(self, args, env):
       if (not self.needs_inject(args)):
-         ch.VERBOSE("--force=fakeroot: RUN: doesn’t need injection")
+         clearly.VERBOSE("--force=fakeroot: RUN: doesn’t need injection")
          return args.copy()
       if (self.install_done):
-         ch.VERBOSE("--force=fakeroot: already installed")
+         clearly.VERBOSE("--force=fakeroot: already installed")
       else:
          self.install(self.image_path, env)
          self.install_done = True
@@ -445,7 +445,7 @@ class Seccomp(Base):
                #   RUN ["/bin/sh", "-c", "apt install -y foo"]
                #
                # Note this is a no-op if the command doesn’t contain cmd.
-               str_inject = ch.argv_to_string(args_inject)
+               str_inject = clearly.argv_to_string(args_inject)
                args_new.append(re.sub(r"\b(%s)(\s)" % cmd,
                                       r"\1 %s\2" % str_inject, word))
          args = args_new

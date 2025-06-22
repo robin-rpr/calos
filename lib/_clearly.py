@@ -29,9 +29,9 @@ import warnings
 depfails = []  # 👻
 
 
-import filesystem as fs
-import registry as rg
-import version
+import _filesystem as filesystem
+import _registry as registry
+import _version as version
 
 
 ## Enums ##
@@ -140,15 +140,11 @@ RSYNC_MIN = (3,1,0)
 
 # Compatibility link. Sometimes we load pickled data from when Path was
 # defined in this file. This alias lets us still load such pickles.
-Path = fs.Path
+Path = filesystem.Path
 
 # Active architecture (both using registry vocabulary)
 arch = None       # requested by user
 arch_host = None  # of host
-
-# FIXME: currently set in clearly image :P
-CH_BIN = None
-CH_RUN = None
 
 # Logging; set using init() below.
 log_level = Log_Level(0)  # Verbosity level.
@@ -535,7 +531,7 @@ def bytes_hash(data):
 def run_modify(img, args, env, workdir="/", binds=[], run_args=[],
                   fail_ok=False):
    # Note: If you update these arguments, update the clearly image(1) man page too.
-   args = (  [CH_BIN + "/run"]
+   args = (  [LIBEXECDIR + "/run"]
            + run_args
            + ["-w", "-u0", "-g0", "--no-passwd", "--cd", workdir, "--unsafe"]
            + sum([["-b", i] for i in binds], [])
@@ -702,8 +698,8 @@ def init(cli):
    signal.signal(signal.SIGTERM, sigterm)
    # storage directory
    global storage
-   storage = fs.Storage(cli.storage)
-   fs.storage_lock = not cli.no_lock
+   storage = filesystem.Storage(cli.storage)
+   filesystem.storage_lock = not cli.no_lock
    # architecture
    global arch, arch_host
    assert (cli.arch is not None)
@@ -721,14 +717,14 @@ def init(cli):
    dlcache_p = (dlcache == Download_Mode.ENABLED)
    # registry authentication
    if (cli.func.__module__ == "push"):
-      rg.auth_p = True
+      registry.auth_p = True
    elif (cli.auth):
-      rg.auth_p = True
+      registry.auth_p = True
    elif ("CH_IMAGE_AUTH" in os.environ):
-      rg.auth_p = (os.environ["CH_IMAGE_AUTH"] == "yes")
+      registry.auth_p = (os.environ["CH_IMAGE_AUTH"] == "yes")
    else:
-      rg.auth_p = False
-   VERBOSE("registry authentication: %s" % rg.auth_p)
+      registry.auth_p = False
+   VERBOSE("registry authentication: %s" % registry.auth_p)
    # Red Hat Python warns about tar bugs, citing CVE-2007-4559.
    # We mitigate this already, so suppress the noise. (#1818)
    warnings.filterwarnings("ignore", module=r"^tarfile$",
@@ -740,8 +736,8 @@ def init(cli):
    password_many = cli.password_many
    profiling = cli.profile
    if (cli.tls_no_verify):
-      rg.tls_verify = False
-      rpu = rg.requests.packages.urllib3
+      registry.tls_verify = False
+      rpu = registry.requests.packages.urllib3
       rpu.disable_warnings(rpu.exceptions.InsecureRequestWarning)
 
 def kill_blocking(pid, timeout=10):
@@ -832,7 +828,7 @@ def profile_dump():
    "If profiling, dump the profile data."
    if (profiling):
       INFO("writing profile files ...")
-      fp = fs.Path("/tmp/chofile.txt").open("wt")
+      fp = filesystem.Path("/tmp/chofile.txt").open("wt")
       ps = pstats.Stats(profile, stream=fp)
       ps.sort_stats(pstats.SortKey.CUMULATIVE)
       ps.dump_stats("/tmp/chofile.p")
@@ -950,9 +946,9 @@ def walk(*args, **kwargs):
       these being lists rather than generators, see use of ch.walk() in
       Copy_G.copy_src_dir()."""
    for (dirpath, dirnames, filenames) in os.walk(*args, **kwargs):
-      yield (fs.Path(dirpath),
-             [fs.Path(dirname) for dirname in dirnames],
-             [fs.Path(filename) for filename in filenames])
+      yield (filesystem.Path(dirpath),
+             [filesystem.Path(dirname) for dirname in dirnames],
+             [filesystem.Path(filename) for filename in filenames])
 
 def warnings_dump():
    if (len(warns) > 0):

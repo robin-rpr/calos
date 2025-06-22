@@ -11,15 +11,17 @@ import sys
 import time
 import types
 
+# Add the lib directory to Python path for imports
+# LIBDIR is defined by Cython compilation
 sys.path.insert(0, LIBDIR)
-import charliecloud as clearly
-import filesystem
-import misc
+
+# Import lib modules
+import _clearly as clearly
+import _filesystem as filesystem
+import _misc as misc
 
 
 BUNDLE_PREFIX = ["/tmp", "/var/tmp"]
-CH_BIN = os.path.dirname(os.path.abspath(
-           inspect.getframeinfo(inspect.currentframe()).filename))
 OCI_VERSION_MIN = "1.0.1"    # inclusive
 OCI_VERSION_MAX = "1.0.999"  # inclusive
 
@@ -231,7 +233,7 @@ def op_start():
          print(line, file=fp)
 
    # Build command line.
-   cmd = CH_BIN + "/run"
+   cmd = LIBEXECDIR + "/run"
    ca = [cmd,
          "--cd", c["process"]["cwd"],
          "--no-passwd",

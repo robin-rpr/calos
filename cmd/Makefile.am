@@ -25,33 +25,38 @@ cmd_SCRIPTS = convert \
                    ch-fromhost \
                    ch-test
 
-# Build Python scripts as C extensions using Cython
-cmd_PROGRAMS += image daemon run-oci
+# Python modules to compile via Cython
+cython_modules = image daemon run-oci
 
+# Generated file lists
+cython_c_files = $(cython_modules:%=%.c)
+
+# Build Python scripts as C extensions using Cython
+cmd_PROGRAMS += $(cython_modules)
+
+# Set sources for all Cython programs
 image_SOURCES = image.c
-run_oci_SOURCES = run-oci.c
 daemon_SOURCES = daemon.c
+run_oci_SOURCES = run-oci.c
 run_oci_CFLAGS = -Wno-unused-function
 
 # Cython compilation rules
-image.c: image.py
-	rm -f $@
-	cython image.py -E LIBDIR="$(pkglibdir)" --embed -3 -o image.c --module-name image
-	chmod +rx,-w $@  # respects umask
+SUFFIXES = .py .c
 
-run-oci.c: run-oci.py
+.py.c:
 	rm -f $@
-	cython run-oci.py -E LIBDIR="$(pkglibdir)" --embed -3 -o run-oci.c --module-name run_oci
-	chmod +rx,-w $@  # respects umask
-
-daemon.c: daemon.py
-	rm -f $@
-	cython daemon.py -E LIBDIR="$(pkglibdir)" --embed -3 -o daemon.c --module-name daemon
+	cython $< \
+		-E LIBDIR="$(pkglibdir)" \
+		-E LIBEXECDIR="$(pkglibexecdir)" \
+		--embed \
+		-3 \
+		-o $@ \
+		--module-name $(subst -,_,$(basename $<))
 	chmod +rx,-w $@  # respects umask
 
 # Link with Python libraries
 image_LDADD = $(PYTHON_LIB)
-run_oci_LDADD = $(PYTHON_LIB)
 daemon_LDADD = $(PYTHON_LIB)
+run_oci_LDADD = $(PYTHON_LIB)
 
-CLEANFILES = image.c daemon.c run-oci.c
+CLEANFILES = $(cython_c_files)

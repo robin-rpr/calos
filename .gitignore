@@ -1,8 +1,6 @@
 # Derived files (no Autotools stuff).
 *.o
 a.out
-/lib/*.c
-/lib/*.so
 /bin/clearly
 /cmd/checkns
 /cmd/run
@@ -12,6 +10,12 @@ a.out
 /cmd/image.c
 /cmd/run-oci.c
 /cmd/daemon.c
+/lib/_*.c
+/lib/_*.so
+/lib/_contributors.bash
+/lib/_version.py
+/lib/_version.sh
+/lib/_version.txt
 /examples/copy/dirCa/symlink-to-dirCb
 /examples/copy/dirD/symlink-to-fileDa
 /examples/copy/dirEa/symlink-to-dirEb
@@ -26,10 +30,6 @@ a.out
 /doc/doctrees/
 /doc/html/
 /doc/man/*.[17]
-/lib/contributors.bash
-/lib/version.py
-/lib/version.sh
-/lib/version.txt
 /test/build/30_doctest-auto.bats
 /test/force-auto.bats
 /test/docs-sane

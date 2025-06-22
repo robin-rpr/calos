@@ -35,7 +35,7 @@
 #      This is a bashism.
 
 ch_lib=$(cd "$(dirname "$0")" && pwd)/../../lib
-. "${ch_lib}/base.sh"
+. "${ch_lib}/_base.sh"
 
 set -e
 

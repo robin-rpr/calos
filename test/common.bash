@@ -345,7 +345,7 @@ ch_libexec=${ch_bin}/../../libexec
 ch_runfile=${ch_libexec}/run
 
 # Clearly version.
-ch_version=$("${ch_lib}/version.sh" 2>&1)
+ch_version=$("${ch_lib}/_version.sh" 2>&1)
 ch_version_base=$(echo "$ch_version" | sed -E 's/~.+//')
 ch_version_docker=$(echo "$ch_version" | tr '~+' '--')
 

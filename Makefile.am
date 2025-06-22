@@ -14,7 +14,7 @@ install-exec-hook:
 	         $(DESTDIR)@libexecdir@/clearly/ch-test \
 			 $(DESTDIR)@datadir@/clearly/common.bash \
 	         $(DESTDIR)@datadir@/clearly/doctest \
-			 $(DESTDIR)@libdir@/clearly/base.sh; \
+			 $(DESTDIR)@libdir@/clearly/_base.sh; \
 	do \
 	  if [ -e $$i ]; then \
 	    sed -Ei -e 's|^(ch_lib ?= ?).+/lib"?$$|\1"@libdir@/clearly"|' \

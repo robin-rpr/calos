@@ -139,24 +139,20 @@ ln -s "${sphinxdir}/js"    %{buildroot}%{_pkgdocdir}/html/_static/js
 %{_mandir}/man1/run.1*
 %{_mandir}/man1/run-oci.1*
 %{_mandir}/man7/charliecloud.7*
-%{_prefix}/lib/%{name}/base.sh
-%{_prefix}/lib/%{name}/contributors.bash
-%{_prefix}/lib/%{name}/version.sh
-%{_prefix}/lib/%{name}/version.txt
+%{_prefix}/lib/%{name}/_base.sh
+%{_prefix}/lib/%{name}/_contributors.bash
+%{_prefix}/lib/%{name}/_version.sh
+%{_prefix}/lib/%{name}/_version.txt
 
 %files builder
 %{_bindir}/image
 %{_mandir}/man1/image.1*
-%{_prefix}/lib/%{name}/build.py
-%{_prefix}/lib/%{name}/charliecloud.py
-%{_prefix}/lib/%{name}/fakeroot.py
-%{_prefix}/lib/%{name}/lark
-%{_prefix}/lib/%{name}/lark-1.1.8.dist-info
-%{_prefix}/lib/%{name}/lark-stubs
-%{_prefix}/lib/%{name}/misc.py
-%{_prefix}/lib/%{name}/pull.py
-%{_prefix}/lib/%{name}/push.py
-%{_prefix}/lib/%{name}/version.py
+%{_prefix}/lib/%{name}/_build.py
+%{_prefix}/lib/%{name}/_clearly.py
+%{_prefix}/lib/%{name}/_misc.py
+%{_prefix}/lib/%{name}/_pull.py
+%{_prefix}/lib/%{name}/_push.py
+%{_prefix}/lib/%{name}/_version.py
 %{?el7:%{_prefix}/lib/%{name}/__pycache__}
 
 %files doc

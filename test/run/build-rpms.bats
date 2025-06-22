@@ -38,7 +38,7 @@ setup () {
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = *'/usr/bin/ch-run'* ]]
-    [[ $output = *'/usr/lib/charliecloud/base.sh'* ]]
+    [[ $output = *'/usr/lib/charliecloud/_base.sh'* ]]
     [[ $output = *'/usr/share/man/man7/charliecloud.7.gz'* ]]
     run ch-run "$img" -- rpm -ql "charliecloud-builder"
     echo "$output"
@@ -114,7 +114,7 @@ setup () {
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = *'/usr/bin/ch-run'* ]]
-    [[ $output = *'/usr/lib/charliecloud/base.sh'* ]]
+    [[ $output = *'/usr/lib/charliecloud/_base.sh'* ]]
     [[ $output = *'/usr/share/man/man7/charliecloud.7.gz'* ]]
     run ch-run "$img" -- rpm -ql "charliecloud-builder"
     echo "$output"

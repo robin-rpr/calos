@@ -37,8 +37,8 @@ if (module_name in ("-h", "--help", "-?")):
 
 ch_lib = os.path.dirname(os.path.abspath(__file__)) + "/../lib"
 sys.path.insert(0, ch_lib)
-import charliecloud as ch  # avoid circular import problems
-print("imported %s from %s" % (ch.__name__, ch.__file__))
+import _clearly as clearly  # avoid circular import problems
+print("imported %s from %s" % (clearly.__name__, clearly.__file__))
 module = importlib.import_module(module_name)
 print("imported %s from %s" % (module.__name__, module.__file__))
 

@@ -6,7 +6,7 @@ ch_bin="$(cd "$(dirname "$0")" && pwd)"
 ch_base=${ch_bin%/*}
 
 ch_lib=${ch_bin}/../../lib
-. "${ch_lib}/version.sh"
+. "${ch_lib}/_version.sh"
 
 
 # Log level. Incremented by “--verbose” and decremented by “--quiet”, as in the

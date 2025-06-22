@@ -18,7 +18,6 @@ import sys
 import time
 
 CH_BASE = os.path.abspath(os.path.dirname(__file__) + "/../..")
-CH_RUN  = [CH_BASE + "/cmd/run"]
 PACKAGES = ["charliecloud",
             "charliecloud-builder",
             "charliecloud-debuginfo",
@@ -81,7 +80,7 @@ rpmbuild root:      %(rpmbuild)s
          if (x.errno != errno.EEXIST): raise
 
    # Determine distro.
-   rpms_dist = cmd_out(CH_RUN, args.image,
+   rpms_dist = cmd_out(CH_BASE + "/cmd/run", args.image,
                       '--', 'rpmbuild', '--eval', '%{?dist}')
    rpms_dist = rpms_dist.split('.')[-1]
 
@@ -103,15 +102,15 @@ rpmbuild root:      %(rpmbuild)s
    # which is not true. The warning further claims that “*caching* wheels has
    # been disabled” (emphasis added), but in fact wheels are disabled
    # entirely, so autogen.sh fails with “embedded Lark is broken”. Thanks pip!
-   cmd(CH_RUN, "-b", "%s:/mnt/0" % git_tmp, "-b", "%s:/root" % rpm_pips,
+   cmd(CH_BASE + "/cmd/run", "-b", "%s:/mnt/0" % git_tmp, "-b", "%s:/root" % rpm_pips,
                "-c", "/mnt/0", args.image, "--", "./autogen.sh")
-   cmd(CH_RUN, "-b", "%s:/mnt/0" % git_tmp, "-c", "/mnt/0", args.image,
+   cmd(CH_BASE + "/cmd/run", "-b", "%s:/mnt/0" % git_tmp, "-c", "/mnt/0", args.image,
        "--", "./configure")
-   cmd(CH_RUN, "-b", "%s:/mnt/0" % git_tmp, "-c", "/mnt/0", args.image,
+   cmd(CH_BASE + "/cmd/run", "-b", "%s:/mnt/0" % git_tmp, "-c", "/mnt/0", args.image,
        "--", "make")
-   cmd(CH_RUN, "-b", "%s:/mnt/0" % git_tmp, "-c", "/mnt/0", args.image,
+   cmd(CH_BASE + "/cmd/run", "-b", "%s:/mnt/0" % git_tmp, "-c", "/mnt/0", args.image,
        "--", "make", "dist")
-   ch_version = open(git_tmp + "/lib/version.txt").read()[:-1]
+   ch_version = open(git_tmp + "/lib/_version.txt").read()[:-1]
    ch_tarball = "charliecloud-%s.tar.gz" % ch_version
    print("# Clearstack version: %s" % ch_version)
    print("# source tarball: %s" % ch_tarball)

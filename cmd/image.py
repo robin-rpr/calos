@@ -7,32 +7,22 @@ import inspect
 import os.path
 import sys
 
+# Add the lib directory to Python path for imports
+# LIBDIR is defined by Cython compilation
 sys.path.insert(0, LIBDIR)
-import charliecloud as clearly
-import build
-import build_cache
-import filesystem
-import misc
-import modify
-import pull
-import push
 
-
-## Constants ##
-
-# FIXME: It's currently easy to get the run path from another script, but
-# hard from something in lib. So, we set it here for now.
-clearly.CH_BIN = os.path.dirname(os.path.abspath(
-                 inspect.getframeinfo(inspect.currentframe()).filename))
-clearly.CH_RUN = clearly.CH_BIN + "/run"
-
+# Import lib modules
+import _clearly as clearly
+import _build_cache as build_cache
+import _filesystem as filesystem
+import _build as build
+import _misc as misc
+import _pull as pull
+import _push as push
 
 ## Main ##
 
 def main():
-
-   if (not os.path.exists(clearly.CH_RUN)):
-      clearly.depfails.append(("missing", clearly.CH_RUN))
 
    ap = clearly.ArgumentParser(
       description="Build and manage images; completely unprivileged.",
@@ -277,34 +267,6 @@ def main():
                    help=argparse.SUPPRESS)
    sp.add_argument("image_ref", metavar="IMAGE_REF", nargs="?",
                    help="print details of this image only")
-
-   # modify
-   sp = ap.add_parser("modify", "foo")
-   add_opts(sp, modify.main, deps_check=True, stog_init=True)
-   sp.add_argument("-c", metavar="CMD", action="append", default=[], nargs=1,
-                   help="Run CMD as though specified by a RUN instruction. Can be repeated.")
-   sp.add_argument("-i", "--interactive", action="store_true",
-                   help="modify in interactive mode, even if stdin is not a TTY")
-   sp.add_argument("-S", "--shell", metavar="shell", default="/bin/sh",
-                   help="use SHELL instead of the default /bin/sh")
-   sp.add_argument("image_ref", metavar="IMAGE_REF", help="image to modify")
-   sp.add_argument("out_image", metavar="OUT_IMAGE", help="destination of modified image")
-   sp.add_argument("script", metavar="SCRIPT", help="foo", nargs='?')
-   # Options "modify" shares with "build". Note that while we could abstract
-   # this out to avoid repeated lines, as we do for "common_opts", we've decided
-   # that the tradeoff in code readability wouldn't be worth it.
-   sp.add_argument("-b", "--bind", metavar="SRC[:DST]",
-                   action="append", default=[],
-                   help="mount SRC at guest DST (default: same as SRC)")
-   sp.add_argument("--build-arg", metavar="ARG[=VAL]",
-                   action="append", default=[],
-                   help="set build-time variable ARG to VAL, or $ARG if no VAL")
-   sp.add_argument("--force", metavar="MODE", nargs="?", default="seccomp",
-                   type=clearly.Force_Mode, const="seccomp",
-                   help="inject unprivileged build workarounds")
-   sp.add_argument("--force-cmd", metavar="CMD,ARG1[,ARG2...]",
-                   action="append", default=[],
-                   help="command arg(s) to add under --force=seccomp")
 
    # pull
    sp = ap.add_parser("pull",

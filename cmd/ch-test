@@ -35,11 +35,11 @@ warning () {
 ### Setup
 
 ch_lib=$(cd "$(dirname "$0")" && pwd)/../../lib
-if [[ ! -f ${ch_lib}/base.sh ]]; then
-    fatal "install or build problem: not found: ${ch_lib}/base.sh"
+if [[ ! -f ${ch_lib}/_base.sh ]]; then
+    fatal "install or build problem: not found: ${ch_lib}/_base.sh"
 fi
-. "${ch_lib}/base.sh"
-. "${ch_lib}/contributors.bash"
+. "${ch_lib}/_base.sh"
+. "${ch_lib}/_contributors.bash"
 export ch_bin
 export ch_lib
 

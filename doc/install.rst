@@ -19,12 +19,29 @@ no elevated privileges, provided that user namespaces have been enabled.
 Build and install from source
 =============================
 
-Using release tarball
----------------------
+System dependencies
+-------------------
+
+When you are planning on building with all features enabled from source, you
+will need the following system dependencies installed on your system before
+continuing to build from source as described below:
+
+  * libseccomp-devel
+  * squashfuse-devel
+  * fuse3-devel
+  * python3-devel
+  * python3-pip
+  * python3-wheel
+  * python3-cython
+  * bats
+  * git
+
+Building from source
+--------------------
 
 We provide `tarballs <https://github.com/hpc/charliecloud/releases>`_ with a
-fairly standard :code:`configure` script. Thus, build and install can be as
-simple as::
+fairly standard :code:`configure` script. You can also clone the repository
+and build from there. Thus, build and install can be as simple as::
 
   $ ./configure
   $ make
@@ -42,31 +59,6 @@ If you don’t have sudo, you can:
 :code:`configure` will provide a detailed report on what will be built and
 installed, along with what dependencies are present and missing.
 
-From Git checkout
------------------
-
-If you obtain the source code with Git, you must build :code:`configure` and
-friends yourself. To do so, you will need the following. The versions in most
-common distributions should be sufficient.
-
-  * Automake
-  * Autoconf
-  * Python’s :code:`pip3` package installer and its :code:`wheel` extension,
-    and the :code:`Cython` which requires the :code:`python3-devel` package.
-  * Bats, which is used for testing.
-
-Create :code:`configure` with::
-
-  $ ./autogen.sh
-
-This script has a few options; see its :code:`--help`.
-
-Note that Charliecloud disables Automake’s "maintainer mode" by default, so
-the build system (Makefiles, :code:`configure`, etc.) will never automatically
-be rebuilt. You must run :code:`autogen.sh` manually if you need this. You can
-also re-enable maintainer mode with :code:`configure` if you like, though this
-is not a tested configuration.
-
 :code:`configure` options
 -------------------------
 
@@ -82,7 +74,7 @@ can exclude some features with:
   ========================== =======================================================
   option                     don’t build/install
   ========================== =======================================================
-  :code:`--disable-ch-image` :code:`ch-image` unprivileged builder & image manager
+  :code:`--disable-image`    :code:`image` unprivileged builder & image manager
   :code:`--disable-html`     HTML documentation
   :code:`--disable-man`      man pages
   :code:`--disable-syslog`   logging to syslog (see individual man pages)

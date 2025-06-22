@@ -7,12 +7,13 @@ import os
 import os.path
 import sys
 
-import charliecloud as ch
-import build_cache as bu
-import filesystem as fs
-import image as im
-import pull
-import version
+import _clearly as clearly
+import _build_cache as build_cache
+import _filesystem as filesystem
+import _image as image
+import _reference as reference
+import _pull as pull
+import _version as version
 import lark
 
 
@@ -26,8 +27,8 @@ class Action_Exit(argparse.Action):
 class Dependencies(Action_Exit):
 
    def __call__(self, ap, cli, *args, **kwargs):
-      # ch.init() not yet called, so must get verbosity from arguments.
-      ch.dependencies_check()
+      # clearly.init() not yet called, so must get verbosity from arguments.
+      clearly.dependencies_check()
       if (cli.verbose >= 1):
          print("lark path: %s" % os.path.normpath(inspect.getfile(lark)))
       sys.exit(0)
@@ -45,107 +46,107 @@ class Version(Action_Exit):
 # because caller manages that.
 
 def build_cache(cli):
-   if (cli.bucache == ch.Build_Mode.DISABLED):
-      ch.FATAL("build-cache subcommand invalid with build cache disabled")
+   if (cli.bucache == clearly.Build_Mode.DISABLED):
+      clearly.FATAL("build-cache subcommand invalid with build cache disabled")
    if (cli.reset):
-      bu.cache.reset()
+      build_cache.cache.reset()
    if (cli.gc):
-      bu.cache.garbageinate()
+      build_cache.cache.garbageinate()
    if (cli.tree):
-      bu.cache.tree_print()
+      build_cache.cache.tree_print()
    if (cli.dot):
-      bu.cache.tree_dot()
-   bu.cache.summary_print()
+      build_cache.cache.tree_dot()
+   build_cache.cache.summary_print()
 
 def delete(cli):
    fail_ct = 0
    for ref in cli.image_ref:
       delete_ct = 0
-      for img in itertools.chain(im.Image.glob(ref),
-                                 im.Image.glob(ref + "_stage[0-9]*")):
-         bu.cache.unpack_delete(img)
-         to_delete = im.Reference.ref_to_pathstr(str(img))
-         bu.cache.branch_delete(to_delete)
+      for img in itertools.chain(image.Image.glob(ref),
+                                 image.Image.glob(ref + "_stage[0-9]*")):
+         build_cache.cache.unpack_delete(img)
+         to_delete = reference.Reference.ref_to_pathstr(str(img))
+         build_cache.cache.branch_delete(to_delete)
          delete_ct += 1
       if (delete_ct == 0):
          fail_ct += 1
-         ch.ERROR("no matching image, can’t delete: %s" % ref)
-   bu.cache.worktrees_fix()
+         clearly.ERROR("no matching image, can’t delete: %s" % ref)
+   build_cache.cache.worktrees_fix()
    if (fail_ct > 0):
-      ch.FATAL("unable to delete %d invalid image(s)" % fail_ct)
+      clearly.FATAL("unable to delete %d invalid image(s)" % fail_ct)
 
 def gestalt_bucache(cli):
-   bu.have_deps()
+   build_cache.have_deps()
 
 def gestalt_bucache_dot(cli):
-   bu.have_deps()
-   bu.have_dot()
+   build_cache.have_deps()
+   build_cache.have_dot()
 
 def gestalt_logging(cli):
-   ch.TRACE("trace")
-   ch.DEBUG("debug")
-   ch.VERBOSE("verbose")
-   ch.INFO("info")
-   ch.WARNING("warning")
-   ch.ERROR("error")
+   clearly.TRACE("trace")
+   clearly.DEBUG("debug")
+   clearly.VERBOSE("verbose")
+   clearly.INFO("info")
+   clearly.WARNING("warning")
+   clearly.ERROR("error")
    if (cli.fail):
-      ch.FATAL("the program failed inexplicably")
+      clearly.FATAL("the program failed inexplicably")
 
 def gestalt_python_path(cli):
    print(sys.executable)
 
 def gestalt_storage_path(cli):
-   print(ch.storage.root)
+   print(clearly.storage.root)
 
 def import_(cli):
    if (not os.path.exists(cli.path)):
-      ch.FATAL("can’t copy: not found: %s" % cli.path)
-   if (ch.xattrs_save):
-      ch.WARNING("--xattrs unsupported by “clearly image import” (see FAQ)")
-   pathstr = im.Reference.ref_to_pathstr(cli.image_ref)
-   if (cli.bucache == ch.Build_Mode.ENABLED):
+      clearly.FATAL("can’t copy: not found: %s" % cli.path)
+   if (clearly.xattrs_save):
+      clearly.WARNING("--xattrs unsupported by “clearly image import” (see FAQ)")
+   pathstr = reference.Reference.ref_to_pathstr(cli.image_ref)
+   if (cli.bucache == clearly.Build_Mode.ENABLED):
       # Un-tag previously deleted branch, if it exists.
-      bu.cache.tag_delete(pathstr, fail_ok=True)
-   dst = im.Image(im.Reference(cli.image_ref))
-   ch.INFO("importing:    %s" % cli.path)
-   ch.INFO("destination:  %s" % dst)
+      build_cache.cache.tag_delete(pathstr, fail_ok=True)
+   dst = image.Image(reference.Reference(cli.image_ref))
+   clearly.INFO("importing:    %s" % cli.path)
+   clearly.INFO("destination:  %s" % dst)
    dst.unpack_clear()
    if (os.path.isdir(cli.path)):
       dst.copy_unpacked(cli.path)
    else:  # tarball, hopefully
       dst.unpack([cli.path])
-   bu.cache.adopt(dst)
+   build_cache.cache.adopt(dst)
    if (dst.metadata["history"] == []):
       dst.metadata["history"].append({ "empty_layer": False,
                                        "command":     "clearly image import"})
    dst.metadata_save()
-   ch.done_notify()
+   clearly.done_notify()
 
 def list_(cli):
    if (cli.undeletable):
       # list undeletable images
-      imgdir = ch.storage.build_cache // "refs/tags"
+      imgdir = clearly.storage.build_cache // "refs/tags"
    else:
       # list images
-      imgdir = ch.storage.unpack_base
+      imgdir = clearly.storage.unpack_base
    if (cli.image_ref is None):
       # list all images
-      if (not os.path.isdir(ch.storage.root)):
-         ch.FATAL("does not exist: %s" % ch.storage.root)
-      if (not ch.storage.valid_p):
-         ch.FATAL("not a storage directory: %s" % ch.storage.root)
+      if (not os.path.isdir(clearly.storage.root)):
+         clearly.FATAL("does not exist: %s" % clearly.storage.root)
+      if (not clearly.storage.valid_p):
+         clearly.FATAL("not a storage directory: %s" % clearly.storage.root)
       images = sorted(imgdir.listdir())
       if (len(images) >= 1):
          img_width = max(len(ref) for ref in images)
          for ref in images:
-            img = im.Image(im.Reference(fs.Path(ref).parts[-1]))
+            img = image.Image(reference.Reference(filesystem.Path(ref).parts[-1]))
             if cli.long:
                print("%-*s | %s" % (img_width, img, img.last_modified.ctime()))
             else:
                print(img)
    else:
       # list specified image
-      img = im.Image(im.Reference(cli.image_ref))
+      img = image.Image(reference.Reference(cli.image_ref))
       print("details of image:    %s" % img.ref)
       # present locally?
       if (not img.unpack_exist_p):
@@ -156,17 +157,17 @@ def list_(cli):
                                               img.last_modified.ctime())
       print("in local storage:    %s" % stored)
       # in cache?
-      (sid, commit) = bu.cache.find_image(img)
+      (sid, commit) = build_cache.cache.find_image(img)
       if (sid is None):
          cached = "no"
       else:
          cached = "yes (state ID %s, commit %s)" % (sid.short, commit[:7])
          if (os.path.exists(img.unpack_path)):
-            wdc = bu.cache.worktree_head(img)
+            wdc = build_cache.cache.worktree_head(img)
             if (wdc is None):
-               ch.WARNING("stored image not connected to build cache")
+               clearly.WARNING("stored image not connected to build cache")
             elif (wdc != commit):
-               ch.WARNING("stored image doesn’t match build cache: %s" % wdc)
+               clearly.WARNING("stored image doesn’t match build cache: %s" % wdc)
       print("in build cache:      %s" % cached)
       # present remotely?
       print("full remote ref:     %s" % img.ref.canonical)
@@ -186,32 +187,32 @@ def list_(cli):
             # handles case where arch_keys is empty, e.g.
             # mcr.microsoft.com/windows:20H2.
             arch_avail = [None]
-      except ch.Image_Unavailable_Error:
+      except clearly.Image_Unavailable_Error:
          remote = "no (or you are not authorized)"
          arch_aware = "n/a"
          arch_avail = ["n/a"]
-      except ch.No_Fatman_Error:
+      except clearly.No_Fatman_Error:
          remote = "yes"
          arch_aware = "no"
          arch_avail = ["unknown"]
       pullet.done()
       print("available remotely:  %s" % remote)
       print("remote arch-aware:   %s" % arch_aware)
-      print("host architecture:   %s" % ch.arch_host)
+      print("host architecture:   %s" % clearly.arch_host)
       print("archs available:     %s" % arch_avail[0])
       for arch in arch_avail[1:]:
          print((" " * 21) + arch)
 
 def reset(cli):
-   ch.storage.reset()
+   clearly.storage.reset()
 
 def undelete(cli):
-   if (cli.bucache != ch.Build_Mode.ENABLED):
-      ch.FATAL("only available when cache is enabled")
-   img = im.Image(im.Reference(cli.image_ref))
+   if (cli.bucache != clearly.Build_Mode.ENABLED):
+      clearly.FATAL("only available when cache is enabled")
+   img = image.Image(reference.Reference(cli.image_ref))
    if (img.unpack_exist_p):
-      ch.FATAL("image exists; will not overwrite")
-   (_, git_hash) = bu.cache.find_deleted_image(img)
+      clearly.FATAL("image exists; will not overwrite")
+   (_, git_hash) = build_cache.cache.find_deleted_image(img)
    if (git_hash is None):
-      ch.FATAL("image not in cache")
-   bu.cache.checkout_ready(img, git_hash)
+      clearly.FATAL("image not in cache")
+   build_cache.cache.checkout_ready(img, git_hash)

@@ -72,7 +72,7 @@ copyright = u'Charliecloud a Series of LF Projects, LLC and others (web content 
 # built documents.
 #
 # The short X.Y version.
-version = open("../lib/version.txt", "r").read().rstrip()
+version = open("../lib/_version.txt", "r").read().rstrip()
 # The full version, including alpha/beta/rc tags.
 release = version
 

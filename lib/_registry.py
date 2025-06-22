@@ -7,7 +7,7 @@ import types
 import urllib
 import urllib.parse
 
-import charliecloud as ch
+import _clearly as clearly
 
 
 ## Hairy imports ##
@@ -19,7 +19,7 @@ try:
    import requests.auth
    import requests.exceptions
 except ImportError:
-   ch.depfails.append(("missing", 'Python module "requests"'))
+   clearly.depfails.append(("missing", 'Python module "requests"'))
    # Mock up a requests.auth module so the rest of the file parses.
    requests = types.ModuleType("requests")
    requests.auth = types.ModuleType("requests.auth")
@@ -96,7 +96,7 @@ class Auth(requests.auth.AuthBase):
    def escalate(self, reg, res):
       """Escalate to a higher level of authorization. Use the WWW-Authenticate
          header in failed response res if there is one."""
-      ch.VERBOSE("escalating from %s" % self)
+      clearly.VERBOSE("escalating from %s" % self)
       assert (res.status_code == 401)
       # Get authentication instructions.
       if ("WWW-Authenticate" in res.headers):
@@ -104,32 +104,32 @@ class Auth(requests.auth.AuthBase):
       elif (self.auth_h_next is not None):
          auth_h = self.auth_h_next
       else:
-         ch.FATAL("don’t know how to authenticate: WWW-Authenticate not found")
+         clearly.FATAL("don’t know how to authenticate: WWW-Authenticate not found")
       # We use two “undocumented (although very stable and frequently cited)”
       # methods to parse the authentication response header (thanks Andy,
       # i.e., @adrecord on GitHub).
       (auth_scheme, auth_d) = auth_h.split(maxsplit=1)
       auth_d = urllib.request.parse_keqv_list(
                   urllib.request.parse_http_list(auth_d))
-      ch.VERBOSE("WWW-Authenticate parsed: %s %s" % (auth_scheme, auth_d))
+      clearly.VERBOSE("WWW-Authenticate parsed: %s %s" % (auth_scheme, auth_d))
       # Is escalation possible in principle?
       if (len(self.escalators) == 0):
-         ch.FATAL("no further authentication possible, giving up")
+         clearly.FATAL("no further authentication possible, giving up")
       # Try to escalate.
       for class_ in self.escalators:
          if (class_.scheme == auth_scheme):
             if (class_.auth_p != auth_p):
-               ch.VERBOSE("skipping %s: auth mode mismatch" % class_.__name__)
+               clearly.VERBOSE("skipping %s: auth mode mismatch" % class_.__name__)
             else:
-               ch.VERBOSE("authenticating using %s" % class_.__name__)
+               clearly.VERBOSE("authenticating using %s" % class_.__name__)
                auth = class_.authenticate(reg, auth_d)
                if (auth is None):
-                  ch.VERBOSE("authentication failed; trying next")
+                  clearly.VERBOSE("authentication failed; trying next")
                elif (auth == self):
-                  ch.VERBOSE("authentication did not escalate; trying next")
+                  clearly.VERBOSE("authentication did not escalate; trying next")
                else:
                   return auth  # success!
-      ch.VERBOSE("no authentication left to try")
+      clearly.VERBOSE("no authentication left to try")
       return None
 
 
@@ -144,7 +144,7 @@ class Auth_Basic(Auth):
    def authenticate(class_, reg, auth_d):
       # Note: Basic does not validate the credentials until we try to use it.
       if ("realm" not in auth_d):
-         ch.FATAL("WWW-Authenticate missing realm")
+         clearly.FATAL("WWW-Authenticate missing realm")
       (username, password) = reg.creds.get()
       i = class_()
       i.basic = requests.auth.HTTPBasicAuth(username, password)
@@ -185,17 +185,17 @@ class Auth_Bearer_IDed(Auth):
       # give back all the keys we got.
       for k in ("realm",):
          if (k not in auth_d):
-            ch.FATAL("WWW-Authenticate missing key: %s" % k)
+            clearly.FATAL("WWW-Authenticate missing key: %s" % k)
       params = { (k,v) for (k,v) in auth_d.items() if k != "realm" }
       # Request a Bearer token.
       res = reg.request_raw("GET", auth_d["realm"], {200,401,403},
                             auth=class_.token_auth(reg.creds), params=params)
       if (res.status_code != 200):
-         ch.VERBOSE("bearer token request rejected")
+         clearly.VERBOSE("bearer token request rejected")
          return None
       # Create new instance.
       i = class_(res.json()["token"], auth_d)
-      ch.VERBOSE("received bearer token: %s" % (i.token_short))
+      clearly.VERBOSE("received bearer token: %s" % (i.token_short))
       return i
 
    @classmethod
@@ -289,9 +289,9 @@ class Credentials:
             try:
                username = input("\nUsername: ")
             except KeyboardInterrupt:
-               ch.FATAL("authentication cancelled")
+               clearly.FATAL("authentication cancelled")
             password = getpass.getpass("Password: ")
-         if (not ch.password_many):
+         if (not clearly.password_many):
             # Remember the credentials.
             self.username = username
             self.password = password
@@ -328,9 +328,9 @@ class HTTP:
       # All headers first.
       for h in hs:
          if (h.lower() == "www-authenticate"):
-            f = ch.VERBOSE
+            f = clearly.VERBOSE
          else:
-            f = ch.DEBUG
+            f = clearly.DEBUG
          f("%s: %s" % (h, hs[h]))
       # Friendly message for Docker Hub rate limit.
       pull_ct = period = left_ct = reason = "???"  # keep as strings
@@ -338,7 +338,7 @@ class HTTP:
          h = hs["ratelimit-limit"]
          m = re.search(r"^(\d+);w=(\d+)$", h)
          if (m is None):
-            ch.WARNING("can’t parse RateLimit-Limit: %s" % h)
+            clearly.WARNING("can’t parse RateLimit-Limit: %s" % h)
          else:
             pull_ct = m[1]
             period = str(int(m[2]) / 3600)  # seconds to hours
@@ -346,7 +346,7 @@ class HTTP:
          h = hs["ratelimit-remaining"]
          m = re.search(r"^(\d+);", h)
          if (m is None):
-            ch.WARNING("can’t parse RateLimit-Remaining: %s" % h)
+            clearly.WARNING("can’t parse RateLimit-Remaining: %s" % h)
          else:
             left_ct = m[1]
       if ("docker-ratelimit-source" in hs):
@@ -360,9 +360,9 @@ class HTTP:
                reason = "auth"
             else:
                # Overall limits yield HTTP 429 so warning seems legitimate?
-               ch.WARNING("can’t parse Docker-RateLimit-Source: %s" % h)
+               clearly.WARNING("can’t parse Docker-RateLimit-Source: %s" % h)
       if (any(i != "???" for i in (pull_ct, period, left_ct))):
-         ch.INFO("Docker Hub rate limit: %s pulls left of %s per %s hours (%s)"
+         clearly.INFO("Docker Hub rate limit: %s pulls left of %s per %s hours (%s)"
                  % (left_ct, pull_ct, period, reason))
 
    @property
@@ -395,7 +395,7 @@ class HTTP:
       "GET the blob with hash digest and save it at path."
       # /v2/library/hello-world/blobs/<layer-hash>
       url = self._url_of("blobs", "sha256:" + digest)
-      sw = ch.Progress_Writer(path, msg)
+      sw = clearly.Progress_Writer(path, msg)
       self.request("GET", url, out=sw, hd=digest)
       sw.close()
 
@@ -404,17 +404,17 @@ class HTTP:
          can be anything requests can handle; if it’s an open file, then it’s
          wrapped in a Progress_Reader object. note is a string to prepend to
          the log messages; default empty string."""
-      ch.INFO("%s%s: checking if already in repository" % (note, digest[:7]))
+      clearly.INFO("%s%s: checking if already in repository" % (note, digest[:7]))
       # 1. Check if blob already exists. If so, stop.
       if (self.blob_exists_p(digest)):
-         ch.INFO("%s%s: already present" % (note, digest[:7]))
+         clearly.INFO("%s%s: already present" % (note, digest[:7]))
          return
       msg = "%s%s: not present, uploading" % (note, digest[:7])
       if (isinstance(data, io.IOBase)):
-         data = ch.Progress_Reader(data, msg)
+         data = clearly.Progress_Reader(data, msg)
          data.start()
       else:
-         ch.INFO(msg)
+         clearly.INFO(msg)
       # 2. Get upload URL for blob.
       url = self._url_of("blobs", "uploads/")
       res = self.request("POST", url, {202})
@@ -425,11 +425,11 @@ class HTTP:
       url = self.location_parse(res)
       res = self.request("PUT", url, {201}, data=data,
                          params={ "digest": "sha256:%s" % digest })
-      if (isinstance(data, ch.Progress_Reader)):
+      if (isinstance(data, clearly.Progress_Reader)):
          data.close()
       # 4. Verify blob now exists.
       if (not self.blob_exists_p(digest)):
-         ch.FATAL("blob just uploaded does not exist: %s" % digest[:7])
+         clearly.FATAL("blob just uploaded does not exist: %s" % digest[:7])
 
    def close(self):
       if (self.session is not None):
@@ -437,7 +437,7 @@ class HTTP:
 
    def config_upload(self, config):
       "Upload config (sequence of bytes)."
-      self.blob_upload(ch.bytes_hash(config), config, "config: ")
+      self.blob_upload(clearly.bytes_hash(config), config, "config: ")
 
    def escalate(self, res):
       "Try to escalate authorization; return True if successful, else False."
@@ -465,7 +465,7 @@ class HTTP:
          This method raises Image_Unavailable_Error in case 3. The caller is
          responsible for distinguishing cases 1 and 2."""
       url = self._url_of("manifests", self.ref.version)
-      pw = ch.Progress_Writer(path, msg)
+      pw = clearly.Progress_Writer(path, msg)
       # Including TYPES_MANIFEST avoids the server trying to convert its v2
       # manifest to a v1 manifest, which currently fails for images
       # Clearstack pushes. The error in the test registry is “empty history
@@ -480,18 +480,18 @@ class HTTP:
             hint = "consider --auth"
          else:
             hint = None
-         ch.FATAL("registry rate limit exceeded (HTTP 429)", hint)
+         clearly.FATAL("registry rate limit exceeded (HTTP 429)", hint)
       elif (res.status_code != 200):
-         ch.DEBUG(res.content)
-         raise ch.Image_Unavailable_Error()
+         clearly.DEBUG(res.content)
+         raise clearly.Image_Unavailable_Error()
 
    def layer_from_file(self, digest, path, note=""):
       "Upload gzipped tarball layer at path, which must have hash digest."
       # NOTE: We don’t verify the digest b/c that means reading the whole file.
-      ch.VERBOSE("layer tarball: %s" % path)
+      clearly.VERBOSE("layer tarball: %s" % path)
       fp = path.open("rb")  # open file avoids reading it all into memory
       self.blob_upload(digest, fp, note)
-      ch.close_(fp)
+      clearly.close_(fp)
 
    def location_parse(self, response):
       (res_scheme, res_domain, res_path, res_query, res_fragment) \
@@ -514,7 +514,7 @@ class HTTP:
       else:
          digest = "sha256:" + digest
       url = self._url_of("manifests", digest)
-      pw = ch.Progress_Writer(path, msg)
+      pw = clearly.Progress_Writer(path, msg)
       accept = ",".join(TYPES_MANIFEST.values())
       res = self.request("GET", url, out=pw, statuses={200, 401, 404},
                          headers={ "Accept" : accept })
@@ -533,17 +533,17 @@ class HTTP:
          #
          # [1]: https://datatracker.ietf.org/doc/html/rfc9110#section-12.1
          if (res.headers["Content-Type"] not in TYPES_MANIFEST.values()):
-            ch.FATAL("invalid Content-Type for manifest: %s"
+            clearly.FATAL("invalid Content-Type for manifest: %s"
                      % res.headers["Content-Type"],
                      hint="likely a registry bug; try a different arch?")
       else:
-         ch.DEBUG(res.content)
-         raise ch.Image_Unavailable_Error()
+         clearly.DEBUG(res.content)
+         raise clearly.Image_Unavailable_Error()
 
    def manifest_upload(self, manifest):
       "Upload manifest (sequence of bytes)."
       # Note: The manifest is *not* uploaded as a blob. We just do one PUT.
-      ch.INFO("manifest: uploading")
+      clearly.INFO("manifest: uploading")
       url = self._url_of("manifests", self.ref.tag)
       self.request("PUT", url, {201}, data=manifest,
                    headers={ "Content-Type": TYPES_MANIFEST["docker2"] })
@@ -562,7 +562,7 @@ class HTTP:
       # Set up.
       assert (out or hd is None), "digest only checked if streaming"
       self.session_init_maybe()
-      ch.VERBOSE("auth: %s" % self.auth)
+      clearly.VERBOSE("auth: %s" % self.auth)
       if (out is not None):
          kwargs["stream"] = True
       # Make the request.
@@ -571,13 +571,13 @@ class HTTP:
          if (res.status_code != 401):
             break
          else:
-            ch.VERBOSE("HTTP 401 unauthorized")
+            clearly.VERBOSE("HTTP 401 unauthorized")
             if (self.escalate(res)):   # success
-               ch.VERBOSE("retrying with auth: %s" % self.auth)
+               clearly.VERBOSE("retrying with auth: %s" % self.auth)
             elif (401 in statuses):    # caller can deal with it
                break
             else:
-               ch.FATAL("unhandled authentication failure")
+               clearly.FATAL("unhandled authentication failure")
       # Stream response if needed.
       m = hashlib.sha256()
       if (out is not None and res.status_code == 200):
@@ -586,14 +586,14 @@ class HTTP:
          except KeyError:
             length = None
          except ValueError:
-            ch.FATAL("invalid Content-Length in response")
+            clearly.FATAL("invalid Content-Length in response")
          out.start(length)
-         for chunk in res.iter_content(ch.HTTP_CHUNK_SIZE):
+         for chunk in res.iter_content(clearly.HTTP_CHUNK_SIZE):
             out.write(chunk)
             m.update(chunk) # store downloaded hash digest
          # Validate integrity of downloaded data
          if (hd is not None and hd != m.hexdigest()):
-            ch.FATAL("registry streamed response content is invalid")
+            clearly.FATAL("registry streamed response content is invalid")
       # Done.
       return res
 
@@ -605,25 +605,25 @@ class HTTP:
          Session must already exist. If auth arg given, use it; otherwise, use
          object’s stored authentication if initialized; otherwise, use no
          authentication."""
-      ch.VERBOSE("%s: %s" % (method, url))
+      clearly.VERBOSE("%s: %s" % (method, url))
       if ("headers" in kwargs):
          self.headers_log(kwargs["headers"])
       if (auth is None):
          auth = self.auth
       try:
          res = self.session.request(method, url, auth=auth, **kwargs)
-         ch.VERBOSE("response status: %d" % res.status_code)
+         clearly.VERBOSE("response status: %d" % res.status_code)
          self.headers_log(res.headers)
          if (res.status_code not in statuses):
-            ch.FATAL("%s failed; expected status %s but got %d: %s"
+            clearly.FATAL("%s failed; expected status %s but got %d: %s"
                   % (method, statuses, res.status_code, res.reason))
       except requests.exceptions.RequestException as x:
-         ch.FATAL("%s failed: %s" % (method, x))
+         clearly.FATAL("%s failed: %s" % (method, x))
       return res
 
    def session_init_maybe(self):
       "Initialize session if it’s not initialized; otherwise do nothing."
       if (self.session is None):
-         ch.VERBOSE("initializing session")
+         clearly.VERBOSE("initializing session")
          self.session = requests.Session()
          self.session.verify = tls_verify

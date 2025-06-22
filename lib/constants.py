@@ -1,1 +1,0 @@
-GIT_DIR = "ch/git"

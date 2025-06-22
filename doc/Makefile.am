@@ -138,7 +138,7 @@ _deps.rst: ../config.log make-deps-overview
 #      does seem to get run only once.
 #
 # [1]: https://www.gnu.org/software/make/manual/html_node/Multiple-Targets.html
-$(nobase_html_DATA) $(man_MANS): ../lib/version.txt ../README.rst _deps.rst $(EXTRA_DIST)
+$(nobase_html_DATA) $(man_MANS): ../lib/_version.txt ../README.rst _deps.rst $(EXTRA_DIST)
 if ENABLE_HTML
 #       Create dummy file in case the redirect is disabled for EPEL.
 	mkdir -p html
