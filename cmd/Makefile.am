@@ -16,7 +16,7 @@ endif
 
 # additional build flags for run
 run_CFLAGS = $(PTHREAD_CFLAGS) -DLIBEXECDIR="\"$(pkglibexecdir)\""
-run_LDADD = $(CLEARLY_RUN_LIBS)
+run_LDADD = $(CLEARLY_RUN_LIBS) -lslirp
 
 
 ## Shell scripts - distributed as-is

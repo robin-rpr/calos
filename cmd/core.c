@@ -2,7 +2,7 @@
 
 #define _GNU_SOURCE
 #include "config.h"
-
+#include <stdarg.h>
 #include <fcntl.h>
 #include <grp.h>
 #include <libgen.h>
@@ -35,6 +35,10 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <slirp/libslirp.h>
+#include <netinet/in.h>
+#include <linux/if.h>
+#include <linux/if_tun.h>
+#include <sys/ioctl.h>
 #include "misc.h"
 #include "core.h"
 #ifdef HAVE_LIBSQUASHFUSE
@@ -202,6 +206,31 @@ struct {
 /* Bind mounts done so far; canonical host paths. If null, there are none. */
 char **bind_mount_paths = NULL;
 
+struct pollfd_data {
+    struct pollfd *fds;
+    int nfds;
+    int size;
+};
+
+int add_poll_cb(int fd, int events, void *opaque) {
+    struct pollfd_data *d = opaque;
+    if (d->nfds >= d->size) {
+        d->size = d->size == 0 ? 8 : d->size * 2;
+        d->fds = realloc(d->fds, d->size * sizeof(struct pollfd));
+        Tf(d->fds != NULL, "Failed to reallocate pollfds");
+    }
+    d->fds[d->nfds].fd = fd;
+    d->fds[d->nfds].events = events;
+    d->nfds++;
+    return d->nfds - 1;
+}
+
+int get_revents_cb(int idx, void *opaque) {
+    struct pollfd_data *d = opaque;
+    Tf(idx < d->nfds, "Poll index out of bounds");
+    return d->fds[idx].revents;
+}
+
 
 /** Function prototypes (private) **/
 
@@ -220,21 +249,14 @@ void join_namespaces(pid_t pid);
 void join_end(int join_ct);
 void sem_timedwait_relative(sem_t *sem, int timeout);
 void setup_passwd(const struct container *c);
+void setup_namespaces(const struct container *c, uid_t uid_out, uid_t uid_in,
+                      gid_t gid_out, gid_t gid_in);
 void tmpfs_mount(const char *dst, const char *newroot, const char *data);
 bool pull_image(const char *ref, const char *storage_dir);
-// This function is being replaced by the new containerize()
-// void setup_namespaces(const struct container *c, uid_t uid_out, uid_t uid_in,
-//                       gid_t gid_out, gid_t gid_in);
-
-
-/**
- * NEW networking helper functions
- */
 
 // A simple helper to run external commands.
 // In a production scenario, you might use netlink APIs directly for performance
 // and security, but this is much clearer for a demonstration.
-#include <stdarg.h>
 void run_cmd(const char *cmd, ...) {
     char command_buf[1024];
     va_list args;
@@ -361,20 +383,10 @@ void bind_mounts(const struct bind *binds, const char *newroot,
 /* Set up new namespaces or join existing namespaces. */
 void containerize(struct container *c)
 {
-    // If no networking is requested, run the original containerization logic.
-    if (c->port_map_str == NULL) {
-        VERBOSE("No networking requested, starting isolated container.");
-        Zf(unshare(CLONE_NEWNS | CLONE_NEWUSER), "can't init base namespaces");
-        // Simplified setup for non-networked container
-        int fd;
-        T_ (-1 != (fd = open("/proc/self/uid_map", O_WRONLY))); T_ (1 <= dprintf(fd, "%d %d 1\n", c->container_uid, geteuid())); Z_ (close(fd));
-        T_ (-1 != (fd = open("/proc/self/setgroups", O_WRONLY))); T_ (1 <= dprintf(fd, "deny\n")); Z_ (close(fd));
-        T_ (-1 != (fd = open("/proc/self/gid_map", O_WRONLY))); T_ (1 <= dprintf(fd, "%d %d 1\n", c->container_gid, getegid())); Z_ (close(fd));
-        enter_udss(c);
-        run_user_command(c->argv, c->initial_dir);
-        return; // Should not be reached
-    }
-    
+    // Cache the host's UID and GID
+    uid_t host_uid = geteuid();
+    gid_t host_gid = getegid();
+
     int sp[2]; // Socket pair for FD passing
     pid_t child_pid;
 
@@ -384,81 +396,152 @@ void containerize(struct container *c)
     Zf(child_pid == -1, "Failed to fork");
 
     if (child_pid > 0) {
-        /***************************************************/
-        /*** PARENT PROCESS: Run the libslirp event loop ***/
-        /***************************************************/
-        close(sp[1]); // Close child's end
+        // Close child's end
+        close(sp[1]);
+
+        char tap_name[32];
+        snprintf(tap_name, sizeof(tap_name), "clearly%05d", child_pid % 100000);
+
+        int tap_fd = open("/dev/net/tun", O_RDWR);
+        if (tap_fd < 0) {
+           perror("Failed to open /dev/net/tun");
+           exit(1);
+        }
+
+        struct ifreq ifr = {0};
+        // IFF_TAP for a TAP device, IFF_NO_PI is important
+        ifr.ifr_flags = IFF_TAP | IFF_NO_PI; 
+        snprintf(ifr.ifr_name, IFNAMSIZ, "clearly%05d", child_pid % 100000);
+    
+        Zf(
+         ioctl(tap_fd, TUNSETIFF, (void *)&ifr) == -1,
+         "Failed to create TAP device via ioctl(TUNSETIFF)"
+        );
+
+        VERBOSE("TAP device '%s' attached", tap_name);
+
+        // Set the TAP device up
+        run_cmd("ip link set %s up", tap_name);
 
         char ready_buf;
         Zf(read(sp[0], &ready_buf, 1) != 1, "Failed to receive ready signal from child");
 
-        VERBOSE("Parent received ready signal from child. Initializing libslirp...");
+        VERBOSE("Parent received ready signal from child");
 
-        Slirp *slirp = slirp_init(false, NULL); // false = IPv4-only
+        struct in_addr vnetwork = { .s_addr = inet_addr("10.0.2.0") };
+        struct in_addr vnetmask = { .s_addr = inet_addr("255.255.255.0") };
+        struct in_addr vhost = { .s_addr = inet_addr("10.0.2.2") };
+        struct in_addr no_addr = {0};
+        struct in6_addr no_addr6 = {0};
 
-        int host_port, guest_port;
-        parse_port_map(c->port_map_str, &host_port, &guest_port);
-        struct in_addr host_addr = { .s_addr = INADDR_ANY };
-        slirp_add_hostfwd(slirp, false, host_addr, host_port, guest_port); // false = TCP
-        VERBOSE("libslirp: Forwarding host port %d to guest port %d", host_port, guest_port);
-        
-        // This is a simplified way to create a TAP device for the user.
-        // A production implementation might use ioctl(TUNSETIFF) directly.
-        char tap_name[16];
-        snprintf(tap_name, sizeof(tap_name), "charlie%d", child_pid);
-        run_cmd("ip tuntap add dev %s mode tap user %d", tap_name, getuid());
-        run_cmd("ip link set %s up", tap_name);
+        Slirp *slirp = slirp_init(false,          // restricted
+                                  true,           // in_enabled (IPv4)
+                                  vnetwork,       // vnetwork
+                                  vnetmask,       // vnetmask
+                                  vhost,          // vhost
+                                  false,          // in6_enabled (IPv6)
+                                  no_addr6,       // vprefix_addr6
+                                  0,              // vprefix_len
+                                  no_addr6,       // vhost6
+                                  NULL,           // vhostname
+                                  NULL,           // tftp_server_name
+                                  NULL,           // tftp_path_prefix
+                                  NULL,           // bootfile
+                                  no_addr,        // vdhcp_start
+                                  no_addr,        // vnameserver
+                                  no_addr6,       // vnameserver6
+                                  NULL,           // vdns_search (is a const char**)
+                                  NULL,           // vdomainname
+                                  NULL,           // callbacks
+                                  NULL);          // callbacks_udata
 
-        char tap_path[128];
-        snprintf(tap_path, sizeof(tap_path), "/dev/net/%s", tap_name);
-        int tap_fd = open(tap_path, O_RDWR);
-        Tf(tap_fd >= 0, "Failed to open TAP device %s", tap_path);
+         Tf(slirp != NULL, "slirp_init failed");
+
+         // Add host forwarding rules
+        for (int i = 0; c->port_map_strs[i] != NULL; i++) {
+            int host_port, guest_port;
+            parse_port_map(c->port_map_strs[i], &host_port, &guest_port);
+            struct in_addr host_addr = { .s_addr = INADDR_ANY };
+            struct in_addr guest_addr = { .s_addr = inet_addr("10.0.2.100") };
+            slirp_add_hostfwd(slirp, false, host_addr, host_port, guest_addr, guest_port);
+            VERBOSE("Forwarding host port %d to guest port %d", host_port, guest_port);
+        }
 
         send_fd(sp[0], tap_fd);
-        close(tap_fd); // The child now has the FD, parent can close its copy.
+        // The child now has the FD, parent can close its copy.
+        close(tap_fd);
 
-        VERBOSE("Parent entering libslirp event loop...");
+        struct pollfd_data pfd_data = {0};
+        
         while(1) {
-            int ret;
-            long long timeout_ns = -1;
-            struct pollfd fds[128];
-            
-            slirp_get_events(slirp);
-            
-            int nfds = slirp_poll_fds_fill(slirp, fds, sizeof(fds)/sizeof(fds[0]), &timeout_ns);
+            uint32_t timeout_ms = -1;
+            pfd_data.nfds = 0;
 
-            ret = poll(fds, nfds, timeout_ns / 1000000);
+            slirp_pollfds_fill(slirp, &timeout_ms, add_poll_cb, &pfd_data);
+
+            if (pfd_data.nfds >= pfd_data.size) {
+                pfd_data.size++;
+                pfd_data.fds = realloc(pfd_data.fds, pfd_data.size * sizeof(struct pollfd));
+            }
+            pfd_data.fds[pfd_data.nfds].fd = tap_fd;
+            pfd_data.fds[pfd_data.nfds].events = POLLIN;
+            pfd_data.nfds++;
+
+            int ret = poll(pfd_data.fds, pfd_data.nfds, timeout_ms);
             if (ret < 0) {
                 perror("poll");
                 break;
             }
-            if (ret > 0) {
-                slirp_process_events(slirp);
+            
+            slirp_pollfds_poll(slirp, (ret == 0), get_revents_cb, &pfd_data);
+
+            if (pfd_data.fds[pfd_data.nfds - 1].revents & POLLIN) {
+                char buf[2048];
+                int len = read(tap_fd, buf, sizeof(buf));
+                if (len > 0) {
+                    slirp_input(slirp, (const uint8_t *)buf, len);
+                }
             }
         }
 
+        free(pfd_data.fds);
         slirp_cleanup(slirp);
         wait(NULL);
         exit(0);
 
     } else {
-        /************************************/
-        /*** CHILD PROCESS: The Container ***/
-        /************************************/
-        close(sp[0]); // Close parent's end
+        // Close parent's end
+        close(sp[0]); 
 
-        Zf(unshare(CLONE_NEWNS | CLONE_NEWUSER | CLONE_NEWNET), "Child failed to unshare namespaces");
-
-        int fd;
-        T_ (-1 != (fd = open("/proc/self/uid_map", O_WRONLY))); T_ (1 <= dprintf(fd, "%d %d 1\n", c->container_uid, geteuid())); Z_ (close(fd));
-        T_ (-1 != (fd = open("/proc/self/setgroups", O_WRONLY))); T_ (1 <= dprintf(fd, "deny\n")); Z_ (close(fd));
-        T_ (-1 != (fd = open("/proc/self/gid_map", O_WRONLY))); T_ (1 <= dprintf(fd, "%d %d 1\n", c->container_gid, getegid())); Z_ (close(fd));
+        if (c->join_pid) {
+           join_namespaces(c->join_pid);
+           return;
+        }
+        if (c->join)
+           join_begin(c->join_tag);
+        if (!c->join || join.winner_p) {
+           // Set up two nested user+mount namespaces: the outer so we can run
+           // fusermount3 non-setuid, and the inner so we get the desired UID
+           // within the container. We do this even if the image is a directory, to
+           // reduce the number of code paths.
+           setup_namespaces(c, host_uid, 0, host_gid, 0);
+#ifdef HAVE_LIBSQUASHFUSE
+           if (c->type == IMG_SQUASH)
+              sq_fork(c);
+#endif
+           setup_namespaces(c, 0, c->container_uid, 0, c->container_gid);
+           enter_udss(c);
+        } else
+           join_namespaces(join.shared->winner_pid);
+        if (c->join)
+           join_end(c->join_ct);
 
         // Signal parent that we are ready for the TAP fd
-        Zf(write(sp[1], "*", 1) != 1, "Child failed to send ready signal");
+        Zf(write(sp[1], "*", 1) != 1, "child failed to send ready signal");
 
         int tap_fd = recv_fd(sp[1]);
         close(sp[1]);
+        (void)tap_fd;
         
         // The file descriptor number itself is not useful, we need to find the interface name.
         // For this demo, we assume it's tap0 after unshare. This is a simplification.
@@ -469,12 +552,6 @@ void containerize(struct container *c)
         run_cmd("ip addr add 10.0.2.100/24 dev tap0");
         run_cmd("ip link set tap0 up");
         run_cmd("ip route add default via 10.0.2.2"); // Default slirp gateway
-        
-        VERBOSE("Child network configured. Proceeding with container setup.");
-
-        enter_udss(c);
-        run_user_command(c->argv, c->initial_dir);
-        exit(EXIT_FAILURE); // Should not be reached
     }
 }
 
@@ -935,7 +1012,7 @@ void sem_timedwait_relative(sem_t *sem, int timeout)
    }
 }
 
-/* DEPRECATED: This function's logic has been merged into containerize()
+/* Activate the desired isolation namespaces. */
 void setup_namespaces(const struct container *c, uid_t uid_out, uid_t uid_in,
                       gid_t gid_out, gid_t gid_in)
 {
@@ -945,6 +1022,16 @@ void setup_namespaces(const struct container *c, uid_t uid_out, uid_t uid_in,
    Zf (unshare(CLONE_NEWNS|CLONE_NEWUSER|CLONE_NEWNET), "can't init user+mount namespaces");
    LOG_IDS;
 
+   /* Write UID map. What we are allowed to put here is quite limited. Because
+      we do not have CAP_SETUID in the *parent* user namespace, we can map
+      exactly one UID: an arbitrary container UID to our EUID in the parent
+      namespace.
+
+      This is sufficient to change our UID within the container; no setuid(2)
+      or similar required. This is because the EUID of the process in the
+      parent namespace is unchanged, so the kernel uses our new 1-to-1 map to
+      convert that EUID into the container UID for most (maybe all)
+      purposes. */
    T_ (-1 != (fd = open("/proc/self/uid_map", O_WRONLY)));
    T_ (1 <= dprintf(fd, "%d %d 1\n", uid_in, uid_out));
    Z_ (close(fd));
@@ -958,7 +1045,6 @@ void setup_namespaces(const struct container *c, uid_t uid_out, uid_t uid_in,
    Z_ (close(fd));
    LOG_IDS;
 }
-*/
 
 /* Build /etc/passwd and /etc/group files and bind-mount them into newroot.
 
@@ -1022,7 +1108,7 @@ void setup_passwd(const struct container *c)
          Tf (0, "getgrgid(3) failed");
       } else {
          VERBOSE("GID %d not found; using dummy info", c->container_gid);
-         T_ (1 <= dprintf(fd, "%s:x:%u:\n", "charliegroup", c->container_gid));
+         T_ (1 <= dprintf(fd, "%s:x:%u:\n", "clearlygroup", c->container_gid));
       }
    }
    Z_ (close(fd));
