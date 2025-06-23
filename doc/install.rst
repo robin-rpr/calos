@@ -26,19 +26,66 @@ When you are planning on building with all features enabled from source, you
 will need the following system dependencies installed on your system before
 continuing to build from source as described below:
 
-  * libseccomp-devel
-  * squashfuse-devel
-  * fuse3-devel
-  * python3-devel
-  * python3-pip
-  * python3-wheel
-  * python3-cython
-  * git
+Enable the CodeReady Builder (CRB) repository
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Optional dependencies:
+On RHEL 9 and compatible distributions (such as CentOS Stream 9, Rocky Linux 9,
+and AlmaLinux 9), many development packages required for building Charliecloud
+are available in the CodeReady Builder (CRB) repository, which is disabled by
+default. You must enable this repository before installing the build dependencies::
 
-  * rsync
-  * bats
+  $ sudo dnf config-manager --set-enabled crb
+  $ sudo dnf clean all
+  $ sudo dnf update
+
+The CRB repository contains additional development packages that are not
+included in the base distribution but are essential for building software from
+source. This includes many of the development headers and libraries listed
+below.
+
+**Note:** On older RHEL/CentOS 7 systems, this repository was called "PowerTools"
+and can be enabled with :code:`sudo yum-config-manager --enable powertools`.
+On RHEL 8 systems, it was called "CodeReady Builder" and can be enabled with
+:code:`sudo dnf config-manager --set-enabled codeready-builder-for-rhel-8-*-rpms`.
+
+Required system dependencies
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+After enabling the CRB repository, install the following packages::
+
+  $ sudo dnf install libseccomp-devel squashfuse-devel libslirp-devel \
+      fuse3-devel python3-devel python3-pip python3-wheel python3-cython git
+
+These packages provide:
+
+  * :code:`libseccomp-devel`: Development files for the seccomp library,
+    which Charliecloud uses for system call filtering and security
+  * :code:`squashfuse-devel`: Development files for SquashFUSE, enabling
+    mounting of SquashFS archives without root privileges
+  * :code:`libslirp-devel`: Development files for the slirp library,
+    providing user-mode networking capabilities
+  * :code:`fuse3-devel`: Development files for FUSE 3, the filesystem in
+    userspace interface
+  * :code:`python3-devel`: Python 3 development headers and libraries
+  * :code:`python3-pip`: Python package installer for additional Python
+    dependencies
+  * :code:`python3-wheel`: Built-package format for Python
+  * :code:`python3-cython`: Cython compiler for Python, used to compile
+    Python code to C for improved performance
+  * :code:`git`: Version control system for cloning the repository
+
+Optional dependencies
+~~~~~~~~~~~~~~~~~~~~
+
+The following packages are optional but recommended for a complete build
+experience::
+
+  $ sudo dnf install rsync bats
+
+  * :code:`rsync`: Fast file transfer utility, used by some Charliecloud
+    features for efficient file synchronization
+  * :code:`bats`: Bash Automated Testing System, required for running
+    Charliecloud's test suite
 
 Building from source
 --------------------
