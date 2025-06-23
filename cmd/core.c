@@ -383,24 +383,21 @@ void bind_mounts(const struct bind *binds, const char *newroot,
 /* Set up new namespaces or join existing namespaces. */
 void containerize(struct container *c)
 {
-    // Cache the host's UID and GID
     uid_t host_uid = geteuid();
     gid_t host_gid = getegid();
+    int sp[2];
 
-    int sp[2]; // Socket pair for FD passing
-    pid_t child_pid;
+    Zf(socketpair(AF_UNIX, SOCK_STREAM, 0, sp) == -1, "failed to create socketpair");
 
-    Zf(socketpair(AF_UNIX, SOCK_STREAM, 0, sp) == -1, "Failed to create socketpair");
-
-    child_pid = fork();
-    Zf(child_pid == -1, "Failed to fork");
+    pid_t child_pid = fork();
+    Zf(child_pid == -1, "failed to fork");
 
     if (child_pid > 0) {
-        // Close child's end
         close(sp[1]);
 
         char tap_name[32];
         snprintf(tap_name, sizeof(tap_name), "clearly%05d", child_pid % 100000);
+        write(sp[0], tap_name, sizeof(tap_name));
 
         int tap_fd = open("/dev/net/tun", O_RDWR);
         if (tap_fd < 0) {
@@ -410,28 +407,34 @@ void containerize(struct container *c)
 
         struct ifreq ifr = {0};
         // IFF_TAP for a TAP device, IFF_NO_PI is important
-        ifr.ifr_flags = IFF_TAP | IFF_NO_PI; 
+        ifr.ifr_flags = IFF_TAP | IFF_NO_PI;
         snprintf(ifr.ifr_name, IFNAMSIZ, "clearly%05d", child_pid % 100000);
-    
+
         Zf(
          ioctl(tap_fd, TUNSETIFF, (void *)&ifr) == -1,
          "Failed to create TAP device via ioctl(TUNSETIFF)"
         );
 
         VERBOSE("TAP device '%s' attached", tap_name);
-
-        // Set the TAP device up
         run_cmd("ip link set %s up", tap_name);
 
         char ready_buf;
-        Zf(read(sp[0], &ready_buf, 1) != 1, "Failed to receive ready signal from child");
+        Zf(read(sp[0], &ready_buf, 1) != 1, "failed to receive ready signal from child");
 
-        VERBOSE("Parent received ready signal from child");
+        VERBOSE("parent received ready signal from child");
+
+        // Move TAP into child netns
+        char netns_path[64];
+        snprintf(netns_path, sizeof(netns_path), "/proc/%d/ns/net", child_pid);
+        int netns_fd = open(netns_path, O_RDONLY);
+        Zf(netns_fd == -1, "failed to open child netns");
+        run_cmd("ip link set %s netns %d", tap_name, child_pid);
+        close(netns_fd);
 
         struct in_addr vnetwork = { .s_addr = inet_addr("10.0.2.0") };
         struct in_addr vnetmask = { .s_addr = inet_addr("255.255.255.0") };
-        struct in_addr vhost = { .s_addr = inet_addr("10.0.2.2") };
-        struct in_addr no_addr = {0};
+        struct in_addr vhost    = { .s_addr = inet_addr("10.0.2.2") };
+        struct in_addr no_addr  = {0};
         struct in6_addr no_addr6 = {0};
 
         Slirp *slirp = slirp_init(false,          // restricted
@@ -455,7 +458,7 @@ void containerize(struct container *c)
                                   NULL,           // callbacks
                                   NULL);          // callbacks_udata
 
-         Tf(slirp != NULL, "slirp_init failed");
+        Tf(slirp != NULL, "slirp_init failed");
 
          // Add host forwarding rules
         for (int i = 0; c->port_map_strs[i] != NULL; i++) {
@@ -464,25 +467,29 @@ void containerize(struct container *c)
             struct in_addr host_addr = { .s_addr = INADDR_ANY };
             struct in_addr guest_addr = { .s_addr = inet_addr("10.0.2.100") };
             slirp_add_hostfwd(slirp, false, host_addr, host_port, guest_addr, guest_port);
-            VERBOSE("Forwarding host port %d to guest port %d", host_port, guest_port);
+            VERBOSE("forwarding host port %d to guest port %d", host_port, guest_port);
         }
 
         send_fd(sp[0], tap_fd);
-        // The child now has the FD, parent can close its copy.
         close(tap_fd);
 
         struct pollfd_data pfd_data = {0};
-        
-        while(1) {
+        int exited = 0;
+
+        while (!exited) {
             uint32_t timeout_ms = -1;
             pfd_data.nfds = 0;
 
             slirp_pollfds_fill(slirp, &timeout_ms, add_poll_cb, &pfd_data);
 
-            if (pfd_data.nfds >= pfd_data.size) {
-                pfd_data.size++;
-                pfd_data.fds = realloc(pfd_data.fds, pfd_data.size * sizeof(struct pollfd));
+            if (pfd_data.nfds + 1 > pfd_data.size) {
+               size_t old_size = pfd_data.size;
+               pfd_data.size = pfd_data.nfds + 8;
+               pfd_data.fds = realloc(pfd_data.fds, pfd_data.size * sizeof(struct pollfd));
+               Tf(pfd_data.fds != NULL, "realloc failed");
+               memset(&pfd_data.fds[old_size], 0, (pfd_data.size - old_size) * sizeof(struct pollfd));
             }
+
             pfd_data.fds[pfd_data.nfds].fd = tap_fd;
             pfd_data.fds[pfd_data.nfds].events = POLLIN;
             pfd_data.nfds++;
@@ -492,49 +499,68 @@ void containerize(struct container *c)
                 perror("poll");
                 break;
             }
-            
-            slirp_pollfds_poll(slirp, (ret == 0), get_revents_cb, &pfd_data);
+
+            slirp_pollfds_poll(slirp, ret == 0, get_revents_cb, &pfd_data);
 
             if (pfd_data.fds[pfd_data.nfds - 1].revents & POLLIN) {
-                char buf[2048];
-                int len = read(tap_fd, buf, sizeof(buf));
-                if (len > 0) {
-                    slirp_input(slirp, (const uint8_t *)buf, len);
+               if (tap_fd >= 0) {
+                  char buf[2048];
+                  int len = read(tap_fd, buf, sizeof(buf));
+                  if (len > 0 && slirp) {
+                     slirp_input(slirp, (const uint8_t *)buf, len);
+                  }
+               }
+            }
+
+            int status;
+            pid_t result = waitpid(child_pid, &status, WNOHANG);
+            if (result == child_pid) {
+                exited = 1;
+                if (WIFSIGNALED(status)) {
+                    fprintf(stderr, "child killed by signal %d\n", WTERMSIG(status));
+                } else if (WIFEXITED(status)) {
+                    VERBOSE("child exited with status %d", WEXITSTATUS(status));
                 }
             }
         }
 
         free(pfd_data.fds);
         slirp_cleanup(slirp);
-        wait(NULL);
+        close(sp[0]);
         exit(0);
 
     } else {
-        // Close parent's end
-        close(sp[0]); 
+        close(sp[0]);
+
+        char tap_name[32] = {0};
+        Zf(read(sp[1], tap_name, sizeof(tap_name)) != sizeof(tap_name), "child failed to receive tap name");
 
         if (c->join_pid) {
-           join_namespaces(c->join_pid);
-           return;
+            join_namespaces(c->join_pid);
+            return;
         }
+
         if (c->join)
-           join_begin(c->join_tag);
+            join_begin(c->join_tag);
+
         if (!c->join || join.winner_p) {
            // Set up two nested user+mount namespaces: the outer so we can run
            // fusermount3 non-setuid, and the inner so we get the desired UID
            // within the container. We do this even if the image is a directory, to
            // reduce the number of code paths.
-           setup_namespaces(c, host_uid, 0, host_gid, 0);
+            setup_namespaces(c, host_uid, 0, host_gid, 0);
 #ifdef HAVE_LIBSQUASHFUSE
-           if (c->type == IMG_SQUASH)
-              sq_fork(c);
+            if (c->type == IMG_SQUASH)
+                sq_fork(c);
 #endif
-           setup_namespaces(c, 0, c->container_uid, 0, c->container_gid);
-           enter_udss(c);
-        } else
-           join_namespaces(join.shared->winner_pid);
+            setup_namespaces(c, 0, c->container_uid, 0, c->container_gid);
+            enter_udss(c);
+        } else {
+            join_namespaces(join.shared->winner_pid);
+        }
+
         if (c->join)
-           join_end(c->join_ct);
+            join_end(c->join_ct);
 
         // Signal parent that we are ready for the TAP fd
         Zf(write(sp[1], "*", 1) != 1, "child failed to send ready signal");
@@ -542,16 +568,11 @@ void containerize(struct container *c)
         int tap_fd = recv_fd(sp[1]);
         close(sp[1]);
         (void)tap_fd;
-        
-        // The file descriptor number itself is not useful, we need to find the interface name.
-        // For this demo, we assume it's tap0 after unshare. This is a simplification.
-        // A more robust method would be needed for production.
-        run_cmd("ip link set dev \"$(ip -o link | grep 'DOWN' | awk '{print $2}' | sed 's/://' | head -n 1)\" name tap0");
-        
-        // Configure the interface inside the container
-        run_cmd("ip addr add 10.0.2.100/24 dev tap0");
-        run_cmd("ip link set tap0 up");
-        run_cmd("ip route add default via 10.0.2.2"); // Default slirp gateway
+
+        // Configure the network interface
+        run_cmd("ip link set dev %s up", tap_name);
+        run_cmd("ip addr add 10.0.2.100/24 dev %s", tap_name);
+        run_cmd("ip route add default via 10.0.2.2");
     }
 }
 
@@ -838,6 +859,7 @@ void run_user_command(char *argv[], const char *initial_dir)
    if (verbose < LL_STDERR)
       T_ (freopen("/dev/null", "w", stderr));
    execvp(argv[0], argv);  // only returns if error
+   perror("execvp");
    ERROR(errno, "can't execve(2): %s", argv[0]);
    exit(EXIT_CMD);
 }
