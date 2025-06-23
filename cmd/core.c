@@ -471,7 +471,6 @@ void containerize(struct container *c)
         }
 
         send_fd(sp[0], tap_fd);
-        close(tap_fd);
 
         struct pollfd_data pfd_data = {0};
         int exited = 0;
@@ -526,6 +525,7 @@ void containerize(struct container *c)
 
         free(pfd_data.fds);
         slirp_cleanup(slirp);
+        close(tap_fd);
         close(sp[0]);
         exit(0);
 
