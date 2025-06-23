@@ -243,6 +243,7 @@ void enter_udss(struct container *c);
 void iw(struct sock_fprog *p, int i,
         uint16_t op, uint32_t k, uint8_t jt, uint8_t jf);
 #endif
+int64_t clock_get_ns_cb(void *opaque);
 void join_begin(const char *join_tag);
 void join_namespace(pid_t pid, const char *ns);
 void join_namespaces(pid_t pid);
@@ -401,7 +402,7 @@ void containerize(struct container *c)
 
         int tap_fd = open("/dev/net/tun", O_RDWR);
         if (tap_fd < 0) {
-           perror("Failed to open /dev/net/tun");
+           Zf(1, "Failed to open /dev/net/tun");
            exit(1);
         }
 
@@ -431,32 +432,36 @@ void containerize(struct container *c)
         run_cmd("ip link set %s netns %d", tap_name, child_pid);
         close(netns_fd);
 
-        struct in_addr vnetwork = { .s_addr = inet_addr("10.0.2.0") };
-        struct in_addr vnetmask = { .s_addr = inet_addr("255.255.255.0") };
-        struct in_addr vhost    = { .s_addr = inet_addr("10.0.2.2") };
-        struct in_addr no_addr  = {0};
+        struct SlirpCb slirp_callbacks = {
+           .clock_get_ns = clock_get_ns_cb,
+        };
+
+        struct in_addr vnetwork  = { .s_addr = inet_addr("10.0.2.0") };
+        struct in_addr vnetmask  = { .s_addr = inet_addr("255.255.255.0") };
+        struct in_addr vhost     = { .s_addr = inet_addr("10.0.2.2") };
+        struct in_addr no_addr   = {0};
         struct in6_addr no_addr6 = {0};
 
-        Slirp *slirp = slirp_init(false,          // restricted
-                                  true,           // in_enabled (IPv4)
-                                  vnetwork,       // vnetwork
-                                  vnetmask,       // vnetmask
-                                  vhost,          // vhost
-                                  false,          // in6_enabled (IPv6)
-                                  no_addr6,       // vprefix_addr6
-                                  0,              // vprefix_len
-                                  no_addr6,       // vhost6
-                                  NULL,           // vhostname
-                                  NULL,           // tftp_server_name
-                                  NULL,           // tftp_path_prefix
-                                  NULL,           // bootfile
-                                  no_addr,        // vdhcp_start
-                                  no_addr,        // vnameserver
-                                  no_addr6,       // vnameserver6
-                                  NULL,           // vdns_search (is a const char**)
-                                  NULL,           // vdomainname
-                                  NULL,           // callbacks
-                                  NULL);          // callbacks_udata
+        Slirp *slirp = slirp_init(false,            // restricted
+                                  true,             // in_enabled (IPv4)
+                                  vnetwork,         // vnetwork
+                                  vnetmask,         // vnetmask
+                                  vhost,            // vhost
+                                  false,            // in6_enabled (IPv6)
+                                  no_addr6,         // vprefix_addr6
+                                  0,                // vprefix_len
+                                  no_addr6,         // vhost6
+                                  NULL,             // vhostname
+                                  NULL,             // tftp_server_name
+                                  NULL,             // tftp_path_prefix
+                                  NULL,             // bootfile
+                                  no_addr,          // vdhcp_start
+                                  no_addr,          // vnameserver
+                                  no_addr6,         // vnameserver6
+                                  NULL,             // vdns_search (is a const char**)
+                                  NULL,             // vdomainname
+                                  &slirp_callbacks, // callbacks
+                                  NULL);            // callbacks_udata
 
         Tf(slirp != NULL, "slirp_init failed");
 
@@ -495,21 +500,31 @@ void containerize(struct container *c)
 
             int ret = poll(pfd_data.fds, pfd_data.nfds, timeout_ms);
             if (ret < 0) {
-                perror("poll");
+                if (errno == EINTR) {
+                    // Loop again if poll was interrupted
+                    continue;
+                }
+                Zf(1, "poll failed");
                 break;
             }
 
-            slirp_pollfds_poll(slirp, ret == 0, get_revents_cb, &pfd_data);
-
-            if (pfd_data.fds[pfd_data.nfds - 1].revents & POLLIN) {
-               if (tap_fd >= 0) {
-                  char buf[2048];
-                  int len = read(tap_fd, buf, sizeof(buf));
-                  if (len > 0 && slirp) {
-                     slirp_input(slirp, (const uint8_t *)buf, len);
-                  }
+            // Check for input from the container via the TAP device
+            struct pollfd *tap_pfd = &pfd_data.fds[pfd_data.nfds - 1];
+            if (tap_pfd->fd == tap_fd && (tap_pfd->revents & POLLIN)) {
+               char buf[2048];
+               int len = read(tap_fd, buf, sizeof(buf));
+               if (len > 0 && slirp) {
+                  // This call can change slirp's internal FD set.
+                  slirp_input(slirp, (const uint8_t *)buf, len);
+                  // The poll results are now stale for slirp, so we must loop
+                  // to get the new FD set before calling slirp_pollfds_poll().
+                  continue;
                }
             }
+
+            // If we are here, it means no new packets came from the TAP device.
+            // It is now safe to let slirp process its timers and socket events.
+            slirp_pollfds_poll(slirp, ret == 0, get_revents_cb, &pfd_data);
 
             int status;
             pid_t result = waitpid(child_pid, &status, WNOHANG);
@@ -740,6 +755,13 @@ void iw(struct sock_fprog *p, int i,
 }
 #endif
 
+/* Helper function to get the current time in nanoseconds. */
+int64_t clock_get_ns_cb(void *opaque) {
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return ts.tv_sec * 1000000000LL + ts.tv_nsec;
+}
+
 /* Begin coordinated section of namespace joining. */
 void join_begin(const char *join_tag)
 {
@@ -859,7 +881,6 @@ void run_user_command(char *argv[], const char *initial_dir)
    if (verbose < LL_STDERR)
       T_ (freopen("/dev/null", "w", stderr));
    execvp(argv[0], argv);  // only returns if error
-   perror("execvp");
    ERROR(errno, "can't execve(2): %s", argv[0]);
    exit(EXIT_CMD);
 }
