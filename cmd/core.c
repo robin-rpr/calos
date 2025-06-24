@@ -320,6 +320,19 @@ void parse_port_map(const char* map_str, int* host_port, int* guest_port) {
     free(str);
 }
 
+/* Send a packet to the guest. This is a callback for libslirp. */
+static ssize_t send_packet_cb(const void *buf, size_t len, void *opaque)
+{
+   int tap_fd = *(int *)opaque;
+   return write(tap_fd, buf, len);
+}
+
+/* Handle errors from the guest. This is a callback for libslirp. */
+static void guest_error_cb(const char *msg, void *opaque)
+{
+   fprintf(stderr, "slirp guest error: %s\n", msg);
+}
+
 
 /** Functions **/
 
@@ -433,6 +446,8 @@ void containerize(struct container *c)
         nl_socket_free(sock);
 
         struct SlirpCb slirp_callbacks = {
+           .send_packet = send_packet_cb,
+           .guest_error = guest_error_cb,
            .clock_get_ns = clock_get_ns_cb,
         };
 
@@ -461,7 +476,7 @@ void containerize(struct container *c)
                                   NULL,             // vdns_search (is a const char**)
                                   NULL,             // vdomainname
                                   &slirp_callbacks, // callbacks
-                                  NULL);            // callbacks_udata
+                                  &tap_fd);         // callbacks_udata
 
         Tf(slirp != NULL, "slirp_init failed");
 

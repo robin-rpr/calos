@@ -250,7 +250,7 @@ AS_IF([test "$CC" = icc],
       [AC_MSG_ERROR([icc not supported (see PR @%:@481)])])
 
 # Check for libslirp
-PKG_CHECK_MODULES([LIBSLIRP], [slirp],,
+PKG_CHECK_MODULES([LIBSLIRP], [slirp >= 4.4.0],,
       [AC_MSG_ERROR([libslirp-devel is required. Please install it.])])
 
 # Check for libnl
