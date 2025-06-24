@@ -569,7 +569,8 @@ void containerize(struct container *c)
         // Send the TAP device name and file descriptor to the child
         write(sp[0], tap_name, IFNAMSIZ);
         send_fd(sp[0], tap_fd);
-        close(tap_fd); // Parent no longer needs this FD
+        // Parent no longer needs this tap_fd
+        close(tap_fd);
 
         struct slirp_data s_data = { .socket_fd = sp[0] };
         struct SlirpCb slirp_callbacks = {
@@ -633,7 +634,8 @@ void containerize(struct container *c)
                         slirp_input(slirp, (const uint8_t *)slirp_buf, len);
                     }
                 }
-                if (len <= 0) { // Child closed connection
+                if (len <= 0) {
+                    // Child closed connection
                     exited = 1;
                 }
             }
@@ -746,7 +748,8 @@ void containerize(struct container *c)
         Zf(proxy_pid < 0, "failed to fork proxy process");
 
         if (proxy_pid == 0) {
-            // Child becomes the proxy, shuttling packets between TAP and parent
+            // Child becomes the proxy
+            // Shuttling packets between TAP and parent
             struct pollfd fds[2];
             fds[0].fd = tap_fd;
             fds[0].events = POLLIN;
@@ -760,21 +763,25 @@ void containerize(struct container *c)
                     perror("proxy poll");
                     break;
                 }
-                if (fds[0].revents & POLLIN) { // Data from TAP device
+                if (fds[0].revents & POLLIN) {
+                    // Data from TAP device
                     ssize_t len = read(tap_fd, buf, sizeof(buf));
                     if (len > 0) {
                         uint32_t plen = len;
                         write(sp[1], &plen, sizeof(plen)); // Send length
                         write(sp[1], buf, len);            // Send data
                     } else {
-                        break; // TAP closed or error
+                        // TAP closed or error
+                        break;
                     }
                 }
-                if (fds[1].revents & POLLIN) { // Data from parent (slirp)
+                if (fds[1].revents & POLLIN) {
+                    // Data from parent (slirp)
                     uint32_t plen;
                     ssize_t len = read(sp[1], &plen, sizeof(plen));
                     if (len == sizeof(plen)) {
-                         if (plen > sizeof(buf)) { // Should not happen
+                         if (plen > sizeof(buf)) {
+                             // Should not happen
                              break;
                          }
                          len = read(sp[1], buf, plen);
@@ -784,15 +791,14 @@ void containerize(struct container *c)
                              break;
                          }
                     } else {
-                        break; // Parent closed socket or error
+                        // Parent closed socket or error
+                        break;
                     }
                 }
             }
             close(tap_fd);
             close(sp[1]);
         }
-
-        // Grandchild continues to run the user command
         close(sp[1]);
         close(tap_fd);
     }
