@@ -628,10 +628,16 @@ void containerize(struct container *c)
             struct in_addr ip_addr;
             parse_host_map(c->host_map_strs[i], &hostname, &ip_addr);
 
-            FILE *hosts_file = fopen("/etc/hosts", "a");
-            Tf(hosts_file != NULL, "Failed to open /etc/hosts for writing");
-            fprintf(hosts_file, "%s %s\n", inet_ntoa(ip_addr), hostname);
-            fclose(hosts_file);
+            char *hosts_path = cat(c->newroot, "/etc/hosts");
+            FILE *hosts_file = fopen(hosts_path, "a");
+            if (hosts_file && fprintf(hosts_file, "%s %s\n", inet_ntoa(ip_addr), hostname) > 0) {
+                VERBOSE("adding host entry %s %s to /etc/hosts", inet_ntoa(ip_addr), hostname);
+            } else {
+                VERBOSE("failed to write to /etc/hosts: %s", hosts_path);
+            }
+            
+            if (hosts_file) fclose(hosts_file);
+            free(hosts_path);
             free(hostname);
         }
         

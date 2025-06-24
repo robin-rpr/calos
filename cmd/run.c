@@ -63,8 +63,8 @@ const struct argp_option options[] = {
    { "test",          -17, "TEST", 0, "do test TEST" },
    { "mount",         'm', "DIR",  0, "SquashFS mount point"},
    { "no-passwd",      -9, 0,      0, "don't bind-mount /etc/{passwd,group}"},
+   { "host",          'h', "HOST_MAP", 0, "host mapping (e.g. google.com:1.2.3.4)" },
    { "port",          'p', "PORT_MAP", 0, "port mapping (e.g. 8080:80)" },
-   { "dns",           'd', "DNS_MAP", 0, "DNS mapping (e.g. google.com:1.2.3.4)" },
    { "private-tmp",   't', 0,      0, "use container-private /tmp" },
    { "quiet",         'q', 0,      0, "print less output (can be repeated)"},
 #ifdef HAVE_SECCOMP
