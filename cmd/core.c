@@ -509,6 +509,7 @@ void containerize(struct container *c)
     Zf(child_pid == -1, "failed to fork");
 
     if (child_pid > 0) {
+        /* Parent Process */
         close(sp[1]);
 
         char tap_name[32];
@@ -759,6 +760,7 @@ void containerize(struct container *c)
         exit(0);
 
     } else {
+        /* Child Process */
         close(sp[0]);
 
         char tap_name[32] = {0};
