@@ -53,7 +53,7 @@ Required system dependencies
 
 After enabling the CRB repository, install the following packages::
 
-  $ sudo dnf install libseccomp-devel squashfuse-devel libslirp-devel \
+  $ sudo dnf install libseccomp-devel squashfuse-devel libslirp-devel libnl3-devel \
       fuse3-devel python3-devel python3-pip python3-wheel python3-cython git
 
 These packages provide:
@@ -64,6 +64,8 @@ These packages provide:
     mounting of SquashFS archives without root privileges
   * :code:`libslirp-devel`: Development files for the slirp library,
     providing user-mode networking capabilities
+  * :code:`libnl3-devel`: Development files for libnl3, providing network
+    configuration and management capabilities
   * :code:`fuse3-devel`: Development files for FUSE 3, the filesystem in
     userspace interface
   * :code:`python3-devel`: Python 3 development headers and libraries

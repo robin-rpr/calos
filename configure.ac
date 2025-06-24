@@ -249,6 +249,14 @@ AX_CHECK_COMPILE_FLAG([$clearly_cflags], [
 AS_IF([test "$CC" = icc],
       [AC_MSG_ERROR([icc not supported (see PR @%:@481)])])
 
+# Check for libslirp
+PKG_CHECK_MODULES([LIBSLIRP], [slirp],,
+      [AC_MSG_ERROR([libslirp-devel is required. Please install it.])])
+
+# Check for libnl
+PKG_CHECK_MODULES([LIBNL], [libnl-3.0 libnl-route-3.0],,
+      [AC_MSG_ERROR([libnl-3.0-devel and libnl-route-3.0-devel are required. Please install them.])])
+
 
 ### run required ##########################################################
 
@@ -302,6 +310,12 @@ AC_LINK_IFELSE([AC_LANG_SOURCE([[
 
 # pthreads; needed for “clearly run --join”.
 AX_PTHREAD
+
+# Libslirp libraries.
+PKG_CHECK_MODULES([LIBSLIRP], [slirp])
+
+# Netlink libraries.
+PKG_CHECK_MODULES([LIBNL], [libnl-3.0 libnl-route-3.0])
 
 # POSIX IPC lives in librt.
 AC_CHECK_LIB([rt], [shm_open], [CLEARLY_RUN_LIBS="-lrt $CLEARLY_RUN_LIBS"], [

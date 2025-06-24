@@ -39,6 +39,10 @@
 #include <linux/if.h>
 #include <linux/if_tun.h>
 #include <sys/ioctl.h>
+#include <libnl3/netlink/netlink.h>
+#include <libnl3/netlink/route/link.h>
+#include <libnl3/netlink/route/addr.h>
+#include <libnl3/netlink/route/route.h>
 #include "misc.h"
 #include "core.h"
 #ifdef HAVE_LIBSQUASHFUSE
@@ -255,21 +259,6 @@ void setup_namespaces(const struct container *c, uid_t uid_out, uid_t uid_in,
 void tmpfs_mount(const char *dst, const char *newroot, const char *data);
 bool pull_image(const char *ref, const char *storage_dir);
 
-// A simple helper to run external commands.
-// In a production scenario, you might use netlink APIs directly for performance
-// and security, but this is much clearer for a demonstration.
-void run_cmd(const char *cmd, ...) {
-    char command_buf[1024];
-    va_list args;
-    va_start(args, cmd);
-    vsnprintf(command_buf, sizeof(command_buf), cmd, args);
-    va_end(args);
-
-    VERBOSE("Executing: %s", command_buf);
-    int ret = system(command_buf);
-    Tf (ret == 0, "Command failed: %s", command_buf);
-}
-
 // Send a file descriptor over a Unix socket.
 void send_fd(int sock, int fd) {
     struct msghdr msg = {0};
@@ -417,20 +406,31 @@ void containerize(struct container *c)
         );
 
         VERBOSE("TAP device '%s' attached", tap_name);
-        run_cmd("ip link set %s up", tap_name);
 
         char ready_buf;
         Zf(read(sp[0], &ready_buf, 1) != 1, "failed to receive ready signal from child");
 
         VERBOSE("parent received ready signal from child");
 
-        // Move TAP into child netns
-        char netns_path[64];
-        snprintf(netns_path, sizeof(netns_path), "/proc/%d/ns/net", child_pid);
-        int netns_fd = open(netns_path, O_RDONLY);
-        Zf(netns_fd == -1, "failed to open child netns");
-        run_cmd("ip link set %s netns %d", tap_name, child_pid);
-        close(netns_fd);
+        // Move TAP into child netns using libnl
+        struct nl_sock *sock = nl_socket_alloc();
+        Tf(sock != NULL, "failed to allocate netlink socket");
+        Zf(nl_connect(sock, NETLINK_ROUTE), "failed to connect to netlink route socket");
+
+        struct rtnl_link *link;
+        Zf(rtnl_link_get_kernel(sock, 0, tap_name, &link), "failed to get link %s", tap_name);
+        int if_index = rtnl_link_get_ifindex(link);
+        rtnl_link_put(link);
+
+        struct rtnl_link *link_change = rtnl_link_alloc();
+        Tf(link_change != NULL, "failed to allocate link for netns change");
+        rtnl_link_set_ifindex(link_change, if_index);
+        rtnl_link_set_ns_pid(link_change, child_pid);
+        Zf(rtnl_link_add(sock, link_change, NLM_F_ACK), "failed to move link %s to child netns", tap_name);
+        rtnl_link_put(link_change);
+
+        nl_close(sock);
+        nl_socket_free(sock);
 
         struct SlirpCb slirp_callbacks = {
            .clock_get_ns = clock_get_ns_cb,
@@ -585,9 +585,57 @@ void containerize(struct container *c)
         (void)tap_fd;
 
         // Configure the network interface
-        run_cmd("ip link set dev %s up", tap_name);
-        run_cmd("ip addr add 10.0.2.100/24 dev %s", tap_name);
-        run_cmd("ip route add default via 10.0.2.2");
+        struct nl_sock *sock = nl_socket_alloc();
+        Tf(sock != NULL, "failed to allocate netlink socket");
+        Zf(nl_connect(sock, NETLINK_ROUTE), "failed to connect to netlink route socket");
+
+        struct rtnl_link *link;
+        Zf(rtnl_link_get_kernel(sock, 0, tap_name, &link), "failed to get link %s", tap_name);
+
+        int if_index = rtnl_link_get_ifindex(link);
+        rtnl_link_put(link);
+
+        // Bring the interface up
+        struct rtnl_link *link_change = rtnl_link_alloc();
+        Tf(link_change != NULL, "failed to allocate link");
+        rtnl_link_set_ifindex(link_change, if_index);
+        rtnl_link_set_flags(link_change, IFF_UP);
+        Zf(rtnl_link_add(sock, link_change, NLM_F_ACK), "failed to bring up link %s", tap_name);
+        rtnl_link_put(link_change);
+
+        // Add the IP address
+        struct rtnl_addr *addr = rtnl_addr_alloc();
+        Tf(addr != NULL, "failed to allocate rtnl_addr");
+        struct nl_addr *local_ip;
+        Zf(nl_addr_parse("10.0.2.100/24", AF_INET, &local_ip), "failed to parse address");
+        rtnl_addr_set_local(addr, local_ip);
+        nl_addr_put(local_ip);
+        rtnl_addr_set_ifindex(addr, if_index);
+        Zf(rtnl_addr_add(sock, addr, 0), "failed to add address");
+        rtnl_addr_put(addr);
+
+        // Add the default route
+        struct rtnl_route *route = rtnl_route_alloc();
+        Tf(route != NULL, "failed to allocate rtnl_route");
+        struct nl_addr *gw_addr;
+        Zf(nl_addr_parse("10.0.2.2", AF_INET, &gw_addr), "failed to parse gateway");
+        struct rtnl_nexthop *nh = rtnl_route_nh_alloc();
+        Tf(nh != NULL, "failed to allocate nexthop");
+        rtnl_route_nh_set_ifindex(nh, if_index);
+        rtnl_route_nh_set_gateway(nh, gw_addr);
+        rtnl_route_add_nexthop(route, nh);
+        nl_addr_put(gw_addr);
+
+        struct nl_addr *dst_addr;
+        Zf(nl_addr_parse("0.0.0.0/0", AF_INET, &dst_addr), "failed to parse route destination");
+        rtnl_route_set_dst(route, dst_addr);
+        nl_addr_put(dst_addr);
+
+        Zf(rtnl_route_add(sock, route, 0), "failed to add route");
+        rtnl_route_put(route);
+
+        nl_close(sock);
+        nl_socket_free(sock);
     }
 }
 
