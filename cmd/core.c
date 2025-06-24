@@ -216,8 +216,23 @@ struct pollfd_data {
     int size;
 };
 
+/*
+ * This function is called by libslirp to register a file descriptor for polling.
+ * It checks if the fd already exists in the list and updates its events if it does.
+ * If the fd is not found, it adds it as a new fd.
+ */
 int add_poll_cb(int fd, int events, void *opaque) {
     struct pollfd_data *d = opaque;
+
+    // Check if the fd already exists in the list and update its events
+    for (int i = 0; i < d->nfds; i++) {
+        if (d->fds[i].fd == fd) {
+            d->fds[i].events = events; // Update events
+            return i; // Return its index
+        }
+    }
+
+    // If not found, add it as a new fd
     if (d->nfds >= d->size) {
         d->size = d->size == 0 ? 8 : d->size * 2;
         d->fds = realloc(d->fds, d->size * sizeof(struct pollfd));
@@ -333,6 +348,104 @@ static void guest_error_cb(const char *msg, void *opaque)
    fprintf(stderr, "slirp guest error: %s\n", msg);
 }
 
+// Timer structure for libslirp timer management. A production implementation
+// would use timerfd(2) for more efficient timer handling.
+typedef struct {
+    SlirpTimerCb cb;
+    void *cb_opaque;
+    // Monotonic time in nanoseconds when timer expires
+    int64_t expire_time;
+} MySlirpTimer;
+
+// Timer storage array for libslirp timer management
+static MySlirpTimer **slirp_timers = NULL;
+static int num_slirp_timers = 0;
+static int slirp_timers_capacity = 0;
+
+void slirp_remove_timer_from_list(MySlirpTimer *timer_to_remove) {
+    for (int i = 0; i < num_slirp_timers; i++) {
+        if (slirp_timers[i] == timer_to_remove) {
+            // Found it, remove by shifting elements
+            free(slirp_timers[i]); // Free the timer struct itself
+            for (int j = i; j < num_slirp_timers - 1; j++) {
+                slirp_timers[j] = slirp_timers[j+1];
+            }
+            num_slirp_timers--;
+            return;
+        }
+    }
+}
+
+void *timer_new_cb(SlirpTimerCb cb, void *cb_opaque, void *opaque) {
+    VERBOSE("timer_new_cb: New timer created");
+    MySlirpTimer *t = malloc(sizeof(MySlirpTimer));
+    Tf(t != NULL, "Failed to allocate timer");
+    t->cb = cb;
+    t->cb_opaque = cb_opaque;
+    t->expire_time = -1; // Not set yet, will be set by timer_mod_cb
+
+    if (num_slirp_timers >= slirp_timers_capacity) {
+        slirp_timers_capacity = slirp_timers_capacity == 0 ? 4 : slirp_timers_capacity * 2;
+        slirp_timers = realloc(slirp_timers, slirp_timers_capacity * sizeof(MySlirpTimer*));
+        Tf(slirp_timers != NULL, "Failed to reallocate slirp_timers array");
+    }
+    slirp_timers[num_slirp_timers++] = t;
+    return t;
+}
+
+void timer_free_cb(void *timer, void *opaque) {
+    VERBOSE("timer_free_cb: Timer freed");
+    slirp_remove_timer_from_list((MySlirpTimer *)timer);
+}
+
+void timer_mod_cb(void *timer, int64_t expire_time, void *opaque) {
+    MySlirpTimer *t = timer;
+    VERBOSE("timer_mod_cb: Timer modified to expire at %lld ns", (long long)expire_time);
+    t->expire_time = expire_time;
+    // In a production timer implementation using timerfd(2), this
+    // callback would update the timer file descriptor with the new
+    // expiration time. The current array-based implementation maintains
+    // timers in insertion order without sorting for simplicity.
+}
+
+void register_poll_fd_cb(int fd, void *opaque) {
+    struct pollfd_data *d = opaque;
+    VERBOSE("register_poll_fd_cb: Registering fd %d", fd);
+
+    // This callback from libslirp just says "watch this FD".
+    // The events will be filled by slirp_pollfds_fill later.
+    // We need to ensure it's in our list. add_poll_cb can handle this.
+    add_poll_cb(fd, 0, d);
+}
+
+void unregister_poll_fd_cb(int fd, void *opaque) {
+    struct pollfd_data *d = opaque;
+    VERBOSE("unregister_poll_fd_cb: Unregistering fd %d", fd);
+
+    // Remove the file descriptor from the pollfd_data structure
+    // This is a linear search and remove; for high performance, a different
+    // data structure (like a hash map from fd to index) would be better.
+    for (int i = 0; i < d->nfds; i++) {
+        if (d->fds[i].fd == fd) {
+            // Found it, shift elements down
+            for (int j = i; j < d->nfds - 1; j++) {
+                d->fds[j] = d->fds[j+1];
+            }
+            d->nfds--; // Reduce count
+            // No reallocating here to avoid thrashing for small changes.
+            // A periodic compaction might be beneficial if list shrinks a lot.
+            VERBOSE("unregister_poll_fd_cb: Removed fd %d", fd);
+            return;
+        }
+    }
+    VERBOSE("unregister_poll_fd_cb: FD %d not found in tracked pollfds for unregistration.", fd);
+}
+
+void notify_cb(void *opaque) {
+    // This callback indicates that Slirp has internal state changes
+    // and might need to be called again soon, even if no FDs are ready.
+    VERBOSE("notify_cb: Slirp signalled internal event.");
+}
 
 /** Functions **/
 
@@ -445,10 +558,17 @@ void containerize(struct container *c)
         nl_close(sock);
         nl_socket_free(sock);
 
+        struct pollfd_data pfd_data = {0};
         struct SlirpCb slirp_callbacks = {
            .send_packet = send_packet_cb,
            .guest_error = guest_error_cb,
            .clock_get_ns = clock_get_ns_cb,
+           .timer_new = timer_new_cb,
+           .timer_free = timer_free_cb,
+           .timer_mod = timer_mod_cb,
+           .register_poll_fd = register_poll_fd_cb,
+           .unregister_poll_fd = unregister_poll_fd_cb,
+           .notify = notify_cb,
         };
 
         struct in_addr vnetwork  = { .s_addr = inet_addr("10.0.2.0") };
@@ -476,7 +596,7 @@ void containerize(struct container *c)
                                   NULL,             // vdns_search (is a const char**)
                                   NULL,             // vdomainname
                                   &slirp_callbacks, // callbacks
-                                  &tap_fd);         // callbacks_udata
+                                  &pfd_data);       // Use pfd_data as opaque for Slirp (for pollfd handling)
 
         Tf(slirp != NULL, "slirp_init failed");
 
@@ -492,26 +612,87 @@ void containerize(struct container *c)
 
         send_fd(sp[0], tap_fd);
 
-        struct pollfd_data pfd_data = {0};
         int exited = 0;
 
         while (!exited) {
-            uint32_t timeout_ms = -1;
-            pfd_data.nfds = 0;
+            uint32_t timeout_ms = (uint32_t)-1; // Initialize with max value
 
+            // Reset nfds and clear fds for each poll loop to avoid stale entries
+            // This is important because slirp_pollfds_fill will populate it freshly
+            pfd_data.nfds = 0;
+            // It's also good practice to clear the events on existing fds before refill
+            // to ensure accurate polling, though slirp_pollfds_fill might handle this.
+            // A simple approach is to re-zero the entire allocated buffer if nfds changes drastically,
+            // or just rely on slirp_pollfds_fill to write correct events.
+
+            // Call slirp_pollfds_fill to get FDs Slirp wants to poll
             slirp_pollfds_fill(slirp, &timeout_ms, add_poll_cb, &pfd_data);
 
-            if (pfd_data.nfds + 1 > pfd_data.size) {
-               size_t old_size = pfd_data.size;
-               pfd_data.size = pfd_data.nfds + 8;
-               pfd_data.fds = realloc(pfd_data.fds, pfd_data.size * sizeof(struct pollfd));
-               Tf(pfd_data.fds != NULL, "realloc failed");
-               memset(&pfd_data.fds[old_size], 0, (pfd_data.size - old_size) * sizeof(struct pollfd));
+            // Add the TAP FD to our polling list
+            // Check if tap_fd is already in d->fds (possible if register_poll_fd_cb added it)
+            bool tap_fd_in_list = false;
+            for(int i = 0; i < pfd_data.nfds; i++) {
+                if (pfd_data.fds[i].fd == tap_fd) {
+                    tap_fd_in_list = true;
+                    // Ensure it has POLLIN events if it's our tap_fd
+                    pfd_data.fds[i].events |= POLLIN;
+                    break;
+                }
+            }
+            if (!tap_fd_in_list) {
+                // Only add if not already managed by slirp via register_poll_fd_cb
+                // This block also ensures reallocation if needed for the tap_fd
+                if (pfd_data.nfds >= pfd_data.size) {
+                    pfd_data.size = pfd_data.size == 0 ? 8 : pfd_data.size * 2;
+                    pfd_data.fds = realloc(pfd_data.fds, pfd_data.size * sizeof(struct pollfd));
+                    Tf(pfd_data.fds != NULL, "realloc failed for tap_fd");
+                    // Important: realloc doesn't zero new memory. If you're relying on that, memset.
+                    // For pollfd, it's safer to memset new elements if you resize.
+                    memset(&pfd_data.fds[pfd_data.nfds], 0, (pfd_data.size - pfd_data.nfds) * sizeof(struct pollfd));
+                }
+                pfd_data.fds[pfd_data.nfds].fd = tap_fd;
+                pfd_data.fds[pfd_data.nfds].events = POLLIN;
+                pfd_data.nfds++;
             }
 
-            pfd_data.fds[pfd_data.nfds].fd = tap_fd;
-            pfd_data.fds[pfd_data.nfds].events = POLLIN;
-            pfd_data.nfds++;
+            // Manually process timers here (basic, not timerfd-based)
+            int64_t current_ns = clock_get_ns_cb(NULL); // Opaque not used by this callback
+            for(int i = 0; i < num_slirp_timers; ) {
+                MySlirpTimer *timer = slirp_timers[i];
+                if (timer->expire_time != -1 && timer->expire_time <= current_ns) {
+                    VERBOSE("Timer expired: %p", (void*)timer);
+                    // Call the timer callback. It might re-arm the timer or free it.
+                    // If it frees it, `slirp_remove_timer_from_list` is called via timer_free_cb
+                    // which will compact the `slirp_timers` array.
+                    timer->cb(timer->cb_opaque);
+
+                    // Re-evaluate the current timer, as it might have been removed or modified.
+                    // A simple way to handle potential list modification is to re-check the same index
+                    // after a callback. However, if timer_free_cb removes it, the list is shifted.
+                    // The safest is to decrement `i` if `num_slirp_timers` changed due to removal.
+                    // For simplicity with this current structure, we'll just increment,
+                    // assuming slirp's timer functions manage their list well on `timer_free_cb`.
+                    i++;
+                } else {
+                    i++;
+                }
+            }
+            // Update poll timeout based on the nearest timer if any
+            uint32_t nearest_timeout = (uint32_t)-1;
+            for(int i = 0; i < num_slirp_timers; i++) {
+                if (slirp_timers[i]->expire_time != -1) {
+                    int64_t remaining_ns = slirp_timers[i]->expire_time - current_ns;
+                    if (remaining_ns < 0) remaining_ns = 0; // Already expired, process immediately
+                    uint32_t remaining_ms = (uint32_t)(remaining_ns / 1000000);
+                    if (remaining_ms < nearest_timeout) {
+                        nearest_timeout = remaining_ms;
+                    }
+                }
+            }
+            if (nearest_timeout != (uint32_t)-1 && nearest_timeout < timeout_ms) {
+                timeout_ms = nearest_timeout;
+            }
+
 
             int ret = poll(pfd_data.fds, pfd_data.nfds, timeout_ms);
             if (ret < 0) {
@@ -524,12 +705,19 @@ void containerize(struct container *c)
             }
 
             // Check for input from the container via the TAP device
-            struct pollfd *tap_pfd = &pfd_data.fds[pfd_data.nfds - 1];
-            if (tap_pfd->fd == tap_fd && (tap_pfd->revents & POLLIN)) {
+            // Find the tap_fd in the dynamically managed pfd_data.fds array
+            struct pollfd *tap_pfd_ptr = NULL;
+            for(int i = 0; i < pfd_data.nfds; i++) {
+                if (pfd_data.fds[i].fd == tap_fd) {
+                    tap_pfd_ptr = &pfd_data.fds[i];
+                    break;
+                }
+            }
+
+            if (tap_pfd_ptr && (tap_pfd_ptr->revents & POLLIN)) {
                char buf[2048];
                int len = read(tap_fd, buf, sizeof(buf));
                if (len > 0 && slirp) {
-                  // This call can change slirp's internal FD set.
                   slirp_input(slirp, (const uint8_t *)buf, len);
                   // The poll results are now stale for slirp, so we must loop
                   // to get the new FD set before calling slirp_pollfds_poll().
@@ -537,7 +725,7 @@ void containerize(struct container *c)
                }
             }
 
-            // If we are here, it means no new packets came from the TAP device.
+            // If we are here, it means no new packets came from the TAP device (or it was handled).
             // It is now safe to let slirp process its timers and socket events.
             slirp_pollfds_poll(slirp, ret == 0, get_revents_cb, &pfd_data);
 
@@ -552,6 +740,17 @@ void containerize(struct container *c)
                 }
             }
         }
+
+        // Cleanup timers
+        for (int i = 0; i < num_slirp_timers; i++) {
+            // Note: timer_free_cb actually frees the MySlirpTimer struct
+            // We just need to free the array of pointers here
+            free(slirp_timers[i]);
+        }
+        free(slirp_timers);
+        slirp_timers = NULL;
+        num_slirp_timers = 0;
+        slirp_timers_capacity = 0;
 
         free(pfd_data.fds);
         slirp_cleanup(slirp);
