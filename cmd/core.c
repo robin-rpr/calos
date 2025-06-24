@@ -85,9 +85,7 @@ struct bind BINDS_DEFAULT[] = {
    { "/dev",                     "/dev",                     BD_REQUIRED },
    { "/proc",                    "/proc",                    BD_REQUIRED },
    { "/sys",                     "/sys",                     BD_REQUIRED },
-   { "/etc/hosts",               "/etc/hosts",               BD_OPTIONAL },
    { "/etc/machine-id",          "/etc/machine-id",          BD_OPTIONAL },
-   { "/etc/resolv.conf",         "/etc/resolv.conf",         BD_OPTIONAL },
    /* Cray bind-mounts. See #1473. */
    { "/var/lib/hugetlbfs",       "/var/lib/hugetlbfs",       BD_OPTIONAL },
    /* Cray Gemini/Aries interconnect bind-mounts. */
@@ -580,11 +578,37 @@ void containerize(struct container *c)
         struct in_addr no_addr   = {0};
         struct in6_addr no_addr6 = {0};
 
-        Slirp *slirp = slirp_init(false, true, vnetwork, vnetmask, vhost,
-                                  false, no_addr6, 0, no_addr6, NULL, NULL,
-                                  NULL, NULL, no_addr, no_addr, no_addr6,
-                                  NULL, NULL, &slirp_callbacks, &s_data);
-        Tf(slirp != NULL, "slirp_init failed");
+        const SlirpConfig slirp_cfg = {
+            .version = SLIRP_CONFIG_VERSION_MAX,
+            .restricted = false,
+            .in_enabled = true,
+            .vnetwork = vnetwork,
+            .vnetmask = vnetmask,
+            .vhost = vhost,
+            .in6_enabled = false,
+            .vnameserver = vhost, // Crucially, point guest DNS to slirp's vhost IP
+            .vprefix_addr6 = no_addr6,
+            .vprefix_len = 0,
+            .vhost6 = no_addr6,
+            .vhostname = NULL,
+            .tftp_server_name = NULL,
+            .tftp_path = NULL,
+            .bootfile = NULL,
+            .vdhcp_start = no_addr,
+            .vnameserver6 = no_addr6,
+            .vdnssearch = NULL,
+            .vdomainname = NULL,
+            .if_mtu = 0,
+            .if_mru = 0,
+            .disable_host_loopback = false,
+            .enable_emu = false,
+            .outbound_addr = NULL,
+            .outbound_addr6 = NULL,
+            .disable_dns = false,
+        };
+
+        Slirp *slirp = slirp_new(&slirp_cfg, &slirp_callbacks, &s_data);
+        Tf(slirp != NULL, "slirp_new failed");
 
         // Add port forwarding rules
         for (int i = 0; c->port_map_strs[i] != NULL; i++) {
@@ -613,9 +637,9 @@ void containerize(struct container *c)
             s_data.pfd_data.nfds = 0;
             slirp_pollfds_fill(slirp, &timeout_ms, add_poll_cb, &s_data);
 
-            if (s_data.pfd_data.nfds >= s_data.pfd_data.size) {
-                 s_data.pfd_data.size = s_data.pfd_data.size == 0 ? 8 : s_data.pfd_data.size * 2;
-                 s_data.pfd_data.fds = realloc(s_data.pfd_data.fds, s_data.pfd_data.size * sizeof(struct pollfd));
+                if (s_data.pfd_data.nfds >= s_data.pfd_data.size) {
+                    s_data.pfd_data.size = s_data.pfd_data.size == 0 ? 8 : s_data.pfd_data.size * 2;
+                    s_data.pfd_data.fds = realloc(s_data.pfd_data.fds, s_data.pfd_data.size * sizeof(struct pollfd));
             }
             s_data.pfd_data.fds[s_data.pfd_data.nfds].fd = sp[0];
             s_data.pfd_data.fds[s_data.pfd_data.nfds].events = POLLIN;
@@ -624,20 +648,20 @@ void containerize(struct container *c)
             int ret = poll(s_data.pfd_data.fds, s_data.pfd_data.nfds, timeout_ms);
 
             if (ret > 0 && s_data.pfd_data.fds[s_data.pfd_data.nfds - 1].revents & POLLIN) {
-                uint32_t plen;
-                ssize_t len = read(sp[0], &plen, sizeof(plen));
-                if (len == sizeof(plen)) {
-                    if (plen > sizeof(slirp_buf)) {
-                        FATAL(0, "slirp buffer too small for packet size %u", plen);
-                    }
-                    len = read(sp[0], slirp_buf, plen);
-                    if (len > 0) {
-                        slirp_input(slirp, (const uint8_t *)slirp_buf, len);
-                    }
-                }
-                if (len <= 0) {
-                    // Child closed connection
-                    exited = 1;
+                     uint32_t plen;
+                     ssize_t len = read(sp[0], &plen, sizeof(plen));
+                     if (len == sizeof(plen)) {
+                         if (plen > sizeof(slirp_buf)) {
+                             FATAL(0, "slirp buffer too small for packet size %u", plen);
+                         }
+                         len = read(sp[0], slirp_buf, plen);
+                         if (len > 0) {
+                             slirp_input(slirp, (const uint8_t *)slirp_buf, len);
+                         }
+                     }
+                     if (len <= 0) {
+                         // Child closed connection
+                         exited = 1;
                 }
             }
 
@@ -781,10 +805,10 @@ void containerize(struct container *c)
                     uint32_t plen;
                     ssize_t len = read(sp[1], &plen, sizeof(plen));
                     if (len == sizeof(plen)) {
-                    if (plen > sizeof(buf)) {
-                        // Should not happen
-                        break;
-                    }
+                         if (plen > sizeof(buf)) {
+                             // Should not happen
+                             break;
+                         }
                          len = read(sp[1], buf, plen);
                          if (len > 0) {
                              write(tap_fd, buf, len);
