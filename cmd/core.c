@@ -63,6 +63,7 @@
    available [1], (b) short, (c) not used by anything else we care about
    during container setup, and (d) not wildly confusing if users see it in an
    error message. Must be a string literal because we use C’s literal
+
    concatenation feature. Options considered (all of these required by FHS):
 
       /boot       Not present if host is booted in some strange way?
@@ -216,13 +217,21 @@ struct pollfd_data {
     int size;
 };
 
+/* Opaque data structure for libslirp callbacks. */
+struct slirp_data {
+    struct pollfd_data pfd_data;
+    int socket_fd; // Socket to communicate with child
+};
+
+
 /*
  * This function is called by libslirp to register a file descriptor for polling.
  * It checks if the fd already exists in the list and updates its events if it does.
  * If the fd is not found, it adds it as a new fd.
  */
 int add_poll_cb(int fd, int events, void *opaque) {
-    struct pollfd_data *d = opaque;
+    struct slirp_data *sd = opaque;
+    struct pollfd_data *d = &sd->pfd_data;
 
     // Check if the fd already exists in the list and update its events
     for (int i = 0; i < d->nfds; i++) {
@@ -245,7 +254,8 @@ int add_poll_cb(int fd, int events, void *opaque) {
 }
 
 int get_revents_cb(int idx, void *opaque) {
-    struct pollfd_data *d = opaque;
+    struct slirp_data *sd = opaque;
+    struct pollfd_data *d = &sd->pfd_data;
     Tf(idx < d->nfds, "Poll index out of bounds");
     return d->fds[idx].revents;
 }
@@ -335,11 +345,18 @@ void parse_port_map(const char* map_str, int* host_port, int* guest_port) {
     free(str);
 }
 
-/* Send a packet to the guest. This is a callback for libslirp. */
+/* Send a packet to the guest via the socket pair. This is a callback for libslirp. */
 static ssize_t send_packet_cb(const void *buf, size_t len, void *opaque)
 {
-   int tap_fd = *(int *)opaque;
-   return write(tap_fd, buf, len);
+   struct slirp_data *sd = opaque;
+   uint32_t plen = len;
+
+   // Frame the packet with its length to handle SOCK_STREAM.
+   if (write(sd->socket_fd, &plen, sizeof(plen)) != sizeof(plen)) {
+        perror("write packet length");
+        return -1;
+   }
+   return write(sd->socket_fd, buf, len);
 }
 
 /* Handle errors from the guest. This is a callback for libslirp. */
@@ -409,17 +426,18 @@ void timer_mod_cb(void *timer, int64_t expire_time, void *opaque) {
 }
 
 void register_poll_fd_cb(int fd, void *opaque) {
-    struct pollfd_data *d = opaque;
+    struct slirp_data *sd = opaque;
     VERBOSE("register_poll_fd_cb: Registering fd %d", fd);
 
     // This callback from libslirp just says "watch this FD".
     // The events will be filled by slirp_pollfds_fill later.
     // We need to ensure it's in our list. add_poll_cb can handle this.
-    add_poll_cb(fd, 0, d);
+    add_poll_cb(fd, 0, sd);
 }
 
 void unregister_poll_fd_cb(int fd, void *opaque) {
-    struct pollfd_data *d = opaque;
+    struct slirp_data *sd = opaque;
+    struct pollfd_data *d = &sd->pfd_data;
     VERBOSE("unregister_poll_fd_cb: Unregistering fd %d", fd);
 
     // Remove the file descriptor from the pollfd_data structure
@@ -510,42 +528,33 @@ void containerize(struct container *c)
 
     if (child_pid > 0) {
         /* Parent Process */
-        close(sp[1]);
+        close(sp[1]); // Close child's end of socket pair
 
-        char tap_name[32];
-        snprintf(tap_name, sizeof(tap_name), "clearly%05d", child_pid % 100000);
-        write(sp[0], tap_name, sizeof(tap_name));
-
+        char tap_name[IFNAMSIZ];
         int tap_fd = open("/dev/net/tun", O_RDWR);
-        if (tap_fd < 0) {
-           Zf(1, "Failed to open /dev/net/tun");
-           exit(1);
-        }
+        Tf(tap_fd >= 0, "Failed to open /dev/net/tun");
 
         struct ifreq ifr = {0};
-        // IFF_TAP for a TAP device, IFF_NO_PI is important
         ifr.ifr_flags = IFF_TAP | IFF_NO_PI;
         snprintf(ifr.ifr_name, IFNAMSIZ, "clearly%05d", child_pid % 100000);
 
-        Zf(
-         ioctl(tap_fd, TUNSETIFF, (void *)&ifr) == -1,
-         "Failed to create TAP device via ioctl(TUNSETIFF)"
-        );
-
-        VERBOSE("TAP device '%s' attached", tap_name);
+        Zf(ioctl(tap_fd, TUNSETIFF, (void *)&ifr) == -1,
+           "Failed to create TAP device via ioctl(TUNSETIFF)");
+        strncpy(tap_name, ifr.ifr_name, IFNAMSIZ);
+        VERBOSE("TAP device '%s' created", tap_name);
 
         char ready_buf;
-        Zf(read(sp[0], &ready_buf, 1) != 1, "failed to receive ready signal from child");
-
+        Zf(read(sp[0], &ready_buf, 1) != 1 || ready_buf != 'R',
+           "failed to receive ready signal from child");
         VERBOSE("parent received ready signal from child");
 
-        // Move TAP into child netns using libnl
+        // Move TAP into child's netns using libnl
         struct nl_sock *sock = nl_socket_alloc();
         Tf(sock != NULL, "failed to allocate netlink socket");
-        Zf(nl_connect(sock, NETLINK_ROUTE), "failed to connect to netlink route socket");
+        Zf(nl_connect(sock, NETLINK_ROUTE) < 0, "failed to connect to netlink route socket");
 
         struct rtnl_link *link;
-        Zf(rtnl_link_get_kernel(sock, 0, tap_name, &link), "failed to get link %s", tap_name);
+        Zf(rtnl_link_get_kernel(sock, 0, tap_name, &link) < 0, "failed to get link %s", tap_name);
         int if_index = rtnl_link_get_ifindex(link);
         rtnl_link_put(link);
 
@@ -553,13 +562,16 @@ void containerize(struct container *c)
         Tf(link_change != NULL, "failed to allocate link for netns change");
         rtnl_link_set_ifindex(link_change, if_index);
         rtnl_link_set_ns_pid(link_change, child_pid);
-        Zf(rtnl_link_add(sock, link_change, NLM_F_ACK), "failed to move link %s to child netns", tap_name);
+        Zf(rtnl_link_add(sock, link_change, NLM_F_ACK) < 0, "failed to move link %s to child netns", tap_name);
         rtnl_link_put(link_change);
-
-        nl_close(sock);
         nl_socket_free(sock);
 
-        struct pollfd_data pfd_data = {0};
+        // Send the TAP device name and file descriptor to the child
+        write(sp[0], tap_name, IFNAMSIZ);
+        send_fd(sp[0], tap_fd);
+        close(tap_fd); // Parent no longer needs this FD
+
+        struct slirp_data s_data = { .socket_fd = sp[0] };
         struct SlirpCb slirp_callbacks = {
            .send_packet = send_packet_cb,
            .guest_error = guest_error_cb,
@@ -571,174 +583,66 @@ void containerize(struct container *c)
            .unregister_poll_fd = unregister_poll_fd_cb,
            .notify = notify_cb,
         };
-
         struct in_addr vnetwork  = { .s_addr = inet_addr("10.0.2.0") };
         struct in_addr vnetmask  = { .s_addr = inet_addr("255.255.255.0") };
         struct in_addr vhost     = { .s_addr = inet_addr("10.0.2.2") };
         struct in_addr no_addr   = {0};
         struct in6_addr no_addr6 = {0};
 
-        Slirp *slirp = slirp_init(false,            // restricted
-                                  true,             // in_enabled (IPv4)
-                                  vnetwork,         // vnetwork
-                                  vnetmask,         // vnetmask
-                                  vhost,            // vhost
-                                  false,            // in6_enabled (IPv6)
-                                  no_addr6,         // vprefix_addr6
-                                  0,                // vprefix_len
-                                  no_addr6,         // vhost6
-                                  NULL,             // vhostname
-                                  NULL,             // tftp_server_name
-                                  NULL,             // tftp_path_prefix
-                                  NULL,             // bootfile
-                                  no_addr,          // vdhcp_start
-                                  no_addr,          // vnameserver
-                                  no_addr6,         // vnameserver6
-                                  NULL,             // vdns_search (is a const char**)
-                                  NULL,             // vdomainname
-                                  &slirp_callbacks, // callbacks
-                                  &pfd_data);       // Use pfd_data as opaque for Slirp (for pollfd handling)
-
+        Slirp *slirp = slirp_init(false, true, vnetwork, vnetmask, vhost,
+                                  false, no_addr6, 0, no_addr6, NULL, NULL,
+                                  NULL, NULL, no_addr, no_addr, no_addr6,
+                                  NULL, NULL, &slirp_callbacks, &s_data);
         Tf(slirp != NULL, "slirp_init failed");
 
-         // Add host forwarding rules
         for (int i = 0; c->port_map_strs[i] != NULL; i++) {
             int host_port, guest_port;
             parse_port_map(c->port_map_strs[i], &host_port, &guest_port);
             struct in_addr host_addr = { .s_addr = INADDR_ANY };
-            struct in_addr guest_addr = { .s_addr = inet_addr("10.0.2.100") };
+            struct in_addr guest_addr = { .s_addr = inet_addr("10.0.2.100") }; // Guest IP
             slirp_add_hostfwd(slirp, false, host_addr, host_port, guest_addr, guest_port);
             VERBOSE("forwarding host port %d to guest port %d", host_port, guest_port);
         }
 
-        send_fd(sp[0], tap_fd);
-
         int exited = 0;
-
+        char slirp_buf[4096];
         while (!exited) {
-            uint32_t timeout_ms = (uint32_t)-1; // Initialize with max value
+            uint32_t timeout_ms = -1;
+            s_data.pfd_data.nfds = 0;
+            slirp_pollfds_fill(slirp, &timeout_ms, add_poll_cb, &s_data);
 
-            // Reset nfds and clear fds for each poll loop to avoid stale entries
-            // This is important because slirp_pollfds_fill will populate it freshly
-            pfd_data.nfds = 0;
-            // It's also good practice to clear the events on existing fds before refill
-            // to ensure accurate polling, though slirp_pollfds_fill might handle this.
-            // A simple approach is to re-zero the entire allocated buffer if nfds changes drastically,
-            // or just rely on slirp_pollfds_fill to write correct events.
-
-            // Call slirp_pollfds_fill to get FDs Slirp wants to poll
-            slirp_pollfds_fill(slirp, &timeout_ms, add_poll_cb, &pfd_data);
-
-            // Add the TAP FD to our polling list
-            // Check if tap_fd is already in d->fds (possible if register_poll_fd_cb added it)
-            bool tap_fd_in_list = false;
-            for(int i = 0; i < pfd_data.nfds; i++) {
-                if (pfd_data.fds[i].fd == tap_fd) {
-                    tap_fd_in_list = true;
-                    // Ensure it has POLLIN events if it's our tap_fd
-                    pfd_data.fds[i].events |= POLLIN;
-                    break;
-                }
+            if (s_data.pfd_data.nfds >= s_data.pfd_data.size) {
+                 s_data.pfd_data.size = s_data.pfd_data.size == 0 ? 8 : s_data.pfd_data.size * 2;
+                 s_data.pfd_data.fds = realloc(s_data.pfd_data.fds, s_data.pfd_data.size * sizeof(struct pollfd));
             }
-            if (!tap_fd_in_list) {
-                // Only add if not already managed by slirp via register_poll_fd_cb
-                // This block also ensures reallocation if needed for the tap_fd
-                if (pfd_data.nfds >= pfd_data.size) {
-                    pfd_data.size = pfd_data.size == 0 ? 8 : pfd_data.size * 2;
-                    pfd_data.fds = realloc(pfd_data.fds, pfd_data.size * sizeof(struct pollfd));
-                    Tf(pfd_data.fds != NULL, "realloc failed for tap_fd");
-                    // Important: realloc doesn't zero new memory. If you're relying on that, memset.
-                    // For pollfd, it's safer to memset new elements if you resize.
-                    memset(&pfd_data.fds[pfd_data.nfds], 0, (pfd_data.size - pfd_data.nfds) * sizeof(struct pollfd));
-                }
-                pfd_data.fds[pfd_data.nfds].fd = tap_fd;
-                pfd_data.fds[pfd_data.nfds].events = POLLIN;
-                pfd_data.nfds++;
-            }
+            s_data.pfd_data.fds[s_data.pfd_data.nfds].fd = sp[0];
+            s_data.pfd_data.fds[s_data.pfd_data.nfds].events = POLLIN;
+            s_data.pfd_data.nfds++;
 
-            // Manually process timers here (basic, not timerfd-based)
-            int64_t current_ns = clock_get_ns_cb(NULL); // Opaque not used by this callback
-            for(int i = 0; i < num_slirp_timers; ) {
-                MySlirpTimer *timer = slirp_timers[i];
-                if (timer->expire_time != -1 && timer->expire_time <= current_ns) {
-                    VERBOSE("Timer expired: %p", (void*)timer);
-                    // Call the timer callback. It might re-arm the timer or free it.
-                    // If it frees it, `slirp_remove_timer_from_list` is called via timer_free_cb
-                    // which will compact the `slirp_timers` array.
-                    timer->cb(timer->cb_opaque);
+            int ret = poll(s_data.pfd_data.fds, s_data.pfd_data.nfds, timeout_ms);
 
-                    // Re-evaluate the current timer, as it might have been removed or modified.
-                    // A simple way to handle potential list modification is to re-check the same index
-                    // after a callback. However, if timer_free_cb removes it, the list is shifted.
-                    // The safest is to decrement `i` if `num_slirp_timers` changed due to removal.
-                    // For simplicity with this current structure, we'll just increment,
-                    // assuming slirp's timer functions manage their list well on `timer_free_cb`.
-                    i++;
-                } else {
-                    i++;
-                }
-            }
-            // Update poll timeout based on the nearest timer if any
-            uint32_t nearest_timeout = (uint32_t)-1;
-            for(int i = 0; i < num_slirp_timers; i++) {
-                if (slirp_timers[i]->expire_time != -1) {
-                    int64_t remaining_ns = slirp_timers[i]->expire_time - current_ns;
-                    if (remaining_ns < 0) remaining_ns = 0; // Already expired, process immediately
-                    uint32_t remaining_ms = (uint32_t)(remaining_ns / 1000000);
-                    if (remaining_ms < nearest_timeout) {
-                        nearest_timeout = remaining_ms;
+            if (ret > 0 && s_data.pfd_data.fds[s_data.pfd_data.nfds - 1].revents & POLLIN) {
+                uint32_t plen;
+                ssize_t len = read(sp[0], &plen, sizeof(plen));
+                if (len == sizeof(plen)) {
+                    if (plen > sizeof(slirp_buf)) {
+                        FATAL(0, "slirp buffer too small for packet size %u", plen);
+                    }
+                    len = read(sp[0], slirp_buf, plen);
+                    if (len > 0) {
+                        slirp_input(slirp, (const uint8_t *)slirp_buf, len);
                     }
                 }
-            }
-            if (nearest_timeout != (uint32_t)-1 && nearest_timeout < timeout_ms) {
-                timeout_ms = nearest_timeout;
-            }
-
-
-            int ret = poll(pfd_data.fds, pfd_data.nfds, timeout_ms);
-            if (ret < 0) {
-                if (errno == EINTR) {
-                    // Loop again if poll was interrupted
-                    continue;
-                }
-                Zf(1, "poll failed");
-                break;
-            }
-
-            // Check for input from the container via the TAP device
-            // Find the tap_fd in the dynamically managed pfd_data.fds array
-            struct pollfd *tap_pfd_ptr = NULL;
-            for(int i = 0; i < pfd_data.nfds; i++) {
-                if (pfd_data.fds[i].fd == tap_fd) {
-                    tap_pfd_ptr = &pfd_data.fds[i];
-                    break;
+                if (len <= 0) { // Child closed connection
+                    exited = 1;
                 }
             }
 
-            if (tap_pfd_ptr && (tap_pfd_ptr->revents & POLLIN)) {
-               char buf[2048];
-               int len = read(tap_fd, buf, sizeof(buf));
-               if (len > 0 && slirp) {
-                  slirp_input(slirp, (const uint8_t *)buf, len);
-                  // The poll results are now stale for slirp, so we must loop
-                  // to get the new FD set before calling slirp_pollfds_poll().
-                  continue;
-               }
-            }
-
-            // If we are here, it means no new packets came from the TAP device (or it was handled).
-            // It is now safe to let slirp process its timers and socket events.
-            slirp_pollfds_poll(slirp, ret == 0, get_revents_cb, &pfd_data);
+            slirp_pollfds_poll(slirp, ret == 0, get_revents_cb, &s_data);
 
             int status;
-            pid_t result = waitpid(child_pid, &status, WNOHANG);
-            if (result == child_pid) {
+            if (waitpid(child_pid, &status, WNOHANG) == child_pid) {
                 exited = 1;
-                if (WIFSIGNALED(status)) {
-                    fprintf(stderr, "child killed by signal %d\n", WTERMSIG(status));
-                } else if (WIFEXITED(status)) {
-                    VERBOSE("child exited with status %d", WEXITSTATUS(status));
-                }
             }
         }
 
@@ -753,21 +657,18 @@ void containerize(struct container *c)
         num_slirp_timers = 0;
         slirp_timers_capacity = 0;
 
-        free(pfd_data.fds);
         slirp_cleanup(slirp);
-        close(tap_fd);
+        free(s_data.pfd_data.fds);
         close(sp[0]);
         exit(0);
 
     } else {
         /* Child Process */
-        close(sp[0]);
-
-        char tap_name[32] = {0};
-        Zf(read(sp[1], tap_name, sizeof(tap_name)) != sizeof(tap_name), "child failed to receive tap name");
+        close(sp[0]); // Close parent's end
 
         if (c->join_pid) {
             join_namespaces(c->join_pid);
+            // NOTE: Networking is not handled for joined containers in this logic.
             return;
         }
 
@@ -775,10 +676,6 @@ void containerize(struct container *c)
             join_begin(c->join_tag);
 
         if (!c->join || join.winner_p) {
-           // Set up two nested user+mount namespaces: the outer so we can run
-           // fusermount3 non-setuid, and the inner so we get the desired UID
-           // within the container. We do this even if the image is a directory, to
-           // reduce the number of code paths.
             setup_namespaces(c, host_uid, 0, host_gid, 0);
 #ifdef HAVE_LIBSQUASHFUSE
             if (c->type == IMG_SQUASH)
@@ -793,65 +690,111 @@ void containerize(struct container *c)
         if (c->join)
             join_end(c->join_ct);
 
-        // Signal parent that we are ready for the TAP fd
-        Zf(write(sp[1], "*", 1) != 1, "child failed to send ready signal");
+        // Signal parent that we are in the correct namespaces and ready for the TAP device.
+        Zf(write(sp[1], "R", 1) != 1, "child failed to send ready signal");
 
+        // Receive TAP device info from parent
+        char tap_name[IFNAMSIZ];
+        Zf(read(sp[1], tap_name, IFNAMSIZ) <= 0, "child failed to receive tap name");
         int tap_fd = recv_fd(sp[1]);
-        close(sp[1]);
-        (void)tap_fd;
 
         // Configure the network interface
         struct nl_sock *sock = nl_socket_alloc();
         Tf(sock != NULL, "failed to allocate netlink socket");
-        Zf(nl_connect(sock, NETLINK_ROUTE), "failed to connect to netlink route socket");
+        Zf(nl_connect(sock, NETLINK_ROUTE) < 0, "failed to connect to netlink route socket");
 
         struct rtnl_link *link;
-        Zf(rtnl_link_get_kernel(sock, 0, tap_name, &link), "failed to get link %s", tap_name);
-
+        Zf(rtnl_link_get_kernel(sock, 0, tap_name, &link) < 0, "failed to get link %s", tap_name);
         int if_index = rtnl_link_get_ifindex(link);
         rtnl_link_put(link);
 
-        // Bring the interface up
         struct rtnl_link *link_change = rtnl_link_alloc();
-        Tf(link_change != NULL, "failed to allocate link");
         rtnl_link_set_ifindex(link_change, if_index);
         rtnl_link_set_flags(link_change, IFF_UP);
-        Zf(rtnl_link_add(sock, link_change, NLM_F_ACK), "failed to bring up link %s", tap_name);
+        Zf(rtnl_link_add(sock, link_change, NLM_F_ACK) < 0, "failed to bring up link %s", tap_name);
         rtnl_link_put(link_change);
 
-        // Add the IP address
         struct rtnl_addr *addr = rtnl_addr_alloc();
-        Tf(addr != NULL, "failed to allocate rtnl_addr");
         struct nl_addr *local_ip;
-        Zf(nl_addr_parse("10.0.2.100/24", AF_INET, &local_ip), "failed to parse address");
+        Zf(nl_addr_parse("10.0.2.100/24", AF_INET, &local_ip) < 0, "failed to parse address");
         rtnl_addr_set_local(addr, local_ip);
         nl_addr_put(local_ip);
         rtnl_addr_set_ifindex(addr, if_index);
-        Zf(rtnl_addr_add(sock, addr, 0), "failed to add address");
+        Zf(rtnl_addr_add(sock, addr, 0) < 0, "failed to add address");
         rtnl_addr_put(addr);
 
-        // Add the default route
         struct rtnl_route *route = rtnl_route_alloc();
-        Tf(route != NULL, "failed to allocate rtnl_route");
         struct nl_addr *gw_addr;
-        Zf(nl_addr_parse("10.0.2.2", AF_INET, &gw_addr), "failed to parse gateway");
+        Zf(nl_addr_parse("10.0.2.2", AF_INET, &gw_addr) < 0, "failed to parse gateway");
         struct rtnl_nexthop *nh = rtnl_route_nh_alloc();
-        Tf(nh != NULL, "failed to allocate nexthop");
         rtnl_route_nh_set_ifindex(nh, if_index);
         rtnl_route_nh_set_gateway(nh, gw_addr);
         rtnl_route_add_nexthop(route, nh);
         nl_addr_put(gw_addr);
 
         struct nl_addr *dst_addr;
-        Zf(nl_addr_parse("0.0.0.0/0", AF_INET, &dst_addr), "failed to parse route destination");
+        Zf(nl_addr_parse("0.0.0.0/0", AF_INET, &dst_addr) < 0, "failed to parse route destination");
         rtnl_route_set_dst(route, dst_addr);
         nl_addr_put(dst_addr);
-
-        Zf(rtnl_route_add(sock, route, 0), "failed to add route");
+        
+        Zf(rtnl_route_add(sock, route, 0) < 0, "failed to add route");
         rtnl_route_put(route);
-
-        nl_close(sock);
         nl_socket_free(sock);
+
+        // Fork to have a dedicated process for network proxying
+        pid_t proxy_pid = fork();
+        Zf(proxy_pid < 0, "failed to fork proxy process");
+
+        if (proxy_pid == 0) {
+            // Child becomes the proxy, shuttling packets between TAP and parent
+            struct pollfd fds[2];
+            fds[0].fd = tap_fd;
+            fds[0].events = POLLIN;
+            fds[1].fd = sp[1];
+            fds[1].events = POLLIN;
+            char buf[4096];
+
+            while (1) {
+                int ret = poll(fds, 2, -1);
+                if (ret <= 0) {
+                    perror("proxy poll");
+                    break;
+                }
+                if (fds[0].revents & POLLIN) { // Data from TAP device
+                    ssize_t len = read(tap_fd, buf, sizeof(buf));
+                    if (len > 0) {
+                        uint32_t plen = len;
+                        write(sp[1], &plen, sizeof(plen)); // Send length
+                        write(sp[1], buf, len);            // Send data
+                    } else {
+                        break; // TAP closed or error
+                    }
+                }
+                if (fds[1].revents & POLLIN) { // Data from parent (slirp)
+                    uint32_t plen;
+                    ssize_t len = read(sp[1], &plen, sizeof(plen));
+                    if (len == sizeof(plen)) {
+                         if (plen > sizeof(buf)) { // Should not happen
+                             break;
+                         }
+                         len = read(sp[1], buf, plen);
+                         if (len > 0) {
+                             write(tap_fd, buf, len);
+                         } else {
+                             break;
+                         }
+                    } else {
+                        break; // Parent closed socket or error
+                    }
+                }
+            }
+            close(tap_fd);
+            close(sp[1]);
+        }
+
+        // Grandchild continues to run the user command
+        close(sp[1]);
+        close(tap_fd);
     }
 }
 
@@ -1459,13 +1402,13 @@ bool pull_image(const char *ref, const char *storage_dir)
    // Build argv array
    argv[argc++] = image_cmd;
    argv[argc++] = "pull";
-   
+
    // Add storage directory if specified
    if (storage_dir != NULL && strcmp(storage_dir, "/var/tmp/$USER.clearly") != 0) {
       T_ (1 <= asprintf(&storage_arg, "--storage=%s", storage_dir));
       argv[argc++] = storage_arg;
    }
-   
+
    argv[argc++] = (char *)ref;
    argv[argc] = NULL;
 
