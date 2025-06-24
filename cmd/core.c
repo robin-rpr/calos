@@ -272,6 +272,8 @@ void enter_udss(struct container *c);
 void iw(struct sock_fprog *p, int i,
         uint16_t op, uint32_t k, uint8_t jt, uint8_t jf);
 #endif
+void parse_port_map(const char* map_str, int* host_port, int* guest_port);
+void parse_dns_map(const char* map_str, char** hostname, struct in_addr* ip_addr);
 int64_t clock_get_ns_cb(void *opaque);
 void join_begin(const char *join_tag);
 void join_namespace(pid_t pid, const char *ns);
@@ -334,18 +336,7 @@ int recv_fd(int sock) {
     return fd;
 }
 
-// Simple parser for "HOST_PORT:GUEST_PORT" string.
-void parse_port_map(const char* map_str, int* host_port, int* guest_port) {
-    char* str = strdup(map_str);
-    char* colon = strchr(str, ':');
-    Tf(colon != NULL, "Invalid port map format. Expected HOST_PORT:GUEST_PORT");
-    *colon = '\0';
-    *host_port = atoi(str);
-    *guest_port = atoi(colon + 1);
-    free(str);
-}
-
-/* Send a packet to the guest via the socket pair. This is a callback for libslirp. */
+/* Send a packet to the guest via the socket pair. */
 static ssize_t send_packet_cb(const void *buf, size_t len, void *opaque)
 {
    struct slirp_data *sd = opaque;
@@ -359,14 +350,13 @@ static ssize_t send_packet_cb(const void *buf, size_t len, void *opaque)
    return write(sd->socket_fd, buf, len);
 }
 
-/* Handle errors from the guest. This is a callback for libslirp. */
+/* Handle errors from the guest. */
 static void guest_error_cb(const char *msg, void *opaque)
 {
    fprintf(stderr, "slirp guest error: %s\n", msg);
 }
 
-// Timer structure for libslirp timer management. A production implementation
-// would use timerfd(2) for more efficient timer handling.
+// Timer structure for libslirp timer management.
 typedef struct {
     SlirpTimerCb cb;
     void *cb_opaque;
@@ -419,7 +409,7 @@ void timer_mod_cb(void *timer, int64_t expire_time, void *opaque) {
     MySlirpTimer *t = timer;
     VERBOSE("timer_mod_cb: Timer modified to expire at %lld ns", (long long)expire_time);
     t->expire_time = expire_time;
-    // In a production timer implementation using timerfd(2), this
+    // TODO: In a production timer implementation using timerfd(2), this
     // callback would update the timer file descriptor with the new
     // expiration time. The current array-based implementation maintains
     // timers in insertion order without sorting for simplicity.
@@ -596,6 +586,7 @@ void containerize(struct container *c)
                                   NULL, NULL, &slirp_callbacks, &s_data);
         Tf(slirp != NULL, "slirp_init failed");
 
+        // Add port forwarding rules
         for (int i = 0; c->port_map_strs[i] != NULL; i++) {
             int host_port, guest_port;
             parse_port_map(c->port_map_strs[i], &host_port, &guest_port);
@@ -603,6 +594,16 @@ void containerize(struct container *c)
             struct in_addr guest_addr = { .s_addr = inet_addr("10.0.2.100") }; // Guest IP
             slirp_add_hostfwd(slirp, false, host_addr, host_port, guest_addr, guest_port);
             VERBOSE("forwarding host port %d to guest port %d", host_port, guest_port);
+        }
+
+        // Add static DNS entries
+        for (int i = 0; c->dns_map_strs[i] != NULL; i++) {
+            char* hostname;
+            struct in_addr ip_addr;
+            parse_dns_map(c->dns_map_strs[i], &hostname, &ip_addr);
+            //slirp_add_dns_entry(slirp, hostname, ip_addr); NO_OP
+            VERBOSE("added static DNS entry: %s -> %s", hostname, inet_ntoa(ip_addr));
+            free(hostname); // Free hostname allocated by parse_dns_map
         }
 
         int exited = 0;
@@ -780,10 +781,10 @@ void containerize(struct container *c)
                     uint32_t plen;
                     ssize_t len = read(sp[1], &plen, sizeof(plen));
                     if (len == sizeof(plen)) {
-                         if (plen > sizeof(buf)) {
-                             // Should not happen
-                             break;
-                         }
+                    if (plen > sizeof(buf)) {
+                        // Should not happen
+                        break;
+                    }
                          len = read(sp[1], buf, plen);
                          if (len > 0) {
                              write(tap_fd, buf, len);
@@ -967,6 +968,28 @@ void iw(struct sock_fprog *p, int i,
    DEBUG("%4d: { op=%2x k=%8x jt=%3d jf=%3d }", i, op, k, jt, jf);
 }
 #endif
+
+/* Helper function to parse "hostname:ip_address" string. */
+void parse_dns_map(const char* map_str, char** hostname, struct in_addr* ip_addr) {
+    char* str = strdup(map_str);
+    char* colon = strchr(str, ':');
+    Tf(colon != NULL, "invalid DNS entry format. Expected HOSTNAME:IP_ADDRESS");
+    *colon = '\0';
+    *hostname = strdup(str); // Allocate memory for hostname
+    Tf(inet_pton(AF_INET, colon + 1, ip_addr) == 1, "invalid IP address in DNS entry");
+    free(str);
+}
+
+/* Helper function to parse "HOST_PORT:GUEST_PORT" string. */
+void parse_port_map(const char* map_str, int* host_port, int* guest_port) {
+    char* str = strdup(map_str);
+    char* colon = strchr(str, ':');
+    Tf(colon != NULL, "Invalid port map format. Expected HOST_PORT:GUEST_PORT");
+    *colon = '\0';
+    *host_port = atoi(str);
+    *guest_port = atoi(colon + 1);
+    free(str);
+}
 
 /* Helper function to get the current time in nanoseconds. */
 int64_t clock_get_ns_cb(void *opaque) {

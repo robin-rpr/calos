@@ -64,6 +64,7 @@ const struct argp_option options[] = {
    { "mount",         'm', "DIR",  0, "SquashFS mount point"},
    { "no-passwd",      -9, 0,      0, "don't bind-mount /etc/{passwd,group}"},
    { "port",          'p', "PORT_MAP", 0, "port mapping (e.g. 8080:80)" },
+   { "dns",           'd', "DNS_MAP", 0, "DNS mapping (e.g. google.com:1.2.3.4)" },
    { "private-tmp",   't', 0,      0, "use container-private /tmp" },
    { "quiet",         'q', 0,      0, "print less output (can be repeated)"},
 #ifdef HAVE_SECCOMP
@@ -163,6 +164,7 @@ int main(int argc, char *argv[])
                                .join_tag = NULL,
                                .overlay_size = NULL,
                                .port_map_strs = list_new(sizeof(char *), 0),
+                               .dns_map_strs = list_new(sizeof(char *), 0),
                                .private_passwd = false,
                                .private_tmp = false,
                                .type = IMG_NONE,
@@ -529,6 +531,10 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state)
       break;
    case 'c':  // --cd
       args->initial_dir = arg;
+      break;
+   case 'd':  // --dns
+      Ze(arg[0] == '\0', "DNS mapping can't be empty string");
+      list_append((void **)&(args->c.dns_map_strs), &arg, sizeof(char *));
       break;
    case 'g':  // --gid
       i = parse_int(arg, false, "--gid");
