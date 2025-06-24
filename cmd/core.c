@@ -270,8 +270,8 @@ void enter_udss(struct container *c);
 void iw(struct sock_fprog *p, int i,
         uint16_t op, uint32_t k, uint8_t jt, uint8_t jf);
 #endif
+void parse_host_map(const char* map_str, char** hostname, struct in_addr* ip_addr);
 void parse_port_map(const char* map_str, int* host_port, int* guest_port);
-void parse_dns_map(const char* map_str, char** hostname, struct in_addr* ip_addr);
 int64_t clock_get_ns_cb(void *opaque);
 void join_begin(const char *join_tag);
 void join_namespace(pid_t pid, const char *ns);
@@ -283,6 +283,8 @@ void setup_namespaces(const struct container *c, uid_t uid_out, uid_t uid_in,
                       gid_t gid_out, gid_t gid_in);
 void tmpfs_mount(const char *dst, const char *newroot, const char *data);
 bool pull_image(const char *ref, const char *storage_dir);
+
+/** Functions **/
 
 // Send a file descriptor over a Unix socket.
 void send_fd(int sock, int fd) {
@@ -453,8 +455,6 @@ void notify_cb(void *opaque) {
     VERBOSE("notify_cb: Slirp signalled internal event.");
 }
 
-/** Functions **/
-
 /* Bind-mount the given path into the container image. */
 void bind_mount(const char *src, const char *dst, enum bind_dep dep,
                 const char *newroot, unsigned long flags, const char *scratch)
@@ -514,6 +514,13 @@ void containerize(struct container *c)
     pid_t child_pid = fork();
     Zf(child_pid == -1, "failed to fork");
 
+    /* Network configuration */
+    struct in_addr vnetwork  = { .s_addr = inet_addr("10.0.2.0") };
+    struct in_addr vnetmask  = { .s_addr = inet_addr("255.255.255.0") };
+    struct in_addr vhost     = { .s_addr = inet_addr("10.0.2.2") };
+    struct in_addr no_addr   = {0};
+    struct in6_addr no_addr6 = {0};
+
     if (child_pid > 0) {
         /* Parent Process */
         close(sp[1]); // Close child's end of socket pair
@@ -572,11 +579,6 @@ void containerize(struct container *c)
            .unregister_poll_fd = unregister_poll_fd_cb,
            .notify = notify_cb,
         };
-        struct in_addr vnetwork  = { .s_addr = inet_addr("10.0.2.0") };
-        struct in_addr vnetmask  = { .s_addr = inet_addr("255.255.255.0") };
-        struct in_addr vhost     = { .s_addr = inet_addr("10.0.2.2") };
-        struct in_addr no_addr   = {0};
-        struct in6_addr no_addr6 = {0};
 
         const SlirpConfig slirp_cfg = {
             .version = SLIRP_CONFIG_VERSION_MAX,
@@ -586,7 +588,7 @@ void containerize(struct container *c)
             .vnetmask = vnetmask,
             .vhost = vhost,
             .in6_enabled = false,
-            .vnameserver = vhost, // Crucially, point guest DNS to slirp's vhost IP
+            .vnameserver = vhost,
             .vprefix_addr6 = no_addr6,
             .vprefix_len = 0,
             .vhost6 = no_addr6,
@@ -604,7 +606,7 @@ void containerize(struct container *c)
             .enable_emu = false,
             .outbound_addr = NULL,
             .outbound_addr6 = NULL,
-            .disable_dns = false,
+            .disable_dns = true,
         };
 
         Slirp *slirp = slirp_new(&slirp_cfg, &slirp_callbacks, &s_data);
@@ -615,21 +617,24 @@ void containerize(struct container *c)
             int host_port, guest_port;
             parse_port_map(c->port_map_strs[i], &host_port, &guest_port);
             struct in_addr host_addr = { .s_addr = INADDR_ANY };
-            struct in_addr guest_addr = { .s_addr = inet_addr("10.0.2.100") }; // Guest IP
+            struct in_addr guest_addr = { .s_addr = INADDR_ANY }; // Guest IP
             slirp_add_hostfwd(slirp, false, host_addr, host_port, guest_addr, guest_port);
             VERBOSE("forwarding host port %d to guest port %d", host_port, guest_port);
         }
 
-        // Add static DNS entries
-        for (int i = 0; c->dns_map_strs[i] != NULL; i++) {
-            char* hostname;
+        // Add host entries to /etc/hosts
+        for (int i = 0; c->host_map_strs[i] != NULL; i++) {
+            char *hostname;
             struct in_addr ip_addr;
-            parse_dns_map(c->dns_map_strs[i], &hostname, &ip_addr);
-            //slirp_add_dns_entry(slirp, hostname, ip_addr); NO_OP
-            VERBOSE("added static DNS entry: %s -> %s", hostname, inet_ntoa(ip_addr));
-            free(hostname); // Free hostname allocated by parse_dns_map
-        }
+            parse_host_map(c->host_map_strs[i], &hostname, &ip_addr);
 
+            FILE *hosts_file = fopen("/etc/hosts", "a");
+            Tf(hosts_file != NULL, "Failed to open /etc/hosts for writing");
+            fprintf(hosts_file, "%s %s\n", inet_ntoa(ip_addr), hostname);
+            fclose(hosts_file);
+            free(hostname);
+        }
+        
         int exited = 0;
         char slirp_buf[4096];
         while (!exited) {
@@ -717,6 +722,11 @@ void containerize(struct container *c)
         if (c->join)
             join_end(c->join_ct);
 
+        // Add nameserver entries to /etc/resolv.conf
+        FILE *resolv_conf = fopen("/etc/resolv.conf", "w");
+        fprintf(resolv_conf, "nameserver 1.1.1.1\n");
+        fclose(resolv_conf);
+
         // Signal parent that we are in the correct namespaces and ready for the TAP device.
         Zf(write(sp[1], "R", 1) != 1, "child failed to send ready signal");
 
@@ -763,7 +773,7 @@ void containerize(struct container *c)
         Zf(nl_addr_parse("0.0.0.0/0", AF_INET, &dst_addr) < 0, "failed to parse route destination");
         rtnl_route_set_dst(route, dst_addr);
         nl_addr_put(dst_addr);
-        
+
         Zf(rtnl_route_add(sock, route, 0) < 0, "failed to add route");
         rtnl_route_put(route);
         nl_socket_free(sock);
@@ -823,6 +833,7 @@ void containerize(struct container *c)
             }
             close(tap_fd);
             close(sp[1]);
+            exit(0);
         }
         close(sp[1]);
         close(tap_fd);
@@ -970,8 +981,8 @@ enum img_type image_type(const char *ref, const char *storage_dir)
 }
 
 char *img_name2path(const char *name, const char *storage_dir)
-{
-   char *path;
+   {
+      char *path;
    char *name_fs = strdup(name);
 
    replace_char(name_fs, '/', '%');
@@ -994,13 +1005,13 @@ void iw(struct sock_fprog *p, int i,
 #endif
 
 /* Helper function to parse "hostname:ip_address" string. */
-void parse_dns_map(const char* map_str, char** hostname, struct in_addr* ip_addr) {
+void parse_host_map(const char* map_str, char** hostname, struct in_addr* ip_addr) {
     char* str = strdup(map_str);
     char* colon = strchr(str, ':');
-    Tf(colon != NULL, "invalid DNS entry format. Expected HOSTNAME:IP_ADDRESS");
+    Tf(colon != NULL, "invalid host entry format. Expected HOSTNAME:IP_ADDRESS");
     *colon = '\0';
     *hostname = strdup(str); // Allocate memory for hostname
-    Tf(inet_pton(AF_INET, colon + 1, ip_addr) == 1, "invalid IP address in DNS entry");
+    Tf(inet_pton(AF_INET, colon + 1, ip_addr) == 1, "invalid IP address in host entry");
     free(str);
 }
 
@@ -1025,7 +1036,7 @@ int64_t clock_get_ns_cb(void *opaque) {
 /* Begin coordinated section of namespace joining. */
 void join_begin(const char *join_tag)
 {
-   int fd;
+      int fd;
 
    join.sem_name = cat("/run_sem-", join_tag);
    join.shm_name = cat("/run_shm-", join_tag);
@@ -1397,7 +1408,7 @@ void setup_passwd(const struct container *c)
 
    // /etc/group
    T_ (path = cat(host_tmp, "/run_group.XXXXXX"));
-   T_ (-1 != (fd = mkstemp(path)));
+      T_ (-1 != (fd = mkstemp(path)));
    if (c->container_gid != 0)
       T_ (1 <= dprintf(fd, "root:x:0:\n"));
    if (c->container_gid != 65534)
@@ -1414,7 +1425,7 @@ void setup_passwd(const struct container *c)
          T_ (1 <= dprintf(fd, "%s:x:%u:\n", "clearlygroup", c->container_gid));
       }
    }
-   Z_ (close(fd));
+      Z_ (close(fd));
    bind_mount(path, "/etc/group", BD_REQUIRED, c->newroot, 0, NULL);
    Z_ (unlink(path));
 }

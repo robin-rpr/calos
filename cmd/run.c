@@ -163,8 +163,8 @@ int main(int argc, char *argv[])
                                .join_pid = 0,
                                .join_tag = NULL,
                                .overlay_size = NULL,
+                               .host_map_strs = list_new(sizeof(char *), 0),
                                .port_map_strs = list_new(sizeof(char *), 0),
-                               .dns_map_strs = list_new(sizeof(char *), 0),
                                .private_passwd = false,
                                .private_tmp = false,
                                .type = IMG_NONE,
@@ -532,14 +532,14 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state)
    case 'c':  // --cd
       args->initial_dir = arg;
       break;
-   case 'd':  // --dns
-      Ze(arg[0] == '\0', "DNS mapping can't be empty string");
-      list_append((void **)&(args->c.dns_map_strs), &arg, sizeof(char *));
-      break;
    case 'g':  // --gid
       i = parse_int(arg, false, "--gid");
       Te (i >= 0, "--gid: must be non-negative");
       args->c.container_gid = (gid_t) i;
+      break;
+   case 'h':  // --host
+      Ze(arg[0] == '\0', "host mapping can't be empty string");
+      list_append((void **)&(args->c.host_map_strs), &arg, sizeof(char *));
       break;
    case 'j':  // --join
       args->c.join = true;
