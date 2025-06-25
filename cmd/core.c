@@ -221,43 +221,18 @@ struct slirp_data {
     int socket_fd; // Socket to communicate with child
 };
 
+/* Timer structure for libslirp */
+typedef struct {
+    SlirpTimerCb cb;
+    void *cb_opaque;
+    // Monotonic time in nanoseconds when timer expires
+    int64_t expire_time;
+} MySlirpTimer;
 
-/*
- * This function is called by libslirp to register a file descriptor for polling.
- * It checks if the fd already exists in the list and updates its events if it does.
- * If the fd is not found, it adds it as a new fd.
- */
-int add_poll_cb(int fd, int events, void *opaque) {
-    struct slirp_data *sd = opaque;
-    struct pollfd_data *d = &sd->pfd_data;
-
-    // Check if the fd already exists in the list and update its events
-    for (int i = 0; i < d->nfds; i++) {
-        if (d->fds[i].fd == fd) {
-            d->fds[i].events = events; // Update events
-            return i; // Return its index
-        }
-    }
-
-    // If not found, add it as a new fd
-    if (d->nfds >= d->size) {
-        d->size = d->size == 0 ? 8 : d->size * 2;
-        d->fds = realloc(d->fds, d->size * sizeof(struct pollfd));
-        Tf(d->fds != NULL, "Failed to reallocate pollfds");
-    }
-    d->fds[d->nfds].fd = fd;
-    d->fds[d->nfds].events = events;
-    d->nfds++;
-    return d->nfds - 1;
-}
-
-int get_revents_cb(int idx, void *opaque) {
-    struct slirp_data *sd = opaque;
-    struct pollfd_data *d = &sd->pfd_data;
-    Tf(idx < d->nfds, "Poll index out of bounds");
-    return d->fds[idx].revents;
-}
-
+/* Timer storage array for libslirp */
+static MySlirpTimer **slirp_timers = NULL;
+static int num_slirp_timers = 0;
+static int slirp_timers_capacity = 0;
 
 /** Function prototypes (private) **/
 
@@ -284,10 +259,10 @@ void setup_namespaces(const struct container *c, uid_t uid_out, uid_t uid_in,
 void tmpfs_mount(const char *dst, const char *newroot, const char *data);
 bool pull_image(const char *ref, const char *storage_dir);
 
-/** Functions **/
+/** Helpers **/
 
-// Send a file descriptor over a Unix socket.
-void send_fd(int sock, int fd) {
+/* Send a file descriptor over a Unix socket. */
+static void send_fd(int sock, int fd) {
     struct msghdr msg = {0};
     char cmsg_buf[CMSG_SPACE(sizeof(int))];
     struct cmsghdr *cmsg;
@@ -311,8 +286,8 @@ void send_fd(int sock, int fd) {
     Zf(sendmsg(sock, &msg, 0) == -1, "Failed to send file descriptor");
 }
 
-// Receive a file descriptor over a Unix socket.
-int recv_fd(int sock) {
+/* Receive a file descriptor over a Unix socket. */
+static int recv_fd(int sock) {
     struct msghdr msg = {0};
     char cmsg_buf[CMSG_SPACE(sizeof(int))];
     struct cmsghdr *cmsg;
@@ -336,6 +311,41 @@ int recv_fd(int sock) {
     return fd;
 }
 
+/** Callbacks **/
+
+/* Callback for adding a file descriptor to the poll list. */
+int add_poll_cb(int fd, int events, void *opaque) {
+    struct slirp_data *sd = opaque;
+    struct pollfd_data *d = &sd->pfd_data;
+
+    // Check if the fd already exists in the list and update its events
+    for (int i = 0; i < d->nfds; i++) {
+        if (d->fds[i].fd == fd) {
+            d->fds[i].events = events; // Update events
+            return i; // Return its index
+        }
+    }
+
+    // If not found, add it as a new fd
+    if (d->nfds >= d->size) {
+        d->size = d->size == 0 ? 8 : d->size * 2;
+        d->fds = realloc(d->fds, d->size * sizeof(struct pollfd));
+        Tf(d->fds != NULL, "Failed to reallocate pollfds");
+    }
+    d->fds[d->nfds].fd = fd;
+    d->fds[d->nfds].events = events;
+    d->nfds++;
+    return d->nfds - 1;
+}
+
+/* Callback for getting the revents of a file descriptor. */
+int get_revents_cb(int idx, void *opaque) {
+    struct slirp_data *sd = opaque;
+    struct pollfd_data *d = &sd->pfd_data;
+    Tf(idx < d->nfds, "Poll index out of bounds");
+    return d->fds[idx].revents;
+}
+
 /* Send a packet to the guest via the socket pair. */
 static ssize_t send_packet_cb(const void *buf, size_t len, void *opaque)
 {
@@ -352,40 +362,13 @@ static ssize_t send_packet_cb(const void *buf, size_t len, void *opaque)
    return written;
 }
 
-/* Handle errors from the guest. */
-static void guest_error_cb(const char *msg, void *opaque)
-{
+/* Callback for handling errors from the guest. */
+static void guest_error_cb(const char *msg, void *opaque) {
    fprintf(stderr, "slirp guest error: %s\n", msg);
 }
 
-// Timer structure for libslirp timer management.
-typedef struct {
-    SlirpTimerCb cb;
-    void *cb_opaque;
-    // Monotonic time in nanoseconds when timer expires
-    int64_t expire_time;
-} MySlirpTimer;
-
-// Timer storage array for libslirp timer management
-static MySlirpTimer **slirp_timers = NULL;
-static int num_slirp_timers = 0;
-static int slirp_timers_capacity = 0;
-
-void slirp_remove_timer_from_list(MySlirpTimer *timer_to_remove) {
-    for (int i = 0; i < num_slirp_timers; i++) {
-        if (slirp_timers[i] == timer_to_remove) {
-            // Found it, remove by shifting elements
-            free(slirp_timers[i]); // Free the timer struct itself
-            for (int j = i; j < num_slirp_timers - 1; j++) {
-                slirp_timers[j] = slirp_timers[j+1];
-            }
-            num_slirp_timers--;
-            return;
-        }
-    }
-}
-
-void *timer_new_cb(SlirpTimerCb cb, void *cb_opaque, void *opaque) {
+/* Callback for creating a new timer. */
+static void *timer_new_cb(SlirpTimerCb cb, void *cb_opaque, void *opaque) {
     VERBOSE("timer_new_cb: New timer created");
     MySlirpTimer *t = malloc(sizeof(MySlirpTimer));
     Tf(t != NULL, "Failed to allocate timer");
@@ -402,12 +385,25 @@ void *timer_new_cb(SlirpTimerCb cb, void *cb_opaque, void *opaque) {
     return t;
 }
 
-void timer_free_cb(void *timer, void *opaque) {
+/* Callback for freeing a timer. */
+static void timer_free_cb(void *timer, void *opaque) {
     VERBOSE("timer_free_cb: Timer freed");
-    slirp_remove_timer_from_list((MySlirpTimer *)timer);
+    MySlirpTimer *t = (MySlirpTimer *)timer;
+    for (int i = 0; i < num_slirp_timers; i++) {
+        if (slirp_timers[i] == t) {
+            // Found it, remove by shifting elements
+            free(slirp_timers[i]); // Free the timer struct itself
+            for (int j = i; j < num_slirp_timers - 1; j++) {
+                slirp_timers[j] = slirp_timers[j+1];
+            }
+            num_slirp_timers--;
+            return;
+        }
+    }
 }
 
-void timer_mod_cb(void *timer, int64_t expire_time, void *opaque) {
+/* Callback for modifying a timer. */
+static void timer_mod_cb(void *timer, int64_t expire_time, void *opaque) {
     MySlirpTimer *t = timer;
     VERBOSE("timer_mod_cb: Timer modified to expire at %lld ns", (long long)expire_time);
     t->expire_time = expire_time;
@@ -417,7 +413,8 @@ void timer_mod_cb(void *timer, int64_t expire_time, void *opaque) {
     // timers in insertion order without sorting for simplicity.
 }
 
-void register_poll_fd_cb(int fd, void *opaque) {
+/* Callback for registering a file descriptor. */
+static void register_poll_fd_cb(int fd, void *opaque) {
     struct slirp_data *sd = opaque;
     VERBOSE("register_poll_fd_cb: Registering fd %d", fd);
 
@@ -427,7 +424,8 @@ void register_poll_fd_cb(int fd, void *opaque) {
     add_poll_cb(fd, 0, sd);
 }
 
-void unregister_poll_fd_cb(int fd, void *opaque) {
+/* Callback for unregistering a file descriptor. */
+static void unregister_poll_fd_cb(int fd, void *opaque) {
     struct slirp_data *sd = opaque;
     struct pollfd_data *d = &sd->pfd_data;
     VERBOSE("unregister_poll_fd_cb: Unregistering fd %d", fd);
@@ -451,16 +449,18 @@ void unregister_poll_fd_cb(int fd, void *opaque) {
     VERBOSE("unregister_poll_fd_cb: FD %d not found in tracked pollfds for unregistration.", fd);
 }
 
-void notify_cb(void *opaque) {
+/* Callback for notifying Slirp of internal events. */
+static void notify_cb(void *opaque) {
     // This callback indicates that Slirp has internal state changes
     // and might need to be called again soon, even if no FDs are ready.
     VERBOSE("notify_cb: Slirp signalled internal event.");
 }
 
+/** Functions **/
+
 /* Bind-mount the given path into the container image. */
 void bind_mount(const char *src, const char *dst, enum bind_dep dep,
-                const char *newroot, unsigned long flags, const char *scratch)
-{
+                const char *newroot, unsigned long flags, const char *scratch) {
    char *dst_fullc, *newrootc;
    char *dst_full = cat(newroot, dst);
 
