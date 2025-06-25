@@ -773,8 +773,10 @@ void containerize(struct container *c)
 
         // Add nameserver entries to /etc/resolv.conf
         FILE *resolv_conf = fopen("/etc/resolv.conf", "w");
-        fprintf(resolv_conf, "nameserver 1.1.1.1\n");
-        fclose(resolv_conf);
+        if (resolv_conf != NULL) {
+            fprintf(resolv_conf, "nameserver 1.1.1.1\n");
+            fclose(resolv_conf);
+        }
 
         // Signal parent that we are in the correct namespaces and ready for the TAP device.
         Zf(write(sp[1], "R", 1) != 1, "child failed to send ready signal");
@@ -784,11 +786,12 @@ void containerize(struct container *c)
         Zf(read(sp[1], tap_name, IFNAMSIZ) <= 0, "child failed to receive tap name");
         int tap_fd = recv_fd(sp[1]);
 
-        // Configure the network interface
+        // Connect to netlink route socket
         struct nl_sock *sock = nl_socket_alloc();
         Tf(sock != NULL, "failed to allocate netlink socket");
         Zf(nl_connect(sock, NETLINK_ROUTE) < 0, "failed to connect to netlink route socket");
 
+        // Configure tap0 interface
         struct rtnl_link *link;
         Zf(rtnl_link_get_kernel(sock, 0, tap_name, &link) < 0, "failed to get link %s", tap_name);
         int if_index = rtnl_link_get_ifindex(link);
@@ -800,28 +803,43 @@ void containerize(struct container *c)
         Zf(rtnl_link_add(sock, link_change, NLM_F_ACK) < 0, "failed to bring up link %s", tap_name);
         rtnl_link_put(link_change);
 
-        struct rtnl_addr *addr = rtnl_addr_alloc();
+        struct rtnl_addr *local_addr = rtnl_addr_alloc();
         struct nl_addr *local_ip;
-        char vguest_str[20];
-        snprintf(vguest_str, sizeof(vguest_str), "%s/%d", inet_ntoa(vguest), vcidr);
-        VERBOSE("vguest_str for address: %s", vguest_str);
+        char vguest_str[INET_ADDRSTRLEN + 4];
+        inet_ntop(AF_INET, &vguest, vguest_str, sizeof(vguest_str));
+        snprintf(vguest_str + strlen(vguest_str), sizeof(vguest_str) - strlen(vguest_str), "/%d", vcidr);
         Zf(nl_addr_parse(vguest_str, AF_INET, &local_ip) < 0, "failed to parse address");
-        rtnl_addr_set_local(addr, local_ip);
+        rtnl_addr_set_local(local_addr, local_ip);
         nl_addr_put(local_ip);
-        rtnl_addr_set_ifindex(addr, if_index);
-        Zf(rtnl_addr_add(sock, addr, 0) < 0, "failed to add address");
-        rtnl_addr_put(addr);
+        rtnl_addr_set_ifindex(local_addr, if_index);
+        Zf(rtnl_addr_add(sock, local_addr, 0) < 0, "failed to add address");
+        rtnl_addr_put(local_addr);
 
         struct rtnl_route *route = rtnl_route_alloc();
         struct nl_addr *gw_addr;
-        VERBOSE("vhost for gateway: %s", inet_ntoa(vhost));
-        Zf(nl_addr_parse(inet_ntoa(vhost), AF_INET, &gw_addr) < 0, "failed to parse gateway");
+        char gw_str[INET_ADDRSTRLEN];
+        inet_ntop(AF_INET, &vhost, gw_str, sizeof(gw_str));
+        Zf(nl_addr_parse(gw_str, AF_INET, &gw_addr) < 0, "failed to parse gateway");
         struct rtnl_nexthop *nh = rtnl_route_nh_alloc();
         rtnl_route_nh_set_ifindex(nh, if_index);
         rtnl_route_nh_set_gateway(nh, gw_addr);
         rtnl_route_add_nexthop(route, nh);
         nl_addr_put(gw_addr);
 
+        // Configure lo interface
+        struct rtnl_link *lo_link;
+        Zf(rtnl_link_get_kernel(sock, 0, "lo", &lo_link) < 0, "failed to get loopback link 'lo'");
+        int lo_if_index = rtnl_link_get_ifindex(lo_link);
+        rtnl_link_put(lo_link);
+
+        struct rtnl_link *lo_link_change = rtnl_link_alloc();
+        Tf(lo_link_change != NULL, "failed to allocate link for lo config");
+        rtnl_link_set_ifindex(lo_link_change, lo_if_index);
+        rtnl_link_set_flags(lo_link_change, IFF_UP);
+        Zf(rtnl_link_add(sock, lo_link_change, NLM_F_ACK) < 0, "failed to bring up lo interface");
+        rtnl_link_put(lo_link_change);
+
+        // Configure default route
         struct nl_addr *dst_addr;
         Zf(nl_addr_parse("0.0.0.0/0", AF_INET, &dst_addr) < 0, "failed to parse route destination");
         rtnl_route_set_dst(route, dst_addr);
