@@ -648,73 +648,65 @@ void containerize(struct container *c)
         char slirp_buf[4096];
         while (!exited) {
             uint32_t timeout_ms = -1;
-            // Reset nfds to 0 so slirp_pollfds_fill can rebuild the list
-            s_data.pfd_data.nfds = 0;
+            s_data.pfd_data.nfds = 0; // Reset for rebuilding
+            
+            // Let slirp populate the poll array with its FDs
             slirp_pollfds_fill(slirp, &timeout_ms, add_poll_cb, &s_data);
 
-            // Dynamically resize the pollfd array if needed before adding sp[0]
+            // Add our own FD to the poll array
             if (s_data.pfd_data.nfds >= s_data.pfd_data.size) {
                 s_data.pfd_data.size = s_data.pfd_data.size == 0 ? 8 : s_data.pfd_data.size * 2;
                 s_data.pfd_data.fds = realloc(s_data.pfd_data.fds, s_data.pfd_data.size * sizeof(struct pollfd));
                 Tf(s_data.pfd_data.fds != NULL, "Failed to reallocate pollfds");
             }
-
-            // Add our socket to the child to the list of polled fds
             s_data.pfd_data.fds[s_data.pfd_data.nfds].fd = sp[0];
             s_data.pfd_data.fds[s_data.pfd_data.nfds].events = POLLIN;
             s_data.pfd_data.nfds++;
 
+            // Wait for events
             int ret = poll(s_data.pfd_data.fds, s_data.pfd_data.nfds, timeout_ms);
 
-            // If poll() returns an error, break the loop
             if (ret < 0) {
                 perror("parent poll");
                 break;
             }
 
-            // If poll() returns > 0, there are events to process
-            if (ret > 0) {
-                // *** THE ROBUST FIX ***
-                // Iterate through ALL file descriptors poll was watching.
-                for (int i = 0; i < s_data.pfd_data.nfds; i++) {
-                    // Skip any FDs that had no events
-                    if (s_data.pfd_data.fds[i].revents == 0) {
-                        continue;
-                    }
-
-                    // Check if the event is on our socket to the child proxy
-                    if (s_data.pfd_data.fds[i].fd == sp[0]) {
-                        // Handle hangup/error events from the proxy
-                        if (s_data.pfd_data.fds[i].revents & (POLLHUP | POLLERR)) {
-                            VERBOSE("child proxy connection error/hangup.");
-                            exited = 1;
-                            break; // Exit the for loop
-                        }
-                        // Handle readable data FROM the child (the HTTP response)
-                        if (s_data.pfd_data.fds[i].revents & POLLIN) {
-                            uint32_t plen;
-                            ssize_t len = read(sp[0], &plen, sizeof(plen));
-                            if (len == sizeof(plen)) {
-                                if (plen > sizeof(slirp_buf)) {
-                                    FATAL(0, "slirp buffer too small for packet size %u", plen);
-                                }
-                                len = read(sp[0], slirp_buf, plen);
-                                if (len > 0) {
-                                    slirp_input(slirp, (const uint8_t *)slirp_buf, len);
-                                }
-                            }
-                            if (len <= 0) {
-                                VERBOSE("child proxy closed connection.");
-                                exited = 1;
-                                break; // Exit the for loop
-                            }
-                        }
-                    }
+            // Check if our specific socket has data and handle it.
+            // We must find its current index in the array first.
+            int sp0_has_event = 0;
+            for (int i = 0; i < s_data.pfd_data.nfds; i++) {
+                if (s_data.pfd_data.fds[i].fd == sp[0] && s_data.pfd_data.fds[i].revents != 0) {
+                    sp0_has_event = 1;
+                    break;
                 }
             }
 
-            // After we've handled our specific socket, let slirp process its events.
-            // It will use the same 'revents' fields from the poll() call.
+            if (sp0_has_event) {
+                DEBUG("sp[0] has event");
+                // We have an event on sp[0]. It could be data, hangup, or error.
+                uint32_t plen;
+                // Try reading the length prefix. A return of 0 or less means disconnection.
+                ssize_t len = read(sp[0], &plen, sizeof(plen));
+
+                if (len == sizeof(plen)) {
+                    // Successfully read length, now read the payload
+                    if (plen > sizeof(slirp_buf)) {
+                        FATAL(0, "slirp buffer too small for packet size %u", plen);
+                    }
+                    len = read(sp[0], slirp_buf, plen);
+                    if (len > 0) {
+                        slirp_input(slirp, (const uint8_t *)slirp_buf, len);
+                    }
+                }
+                
+                if (len <= 0) {
+                    // This indicates the child proxy closed the connection or an error occurred.
+                    VERBOSE("child proxy connection closed or errored.");
+                    exited = 1;
+                }
+            }
+
+            // Let slirp handle its own events and timers, regardless of what we did above.
             if (!exited) {
                 slirp_pollfds_poll(slirp, ret == 0, get_revents_cb, &s_data);
             }
