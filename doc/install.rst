@@ -51,19 +51,16 @@ On RHEL 8 systems, it was called "CodeReady Builder" and can be enabled with
 Required system dependencies
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-After enabling the CRB repository, install the following packages::
-
-  $ sudo dnf install libseccomp-devel squashfuse-devel libslirp-devel libnl3-devel \
-      fuse3-devel python3-devel python3-pip python3-wheel python3-cython git
-
-These packages provide:
+After enabling the CRB repository, install the following packages:
 
   * :code:`libseccomp-devel`: Development files for the seccomp library,
     which Charliecloud uses for system call filtering and security
   * :code:`squashfuse-devel`: Development files for SquashFUSE, enabling
     mounting of SquashFS archives without root privileges
-  * :code:`libslirp-devel`: Development files for the slirp library,
-    providing user-mode networking capabilities
+  * :code:`libmnl-devel`: Development files for the libmnl library,
+    providing netlink socket management capabilities
+  * :code:`libnftnl-devel`: Development files for the libnftnl library,
+    providing netfilter tables and rules management capabilities
   * :code:`libnl3-devel`: Development files for libnl3, providing network
     configuration and management capabilities
   * :code:`fuse3-devel`: Development files for FUSE 3, the filesystem in

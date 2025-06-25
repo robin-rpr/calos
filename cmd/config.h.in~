@@ -1,0 +1,56 @@
+/* cmd/config.h.in.  Generated from configure.ac by autoheader.  */
+
+/* log to syslog */
+#undef ENABLE_SYSLOG
+
+/* extended globs supported */
+#undef HAVE_FNM_EXTMATCH
+
+/* link with libsquashfuse */
+#undef HAVE_LIBSQUASHFUSE
+
+/* unprivileged overlayfs */
+#undef HAVE_OVERLAYFS
+
+/* Define if you have POSIX threads libraries and header files. */
+#undef HAVE_PTHREAD
+
+/* Have PTHREAD_PRIO_INHERIT. */
+#undef HAVE_PTHREAD_PRIO_INHERIT
+
+/* seccomp supported */
+#undef HAVE_SECCOMP
+
+/* C errno constants in errors */
+#undef HAVE_STRERRORNAME_NP
+
+/* tmpfs user xattrs */
+#undef HAVE_TMPFS_XATTRS
+
+/* Name of package */
+#undef PACKAGE
+
+/* Define to the address where bug reports for this package should be sent. */
+#undef PACKAGE_BUGREPORT
+
+/* Define to the full name of this package. */
+#undef PACKAGE_NAME
+
+/* Define to the full name and version of this package. */
+#undef PACKAGE_STRING
+
+/* Define to the one symbol short name of this package. */
+#undef PACKAGE_TARNAME
+
+/* Define to the home page for this package. */
+#undef PACKAGE_URL
+
+/* Define to the version of this package. */
+#undef PACKAGE_VERSION
+
+/* Define to necessary symbol if this constant uses a non-standard name on
+   your system. */
+#undef PTHREAD_CREATE_JOINABLE
+
+/* Version number of package */
+#undef VERSION

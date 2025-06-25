@@ -34,15 +34,22 @@
 #include <unistd.h>
 #include <netdb.h>
 #include <arpa/inet.h>
-#include <slirp/libslirp.h>
 #include <netinet/in.h>
 #include <linux/if.h>
-#include <linux/if_tun.h>
 #include <sys/ioctl.h>
+#include <netinet/in.h>
+#include <netinet/ip.h>
+#include <libmnl/libmnl.h>
+#include <libnftnl/expr.h>
+#include <libnftnl/rule.h>
+#include <libnftnl/chain.h>
+#include <libnftnl/table.h>
 #include <libnl3/netlink/netlink.h>
 #include <libnl3/netlink/route/link.h>
 #include <libnl3/netlink/route/addr.h>
 #include <libnl3/netlink/route/route.h>
+#include <libnl3/netlink/route/link/veth.h>
+#include <libnl3/netlink/route/link/bridge.h>
 #include "misc.h"
 #include "core.h"
 #ifdef HAVE_LIBSQUASHFUSE
@@ -58,6 +65,12 @@
 /* Maximum length of paths we’re willing to deal with. (Note that
    system-defined PATH_MAX isn't reliable.) */
 #define PATH_CHARS 4096
+
+/* Linux Kernel constants for netfilter.
+   partially sourced from <linux/netfilter/nf_tables.h> */
+#define NFPROTO_IPV4 2
+#define NFT_PAYLOAD_NETWORK_HEADER 1
+#define NFT_MSG_NEWRULE 0x16
 
 /* Mount point for the tmpfs used by -W. We want this to be (a) always
    available [1], (b) short, (c) not used by anything else we care about
@@ -209,30 +222,6 @@ struct {
 /* Bind mounts done so far; canonical host paths. If null, there are none. */
 char **bind_mount_paths = NULL;
 
-struct pollfd_data {
-    struct pollfd *fds;
-    int nfds;
-    int size;
-};
-
-/* Opaque data structure for libslirp callbacks. */
-struct slirp_data {
-    struct pollfd_data pfd_data;
-    int socket_fd; // Socket to communicate with child
-};
-
-/* Timer structure for libslirp */
-typedef struct {
-    SlirpTimerCb cb;
-    void *cb_opaque;
-    // Monotonic time in nanoseconds when timer expires
-    int64_t expire_time;
-} MySlirpTimer;
-
-/* Timer storage array for libslirp */
-static MySlirpTimer **slirp_timers = NULL;
-static int num_slirp_timers = 0;
-static int slirp_timers_capacity = 0;
 
 /** Function prototypes (private) **/
 
@@ -247,7 +236,6 @@ void iw(struct sock_fprog *p, int i,
 #endif
 void parse_host_map(const char* map_str, char** hostname, struct in_addr* ip_addr);
 void parse_port_map(const char* map_str, int* host_port, int* guest_port);
-int64_t clock_get_ns_cb(void *opaque);
 void join_begin(const char *join_tag);
 void join_namespace(pid_t pid, const char *ns);
 void join_namespaces(pid_t pid);
@@ -261,199 +249,162 @@ bool pull_image(const char *ref, const char *storage_dir);
 
 /** Helpers **/
 
-/* Send a file descriptor over a Unix socket. */
-static void send_fd(int sock, int fd) {
-    struct msghdr msg = {0};
-    char cmsg_buf[CMSG_SPACE(sizeof(int))];
-    struct cmsghdr *cmsg;
-    struct iovec iov;
-    char dummy = '*';
+/* Create and configure a network bridge if it doesn't already exist. */
+static void setup_bridge(const char *bridge_name, const struct in_addr *ip, int cidr) {
+    struct nl_sock *sock = nl_socket_alloc();
+    Tf(sock != NULL, "failed to allocate netlink socket");
+    Zf(nl_connect(sock, NETLINK_ROUTE) < 0, "failed to connect to netlink route socket");
 
-    iov.iov_base = &dummy;
-    iov.iov_len = sizeof(dummy);
-
-    msg.msg_iov = &iov;
-    msg.msg_iovlen = 1;
-    msg.msg_control = cmsg_buf;
-    msg.msg_controllen = sizeof(cmsg_buf);
-
-    cmsg = CMSG_FIRSTHDR(&msg);
-    cmsg->cmsg_level = SOL_SOCKET;
-    cmsg->cmsg_type = SCM_RIGHTS;
-    cmsg->cmsg_len = CMSG_LEN(sizeof(int));
-    memcpy(CMSG_DATA(cmsg), &fd, sizeof(int));
-
-    Zf(sendmsg(sock, &msg, 0) == -1, "Failed to send file descriptor");
-}
-
-/* Receive a file descriptor over a Unix socket. */
-static int recv_fd(int sock) {
-    struct msghdr msg = {0};
-    char cmsg_buf[CMSG_SPACE(sizeof(int))];
-    struct cmsghdr *cmsg;
-    struct iovec iov;
-    char dummy;
-    int fd;
-
-    iov.iov_base = &dummy;
-    iov.iov_len = sizeof(dummy);
-
-    msg.msg_iov = &iov;
-    msg.msg_iovlen = 1;
-    msg.msg_control = cmsg_buf;
-    msg.msg_controllen = sizeof(cmsg_buf);
-
-    Zf(recvmsg(sock, &msg, 0) == -1, "Failed to receive file descriptor");
-
-    cmsg = CMSG_FIRSTHDR(&msg);
-    memcpy(&fd, CMSG_DATA(cmsg), sizeof(int));
-
-    return fd;
-}
-
-/** Callbacks **/
-
-/* Callback for adding a file descriptor to the poll list. */
-int add_poll_cb(int fd, int events, void *opaque) {
-    struct slirp_data *sd = opaque;
-    struct pollfd_data *d = &sd->pfd_data;
-
-    // Check if the fd already exists in the list and update its events
-    for (int i = 0; i < d->nfds; i++) {
-        if (d->fds[i].fd == fd) {
-            d->fds[i].events = events; // Update events
-            return i; // Return its index
-        }
+    // Check if bridge exists by trying to get it.
+    if (rtnl_link_get_kernel(sock, 0, bridge_name, NULL) == 0) {
+        VERBOSE("bridge '%s' already exists", bridge_name);
+        nl_socket_free(sock);
+        return;
     }
 
-    // If not found, add it as a new fd
-    if (d->nfds >= d->size) {
-        d->size = d->size == 0 ? 8 : d->size * 2;
-        d->fds = realloc(d->fds, d->size * sizeof(struct pollfd));
-        Tf(d->fds != NULL, "Failed to reallocate pollfds");
-    }
-    d->fds[d->nfds].fd = fd;
-    d->fds[d->nfds].events = events;
-    d->nfds++;
-    return d->nfds - 1;
+    VERBOSE("bridge '%s' not found, creating...", bridge_name);
+    // Create the bridge link.
+    struct rtnl_link *bridge = rtnl_link_bridge_alloc();
+    Tf(bridge != NULL, "failed to allocate bridge link");
+    rtnl_link_set_name(bridge, bridge_name);
+    rtnl_link_set_type(bridge, "bridge");
+    rtnl_link_set_flags(bridge, IFF_UP);
+    Zf(rtnl_link_add(sock, bridge, NLM_F_CREATE | NLM_F_EXCL | NLM_F_ACK) < 0,
+       "failed to create bridge '%s'", bridge_name);
+    rtnl_link_put(bridge);
+
+    // Get the link again to configure it.
+    struct rtnl_link *link;
+    Zf(rtnl_link_get_kernel(sock, 0, bridge_name, &link) < 0,
+       "failed to get new bridge link '%s'", bridge_name);
+    int if_index = rtnl_link_get_ifindex(link);
+
+    // Set its IP address.
+    struct rtnl_addr *addr = rtnl_addr_alloc();
+    struct nl_addr *local_ip;
+    char ip_str[INET_ADDRSTRLEN + 4];
+    snprintf(ip_str, sizeof(ip_str), "%s/%d", inet_ntoa(*ip), cidr);
+    Zf(nl_addr_parse(ip_str, AF_INET, &local_ip) < 0, "failed to parse address %s", ip_str);
+    rtnl_addr_set_local(addr, local_ip);
+    nl_addr_put(local_ip);
+    rtnl_addr_set_ifindex(addr, if_index);
+    Zf(rtnl_addr_add(sock, addr, 0) < 0, "failed to add address to bridge '%s'", bridge_name);
+    rtnl_addr_put(addr);
+
+    nl_socket_free(sock);
+    VERBOSE("bridge '%s' created and configured", bridge_name);
 }
 
-/* Callback for getting the revents of a file descriptor. */
-int get_revents_cb(int idx, void *opaque) {
-    struct slirp_data *sd = opaque;
-    struct pollfd_data *d = &sd->pfd_data;
-    Tf(idx < d->nfds, "Poll index out of bounds");
-    return d->fds[idx].revents;
+/* Create a veth pair. */
+static void create_veth_pair(struct nl_sock *sock, const char *host_name, const char *peer_name) {
+    struct rtnl_link *veth = rtnl_link_veth_alloc();
+    Tf(veth != NULL, "failed to allocate veth link");
+
+    rtnl_link_set_name(veth, host_name);
+
+    struct rtnl_link *peer = rtnl_link_veth_get_peer(veth);
+    rtnl_link_set_name(peer, peer_name);
+
+    Zf(rtnl_link_add(sock, veth, NLM_F_CREATE | NLM_F_EXCL | NLM_F_ACK) < 0,
+       "failed to create veth pair ('%s', '%s')", host_name, peer_name);
+
+    rtnl_link_put(veth);
+    VERBOSE("veth pair ('%s', '%s') created", host_name, peer_name);
 }
 
-/* Send a packet to the guest via the socket pair. */
-static ssize_t send_packet_cb(const void *buf, size_t len, void *opaque)
-{
-   struct slirp_data *sd = opaque;
-   uint32_t plen = len;
+/* Attach a link to a bridge and bring it up. */
+static void attach_to_bridge_and_up(struct nl_sock *sock, const char *link_name, const char *bridge_name) {
+    struct rtnl_link *link, *bridge;
+    Zf(rtnl_link_get_kernel(sock, 0, link_name, &link) < 0, "failed to get link '%s'", link_name);
+    Zf(rtnl_link_get_kernel(sock, 0, bridge_name, &bridge) < 0, "failed to get bridge '%s'", bridge_name);
 
-   // Frame the packet with its length to handle SOCK_STREAM.
-   if (write(sd->socket_fd, &plen, sizeof(plen)) != sizeof(plen)) {
-        perror("write packet length");
-        return -1;
-   }
+   // Clone the link so we can modify and apply it
+   struct rtnl_link *link_change = rtnl_link_alloc();
+   Zf(link_change == NULL, "failed to allocate link");
 
-   ssize_t written = write(sd->socket_fd, buf, len);
-   return written;
+   rtnl_link_set_ifindex(link_change, rtnl_link_get_ifindex(link));
+   rtnl_link_set_master(link_change, rtnl_link_get_ifindex(bridge));
+   rtnl_link_set_flags(link_change, IFF_UP);
+
+   Zf(rtnl_link_change(sock, link, link_change, 0) < 0, "failed to attach and bring up '%s'", link_name);
+
+   rtnl_link_put(link_change);
+   rtnl_link_put(link);
+   rtnl_link_put(bridge);
+    VERBOSE("link '%s' attached to bridge '%s' and set up", link_name, bridge_name);
 }
 
-/* Callback for handling errors from the guest. */
-static void guest_error_cb(const char *msg, void *opaque) {
-   fprintf(stderr, "slirp guest error: %s\n", msg);
+/* Move a network link to a different network namespace. */
+static void move_link_to_ns(struct nl_sock *sock, const char *link_name, pid_t pid) {
+    struct rtnl_link *link;
+    Zf(rtnl_link_get_kernel(sock, 0, link_name, &link) < 0, "failed to get link '%s'", link_name);
+    int if_index = rtnl_link_get_ifindex(link);
+    Zf(if_index <= 0, "invalid ifindex for link '%s'", link_name);
+
+    // Clone the link so we can modify and apply it
+    struct rtnl_link *link_change = rtnl_link_alloc();
+    Tf(link_change != NULL, "failed to allocate link for netns change");
+    rtnl_link_set_ifindex(link_change, if_index);
+    rtnl_link_set_ns_pid(link_change, pid);
+    Zf(rtnl_link_add(sock, link_change, NLM_F_ACK) < 0, "failed to move link '%s' to pid", link_name, pid);
+
+    rtnl_link_put(link_change);
+    rtnl_link_put(link);
+    VERBOSE("link '%s' moved to network namespace of pid %d", link_name, pid);
 }
 
-/* Callback for creating a new timer. */
-static void *timer_new_cb(SlirpTimerCb cb, void *cb_opaque, void *opaque) {
-    VERBOSE("timer_new_cb: New timer created");
-    MySlirpTimer *t = malloc(sizeof(MySlirpTimer));
-    Tf(t != NULL, "Failed to allocate timer");
-    t->cb = cb;
-    t->cb_opaque = cb_opaque;
-    t->expire_time = -1; // Not set yet, will be set by timer_mod_cb
+/* Set up NAT rules for container outbound traffic. */
+static void setup_nat_masquerade(const char *bridge_name, const char *network_cidr) {
+    struct nftnl_rule *rule = nftnl_rule_alloc();
+    Tf(rule != NULL, "Failed to alloc nftnl_rule");
 
-    if (num_slirp_timers >= slirp_timers_capacity) {
-        slirp_timers_capacity = slirp_timers_capacity == 0 ? 4 : slirp_timers_capacity * 2;
-        slirp_timers = realloc(slirp_timers, slirp_timers_capacity * sizeof(MySlirpTimer*));
-        Tf(slirp_timers != NULL, "Failed to reallocate slirp_timers array");
-    }
-    slirp_timers[num_slirp_timers++] = t;
-    return t;
+    nftnl_rule_set_str(rule, NFTNL_RULE_TABLE, "nat");
+    nftnl_rule_set_str(rule, NFTNL_RULE_CHAIN, "postrouting");
+    nftnl_rule_set_u32(rule, NFTNL_RULE_FAMILY, NFPROTO_IPV4);
+    nftnl_rule_set_u64(rule, NFTNL_RULE_POSITION, 0);
+
+    // Match source IP (network_cidr)
+    struct nftnl_expr *expr = nftnl_expr_alloc("payload");
+    Tf(expr != NULL, "Failed to alloc payload expr");
+    nftnl_expr_set_u32(expr, NFTNL_EXPR_PAYLOAD_BASE, NFT_PAYLOAD_NETWORK_HEADER);
+    nftnl_expr_set_u32(expr, NFTNL_EXPR_PAYLOAD_OFFSET, offsetof(struct iphdr, saddr));
+    nftnl_expr_set_u32(expr, NFTNL_EXPR_PAYLOAD_LEN, sizeof(uint32_t));
+    nftnl_rule_add_expr(rule, expr);
+
+    // Set masquerade
+    expr = nftnl_expr_alloc("masq");
+    Tf(expr != NULL, "Failed to alloc masq expr");
+    nftnl_rule_add_expr(rule, expr);
+
+    // Send rule to kernel
+    struct mnl_socket *nl = mnl_socket_open(NETLINK_NETFILTER);
+    Tf(nl != NULL, "Failed to open netlink socket");
+    Zf(mnl_socket_bind(nl, 0, MNL_SOCKET_AUTOPID) < 0, "mnl bind failed");
+
+    char buf[MNL_SOCKET_BUFFER_SIZE];
+    struct nlmsghdr *nlh = nftnl_rule_nlmsg_build_hdr(buf, NFT_MSG_NEWRULE,
+                                                      NFPROTO_IPV4, NLM_F_CREATE | NLM_F_ACK, 0);
+    nftnl_rule_nlmsg_build_payload(nlh, rule);
+
+    int ret = mnl_socket_sendto(nl, nlh, nlh->nlmsg_len);
+    Zf(ret < 0, "Failed to send rule");
+
+    ret = mnl_socket_recvfrom(nl, buf, sizeof(buf));
+    Zf(ret < 0, "Failed to receive ACK");
+
+    nftnl_rule_free(rule);
+    mnl_socket_close(nl);
+
+    VERBOSE("nftables masquerade rule added.");
 }
 
-/* Callback for freeing a timer. */
-static void timer_free_cb(void *timer, void *opaque) {
-    VERBOSE("timer_free_cb: Timer freed");
-    MySlirpTimer *t = (MySlirpTimer *)timer;
-    for (int i = 0; i < num_slirp_timers; i++) {
-        if (slirp_timers[i] == t) {
-            // Found it, remove by shifting elements
-            free(slirp_timers[i]); // Free the timer struct itself
-            for (int j = i; j < num_slirp_timers - 1; j++) {
-                slirp_timers[j] = slirp_timers[j+1];
-            }
-            num_slirp_timers--;
-            return;
-        }
-    }
-}
-
-/* Callback for modifying a timer. */
-static void timer_mod_cb(void *timer, int64_t expire_time, void *opaque) {
-    MySlirpTimer *t = timer;
-    VERBOSE("timer_mod_cb: Timer modified to expire at %lld ns", (long long)expire_time);
-    t->expire_time = expire_time;
-    // TODO: In a production timer implementation using timerfd(2), this
-    // callback would update the timer file descriptor with the new
-    // expiration time. The current array-based implementation maintains
-    // timers in insertion order without sorting for simplicity.
-}
-
-/* Callback for registering a file descriptor. */
-static void register_poll_fd_cb(int fd, void *opaque) {
-    struct slirp_data *sd = opaque;
-    VERBOSE("register_poll_fd_cb: Registering fd %d", fd);
-
-    // This callback from libslirp just says "watch this FD".
-    // The events will be filled by slirp_pollfds_fill later.
-    // We need to ensure it's in our list. add_poll_cb can handle this.
-    add_poll_cb(fd, 0, sd);
-}
-
-/* Callback for unregistering a file descriptor. */
-static void unregister_poll_fd_cb(int fd, void *opaque) {
-    struct slirp_data *sd = opaque;
-    struct pollfd_data *d = &sd->pfd_data;
-    VERBOSE("unregister_poll_fd_cb: Unregistering fd %d", fd);
-
-    // Remove the file descriptor from the pollfd_data structure
-    // This is a linear search and remove; for high performance, a different
-    // data structure (like a hash map from fd to index) would be better.
-    for (int i = 0; i < d->nfds; i++) {
-        if (d->fds[i].fd == fd) {
-            // Found it, shift elements down
-            for (int j = i; j < d->nfds - 1; j++) {
-                d->fds[j] = d->fds[j+1];
-            }
-            d->nfds--; // Reduce count
-            // No reallocating here to avoid thrashing for small changes.
-            // A periodic compaction might be beneficial if list shrinks a lot.
-            VERBOSE("unregister_poll_fd_cb: Removed fd %d", fd);
-            return;
-        }
-    }
-    VERBOSE("unregister_poll_fd_cb: FD %d not found in tracked pollfds for unregistration.", fd);
-}
-
-/* Callback for notifying Slirp of internal events. */
-static void notify_cb(void *opaque) {
-    // This callback indicates that Slirp has internal state changes
-    // and might need to be called again soon, even if no FDs are ready.
-    VERBOSE("notify_cb: Slirp signalled internal event.");
+/* Enable IP forwarding. */
+static void enable_ip_forwarding() {
+    FILE *f = fopen("/proc/sys/net/ipv4/ip_forward", "w");
+    Zf(f == NULL, "failed to open ip_forward");
+    Zf(fprintf(f, "1\n") < 0, "failed to write to ip_forward");
+    fclose(f);
+    VERBOSE("IP forwarding enabled");
 }
 
 /** Functions **/
@@ -509,239 +460,82 @@ void containerize(struct container *c)
 {
     uid_t host_uid = geteuid();
     gid_t host_gid = getegid();
-    int sp[2];
+    int sync_pipe[2];
 
-    Zf(socketpair(AF_UNIX, SOCK_STREAM, 0, sp) == -1, "failed to create socketpair");
+    /* Network configuration */
+    const char *bridge_name = "clearly0";
+    const char *veth_host_prefix = "veth-host";
+    const char *veth_guest_name = "eth0"; // Final name in container
+    char veth_peer_name[IFNAMSIZ]; // Temp name before renaming to eth0
+
+    struct in_addr bridge_ip  = { .s_addr = inet_addr("172.18.0.1") };
+    struct in_addr guest_ip   = { .s_addr = inet_addr("172.18.0.2") }; // Note: static IP
+    const int cidr = 16;
+    char network_cidr[18];
+    snprintf(network_cidr, sizeof(network_cidr), "172.18.0.0/%d", cidr);
+
+
+    // Use a pipe to synchronize parent and child. The child will write to the
+    // pipe only after it has entered its new namespaces.
+    Zf(socketpair(AF_UNIX, SOCK_STREAM, 0, sync_pipe) == -1, "failed to create sync socketpair");
+
 
     pid_t child_pid = fork();
     Zf(child_pid == -1, "failed to fork");
 
-    /* Network configuration */
-    struct in_addr vnetwork  = { .s_addr = inet_addr("172.17.0.0") };
-    struct in_addr vnetmask  = { .s_addr = inet_addr("255.255.0.0") }; // /16
-    struct in_addr vhost     = { .s_addr = inet_addr("172.17.0.1") };  // Gateway
-    struct in_addr vguest    = { .s_addr = inet_addr("172.17.0.3") };  // Guest
-    const int vcidr          = __builtin_popcount(ntohl(vnetmask.s_addr));
-    struct in_addr no_addr   = {0};
-    struct in6_addr no_addr6 = {0};
-
     if (child_pid > 0) {
         /* Parent Process */
-        close(sp[1]); // Close child's end of socket pair
+        close(sync_pipe[1]); // Close unused write end
 
-        char tap_name[IFNAMSIZ];
-        int tap_fd = open("/dev/net/tun", O_RDWR);
-        Tf(tap_fd >= 0, "Failed to open /dev/net/tun");
-
-        struct ifreq ifr = {0};
-        ifr.ifr_flags = IFF_TAP | IFF_NO_PI;
-        strncpy(ifr.ifr_name, "tap0", IFNAMSIZ);
-
-        Zf(ioctl(tap_fd, TUNSETIFF, (void *)&ifr) == -1,
-           "Failed to create TAP device via ioctl(TUNSETIFF)");
-        strncpy(tap_name, ifr.ifr_name, IFNAMSIZ);
-        VERBOSE("TAP device '%s' created", tap_name);
-
-        char ready_buf;
-        Zf(read(sp[0], &ready_buf, 1) != 1 || ready_buf != 'R',
-           "failed to receive ready signal from child");
-        VERBOSE("parent received ready signal from child");
-
-        // Move TAP into child's netns using libnl
+        // Set up host-side networking for the container.
+        char veth_host_name[IFNAMSIZ];
+        snprintf(veth_host_name, IFNAMSIZ, "%.*s%d", IFNAMSIZ - 11, veth_host_prefix, child_pid);
+        snprintf(veth_peer_name, IFNAMSIZ, "veth-peer%05d", child_pid % 100000);
+        
+        // 1. Ensure bridge exists and is configured.
+        setup_bridge(bridge_name, &bridge_ip, cidr);
+        
+        // 2. Create the veth pair.
         struct nl_sock *sock = nl_socket_alloc();
         Tf(sock != NULL, "failed to allocate netlink socket");
         Zf(nl_connect(sock, NETLINK_ROUTE) < 0, "failed to connect to netlink route socket");
-
-        struct rtnl_link *link;
-        Zf(rtnl_link_get_kernel(sock, 0, tap_name, &link) < 0, "failed to get link %s", tap_name);
-        int if_index = rtnl_link_get_ifindex(link);
-        rtnl_link_put(link);
-
-        struct rtnl_link *link_change = rtnl_link_alloc();
-        Tf(link_change != NULL, "failed to allocate link for netns change");
-        rtnl_link_set_ifindex(link_change, if_index);
-        rtnl_link_set_ns_pid(link_change, child_pid);
-        Zf(rtnl_link_add(sock, link_change, NLM_F_ACK) < 0, "failed to move link %s to child netns", tap_name);
-        rtnl_link_put(link_change);
-        nl_socket_free(sock);
-
-        // Send the TAP device name and file descriptor to the child
-        write(sp[0], tap_name, IFNAMSIZ);
-        send_fd(sp[0], tap_fd);
-        // Parent no longer needs this tap_fd
-        close(tap_fd);
-
-        struct slirp_data s_data = { .socket_fd = sp[0] };
-        struct SlirpCb slirp_callbacks = {
-           .send_packet = send_packet_cb,
-           .guest_error = guest_error_cb,
-           .clock_get_ns = clock_get_ns_cb,
-           .timer_new = timer_new_cb,
-           .timer_free = timer_free_cb,
-           .timer_mod = timer_mod_cb,
-           .register_poll_fd = register_poll_fd_cb,
-           .unregister_poll_fd = unregister_poll_fd_cb,
-           .notify = notify_cb,
-        };
-
-        const SlirpConfig slirp_cfg = {
-            .version = SLIRP_CONFIG_VERSION_MAX,
-            .restricted = false,
-            .in_enabled = true,
-            .vnetwork = vnetwork,
-            .vnetmask = vnetmask,
-            .vhost = vhost,
-            .in6_enabled = false,
-            .vnameserver = vhost,
-            .vprefix_addr6 = no_addr6,
-            .vprefix_len = 0,
-            .vhost6 = no_addr6,
-            .vhostname = NULL,
-            .tftp_server_name = NULL,
-            .tftp_path = NULL,
-            .bootfile = NULL,
-            .vdhcp_start = no_addr,
-            .vnameserver6 = no_addr6,
-            .vdnssearch = NULL,
-            .vdomainname = NULL,
-            .if_mtu = 0,
-            .if_mru = 0,
-            .disable_host_loopback = false,
-            .enable_emu = false,
-            .outbound_addr = NULL,
-            .outbound_addr6 = NULL,
-            .disable_dns = true,
-        };
-
-        Slirp *slirp = slirp_new(&slirp_cfg, &slirp_callbacks, &s_data);
-        Tf(slirp != NULL, "slirp_new failed");
-
-        // Add port forwarding rules
-        for (int i = 0; c->port_map_strs[i] != NULL; i++) {
-            int host_port, guest_port;
-            parse_port_map(c->port_map_strs[i], &host_port, &guest_port);
-            struct in_addr host_addr = { .s_addr = INADDR_ANY };
-            slirp_add_hostfwd(slirp, false, host_addr, host_port, vguest, guest_port);
-            VERBOSE("forwarding host port %d to guest port %d", host_port, guest_port);
-        }
-
-        // Add host entries to /etc/hosts
-        for (int i = 0; c->host_map_strs[i] != NULL; i++) {
-            char *hostname;
-            struct in_addr ip_addr;
-            parse_host_map(c->host_map_strs[i], &hostname, &ip_addr);
-
-            char *hosts_path = cat(c->newroot, "/etc/hosts");
-            FILE *hosts_file = fopen(hosts_path, "a");
-            if (hosts_file && fprintf(hosts_file, "%s %s\n", inet_ntoa(ip_addr), hostname) > 0) {
-                VERBOSE("adding host entry %s %s to /etc/hosts", inet_ntoa(ip_addr), hostname);
-            } else {
-                VERBOSE("failed to write to /etc/hosts: %s", hosts_path);
-            }
-            
-            if (hosts_file) fclose(hosts_file);
-            free(hosts_path);
-            free(hostname);
-        }
         
-        int exited = 0;
-        char slirp_buf[4096];
-        while (!exited) {
-            uint32_t timeout_ms = -1;
-            s_data.pfd_data.nfds = 0; // Reset for rebuilding
-            
-            // Let slirp populate the poll array with its FDs
-            slirp_pollfds_fill(slirp, &timeout_ms, add_poll_cb, &s_data);
+        create_veth_pair(sock, veth_host_name, veth_peer_name);
+        
+        // 3. Attach host end of veth to bridge and bring it up.
+        attach_to_bridge_and_up(sock, veth_host_name, bridge_name);
 
-            // Add our own FD to the poll array
-            if (s_data.pfd_data.nfds >= s_data.pfd_data.size) {
-                s_data.pfd_data.size = s_data.pfd_data.size == 0 ? 8 : s_data.pfd_data.size * 2;
-                s_data.pfd_data.fds = realloc(s_data.pfd_data.fds, s_data.pfd_data.size * sizeof(struct pollfd));
-                Tf(s_data.pfd_data.fds != NULL, "Failed to reallocate pollfds");
-            }
-            s_data.pfd_data.fds[s_data.pfd_data.nfds].fd = sp[0];
-            s_data.pfd_data.fds[s_data.pfd_data.nfds].events = POLLIN;
-            s_data.pfd_data.nfds++;
+        // Wait for child to signal that it's in its new namespaces.
+        char buf;
+        Zf(read(sync_pipe[0], &buf, 1) != 1 || buf != 'S', "failed to sync with child");
+        
+        // 4. Move peer end of veth into the container's network namespace FIRST.
+        move_link_to_ns(sock, veth_peer_name, child_pid);
 
-            // Wait for events
-            int ret = poll(s_data.pfd_data.fds, s_data.pfd_data.nfds, timeout_ms);
+        // THEN, signal the child that it can proceed.
+        Zf(write(sync_pipe[0], "R", 1) != 1, "failed to signal child");
+        close(sync_pipe[0]);
+        VERBOSE("parent synced with child");
+        
+        nl_socket_free(sock);
+        
+        // 5. Set up NAT rules.
+        setup_nat_masquerade(bridge_name, network_cidr);
+        enable_ip_forwarding();
 
-            if (ret < 0) {
-                perror("parent poll");
-                break;
-            }
+        // Wait for child process to exit.
+        int status;
+        waitpid(child_pid, &status, 0);
 
-            // Check if our specific socket has data and handle it.
-            // We must find its current index in the array first.
-            int sp0_has_event = 0;
-            for (int i = 0; i < s_data.pfd_data.nfds; i++) {
-                if (s_data.pfd_data.fds[i].fd == sp[0] && s_data.pfd_data.fds[i].revents != 0) {
-                    sp0_has_event = 1;
-                    break;
-                }
-            }
-
-            if (sp0_has_event) {
-                DEBUG("sp[0] has event");
-                // We have an event on sp[0]. It could be data, hangup, or error.
-                uint32_t plen;
-                // Try reading the length prefix. A return of 0 or less means disconnection.
-                ssize_t len = read(sp[0], &plen, sizeof(plen));
-
-                if (len == sizeof(plen)) {
-                    // Successfully read length, now read the payload
-                    if (plen > sizeof(slirp_buf)) {
-                        FATAL(0, "slirp buffer too small for packet size %u", plen);
-                    }
-                    len = read(sp[0], slirp_buf, plen);
-                    if (len > 0) {
-                        slirp_input(slirp, (const uint8_t *)slirp_buf, len);
-                    }
-                }
-                
-                if (len <= 0) {
-                    // This indicates the child proxy closed the connection or an error occurred.
-                    VERBOSE("child proxy connection closed or errored.");
-                    exited = 1;
-                }
-            }
-
-            // Let slirp handle its own events and timers, regardless of what we did above.
-            if (!exited) {
-                slirp_pollfds_poll(slirp, ret == 0, get_revents_cb, &s_data);
-            }
-
-            // Check if the main child process (not the proxy) has exited
-            int status;
-            if (waitpid(child_pid, &status, WNOHANG) == child_pid) {
-                VERBOSE("main child process exited.");
-                exited = 1;
-            }
-        }
-
-        // Cleanup timers
-        for (int i = 0; i < num_slirp_timers; i++) {
-            // Note: timer_free_cb actually frees the MySlirpTimer struct
-            // We just need to free the array of pointers here
-            free(slirp_timers[i]);
-        }
-        free(slirp_timers);
-        slirp_timers = NULL;
-        num_slirp_timers = 0;
-        slirp_timers_capacity = 0;
-
-        slirp_cleanup(slirp);
-        free(s_data.pfd_data.fds);
-        close(sp[0]);
-        exit(0);
+        // Optional: cleanup network interfaces. For simplicity, we don't.
+        exit(WIFEXITED(status) ? WEXITSTATUS(status) : 1);
 
     } else {
         /* Child Process */
-        close(sp[0]); // Close parent's end
+        close(sync_pipe[0]); // Close unused read end
 
         if (c->join_pid) {
             join_namespaces(c->join_pid);
-            // NOTE: Networking is not handled for joined containers in this logic.
             return;
         }
 
@@ -763,143 +557,128 @@ void containerize(struct container *c)
         if (c->join)
             join_end(c->join_ct);
 
-        // Add nameserver entries to /etc/resolv.conf
-        FILE *resolv_conf = fopen("/etc/resolv.conf", "w");
-        if (resolv_conf != NULL) {
-            fprintf(resolv_conf, "nameserver 1.1.1.1\n");
-            fclose(resolv_conf);
-        }
+        // Signal parent that we are in the correct namespaces.
+        Zf(write(sync_pipe[1], "S", 1) != 1, "child failed to send sync signal");
 
-        // Signal parent that we are in the correct namespaces and ready for the TAP device.
-        Zf(write(sp[1], "R", 1) != 1, "child failed to send ready signal");
+        // Wait for parent to finish moving veth
+        char ack;
+        Zf(read(sync_pipe[1], &ack, 1) != 1 || ack != 'R', "child failed to receive ready signal");
+        close(sync_pipe[1]);
 
-        // Receive TAP device info from parent
-        char tap_name[IFNAMSIZ];
-        Zf(read(sp[1], tap_name, IFNAMSIZ) <= 0, "child failed to receive tap name");
-        int tap_fd = recv_fd(sp[1]);
-
-        // Connect to netlink route socket
+        // Configure networking inside the new namespace.
         struct nl_sock *sock = nl_socket_alloc();
         Tf(sock != NULL, "failed to allocate netlink socket");
         Zf(nl_connect(sock, NETLINK_ROUTE) < 0, "failed to connect to netlink route socket");
 
-        // Configure tap0 interface
+        // Link names are based on the parent's PID (our PPID now).
+        char veth_peer_name[IFNAMSIZ];
+        snprintf(veth_peer_name, IFNAMSIZ, "veth-peer%05d", getpid() % 100000);
+        
+        // Get the link that was moved into our namespace.
         struct rtnl_link *link;
-        Zf(rtnl_link_get_kernel(sock, 0, tap_name, &link) < 0, "failed to get link %s", tap_name);
+        Zf(rtnl_link_get_kernel(sock, 0, veth_peer_name, &link) < 0,
+           "child failed to get link '%s'", veth_peer_name);
+        
+        // To modify the link, we create a new change object.
+        errno = 0; // Clear errno before allocation
+        struct rtnl_link *change = rtnl_link_alloc();
+        if (change == NULL) {
+           errno = ENOMEM; // Set errno to a more appropriate value
+           Tf(change == NULL, "failed to allocate link for changes");
+        }
+
         int if_index = rtnl_link_get_ifindex(link);
+        rtnl_link_set_ifindex(change, if_index);
+
+        // Set the new name to 'eth0' and bring the interface up in one operation.
+        rtnl_link_set_name(change, veth_guest_name);
+        rtnl_link_set_flags(change, IFF_UP);
+        Zf(rtnl_link_change(sock, link, change, NLM_F_ACK) < 0,
+           "failed to rename and bring up guest interface");
+        
+        rtnl_link_put(change);
         rtnl_link_put(link);
 
-        struct rtnl_link *link_change = rtnl_link_alloc();
-        rtnl_link_set_ifindex(link_change, if_index);
-        rtnl_link_set_flags(link_change, IFF_UP);
-        Zf(rtnl_link_add(sock, link_change, NLM_F_ACK) < 0, "failed to bring up link %s", tap_name);
-        rtnl_link_put(link_change);
-
-        struct rtnl_addr *local_addr = rtnl_addr_alloc();
+        // Set its IP address.
+        struct rtnl_addr *addr = rtnl_addr_alloc();
         struct nl_addr *local_ip;
-        char vguest_str[INET_ADDRSTRLEN + 4];
-        inet_ntop(AF_INET, &vguest, vguest_str, sizeof(vguest_str));
-        snprintf(vguest_str + strlen(vguest_str), sizeof(vguest_str) - strlen(vguest_str), "/%d", vcidr);
-        Zf(nl_addr_parse(vguest_str, AF_INET, &local_ip) < 0, "failed to parse address");
-        rtnl_addr_set_local(local_addr, local_ip);
+        char ip_str[INET_ADDRSTRLEN + 4];
+        snprintf(ip_str, sizeof(ip_str), "%s/%d", inet_ntoa(guest_ip), cidr);
+        Zf(nl_addr_parse(ip_str, AF_INET, &local_ip) < 0, "failed to parse guest address");
+        rtnl_addr_set_local(addr, local_ip);
         nl_addr_put(local_ip);
-        rtnl_addr_set_ifindex(local_addr, if_index);
-        Zf(rtnl_addr_add(sock, local_addr, 0) < 0, "failed to add address");
-        rtnl_addr_put(local_addr);
+        rtnl_addr_set_ifindex(addr, if_index);
+        Zf(rtnl_addr_add(sock, addr, 0) < 0, "failed to add address to guest interface");
+        rtnl_addr_put(addr);
 
+        // Configure lo interface.
+        struct rtnl_link *lo_link;
+        Zf(rtnl_link_get_kernel(sock, 0, "lo", &lo_link) < 0, "failed to get loopback link");
+        
+        // To modify the link, we create a new change object.
+        errno = 0; // Clear errno before allocation
+        struct rtnl_link *lo_change = rtnl_link_alloc();
+        if (lo_change == NULL) {
+           errno = ENOMEM; // Set errno to a more appropriate value
+           Tf(lo_change == NULL, "failed to allocate link for lo change");
+        }
+
+        rtnl_link_set_ifindex(lo_change, rtnl_link_get_ifindex(lo_link));
+        rtnl_link_set_flags(lo_change, IFF_UP);
+
+        Zf(rtnl_link_change(sock, lo_link, lo_change, NLM_F_ACK) < 0, "failed to bring up lo interface");
+
+        rtnl_link_put(lo_change);
+        rtnl_link_put(lo_link);
+        
+        // Set default route.
         struct rtnl_route *route = rtnl_route_alloc();
+        
+        struct nl_addr *dst;
+        Zf(nl_addr_parse("0.0.0.0/0", AF_INET, &dst) < 0, "failed to parse route destination");
+        Zf(rtnl_route_set_dst(route, dst) < 0, "failed to set route destination");
+        nl_addr_put(dst);
+
         struct nl_addr *gw_addr;
-        char gw_str[INET_ADDRSTRLEN];
-        inet_ntop(AF_INET, &vhost, gw_str, sizeof(gw_str));
-        Zf(nl_addr_parse(gw_str, AF_INET, &gw_addr) < 0, "failed to parse gateway");
+        Zf(nl_addr_parse(inet_ntoa(bridge_ip), AF_INET, &gw_addr) < 0, "failed to parse gateway address");
         struct rtnl_nexthop *nh = rtnl_route_nh_alloc();
         rtnl_route_nh_set_ifindex(nh, if_index);
         rtnl_route_nh_set_gateway(nh, gw_addr);
         rtnl_route_add_nexthop(route, nh);
         nl_addr_put(gw_addr);
-
-        // Configure lo interface
-        struct rtnl_link *lo_link;
-        Zf(rtnl_link_get_kernel(sock, 0, "lo", &lo_link) < 0, "failed to get loopback link 'lo'");
-        int lo_if_index = rtnl_link_get_ifindex(lo_link);
-        rtnl_link_put(lo_link);
-
-        struct rtnl_link *lo_link_change = rtnl_link_alloc();
-        Tf(lo_link_change != NULL, "failed to allocate link for lo config");
-        rtnl_link_set_ifindex(lo_link_change, lo_if_index);
-        rtnl_link_set_flags(lo_link_change, IFF_UP);
-        Zf(rtnl_link_add(sock, lo_link_change, NLM_F_ACK) < 0, "failed to bring up lo interface");
-        rtnl_link_put(lo_link_change);
-
-        // Configure default route
-        struct nl_addr *dst_addr;
-        Zf(nl_addr_parse("0.0.0.0/0", AF_INET, &dst_addr) < 0, "failed to parse route destination");
-        rtnl_route_set_dst(route, dst_addr);
-        nl_addr_put(dst_addr);
-
-        Zf(rtnl_route_add(sock, route, 0) < 0, "failed to add route");
+        Zf(rtnl_route_add(sock, route, 0) < 0, "failed to add default route");
         rtnl_route_put(route);
+        
         nl_socket_free(sock);
+        VERBOSE("child network configuration complete");
 
-        // Fork to have a dedicated process for network proxying
-        pid_t proxy_pid = fork();
-        Zf(proxy_pid < 0, "failed to fork proxy process");
-
-        if (proxy_pid == 0) {
-            // Child becomes the proxy
-            // Shuttling packets between TAP and parent
-            struct pollfd fds[2];
-            fds[0].fd = tap_fd;
-            fds[0].events = POLLIN;
-            fds[1].fd = sp[1];
-            fds[1].events = POLLIN;
-            char buf[4096];
-
-            while (1) {
-                int ret = poll(fds, 2, -1);
-                if (ret <= 0) {
-                    perror("proxy poll");
-                    break;
-                }
-                if (fds[0].revents & POLLIN) {
-                    // Data from TAP device
-                    ssize_t len = read(tap_fd, buf, sizeof(buf));
-                    if (len > 0) {
-                        uint32_t plen = len;
-                        write(sp[1], &plen, sizeof(plen)); // Send length
-                        write(sp[1], buf, len);            // Send data
-                    } else {
-                        // TAP closed or error
-                        break;
-                    }
-                }
-                if (fds[1].revents & POLLIN) {
-                    // Data from parent (slirp)
-                    uint32_t plen;
-                    ssize_t len = read(sp[1], &plen, sizeof(plen));
-                    if (len == sizeof(plen)) {
-                         if (plen > sizeof(buf)) {
-                             // Should not happen
-                             break;
-                         }
-                         len = read(sp[1], buf, plen);
-                         if (len > 0) {
-                             write(tap_fd, buf, len);
-                         } else {
-                             break;
-                         }
-                    } else {
-                        // Parent closed socket or error
-                        break;
-                    }
-                }
-            }
-            close(tap_fd);
-            close(sp[1]);
-            exit(0);
+        // Add nameserver entries to /etc/resolv.conf
+        FILE *resolv_conf = fopen("/etc/resolv.conf", "w");
+        if (resolv_conf != NULL) {
+            fprintf(resolv_conf, "nameserver 8.8.8.8\n"); // Google DNS
+            fprintf(resolv_conf, "nameserver 1.1.1.1\n"); // Cloudflare DNS
+            fclose(resolv_conf);
         }
-        close(sp[1]);
-        close(tap_fd);
+
+        // Add host entries to /etc/hosts
+        for (int i = 0; c->host_map_strs[i] != NULL; i++) {
+            char *hostname;
+            struct in_addr ip_addr;
+            parse_host_map(c->host_map_strs[i], &hostname, &ip_addr);
+
+            char *hosts_path = cat(c->newroot, "/etc/hosts");
+            FILE *hosts_file = fopen(hosts_path, "a");
+            if (hosts_file && fprintf(hosts_file, "%s %s\n", inet_ntoa(ip_addr), hostname) > 0) {
+                VERBOSE("adding host entry %s %s to /etc/hosts", inet_ntoa(ip_addr), hostname);
+            } else {
+                WARNING("failed to write to /etc/hosts: %s", hosts_path);
+            }
+            if (hosts_file) fclose(hosts_file);
+            free(hosts_path);
+            free(hostname);
+        }
+        
+        // The child process now continues to run the user's command.
     }
 }
 
@@ -1087,13 +866,6 @@ void parse_port_map(const char* map_str, int* host_port, int* guest_port) {
     *host_port = atoi(str);
     *guest_port = atoi(colon + 1);
     free(str);
-}
-
-/* Helper function to get the current time in nanoseconds. */
-int64_t clock_get_ns_cb(void *opaque) {
-    struct timespec ts;
-    clock_gettime(CLOCK_MONOTONIC, &ts);
-    return ts.tv_sec * 1000000000LL + ts.tv_nsec;
 }
 
 /* Begin coordinated section of namespace joining. */

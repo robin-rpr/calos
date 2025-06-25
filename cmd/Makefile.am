@@ -16,8 +16,7 @@ endif
 
 # additional build flags for run
 run_CFLAGS = $(PTHREAD_CFLAGS) -DLIBEXECDIR="\"$(pkglibexecdir)\"" @LIBNL_CFLAGS@
-run_LDADD = $(CLEARLY_RUN_LIBS) @LIBSLIRP_LIBS@ @LIBNL_LIBS@
-
+run_LDADD = $(CLEARLY_RUN_LIBS) @LIBMNL_LIBS@ @LIBNFTNL_LIBS@ @LIBNL_LIBS@
 
 ## Shell scripts - distributed as-is
 
