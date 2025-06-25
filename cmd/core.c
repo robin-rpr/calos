@@ -10,6 +10,7 @@
 #include <linux/audit.h>
 #include <linux/filter.h>
 #include <linux/seccomp.h>
+#include <linux/netfilter/nf_tables.h>
 #endif
 #include <poll.h>
 #include <pwd.h>
@@ -39,6 +40,7 @@
 #include <sys/ioctl.h>
 #include <netinet/in.h>
 #include <netinet/ip.h>
+#include <netinet/tcp.h>
 #include <libmnl/libmnl.h>
 #include <libnftnl/expr.h>
 #include <libnftnl/rule.h>
@@ -407,6 +409,90 @@ static void enable_ip_forwarding() {
     VERBOSE("IP forwarding enabled");
 }
 
+/* Set up port forwarding from host to container. */
+static void setup_port_forwarding(int host_port, int guest_port, const struct in_addr *guest_ip) {
+    struct nftnl_rule *rule = nftnl_rule_alloc();
+    Tf(rule != NULL, "Failed to alloc nftnl_rule for port forwarding");
+
+    nftnl_rule_set_str(rule, NFTNL_RULE_TABLE, "nat");
+    nftnl_rule_set_str(rule, NFTNL_RULE_CHAIN, "prerouting");
+    nftnl_rule_set_u32(rule, NFTNL_RULE_FAMILY, NFPROTO_IPV4);
+
+    // Match TCP protocol by loading it from the IP header
+    struct nftnl_expr *expr;
+    expr = nftnl_expr_alloc("payload");
+    Tf(expr != NULL, "Failed to alloc payload expr for protocol");
+    nftnl_expr_set_u32(expr, NFTNL_EXPR_PAYLOAD_BASE, NFT_PAYLOAD_NETWORK_HEADER);
+    nftnl_expr_set_u32(expr, NFTNL_EXPR_PAYLOAD_OFFSET, offsetof(struct iphdr, protocol));
+    nftnl_expr_set_u32(expr, NFTNL_EXPR_PAYLOAD_LEN, sizeof(uint8_t));
+    nftnl_rule_add_expr(rule, expr);
+
+    expr = nftnl_expr_alloc("cmp");
+    Tf(expr != NULL, "Failed to alloc cmp expr for protocol");
+    nftnl_expr_set_u32(expr, NFTNL_EXPR_CMP_SREG, 1);
+    nftnl_expr_set_u32(expr, NFTNL_EXPR_CMP_OP, NFT_CMP_EQ);
+    nftnl_expr_set_u32(expr, NFTNL_EXPR_CMP_DATA, IPPROTO_TCP);
+    nftnl_rule_add_expr(rule, expr);
+
+    // Match destination port
+    expr = nftnl_expr_alloc("payload");
+    Tf(expr != NULL, "Failed to alloc payload expr for dport");
+    nftnl_expr_set_u32(expr, NFTNL_EXPR_PAYLOAD_BASE, NFT_PAYLOAD_TRANSPORT_HEADER);
+    nftnl_expr_set_u32(expr, NFTNL_EXPR_PAYLOAD_OFFSET, offsetof(struct tcphdr, th_dport));
+    nftnl_expr_set_u32(expr, NFTNL_EXPR_PAYLOAD_LEN, sizeof(uint16_t));
+    nftnl_rule_add_expr(rule, expr);
+
+    expr = nftnl_expr_alloc("cmp");
+    Tf(expr != NULL, "Failed to alloc cmp expr for dport");
+    nftnl_expr_set_u32(expr, NFTNL_EXPR_CMP_SREG, 1);
+    nftnl_expr_set_u32(expr, NFTNL_EXPR_CMP_OP, NFT_CMP_EQ);
+    nftnl_expr_set_u16(expr, NFTNL_EXPR_CMP_DATA, htons(host_port));
+    nftnl_rule_add_expr(rule, expr);
+
+    // Perform DNAT using registers for compatibility
+    expr = nftnl_expr_alloc("immediate");
+    Tf(expr != NULL, "Failed to alloc immediate expr for DNAT addr");
+    nftnl_expr_set_u32(expr, NFTNL_EXPR_IMM_DREG, NFT_REG_1);
+    nftnl_expr_set_data(expr, NFTNL_EXPR_IMM_DATA, guest_ip, sizeof(*guest_ip));
+    nftnl_rule_add_expr(rule, expr);
+
+    uint16_t guest_port_be = htons(guest_port);
+    expr = nftnl_expr_alloc("immediate");
+    Tf(expr != NULL, "Failed to alloc immediate expr for DNAT port");
+    nftnl_expr_set_u32(expr, NFTNL_EXPR_IMM_DREG, NFT_REG_2);
+    nftnl_expr_set_data(expr, NFTNL_EXPR_IMM_DATA, &guest_port_be, sizeof(guest_port_be));
+    nftnl_rule_add_expr(rule, expr);
+
+    expr = nftnl_expr_alloc("nat");
+    Tf(expr != NULL, "Failed to alloc nat expr");
+    nftnl_expr_set_u32(expr, NFTNL_EXPR_NAT_TYPE, NFT_NAT_DNAT);
+    nftnl_expr_set_u32(expr, NFTNL_EXPR_NAT_FAMILY, NFPROTO_IPV4);
+    nftnl_expr_set_u32(expr, NFTNL_EXPR_NAT_REG_ADDR_MIN, NFT_REG_1);
+    nftnl_expr_set_u32(expr, NFTNL_EXPR_NAT_REG_PROTO_MIN, NFT_REG_2);
+    nftnl_rule_add_expr(rule, expr);
+
+    // Send rule to kernel
+    struct mnl_socket *nl = mnl_socket_open(NETLINK_NETFILTER);
+    Tf(nl != NULL, "Failed to open netlink socket for port forward");
+    Zf(mnl_socket_bind(nl, 0, MNL_SOCKET_AUTOPID) < 0, "mnl bind failed for port forward");
+
+    char buf[MNL_SOCKET_BUFFER_SIZE];
+    struct nlmsghdr *nlh = nftnl_rule_nlmsg_build_hdr(buf, NFT_MSG_NEWRULE,
+                                                      NFPROTO_IPV4, NLM_F_CREATE | NLM_F_ACK, 0);
+    nftnl_rule_nlmsg_build_payload(nlh, rule);
+
+    int ret = mnl_socket_sendto(nl, nlh, nlh->nlmsg_len);
+    Zf(ret < 0, "Failed to send port forward rule");
+
+    ret = mnl_socket_recvfrom(nl, buf, sizeof(buf));
+    Zf(ret < 0, "Failed to receive ACK for port forward rule");
+
+    nftnl_rule_free(rule);
+    mnl_socket_close(nl);
+
+    VERBOSE("nftables DNAT rule added for tcp host port %d -> %s:%d", host_port, inet_ntoa(*guest_ip), guest_port);
+}
+
 /** Functions **/
 
 /* Bind-mount the given path into the container image. */
@@ -492,36 +578,43 @@ void containerize(struct container *c)
         snprintf(veth_host_name, IFNAMSIZ, "%.*s%d", IFNAMSIZ - 11, veth_host_prefix, child_pid);
         snprintf(veth_peer_name, IFNAMSIZ, "veth-peer%05d", child_pid % 100000);
         
-        // 1. Ensure bridge exists and is configured.
+        // Ensure bridge exists and is configured.
         setup_bridge(bridge_name, &bridge_ip, cidr);
         
-        // 2. Create the veth pair.
+        // Create the veth pair.
         struct nl_sock *sock = nl_socket_alloc();
         Tf(sock != NULL, "failed to allocate netlink socket");
         Zf(nl_connect(sock, NETLINK_ROUTE) < 0, "failed to connect to netlink route socket");
         
         create_veth_pair(sock, veth_host_name, veth_peer_name);
         
-        // 3. Attach host end of veth to bridge and bring it up.
+        // Attach host end of veth to bridge and bring it up.
         attach_to_bridge_and_up(sock, veth_host_name, bridge_name);
 
         // Wait for child to signal that it's in its new namespaces.
         char buf;
         Zf(read(sync_pipe[0], &buf, 1) != 1 || buf != 'S', "failed to sync with child");
         
-        // 4. Move peer end of veth into the container's network namespace FIRST.
+        // Move peer end of veth into the container's network namespace FIRST.
         move_link_to_ns(sock, veth_peer_name, child_pid);
 
-        // THEN, signal the child that it can proceed.
+        // Signal the child that it can proceed.
         Zf(write(sync_pipe[0], "R", 1) != 1, "failed to signal child");
         close(sync_pipe[0]);
         VERBOSE("parent synced with child");
         
         nl_socket_free(sock);
         
-        // 5. Set up NAT rules.
+        // Set up NAT rules.
         setup_nat_masquerade(bridge_name, network_cidr);
         enable_ip_forwarding();
+
+        // Set up port forwarding rules.
+        for (int i = 0; c->port_map_strs[i] != NULL; i++) {
+            int host_port, guest_port;
+            parse_port_map(c->port_map_strs[i], &host_port, &guest_port);
+            setup_port_forwarding(host_port, guest_port, &guest_ip);
+        }
 
         // Wait for child process to exit.
         int status;
