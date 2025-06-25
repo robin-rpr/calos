@@ -517,9 +517,11 @@ void containerize(struct container *c)
     Zf(child_pid == -1, "failed to fork");
 
     /* Network configuration */
-    struct in_addr vnetwork  = { .s_addr = inet_addr("10.0.2.0") };
-    struct in_addr vnetmask  = { .s_addr = inet_addr("255.255.255.0") };
-    struct in_addr vhost     = { .s_addr = inet_addr("10.0.2.2") };
+    struct in_addr vnetwork  = { .s_addr = inet_addr("172.17.0.0") };
+    struct in_addr vnetmask  = { .s_addr = inet_addr("255.255.0.0") }; // /16
+    struct in_addr vhost     = { .s_addr = inet_addr("172.17.0.1") };  // Gateway
+    struct in_addr vguest    = { .s_addr = inet_addr("172.17.0.3") };  // Guest
+    const int vcidr          = __builtin_popcount(ntohl(vnetmask.s_addr));
     struct in_addr no_addr   = {0};
     struct in6_addr no_addr6 = {0};
 
@@ -619,8 +621,7 @@ void containerize(struct container *c)
             int host_port, guest_port;
             parse_port_map(c->port_map_strs[i], &host_port, &guest_port);
             struct in_addr host_addr = { .s_addr = INADDR_ANY };
-            struct in_addr guest_addr = { .s_addr = inet_addr("10.0.2.100") }; // Guest IP
-            slirp_add_hostfwd(slirp, false, host_addr, host_port, guest_addr, guest_port);
+            slirp_add_hostfwd(slirp, false, host_addr, host_port, vguest, guest_port);
             VERBOSE("forwarding host port %d to guest port %d", host_port, guest_port);
         }
 
@@ -801,7 +802,10 @@ void containerize(struct container *c)
 
         struct rtnl_addr *addr = rtnl_addr_alloc();
         struct nl_addr *local_ip;
-        Zf(nl_addr_parse("10.0.2.100/24", AF_INET, &local_ip) < 0, "failed to parse address");
+        char vguest_str[20];
+        snprintf(vguest_str, sizeof(vguest_str), "%s/%d", inet_ntoa(vguest), vcidr);
+        VERBOSE("vguest_str for address: %s", vguest_str);
+        Zf(nl_addr_parse(vguest_str, AF_INET, &local_ip) < 0, "failed to parse address");
         rtnl_addr_set_local(addr, local_ip);
         nl_addr_put(local_ip);
         rtnl_addr_set_ifindex(addr, if_index);
@@ -810,7 +814,8 @@ void containerize(struct container *c)
 
         struct rtnl_route *route = rtnl_route_alloc();
         struct nl_addr *gw_addr;
-        Zf(nl_addr_parse("10.0.2.2", AF_INET, &gw_addr) < 0, "failed to parse gateway");
+        VERBOSE("vhost for gateway: %s", inet_ntoa(vhost));
+        Zf(nl_addr_parse(inet_ntoa(vhost), AF_INET, &gw_addr) < 0, "failed to parse gateway");
         struct rtnl_nexthop *nh = rtnl_route_nh_alloc();
         rtnl_route_nh_set_ifindex(nh, if_index);
         rtnl_route_nh_set_gateway(nh, gw_addr);
