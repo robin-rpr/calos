@@ -770,8 +770,6 @@ void containerize(struct container *c)
             free(hosts_path);
             free(hostname);
         }
-        
-        // The child process now continues to run the user's command.
     }
 }
 
