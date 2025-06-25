@@ -535,7 +535,7 @@ void containerize(struct container *c)
 
         struct ifreq ifr = {0};
         ifr.ifr_flags = IFF_TAP | IFF_NO_PI;
-        snprintf(ifr.ifr_name, IFNAMSIZ, "clearly%05d", child_pid % 100000);
+        strncpy(ifr.ifr_name, "tap0", IFNAMSIZ);
 
         Zf(ioctl(tap_fd, TUNSETIFF, (void *)&ifr) == -1,
            "Failed to create TAP device via ioctl(TUNSETIFF)");
