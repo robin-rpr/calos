@@ -405,17 +405,96 @@ static void move_link_to_ns(struct nl_sock *sock, const char *link_name, pid_t p
     VERBOSE("link '%s' moved to network namespace of pid %d", link_name, pid);
 }
 
-/* Set up NAT rules for container outbound traffic. */
-static int setup_nat_masquerade() {
-    struct mnl_socket *nl = mnl_socket_open(NETLINK_NETFILTER);
-    if (nl == NULL) {
-        perror("mnl_socket_open");
-        return -1;
+/* Check if the masquerade rule exists. */
+bool nft_nat_masquerade_exists(struct mnl_socket *nl) {
+    char buf[MNL_SOCKET_BUFFER_SIZE];
+    uint32_t seq = time(NULL);
+
+    // Request dump of all rules
+    struct nlmsghdr *nlh = nftnl_rule_nlmsg_build_hdr(buf, NFT_MSG_GETRULE, NFPROTO_IPV4, NLM_F_DUMP, seq);
+
+    struct nftnl_rule *req = nftnl_rule_alloc();
+    nftnl_rule_set_str(req, NFTNL_RULE_TABLE, "nat");
+    nftnl_rule_set_str(req, NFTNL_RULE_CHAIN, "postrouting");
+    nftnl_rule_nlmsg_build_payload(nlh, req);
+    nftnl_rule_free(req);
+
+    Zf(mnl_socket_sendto(nl, nlh, nlh->nlmsg_len) < 0, "send failed");
+
+    int len = mnl_socket_recvfrom(nl, buf, sizeof(buf));
+    if (len == 0) return false;
+    while (len > 0) {
+        struct nlmsghdr *nlh = (struct nlmsghdr *)buf;
+        for (; mnl_nlmsg_ok(nlh, len); nlh = mnl_nlmsg_next(nlh, &len)) {
+            // Check if the message is a new rule.
+            if (nlh->nlmsg_type != ((NFNL_SUBSYS_NFTABLES << 8) | NFT_MSG_NEWRULE)) continue;
+
+            struct nftnl_rule *rule = nftnl_rule_alloc();
+            nftnl_rule_nlmsg_parse(nlh, rule);
+
+            const char *table = nftnl_rule_get_str(rule, NFTNL_RULE_TABLE);
+            const char *chain = nftnl_rule_get_str(rule, NFTNL_RULE_CHAIN);
+            if (!table || !chain || strcmp(table, "nat") != 0 || strcmp(chain, "postrouting") != 0) {
+                nftnl_rule_free(rule);
+                continue;
+            }
+
+            bool has_payload = false, has_bitwise = false, has_cmp = false, has_masq = false;
+            uint32_t cmp_val = 0;
+
+            struct nftnl_expr_iter *it = nftnl_expr_iter_create(rule);
+            struct nftnl_expr *expr;
+            while ((expr = nftnl_expr_iter_next(it)) != NULL) {
+                const char *name = nftnl_expr_get_str(expr, NFTNL_EXPR_NAME);
+                if (!name) continue;
+
+                if (strcmp(name, "payload") == 0) {
+                    has_payload = true;
+                } else if (strcmp(name, "bitwise") == 0) {
+                    has_bitwise = true;
+                } else if (strcmp(name, "cmp") == 0) {
+                    uint32_t len = 0;
+                     const void *data = nftnl_expr_get_data(expr, NFTNL_EXPR_CMP_DATA, &len);
+                     if (data && len == sizeof(uint32_t)) {
+                        memcpy(&cmp_val, data, sizeof(cmp_val));
+                        has_cmp = true;
+                     }
+                } else if (strcmp(name, "masq") == 0) {
+                    has_masq = true;
+                }
+            }
+
+            nftnl_expr_iter_destroy(it);
+            nftnl_rule_free(rule);
+
+            if (has_payload && has_bitwise && has_cmp && has_masq) {
+                struct in_addr target;
+                inet_pton(AF_INET, "172.19.0.0", &target);
+                if (cmp_val == target.s_addr) {
+                    return true;
+                }
+            }
+        }
+
+        if (len == 0) return false;
     }
-    if (mnl_socket_bind(nl, 0, MNL_SOCKET_AUTOPID) < 0) {
-        perror("mnl_socket_bind");
+
+    return false;
+}
+
+
+
+/* Set up NAT rules for container outbound traffic. */
+static void setup_nat_masquerade() {
+    struct mnl_socket *nl = mnl_socket_open(NETLINK_NETFILTER);
+    Tf(nl != NULL, "Failed to open netlink socket for masquerade");
+    Zf(mnl_socket_bind(nl, 0, MNL_SOCKET_AUTOPID) < 0, "mnl bind failed for masquerade");
+
+    // Check if the masquerade rule already exists.
+    if (nft_nat_masquerade_exists(nl)) {
+        VERBOSE("nftables masquerade rule already exists");
         mnl_socket_close(nl);
-        return -1;
+        return;
     }
 
     char buf[MNL_SOCKET_BUFFER_SIZE * 2];
@@ -426,9 +505,7 @@ static int setup_nat_masquerade() {
     mnl_nlmsg_batch_next(batch);
     struct nlmsghdr *nlh;
 
-    /*
-     * OPERATION 1: Create the 'nat' table if it doesn't exist.
-     */
+    // Create the 'nat' table if it doesn't exist.
     struct nftnl_table *table = nftnl_table_alloc();
     nftnl_table_set_u32(table, NFTNL_TABLE_FAMILY, NFPROTO_IPV4);
     nftnl_table_set_str(table, NFTNL_TABLE_NAME, "nat");
@@ -439,9 +516,7 @@ static int setup_nat_masquerade() {
     nftnl_table_free(table);
     mnl_nlmsg_batch_next(batch);
 
-    /*
-     * OPERATION 2: Create the 'postrouting' chain for NAT.
-     */
+    // Create the 'postrouting' chain for NAT.
     struct nftnl_chain *chain = nftnl_chain_alloc();
     nftnl_chain_set_str(chain, NFTNL_CHAIN_TABLE, "nat");
     nftnl_chain_set_str(chain, NFTNL_CHAIN_NAME, "postrouting");
@@ -457,9 +532,7 @@ static int setup_nat_masquerade() {
     nftnl_chain_free(chain);
     mnl_nlmsg_batch_next(batch);
 
-    /*
-     * OPERATION 3: Add the masquerade rule for the container subnet.
-     */
+    // Add the masquerade rule for the container subnet.
     struct nftnl_rule *rule = nftnl_rule_alloc();
     nftnl_rule_set_str(rule, NFTNL_RULE_TABLE, "nat");
     nftnl_rule_set_str(rule, NFTNL_RULE_CHAIN, "postrouting");
@@ -504,62 +577,19 @@ static int setup_nat_masquerade() {
     nftnl_rule_free(rule);
     mnl_nlmsg_batch_next(batch);
 
-    /* End the batch */
+    // End the batch
     nftnl_batch_end(mnl_nlmsg_batch_current(batch), seq++);
     mnl_nlmsg_batch_next(batch);
 
-      size_t batch_size = mnl_nlmsg_batch_size(batch);
-      struct nlmsghdr *nlh_dbg = mnl_nlmsg_batch_head(batch);
-      char *end = (char *)nlh_dbg + batch_size;
-
-      while ((char *)nlh_dbg < end) {
-         printf("DEBUG: sending msg type=%u flags=0x%x len=%u seq=%u\n",
-               nlh_dbg->nlmsg_type, nlh_dbg->nlmsg_flags,
-               nlh_dbg->nlmsg_len, nlh_dbg->nlmsg_seq);
-         nlh_dbg = (struct nlmsghdr *)((char *)nlh_dbg + NLMSG_ALIGN(nlh_dbg->nlmsg_len));
-      }
-
+    // Send the batch to the kernel
     if (mnl_socket_sendto(nl, mnl_nlmsg_batch_head(batch), mnl_nlmsg_batch_size(batch)) < 0) {
-        perror("mnl_socket_sendto");
-        mnl_socket_close(nl);
-        return -1;
-    }
-
-    int ret;
-    int error_found = 0;
-    while (!error_found && (ret = mnl_socket_recvfrom(nl, buf, sizeof(buf))) > 0) {
-        int bytes_left = ret;
-        struct nlmsghdr *nlh_recv = (struct nlmsghdr *)buf;
-
-        for (; mnl_nlmsg_ok(nlh_recv, bytes_left); nlh_recv = mnl_nlmsg_next(nlh_recv, &bytes_left)) {
-            if (nlh_recv->nlmsg_type == NLMSG_ERROR) {
-               struct nlmsgerr *err_ptr = (struct nlmsgerr *)mnl_nlmsg_get_payload(nlh_recv);
-               if (err_ptr->error != 0) {
-                  fprintf(stderr, "Kernel transaction failed: %s (type=%u seq=%u)\n",
-                           strerror(-err_ptr->error),
-                           nlh_recv->nlmsg_type, nlh_recv->nlmsg_seq);
-                  error_found = 1;
-                  break;
-               }
-            }
-        }
-    }
-
-    if (ret < 0) {
-        perror("mnl_socket_recvfrom");
-        mnl_socket_close(nl);
-        return -1;
+      Zf(1, "kernel rejected masquerade rule");
+      mnl_socket_close(nl);
+      return;
     }
 
     mnl_socket_close(nl);
-
-    if (error_found) {
-        // Error already printed above.
-        return -1;
-    }
-
     VERBOSE("nftables masquerade rule installed");
-    return 0;
 }
 
 /* Enable IP forwarding. */
