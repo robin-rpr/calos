@@ -10,8 +10,8 @@
 #include <linux/audit.h>
 #include <linux/filter.h>
 #include <linux/seccomp.h>
-#include <linux/netfilter/nf_tables.h>
 #endif
+#include <linux/netfilter/nf_tables.h>
 #include <poll.h>
 #include <pwd.h>
 #include <sched.h>
@@ -72,8 +72,12 @@
 /* Linux Kernel constants for netfilter.
    partially sourced from <linux/netfilter/nf_tables.h> */
 #define NFPROTO_IPV4 2
-#define NFT_PAYLOAD_NETWORK_HEADER 1
-#define NFT_MSG_NEWRULE 0x16
+#define NF_INET_POST_ROUTING 4
+#define NFT_PRIORITY_NAT_POSTROUTING -100
+#define NFTNL_EXPR_META_LEN 3
+#define NFTNL_EXPR_META_DEV 4
+#define NFT_POLICY_ACCEPT 0
+
 
 /* Mount point for the tmpfs used by -W. We want this to be (a) always
    available [1], (b) short, (c) not used by anything else we care about
@@ -357,48 +361,74 @@ static void move_link_to_ns(struct nl_sock *sock, const char *link_name, pid_t p
 }
 
 /* Set up NAT rules for container outbound traffic. */
-static void setup_nat_masquerade(const char *bridge_name, const char *network_cidr) {
-    struct nftnl_rule *rule = nftnl_rule_alloc();
-    Tf(rule != NULL, "Failed to alloc nftnl_rule");
-
-    nftnl_rule_set_str(rule, NFTNL_RULE_TABLE, "nat");
-    nftnl_rule_set_str(rule, NFTNL_RULE_CHAIN, "postrouting");
-    nftnl_rule_set_u32(rule, NFTNL_RULE_FAMILY, NFPROTO_IPV4);
-    nftnl_rule_set_u64(rule, NFTNL_RULE_POSITION, 0);
-
-    // Match source IP (network_cidr)
-    struct nftnl_expr *expr = nftnl_expr_alloc("payload");
-    Tf(expr != NULL, "Failed to alloc payload expr");
-    nftnl_expr_set_u32(expr, NFTNL_EXPR_PAYLOAD_BASE, NFT_PAYLOAD_NETWORK_HEADER);
-    nftnl_expr_set_u32(expr, NFTNL_EXPR_PAYLOAD_OFFSET, offsetof(struct iphdr, saddr));
-    nftnl_expr_set_u32(expr, NFTNL_EXPR_PAYLOAD_LEN, sizeof(uint32_t));
-    nftnl_rule_add_expr(rule, expr);
-
-    // Set masquerade
-    expr = nftnl_expr_alloc("masq");
-    Tf(expr != NULL, "Failed to alloc masq expr");
-    nftnl_rule_add_expr(rule, expr);
-
-    // Send rule to kernel
+static void setup_nat_masquerade() {
     struct mnl_socket *nl = mnl_socket_open(NETLINK_NETFILTER);
     Tf(nl != NULL, "Failed to open netlink socket");
     Zf(mnl_socket_bind(nl, 0, MNL_SOCKET_AUTOPID) < 0, "mnl bind failed");
 
     char buf[MNL_SOCKET_BUFFER_SIZE];
-    struct nlmsghdr *nlh = nftnl_rule_nlmsg_build_hdr(buf, NFT_MSG_NEWRULE,
-                                                      NFPROTO_IPV4, NLM_F_CREATE | NLM_F_ACK, 0);
+
+    // Ensure table and chain exist
+    struct nftnl_table *table = nftnl_table_alloc();
+    nftnl_table_set_str(table, NFTNL_TABLE_NAME, "nat");
+    nftnl_table_set_u32(table, NFTNL_TABLE_FAMILY, NFPROTO_IPV4);
+    struct nlmsghdr *nlh = nftnl_table_nlmsg_build_hdr(buf, NFT_MSG_NEWTABLE,
+        NFPROTO_IPV4, NLM_F_CREATE | NLM_F_EXCL | NLM_F_ACK, 0);
+    nftnl_table_nlmsg_build_payload(nlh, table);
+    mnl_socket_sendto(nl, nlh, nlh->nlmsg_len); // Ignore EEXIST
+    nftnl_table_free(table);
+
+    struct nftnl_chain *chain = nftnl_chain_alloc();
+    nftnl_chain_set_str(chain, NFTNL_CHAIN_TABLE, "nat");
+    nftnl_chain_set_str(chain, NFTNL_CHAIN_NAME, "postrouting");
+    nftnl_chain_set_u32(chain, NFTNL_CHAIN_FAMILY, NFPROTO_IPV4);
+    nftnl_chain_set_u32(chain, NFTNL_CHAIN_HOOKNUM, NF_INET_POST_ROUTING);
+    nftnl_chain_set_u32(chain, NFTNL_CHAIN_PRIO, NFT_PRIORITY_NAT_POSTROUTING);
+    nlh = nftnl_chain_nlmsg_build_hdr(buf, NFT_MSG_NEWCHAIN,
+        NFPROTO_IPV4, NLM_F_CREATE | NLM_F_EXCL | NLM_F_ACK, 0);
+    nftnl_chain_nlmsg_build_payload(nlh, chain);
+    mnl_socket_sendto(nl, nlh, nlh->nlmsg_len); // Ignore EEXIST
+    nftnl_chain_free(chain);
+
+    // Rule: meta nfproto ipv4 oifname != "lo" masquerade
+    struct nftnl_rule *rule = nftnl_rule_alloc();
+    nftnl_rule_set_str(rule, NFTNL_RULE_TABLE, "nat");
+    nftnl_rule_set_str(rule, NFTNL_RULE_CHAIN, "postrouting");
+    nftnl_rule_set_u32(rule, NFTNL_RULE_FAMILY, NFPROTO_IPV4);
+
+    struct nftnl_expr *expr = nftnl_expr_alloc("meta");
+    nftnl_expr_set_u32(expr, NFTNL_EXPR_META_KEY, NFT_META_NFPROTO);
+    nftnl_expr_set_u32(expr, NFTNL_EXPR_META_LEN, sizeof(uint8_t));
+    nftnl_rule_add_expr(rule, expr);
+
+    expr = nftnl_expr_alloc("cmp");
+    nftnl_expr_set_u32(expr, NFTNL_EXPR_CMP_SREG, NFT_REG_1);
+    nftnl_expr_set_u32(expr, NFTNL_EXPR_CMP_OP, NFT_CMP_EQ);
+    nftnl_expr_set_data(expr, NFTNL_EXPR_CMP_DATA, &(uint8_t){ NFPROTO_IPV4 }, sizeof(uint8_t));
+    nftnl_rule_add_expr(rule, expr);
+
+    expr = nftnl_expr_alloc("meta");
+    nftnl_expr_set_u32(expr, NFTNL_EXPR_META_KEY, NFT_META_OIFNAME);
+    nftnl_expr_set_str(expr, NFTNL_EXPR_META_DEV, "lo");
+    nftnl_rule_add_expr(rule, expr);
+
+    expr = nftnl_expr_alloc("cmp");
+    nftnl_expr_set_u32(expr, NFTNL_EXPR_CMP_SREG, NFT_REG_1);
+    nftnl_expr_set_u32(expr, NFTNL_EXPR_CMP_OP, NFT_CMP_NEQ);
+    nftnl_expr_set_str(expr, NFTNL_EXPR_CMP_DATA, "lo");
+    nftnl_rule_add_expr(rule, expr);
+
+    expr = nftnl_expr_alloc("masq");
+    nftnl_rule_add_expr(rule, expr);
+
+    nlh = nftnl_rule_nlmsg_build_hdr(buf, NFT_MSG_NEWRULE,
+        NFPROTO_IPV4, NLM_F_CREATE | NLM_F_ACK, 0);
     nftnl_rule_nlmsg_build_payload(nlh, rule);
-
-    int ret = mnl_socket_sendto(nl, nlh, nlh->nlmsg_len);
-    Zf(ret < 0, "Failed to send rule");
-
-    ret = mnl_socket_recvfrom(nl, buf, sizeof(buf));
-    Zf(ret < 0, "Failed to receive ACK");
-
+    mnl_socket_sendto(nl, nlh, nlh->nlmsg_len);
     nftnl_rule_free(rule);
-    mnl_socket_close(nl);
 
-    VERBOSE("nftables masquerade rule added.");
+    mnl_socket_close(nl);
+    VERBOSE("nftables masquerade rule installed.");
 }
 
 /* Enable IP forwarding. */
@@ -580,6 +610,10 @@ void containerize(struct container *c) {
         
         // Ensure bridge exists and is configured.
         setup_bridge(bridge_name, &bridge_ip, cidr);
+
+        // Set up NAT rules.
+        setup_nat_masquerade(bridge_name, network_cidr);
+        enable_ip_forwarding();
         
         // Create the veth pair.
         struct nl_sock *sock = nl_socket_alloc();
@@ -604,7 +638,6 @@ void containerize(struct container *c) {
         close(fd);
         VERBOSE("set MAC address for %s to %02x:%02x:%02x:%02x:%02x:%02x", veth_peer_name,
                  mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
-
         
         // Attach host end of veth to bridge and bring it up.
         attach_to_bridge_and_up(sock, veth_host_name, bridge_name);
@@ -622,10 +655,6 @@ void containerize(struct container *c) {
         VERBOSE("parent synced with child");
         
         nl_socket_free(sock);
-        
-        // Set up NAT rules.
-        setup_nat_masquerade(bridge_name, network_cidr);
-        enable_ip_forwarding();
 
         // Set up port forwarding rules.
         for (int i = 0; c->port_map_strs[i] != NULL; i++) {
