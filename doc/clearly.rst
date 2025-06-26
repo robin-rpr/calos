@@ -16,7 +16,6 @@ clearly-convert(1),
 clearly-fromhost(1),
 clearly-image(1),
 clearly-run(1),
-clearly-run-oci(1),
 clearly-test(1),
 
 Full documentation at: https://hpc.github.io/charliecloud

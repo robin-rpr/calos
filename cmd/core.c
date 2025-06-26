@@ -35,6 +35,7 @@
 #include <unistd.h>
 #include <netdb.h>
 #include <arpa/inet.h>
+#include <net/if_arp.h>
 #include <netinet/in.h>
 #include <linux/if.h>
 #include <sys/ioctl.h>
@@ -542,8 +543,7 @@ void bind_mounts(const struct bind *binds, const char *newroot,
 }
 
 /* Set up new namespaces or join existing namespaces. */
-void containerize(struct container *c)
-{
+void containerize(struct container *c) {
     uid_t host_uid = geteuid();
     gid_t host_gid = getegid();
     int sync_pipe[2];
@@ -551,14 +551,14 @@ void containerize(struct container *c)
     /* Network configuration */
     const char *bridge_name = "clearly0";
     const char *veth_host_prefix = "veth-host";
-    const char *veth_guest_name = "eth0"; // Final name in container
+    //const char *veth_guest_name = "eth0"; // Final name in container
     char veth_peer_name[IFNAMSIZ]; // Temp name before renaming to eth0
 
-    struct in_addr bridge_ip  = { .s_addr = inet_addr("172.18.0.1") };
-    struct in_addr guest_ip   = { .s_addr = inet_addr("172.18.0.2") }; // Note: static IP
     const int cidr = 16;
     char network_cidr[18];
-    snprintf(network_cidr, sizeof(network_cidr), "172.18.0.0/%d", cidr);
+    struct in_addr bridge_ip  = { .s_addr = inet_addr("172.19.0.1") };
+    struct in_addr guest_ip   = { .s_addr = inet_addr("172.19.0.2") };
+    snprintf(network_cidr, sizeof(network_cidr), "172.19.0.0/%d", cidr);
 
 
     // Use a pipe to synchronize parent and child. The child will write to the
@@ -587,6 +587,24 @@ void containerize(struct container *c)
         Zf(nl_connect(sock, NETLINK_ROUTE) < 0, "failed to connect to netlink route socket");
         
         create_veth_pair(sock, veth_host_name, veth_peer_name);
+
+        // Set a random MAC address for the container interface.
+        int fd = socket(AF_INET, SOCK_DGRAM, 0);
+        Tf(fd >= 0, "failed to create socket for ioctl");
+        struct ifreq ifr = {0};
+        unsigned char mac[6];
+        mac[0] = 0x02; // locally administered unicast
+        for (int i = 1; i < 6; i++) {
+           mac[i] = rand() % 256;
+        }
+        strncpy(ifr.ifr_name, veth_peer_name, IFNAMSIZ);
+        ifr.ifr_hwaddr.sa_family = ARPHRD_ETHER;
+        memcpy(ifr.ifr_hwaddr.sa_data, mac, 6);
+        Zf(ioctl(fd, SIOCSIFHWADDR, &ifr), "ioctl(SIOCSIFHWADDR) failed for %s", veth_peer_name);
+        close(fd);
+        VERBOSE("set MAC address for %s to %02x:%02x:%02x:%02x:%02x:%02x", veth_peer_name,
+                 mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+
         
         // Attach host end of veth to bridge and bring it up.
         attach_to_bridge_and_up(sock, veth_host_name, bridge_name);
@@ -684,7 +702,7 @@ void containerize(struct container *c)
         rtnl_link_set_ifindex(change, if_index);
 
         // Set the new name to 'eth0' and bring the interface up in one operation.
-        rtnl_link_set_name(change, veth_guest_name);
+        //rtnl_link_set_name(change, veth_guest_name);
         rtnl_link_set_flags(change, IFF_UP);
         Zf(rtnl_link_change(sock, link, change, NLM_F_ACK) < 0,
            "failed to rename and bring up guest interface");

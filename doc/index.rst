@@ -26,7 +26,6 @@ Overview
    clearly-fromhost
    clearly-image
    clearly-run
-   clearly-run-oci
    clearly-test
    faq
    best_practices

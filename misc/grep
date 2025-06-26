@@ -21,7 +21,6 @@ find . \(    -path ./.git \
           -o -path ./cmd/checkns \
           -o -path ./cmd/image \
           -o -path ./cmd/run \
-          -o -path ./cmd/run-oci \
           -o -path ./cmd/daemon \
           -o -path ./doc/html \
           -o -path ./doc/man \

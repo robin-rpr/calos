@@ -5,10 +5,8 @@ a.out
 /cmd/checkns
 /cmd/run
 /cmd/image
-/cmd/run-oci
 /cmd/daemon
 /cmd/image.c
-/cmd/run-oci.c
 /cmd/daemon.c
 /lib/_*.c
 /lib/_*.so

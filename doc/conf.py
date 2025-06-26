@@ -296,8 +296,6 @@ man_pages = [
    ("clearly-run", "clearly run",
     "Run a command in a Clearly container",
     [], 1),
-   ("clearly-run-oci", "clearly run-oci", 'OCI wrapper for "clearly run"',
-    [], 1),
    ("clearly-test", "clearly test",
     "Run some or all of the Charliecloud test suite",
     [], 1),

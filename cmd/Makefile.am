@@ -23,7 +23,7 @@ run_LDADD = $(CLEARLY_RUN_LIBS) @LIBMNL_LIBS@ @LIBNFTNL_LIBS@ @LIBNL_LIBS@
 cmd_SCRIPTS = convert fromhost test
 
 # Python modules to compile via Cython
-cython_modules = image daemon run-oci
+cython_modules = image daemon
 
 # Generated file lists
 cython_c_files = $(cython_modules:%=%.c)
@@ -34,8 +34,6 @@ cmd_PROGRAMS += $(cython_modules)
 # Set sources for all Cython programs
 image_SOURCES = image.c
 daemon_SOURCES = daemon.c
-run_oci_SOURCES = run-oci.c
-run_oci_CFLAGS = -Wno-unused-function
 
 # Cython compilation rules
 SUFFIXES = .py .c
@@ -54,6 +52,5 @@ SUFFIXES = .py .c
 # Link with Python libraries
 image_LDADD = $(PYTHON_LIB)
 daemon_LDADD = $(PYTHON_LIB)
-run_oci_LDADD = $(PYTHON_LIB)
 
 CLEANFILES = $(cython_c_files)

@@ -29,7 +29,6 @@ convert.rst \
 fromhost.rst \
 image.rst \
 run.rst \
-run-oci.rst \
 test.rst \
 conf.py \
 dev.rst \
@@ -54,7 +53,6 @@ man/clearly-convert.1 \
 man/clearly-fromhost.1 \
 man/clearly-image.1 \
 man/clearly-run.1 \
-man/clearly-run-oci.1 \
 man/clearly-test.1
 endif
 
@@ -69,7 +67,6 @@ html/clearly-convert.html \
 html/clearly-fromhost.html \
 html/clearly-image.html \
 html/clearly-run.html \
-html/clearly-run-oci.html \
 html/clearly-test.html \
 html/command-usage.html \
 html/dev.html \
