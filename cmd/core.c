@@ -551,7 +551,7 @@ void containerize(struct container *c) {
     /* Network configuration */
     const char *bridge_name = "clearly0";
     const char *veth_host_prefix = "veth-host";
-    //const char *veth_guest_name = "eth0"; // Final name in container
+    const char *veth_guest_name = "eth0"; // Final name in container
     char veth_peer_name[IFNAMSIZ]; // Temp name before renaming to eth0
 
     const int cidr = 16;
@@ -702,7 +702,7 @@ void containerize(struct container *c) {
         rtnl_link_set_ifindex(change, if_index);
 
         // Set the new name to 'eth0' and bring the interface up in one operation.
-        //rtnl_link_set_name(change, veth_guest_name);
+        rtnl_link_set_name(change, veth_guest_name);
         rtnl_link_set_flags(change, IFF_UP);
         Zf(rtnl_link_change(sock, link, change, NLM_F_ACK) < 0,
            "failed to rename and bring up guest interface");
