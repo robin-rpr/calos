@@ -72,11 +72,56 @@
 /* Linux Kernel constants for netfilter.
    partially sourced from <linux/netfilter/nf_tables.h> */
 #define NFPROTO_IPV4 2
+#define NF_ACCEPT 1
 #define NF_INET_POST_ROUTING 4
 #define NFT_PRIORITY_NAT_POSTROUTING -100
 #define NFTNL_EXPR_META_LEN 3
 #define NFTNL_EXPR_META_DEV 4
 #define NFT_POLICY_ACCEPT 0
+
+#ifndef __KERNEL__
+/* IP Cache bits. */
+/* Src IP address. */
+#define NFC_IP_SRC		0x0001
+/* Dest IP address. */
+#define NFC_IP_DST		0x0002
+/* Input device. */
+#define NFC_IP_IF_IN		0x0004
+/* Output device. */
+#define NFC_IP_IF_OUT		0x0008
+/* TOS. */
+#define NFC_IP_TOS		0x0010
+/* Protocol. */
+#define NFC_IP_PROTO		0x0020
+/* IP options. */
+#define NFC_IP_OPTIONS		0x0040
+/* Frag & flags. */
+#define NFC_IP_FRAG		0x0080
+
+/* Per-protocol information: only matters if proto match. */
+/* TCP flags. */
+#define NFC_IP_TCPFLAGS		0x0100
+/* Source port. */
+#define NFC_IP_SRC_PT		0x0200
+/* Dest port. */
+#define NFC_IP_DST_PT		0x0400
+/* Something else about the proto */
+#define NFC_IP_PROTO_UNKNOWN	0x2000
+
+/* IP Hooks */
+/* After promisc drops, checksum checks. */
+#define NF_IP_PRE_ROUTING	0
+/* If the packet is destined for this box. */
+#define NF_IP_LOCAL_IN		1
+/* If the packet is destined for another interface. */
+#define NF_IP_FORWARD		2
+/* Packets coming from a local process. */
+#define NF_IP_LOCAL_OUT		3
+/* Packets about to hit the wire. */
+#define NF_IP_POST_ROUTING	4
+#define NF_IP_NUMHOOKS		5
+#endif /* ! __KERNEL__ */
+
 
 
 /* Mount point for the tmpfs used by -W. We want this to be (a) always
@@ -361,74 +406,160 @@ static void move_link_to_ns(struct nl_sock *sock, const char *link_name, pid_t p
 }
 
 /* Set up NAT rules for container outbound traffic. */
-static void setup_nat_masquerade() {
+static int setup_nat_masquerade() {
     struct mnl_socket *nl = mnl_socket_open(NETLINK_NETFILTER);
-    Tf(nl != NULL, "Failed to open netlink socket");
-    Zf(mnl_socket_bind(nl, 0, MNL_SOCKET_AUTOPID) < 0, "mnl bind failed");
+    if (nl == NULL) {
+        perror("mnl_socket_open");
+        return -1;
+    }
+    if (mnl_socket_bind(nl, 0, MNL_SOCKET_AUTOPID) < 0) {
+        perror("mnl_socket_bind");
+        mnl_socket_close(nl);
+        return -1;
+    }
 
-    char buf[MNL_SOCKET_BUFFER_SIZE];
+    char buf[MNL_SOCKET_BUFFER_SIZE * 2];
+    uint32_t seq = time(NULL);
 
-    // Ensure table and chain exist
+    struct mnl_nlmsg_batch *batch = mnl_nlmsg_batch_start(buf, sizeof(buf));
+    nftnl_batch_begin(mnl_nlmsg_batch_current(batch), seq++);
+    mnl_nlmsg_batch_next(batch);
+    struct nlmsghdr *nlh;
+
+    /*
+     * OPERATION 1: Create the 'nat' table if it doesn't exist.
+     */
     struct nftnl_table *table = nftnl_table_alloc();
-    nftnl_table_set_str(table, NFTNL_TABLE_NAME, "nat");
     nftnl_table_set_u32(table, NFTNL_TABLE_FAMILY, NFPROTO_IPV4);
-    struct nlmsghdr *nlh = nftnl_table_nlmsg_build_hdr(buf, NFT_MSG_NEWTABLE,
-        NFPROTO_IPV4, NLM_F_CREATE | NLM_F_EXCL | NLM_F_ACK, 0);
+    nftnl_table_set_str(table, NFTNL_TABLE_NAME, "nat");
+    nlh = nftnl_table_nlmsg_build_hdr(mnl_nlmsg_batch_current(batch),
+                                     NFT_MSG_NEWTABLE, NFPROTO_IPV4,
+                                     NLM_F_CREATE | NLM_F_ACK, seq++);
     nftnl_table_nlmsg_build_payload(nlh, table);
-    mnl_socket_sendto(nl, nlh, nlh->nlmsg_len); // Ignore EEXIST
     nftnl_table_free(table);
+    mnl_nlmsg_batch_next(batch);
 
+    /*
+     * OPERATION 2: Create the 'postrouting' chain for NAT.
+     */
     struct nftnl_chain *chain = nftnl_chain_alloc();
     nftnl_chain_set_str(chain, NFTNL_CHAIN_TABLE, "nat");
     nftnl_chain_set_str(chain, NFTNL_CHAIN_NAME, "postrouting");
-    nftnl_chain_set_u32(chain, NFTNL_CHAIN_FAMILY, NFPROTO_IPV4);
-    nftnl_chain_set_u32(chain, NFTNL_CHAIN_HOOKNUM, NF_INET_POST_ROUTING);
-    nftnl_chain_set_u32(chain, NFTNL_CHAIN_PRIO, NFT_PRIORITY_NAT_POSTROUTING);
-    nlh = nftnl_chain_nlmsg_build_hdr(buf, NFT_MSG_NEWCHAIN,
-        NFPROTO_IPV4, NLM_F_CREATE | NLM_F_EXCL | NLM_F_ACK, 0);
-    nftnl_chain_nlmsg_build_payload(nlh, chain);
-    mnl_socket_sendto(nl, nlh, nlh->nlmsg_len); // Ignore EEXIST
-    nftnl_chain_free(chain);
+    nftnl_chain_set_str(chain, NFTNL_CHAIN_TYPE, "nat");
+    nftnl_chain_set_u32(chain, NFTNL_CHAIN_HOOKNUM, NF_IP_POST_ROUTING);
+    nftnl_chain_set_u32(chain, NFTNL_CHAIN_PRIO, 100); // SNAT priority
+    nftnl_chain_set_u32(chain, NFTNL_CHAIN_POLICY, NF_ACCEPT);
 
-    // Rule: meta nfproto ipv4 oifname != "lo" masquerade
+    nlh = nftnl_chain_nlmsg_build_hdr(mnl_nlmsg_batch_current(batch),
+                                      NFT_MSG_NEWCHAIN, NFPROTO_IPV4,
+                                      NLM_F_CREATE | NLM_F_ACK, seq++);
+    nftnl_chain_nlmsg_build_payload(nlh, chain);
+    nftnl_chain_free(chain);
+    mnl_nlmsg_batch_next(batch);
+
+    /*
+     * OPERATION 3: Add the masquerade rule for the container subnet.
+     */
     struct nftnl_rule *rule = nftnl_rule_alloc();
     nftnl_rule_set_str(rule, NFTNL_RULE_TABLE, "nat");
     nftnl_rule_set_str(rule, NFTNL_RULE_CHAIN, "postrouting");
     nftnl_rule_set_u32(rule, NFTNL_RULE_FAMILY, NFPROTO_IPV4);
 
-    struct nftnl_expr *expr = nftnl_expr_alloc("meta");
-    nftnl_expr_set_u32(expr, NFTNL_EXPR_META_KEY, NFT_META_NFPROTO);
-    nftnl_expr_set_u32(expr, NFTNL_EXPR_META_LEN, sizeof(uint8_t));
+    struct nftnl_expr *match;
+
+   match = nftnl_expr_alloc("payload");
+   nftnl_expr_set_u32(match, NFTNL_EXPR_PAYLOAD_BASE, NFT_PAYLOAD_NETWORK_HEADER);
+   nftnl_expr_set_u32(match, NFTNL_EXPR_PAYLOAD_OFFSET, offsetof(struct iphdr, saddr));
+   nftnl_expr_set_u32(match, NFTNL_EXPR_PAYLOAD_LEN, sizeof(uint32_t));
+   nftnl_expr_set_u32(match, NFTNL_EXPR_PAYLOAD_DREG, NFT_REG_1);
+   nftnl_rule_add_expr(rule, match);
+
+   uint32_t mask = htonl(0xffff0000); // /16
+   match = nftnl_expr_alloc("bitwise");
+   nftnl_expr_set_u32(match, NFTNL_EXPR_BITWISE_SREG, NFT_REG_1);
+   nftnl_expr_set_u32(match, NFTNL_EXPR_BITWISE_DREG, NFT_REG_1);
+   nftnl_expr_set_u32(match, NFTNL_EXPR_BITWISE_LEN, sizeof(uint32_t));
+   nftnl_expr_set_data(match, NFTNL_EXPR_BITWISE_MASK, &mask, sizeof(mask));
+   uint32_t zero = 0;
+   nftnl_expr_set_data(match, NFTNL_EXPR_BITWISE_XOR, &zero, sizeof(zero));
+   nftnl_rule_add_expr(rule, match);
+
+   struct in_addr subnet;
+   inet_pton(AF_INET, "172.19.0.0", &subnet);
+
+   match = nftnl_expr_alloc("cmp");
+   nftnl_expr_set_u32(match, NFTNL_EXPR_CMP_SREG, NFT_REG_1);
+   nftnl_expr_set_u32(match, NFTNL_EXPR_CMP_OP, NFT_CMP_EQ);
+   nftnl_expr_set_data(match, NFTNL_EXPR_CMP_DATA, &subnet, sizeof(subnet));
+   nftnl_rule_add_expr(rule, match);
+
+    // Add the 'masquerade' action
+    struct nftnl_expr *expr = nftnl_expr_alloc("masq");
     nftnl_rule_add_expr(rule, expr);
 
-    expr = nftnl_expr_alloc("cmp");
-    nftnl_expr_set_u32(expr, NFTNL_EXPR_CMP_SREG, NFT_REG_1);
-    nftnl_expr_set_u32(expr, NFTNL_EXPR_CMP_OP, NFT_CMP_EQ);
-    nftnl_expr_set_data(expr, NFTNL_EXPR_CMP_DATA, &(uint8_t){ NFPROTO_IPV4 }, sizeof(uint8_t));
-    nftnl_rule_add_expr(rule, expr);
-
-    expr = nftnl_expr_alloc("meta");
-    nftnl_expr_set_u32(expr, NFTNL_EXPR_META_KEY, NFT_META_OIFNAME);
-    nftnl_expr_set_str(expr, NFTNL_EXPR_META_DEV, "lo");
-    nftnl_rule_add_expr(rule, expr);
-
-    expr = nftnl_expr_alloc("cmp");
-    nftnl_expr_set_u32(expr, NFTNL_EXPR_CMP_SREG, NFT_REG_1);
-    nftnl_expr_set_u32(expr, NFTNL_EXPR_CMP_OP, NFT_CMP_NEQ);
-    nftnl_expr_set_str(expr, NFTNL_EXPR_CMP_DATA, "lo");
-    nftnl_rule_add_expr(rule, expr);
-
-    expr = nftnl_expr_alloc("masq");
-    nftnl_rule_add_expr(rule, expr);
-
-    nlh = nftnl_rule_nlmsg_build_hdr(buf, NFT_MSG_NEWRULE,
-        NFPROTO_IPV4, NLM_F_CREATE | NLM_F_ACK, 0);
+    nlh = nftnl_rule_nlmsg_build_hdr(mnl_nlmsg_batch_current(batch),
+                                     NFT_MSG_NEWRULE, NFPROTO_IPV4,
+                                     NLM_F_CREATE | NLM_F_APPEND | NLM_F_ACK, seq++);
     nftnl_rule_nlmsg_build_payload(nlh, rule);
-    mnl_socket_sendto(nl, nlh, nlh->nlmsg_len);
     nftnl_rule_free(rule);
+    mnl_nlmsg_batch_next(batch);
+
+    /* End the batch */
+    nftnl_batch_end(mnl_nlmsg_batch_current(batch), seq++);
+    mnl_nlmsg_batch_next(batch);
+
+      size_t batch_size = mnl_nlmsg_batch_size(batch);
+      struct nlmsghdr *nlh_dbg = mnl_nlmsg_batch_head(batch);
+      char *end = (char *)nlh_dbg + batch_size;
+
+      while ((char *)nlh_dbg < end) {
+         printf("DEBUG: sending msg type=%u flags=0x%x len=%u seq=%u\n",
+               nlh_dbg->nlmsg_type, nlh_dbg->nlmsg_flags,
+               nlh_dbg->nlmsg_len, nlh_dbg->nlmsg_seq);
+         nlh_dbg = (struct nlmsghdr *)((char *)nlh_dbg + NLMSG_ALIGN(nlh_dbg->nlmsg_len));
+      }
+
+    if (mnl_socket_sendto(nl, mnl_nlmsg_batch_head(batch), mnl_nlmsg_batch_size(batch)) < 0) {
+        perror("mnl_socket_sendto");
+        mnl_socket_close(nl);
+        return -1;
+    }
+
+    int ret;
+    int error_found = 0;
+    while (!error_found && (ret = mnl_socket_recvfrom(nl, buf, sizeof(buf))) > 0) {
+        int bytes_left = ret;
+        struct nlmsghdr *nlh_recv = (struct nlmsghdr *)buf;
+
+        for (; mnl_nlmsg_ok(nlh_recv, bytes_left); nlh_recv = mnl_nlmsg_next(nlh_recv, &bytes_left)) {
+            if (nlh_recv->nlmsg_type == NLMSG_ERROR) {
+               struct nlmsgerr *err_ptr = (struct nlmsgerr *)mnl_nlmsg_get_payload(nlh_recv);
+               if (err_ptr->error != 0) {
+                  fprintf(stderr, "Kernel transaction failed: %s (type=%u seq=%u)\n",
+                           strerror(-err_ptr->error),
+                           nlh_recv->nlmsg_type, nlh_recv->nlmsg_seq);
+                  error_found = 1;
+                  break;
+               }
+            }
+        }
+    }
+
+    if (ret < 0) {
+        perror("mnl_socket_recvfrom");
+        mnl_socket_close(nl);
+        return -1;
+    }
 
     mnl_socket_close(nl);
-    VERBOSE("nftables masquerade rule installed.");
+
+    if (error_found) {
+        // Error already printed above.
+        return -1;
+    }
+
+    VERBOSE("nftables masquerade rule installed");
+    return 0;
 }
 
 /* Enable IP forwarding. */
