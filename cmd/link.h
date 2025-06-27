@@ -8,6 +8,7 @@
 
 /* Bridge */
 void create_bridge(const char *bridge_name, const struct in_addr *ip, int cidr);
+void set_bridge_vlan_enabled(const char *bridge_name, uint16_t start, uint16_t end, int untagged);
 bool is_bridge_exists(const char *bridge_name);
 
 /* Veth (Virtual Ethernet) */

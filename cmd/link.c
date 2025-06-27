@@ -1,6 +1,9 @@
+/* Copyright © Triad National Security, LLC, and others. */
 
+#define _GNU_SOURCE
 #include <linux/netfilter/nf_tables.h>
-#include <linux/if.h>
+#include <linux/if_bridge.h>
+#include <time.h>
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <net/if_arp.h>
@@ -19,6 +22,9 @@
 #include <libnl3/netlink/route/route.h>
 #include <libnl3/netlink/route/link/veth.h>
 #include <libnl3/netlink/route/link/bridge.h>
+
+#include "misc.h"
+#include "link.h"
 
 
 /** Macros **/
@@ -78,6 +84,18 @@
 #define NF_IP_POST_ROUTING	4
 #define NF_IP_NUMHOOKS		5
 #endif /* ! __KERNEL__ */
+
+#ifndef IFLA_BRIDGE_VLAN_INFO
+#define IFLA_BRIDGE_VLAN_INFO 2
+#endif
+
+#ifndef BRIDGE_VLAN_INFO_PVID
+#define BRIDGE_VLAN_INFO_PVID (1 << 1)
+#endif
+
+#ifndef BRIDGE_VLAN_INFO_UNTAGGED
+#define BRIDGE_VLAN_INFO_UNTAGGED (1 << 2)
+#endif
 
 /** Functions **/
 
@@ -139,6 +157,31 @@ void create_bridge(const char *bridge_name, const struct in_addr *ip, int cidr) 
     nl_socket_free(sock);
 }
 
+/* Enable VLAN filtering on a bridge. */
+void set_bridge_vlan_enabled(const char *bridge_name, uint16_t start, uint16_t end, int untagged) {
+    struct nl_sock *sock = nl_socket_alloc();
+    Tf(sock != NULL, "failed to allocate netlink socket");
+    Zf(nl_connect(sock, NETLINK_ROUTE) < 0, "failed to connect to netlink route socket");
+
+    // Get the veth link.
+    struct rtnl_link *bridge;
+    Zf(rtnl_link_get_kernel(sock, 0, bridge_name, &bridge) < 0, "failed to get bridge link '%s'", bridge_name);
+
+    // Enable VLAN filtering on the bridge port.
+    Zf(rtnl_link_bridge_enable_vlan(bridge) < 0, "failed to enable VLAN on bridge '%s'", bridge_name);
+
+    // Set the VLAN membership range.
+    Zf(rtnl_link_bridge_set_port_vlan_map_range(bridge, start, end, untagged) < 0,
+       "failed to set bridge '%s' VLAN membership range to '%d' until '%d' (untagged: %d)",
+       bridge_name, start, end, untagged);
+    rtnl_link_put(bridge);
+
+    // Free the socket.
+    VERBOSE("bridge '%s' set VLAN membership range to '%d' until '%d' (untagged: %d)",
+            bridge_name, start, end, untagged);
+    nl_socket_free(sock);
+}
+
 /* Return true if a bridge exists. */
 bool is_bridge_exists(const char *bridge_name) {
     struct nl_sock *sock = nl_socket_alloc();
@@ -179,7 +222,6 @@ void create_veth_pair(const char *host_name, const char *peer_name) {
     struct rtnl_link *veth = rtnl_link_veth_alloc();
     Tf(veth != NULL, "failed to allocate veth link");
     rtnl_link_set_name(veth, host_name);
-    rtnl_link_set_type(veth, "veth");
 
     // Allocate a peer link for the veth link.
     // This creates the peer link that is connected to the veth link.
@@ -304,7 +346,7 @@ void set_veth_route(const char *veth_name, const struct in_addr *gateway, const 
 
     // Parse the gateway address.
     struct nl_addr *gateway_addr;
-    Zf(nl_addr_parse(inet_ntoa(gateway), AF_INET, &gateway_addr) < 0, "failed to parse gateway address");
+    Zf(nl_addr_parse(inet_ntoa(*gateway), AF_INET, &gateway_addr) < 0, "failed to parse gateway address");
 
     // Allocate a nexthop.
     struct rtnl_nexthop *nexthop = rtnl_route_nh_alloc();
@@ -337,7 +379,7 @@ void set_veth_ip(const char *veth_name, const struct in_addr *ip, int cidr) {
     struct nl_addr *parsed_ip;
 
     char ip_str[INET_ADDRSTRLEN + 4];
-    snprintf(ip_str, sizeof(ip_str), "%s/%d", inet_ntoa(ip), cidr);
+    snprintf(ip_str, sizeof(ip_str), "%s/%d", inet_ntoa(*ip), cidr);
 
     // Parse the IP address.
     Zf(nl_addr_parse(ip_str, AF_INET, &parsed_ip) < 0, "failed to parse ip address");
@@ -366,18 +408,43 @@ void set_veth_vlan(const char *veth_name, int vlan) {
     struct rtnl_link *link;
     Zf(rtnl_link_get_kernel(sock, 0, veth_name, &link) < 0, "failed to get link '%s'", veth_name);
 
-    // Enable VLAN filtering on the bridge port.
-    Zf(rtnl_link_bridge_enable_vlan(link) < 0, "failed to enable VLAN on '%s'", veth_name);
+    // Clone the link so we can modify it.
+    struct rtnl_link *link_change = rtnl_link_alloc();
+    Zf(link_change == NULL, "failed to allocate link");
 
-    // Set the VLAN range: start == end == vlan for a single VLAN.
-    // `1` here marks it untagged, use 0 if you want tagged.
-    Zf(rtnl_link_bridge_set_port_vlan_map_range(link, vlan, vlan, 1) < 0,
-       "failed to set VLAN %d on '%s'", vlan, veth_name);
+    // Allocate a netlink message.
+    struct nl_msg *simple_msg = nlmsg_alloc_simple(RTM_SETLINK, NLM_F_REQUEST);
+    Tf(simple_msg != NULL, "failed to allocate simple netlink message");
 
-    // Set the port's PVID (untagged VLAN ID).
-    Zf(rtnl_link_bridge_set_port_vlan_pvid(link, vlan) < 0,
-       "failed to set PVID %d on '%s'", vlan, veth_name);
+    // Get the ifindex of the veth.
+    int if_index = rtnl_link_get_ifindex(link);
+    Zf(if_index <= 0, "invalid ifindex for link '%s'", veth_name);
+
+    // Allocate a netlink message for the ifindex.
+    struct ifinfomsg ifinfo = {
+        .ifi_family = AF_UNSPEC,
+        .ifi_index = if_index,
+    };
+    nlmsg_append(simple_msg, &ifinfo, sizeof(ifinfo), NLMSG_ALIGNTO);
+
+    struct nlattr *af_spec = nla_nest_start(simple_msg, IFLA_AF_SPEC);
+    struct nlattr *af_bridge_vlan = nla_nest_start(simple_msg, IFLA_BRIDGE_VLAN_INFO);
+
+    struct bridge_vlan_info vlan_info = {
+        .flags = BRIDGE_VLAN_INFO_PVID | BRIDGE_VLAN_INFO_UNTAGGED,
+        .vid = 100,
+    };
+    nla_put(simple_msg, IFLA_BRIDGE_VLAN_INFO, sizeof(vlan_info), &vlan_info);
+
+    // Finish the IFLA_BRIDGE_VLAN_INFO nesting
+    nla_nest_end(simple_msg, af_bridge_vlan);
+    nla_nest_end(simple_msg, af_spec);
+
+    // Send the message to the kernel.
+    Zf(nl_send_auto_complete(sock, simple_msg) < 0, "failed to send netlink message");
+    Zf(nl_wait_for_ack(sock) < 0, "failed to wait for netlink ack");
     rtnl_link_put(link);
+    nlmsg_free(simple_msg);
 
     // Free the socket.
     VERBOSE("veth '%s' set to VLAN %d", veth_name, vlan);
@@ -574,9 +641,9 @@ bool is_snat_masquerade_exists(const struct in_addr *subnet) {
     nftnl_rule_nlmsg_build_payload(nlh, req);
     nftnl_rule_free(req);
 
-    Zf(mnl_socket_sendto(nl, nlh, nlh->nlmsg_len) < 0, "send failed");
+    Zf(mnl_socket_sendto(sock, nlh, nlh->nlmsg_len) < 0, "send failed");
 
-    int len = mnl_socket_recvfrom(nl, buf, sizeof(buf));
+    int len = mnl_socket_recvfrom(sock, buf, sizeof(buf));
     if (len == 0) return false;
     while (len > 0) {
         struct nlmsghdr *nlh = (struct nlmsghdr *)buf;
@@ -623,7 +690,7 @@ bool is_snat_masquerade_exists(const struct in_addr *subnet) {
             nftnl_rule_free(rule);
 
             if (has_payload && has_bitwise && has_cmp && has_masq) {
-                if (cmp_val == subnet.s_addr) {
+                if (cmp_val == subnet->s_addr) {
                     return true;
                 }
             }
@@ -653,9 +720,9 @@ bool is_snat_masquerade_exists(const struct in_addr *subnet) {
    If this is not the case, this function will fail.
 */
 void create_dnat_forwarding(int host_port, int guest_port, const struct in_addr *guest_ip) {
-    struct mnl_socket *nl = mnl_socket_open(NETLINK_NETFILTER);
-      Tf(nl != NULL, "Failed to open netlink socket for port forwarding");
-      Zf(mnl_socket_bind(nl, 0, MNL_SOCKET_AUTOPID) < 0, "mnl bind failed for port forwarding");
+    struct mnl_socket *sock = mnl_socket_open(NETLINK_NETFILTER);
+      Tf(sock != NULL, "Failed to open netlink socket for port forwarding");
+      Zf(mnl_socket_bind(sock, 0, MNL_SOCKET_AUTOPID) < 0, "mnl bind failed for port forwarding");
 
       char buf[MNL_SOCKET_BUFFER_SIZE * 2];
       uint32_t seq = time(NULL);
@@ -714,10 +781,10 @@ void create_dnat_forwarding(int host_port, int guest_port, const struct in_addr 
     nftnl_batch_end(mnl_nlmsg_batch_current(batch), seq++);
     mnl_nlmsg_batch_next(batch);
 
-    Zf(mnl_socket_sendto(nl, mnl_nlmsg_batch_head(batch), mnl_nlmsg_batch_size(batch)) < 0,
+    Zf(mnl_socket_sendto(sock, mnl_nlmsg_batch_head(batch), mnl_nlmsg_batch_size(batch)) < 0,
    "kernel rejected port forwarding rule");
 
-    mnl_socket_close(nl);
+    mnl_socket_close(sock);
     VERBOSE("nftables DNAT rule added for tcp host port %d -> %s:%d", host_port, inet_ntoa(*guest_ip), guest_port);
 }
 

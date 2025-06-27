@@ -280,8 +280,8 @@ void containerize(struct container *c) {
 
     // Network configuration.
     const char *bridge_name = "clearly0";
-    const char *veth_host_prefix = "veth-host";
-    const char *veth_peer_prefix = "veth-peer";
+    const char *veth_host_prefix = "vethe";
+    const char *veth_peer_prefix = "if";
     const char *veth_guest_name = "eth0"; 
     
     const int vlan = 0;
@@ -311,13 +311,14 @@ void containerize(struct container *c) {
         // Ensure bridge exists.
         if (!is_bridge_exists(bridge_name)) {
             create_bridge(bridge_name, &bridge_ip, cidr);
+            set_bridge_vlan_enabled(bridge_name, 1, 4094, 1);
         }
 
         // Ensure veth link pair.
         char veth_host_name[IFNAMSIZ];      // Host-side veth name.
         char veth_peer_name[IFNAMSIZ];      // Peer-side veth name (container-side).
-        snprintf(veth_host_name, IFNAMSIZ, "%.*s%d", IFNAMSIZ - 11, veth_host_prefix, child_pid);
-        snprintf(veth_peer_name, IFNAMSIZ, "%.*s%d", IFNAMSIZ - 11, veth_peer_prefix, child_pid);
+        snprintf(veth_host_name, IFNAMSIZ, "%s%06d", veth_host_prefix, child_pid % 1000000);
+        snprintf(veth_peer_name, IFNAMSIZ, "%s%06d", veth_peer_prefix, child_pid % 1000000);
         create_veth_pair(veth_host_name, veth_peer_name);
 
         // Configure veth link pair.
@@ -444,7 +445,7 @@ void containerize(struct container *c) {
 
         // Retrieve our veth peer name.
         char veth_peer_name[IFNAMSIZ];
-        snprintf(veth_peer_name, IFNAMSIZ, "veth-peer%05d", getpid() % 100000);
+        snprintf(veth_peer_name, IFNAMSIZ, "%s%06d", veth_peer_prefix, getpid() % 1000000);
 
         // Configure veth link peer.
         set_veth_name(veth_peer_name, veth_guest_name);
@@ -455,7 +456,7 @@ void containerize(struct container *c) {
         set_veth_up("lo");
 
         // Configure default route.
-        set_veth_route(veth_peer_name, &bridge_ip, "0.0.0.0/0");
+        set_veth_route(veth_guest_name, &bridge_ip, "0.0.0.0/0");
 
         VERBOSE("child network configured");
 
