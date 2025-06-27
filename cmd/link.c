@@ -383,40 +383,46 @@ void set_veth_vlan(const char *veth_name, int vlan_id) {
     Tf(sock != NULL, "failed to allocate netlink socket");
     Zf(nl_connect(sock, NETLINK_ROUTE) < 0, "failed to connect to netlink route socket");
 
+    // Get the veth link.
     struct rtnl_link *link;
     Zf(rtnl_link_get_kernel(sock, 0, veth_name, &link) < 0, "failed to get link '%s'", veth_name);
     int if_index = rtnl_link_get_ifindex(link);
 
+    // Allocate a netlink message.
     struct nl_msg *message = nlmsg_alloc();
     Tf(message != NULL, "failed to allocate netlink message");
-
     nlmsg_put(message, NL_AUTO_PORT, NL_AUTO_SEQ, RTM_SETLINK, 0, NLM_F_REQUEST | NLM_F_ACK);
 
+    // Allocate an ifinfomsg.
     struct ifinfomsg ifi = {
         .ifi_family = AF_BRIDGE,
         .ifi_index = if_index,
     };
     Zf(nlmsg_append(message, &ifi, sizeof(ifi), NLMSG_ALIGNTO) < 0, "failed to append ifinfomsg");
 
+    // Allocate an af_spec nest.
     struct nlattr *af_spec = nla_nest_start(message, IFLA_AF_SPEC);
     Tf(af_spec != NULL, "failed to start IFLA_AF_SPEC nest");
 
+    // Allocate a bridge_vlan_info.
     struct bridge_vlan_info vlan_info = {
         .vid = (uint16_t)vlan_id,
         .flags = BRIDGE_VLAN_INFO_PVID | BRIDGE_VLAN_INFO_UNTAGGED,
     };
     Zf(nla_put(message, IFLA_BRIDGE_VLAN_INFO, sizeof(vlan_info), &vlan_info) < 0, "failed to put IFLA_BRIDGE_VLAN_INFO");
 
+    // Close the nests.
     nla_nest_end(message, af_spec);
 
+    // Send the message to the kernel.
     Zf(nl_send_auto(sock, message) < 0, "failed to send netlink message");
     Zf(nl_wait_for_ack(sock) < 0, "failed to wait for netlink ack");
-
     rtnl_link_put(link);
     nlmsg_free(message);
-    nl_socket_free(sock);
-
+    
+    // Free the socket.
     VERBOSE("veth '%s' added to bridge VLAN %d", veth_name, vlan_id);
+    nl_socket_free(sock);
 }
 
 /* Set a veth to a network namespace of a given pid. */
