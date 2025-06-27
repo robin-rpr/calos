@@ -17,7 +17,6 @@ void set_veth_up(const char *veth_name);
 void set_veth_name(const char *veth_name, const char *new_name);
 void set_veth_route(const char *veth_name, const struct in_addr *gateway, const char *destination);
 void set_veth_ip(const char *veth_name, const struct in_addr *ip, int cidr);
-void set_veth_vlan(const char *veth_name, int vlan);
 void set_veth_ns_pid(const char *link_name, pid_t pid);
 void set_veth_mac(const char *veth_name);
 
