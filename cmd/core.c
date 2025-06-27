@@ -284,7 +284,7 @@ void containerize(struct container *c) {
     const char *veth_peer_prefix = "if";
     const char *veth_guest_name = "eth0"; 
     
-    const int vlan = 0;
+    const int vlan = 100;
     const int cidr = 16;
     char network_cidr[18]; // 172.19.0.0/16 + null terminator
     struct in_addr subnet_ip  = { .s_addr = inet_addr("172.19.0.0") };
@@ -311,7 +311,6 @@ void containerize(struct container *c) {
         // Ensure bridge exists.
         if (!is_bridge_exists(bridge_name)) {
             create_bridge(bridge_name, &bridge_ip, cidr);
-            set_bridge_vlan_enabled(bridge_name, 1, 4094, 1);
         }
 
         // Ensure veth link pair.
@@ -323,7 +322,7 @@ void containerize(struct container *c) {
 
         // Configure veth link pair.
         set_veth_bridge(veth_host_name, bridge_name);
-        set_veth_vlan(veth_host_name, vlan); // Isolate within VLAN X.
+        set_veth_vlan(veth_host_name, vlan); // Isolate within a VLAN.
         set_veth_mac(veth_peer_name);        // Random MAC address.
         set_veth_up(veth_host_name);         // Bring it up.
 
