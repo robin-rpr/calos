@@ -9,7 +9,7 @@ cmd_PROGRAMS = checkns run
 
 checkns_SOURCES = checkns.c misc.h misc.c
 
-run_SOURCES = run.c core.h core.c misc.h misc.c
+run_SOURCES = run.c core.h core.c link.h link.c misc.h misc.c
 if HAVE_LIBSQUASHFUSE
 run_SOURCES += fuse.h fuse.c
 endif

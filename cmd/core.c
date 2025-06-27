@@ -11,7 +11,6 @@
 #include <linux/filter.h>
 #include <linux/seccomp.h>
 #endif
-#include <linux/netfilter/nf_tables.h>
 #include <poll.h>
 #include <pwd.h>
 #include <sched.h>
@@ -33,28 +32,9 @@
 #include <sys/wait.h>
 #include <time.h>
 #include <unistd.h>
-#include <netdb.h>
-#include <arpa/inet.h>
-#include <net/if_arp.h>
-#include <netinet/in.h>
-#include <linux/if.h>
-#include <sys/ioctl.h>
-#include <netinet/in.h>
-#include <netinet/ip.h>
-#include <netinet/tcp.h>
-#include <libmnl/libmnl.h>
-#include <libnftnl/expr.h>
-#include <libnftnl/rule.h>
-#include <libnftnl/chain.h>
-#include <libnftnl/table.h>
-#include <libnl3/netlink/netlink.h>
-#include <libnl3/netlink/route/link.h>
-#include <libnl3/netlink/route/addr.h>
-#include <libnl3/netlink/route/route.h>
-#include <libnl3/netlink/route/link/veth.h>
-#include <libnl3/netlink/route/link/bridge.h>
 #include "misc.h"
 #include "core.h"
+#include "link.h"
 #ifdef HAVE_LIBSQUASHFUSE
 #include "fuse.h"
 #endif
@@ -68,61 +48,6 @@
 /* Maximum length of paths we’re willing to deal with. (Note that
    system-defined PATH_MAX isn't reliable.) */
 #define PATH_CHARS 4096
-
-/* Linux Kernel constants for netfilter.
-   partially sourced from <linux/netfilter/nf_tables.h> */
-#define NFPROTO_IPV4 2
-#define NF_ACCEPT 1
-#define NF_INET_POST_ROUTING 4
-#define NFT_PRIORITY_NAT_POSTROUTING -100
-#define NFTNL_EXPR_META_LEN 3
-#define NFTNL_EXPR_META_DEV 4
-#define NFT_POLICY_ACCEPT 0
-
-#ifndef __KERNEL__
-/* IP Cache bits. */
-/* Src IP address. */
-#define NFC_IP_SRC		0x0001
-/* Dest IP address. */
-#define NFC_IP_DST		0x0002
-/* Input device. */
-#define NFC_IP_IF_IN		0x0004
-/* Output device. */
-#define NFC_IP_IF_OUT		0x0008
-/* TOS. */
-#define NFC_IP_TOS		0x0010
-/* Protocol. */
-#define NFC_IP_PROTO		0x0020
-/* IP options. */
-#define NFC_IP_OPTIONS		0x0040
-/* Frag & flags. */
-#define NFC_IP_FRAG		0x0080
-
-/* Per-protocol information: only matters if proto match. */
-/* TCP flags. */
-#define NFC_IP_TCPFLAGS		0x0100
-/* Source port. */
-#define NFC_IP_SRC_PT		0x0200
-/* Dest port. */
-#define NFC_IP_DST_PT		0x0400
-/* Something else about the proto */
-#define NFC_IP_PROTO_UNKNOWN	0x2000
-
-/* IP Hooks */
-/* After promisc drops, checksum checks. */
-#define NF_IP_PRE_ROUTING	0
-/* If the packet is destined for this box. */
-#define NF_IP_LOCAL_IN		1
-/* If the packet is destined for another interface. */
-#define NF_IP_FORWARD		2
-/* Packets coming from a local process. */
-#define NF_IP_LOCAL_OUT		3
-/* Packets about to hit the wire. */
-#define NF_IP_POST_ROUTING	4
-#define NF_IP_NUMHOOKS		5
-#endif /* ! __KERNEL__ */
-
-
 
 /* Mount point for the tmpfs used by -W. We want this to be (a) always
    available [1], (b) short, (c) not used by anything else we care about
@@ -299,391 +224,6 @@ void setup_namespaces(const struct container *c, uid_t uid_out, uid_t uid_in,
 void tmpfs_mount(const char *dst, const char *newroot, const char *data);
 bool pull_image(const char *ref, const char *storage_dir);
 
-/** Helpers **/
-
-/* Create and configure a network bridge if it doesn't already exist. */
-static void setup_bridge(const char *bridge_name, const struct in_addr *ip, int cidr) {
-    struct nl_sock *sock = nl_socket_alloc();
-    Tf(sock != NULL, "failed to allocate netlink socket");
-    Zf(nl_connect(sock, NETLINK_ROUTE) < 0, "failed to connect to netlink route socket");
-
-    // Check if bridge exists by trying to get it.
-    if (rtnl_link_get_kernel(sock, 0, bridge_name, NULL) == 0) {
-        VERBOSE("bridge '%s' already exists", bridge_name);
-        nl_socket_free(sock);
-        return;
-    }
-
-    VERBOSE("bridge '%s' not found, creating...", bridge_name);
-    // Create the bridge link.
-    struct rtnl_link *bridge = rtnl_link_bridge_alloc();
-    Tf(bridge != NULL, "failed to allocate bridge link");
-    rtnl_link_set_name(bridge, bridge_name);
-    rtnl_link_set_type(bridge, "bridge");
-    rtnl_link_set_flags(bridge, IFF_UP);
-    Zf(rtnl_link_add(sock, bridge, NLM_F_CREATE | NLM_F_EXCL | NLM_F_ACK) < 0,
-       "failed to create bridge '%s'", bridge_name);
-    rtnl_link_put(bridge);
-
-    // Get the link again to configure it.
-    struct rtnl_link *link;
-    Zf(rtnl_link_get_kernel(sock, 0, bridge_name, &link) < 0,
-       "failed to get new bridge link '%s'", bridge_name);
-    int if_index = rtnl_link_get_ifindex(link);
-
-    // Set its IP address.
-    struct rtnl_addr *addr = rtnl_addr_alloc();
-    struct nl_addr *local_ip;
-    char ip_str[INET_ADDRSTRLEN + 4];
-    snprintf(ip_str, sizeof(ip_str), "%s/%d", inet_ntoa(*ip), cidr);
-    Zf(nl_addr_parse(ip_str, AF_INET, &local_ip) < 0, "failed to parse address %s", ip_str);
-    rtnl_addr_set_local(addr, local_ip);
-    nl_addr_put(local_ip);
-    rtnl_addr_set_ifindex(addr, if_index);
-    Zf(rtnl_addr_add(sock, addr, 0) < 0, "failed to add address to bridge '%s'", bridge_name);
-    rtnl_addr_put(addr);
-
-    nl_socket_free(sock);
-    VERBOSE("bridge '%s' created and configured", bridge_name);
-}
-
-/* Create a veth pair. */
-static void create_veth_pair(struct nl_sock *sock, const char *host_name, const char *peer_name) {
-    struct rtnl_link *veth = rtnl_link_veth_alloc();
-    Tf(veth != NULL, "failed to allocate veth link");
-
-    rtnl_link_set_name(veth, host_name);
-
-    struct rtnl_link *peer = rtnl_link_veth_get_peer(veth);
-    rtnl_link_set_name(peer, peer_name);
-
-    Zf(rtnl_link_add(sock, veth, NLM_F_CREATE | NLM_F_EXCL | NLM_F_ACK) < 0,
-       "failed to create veth pair ('%s', '%s')", host_name, peer_name);
-
-    rtnl_link_put(veth);
-    VERBOSE("veth pair ('%s', '%s') created", host_name, peer_name);
-}
-
-/* Attach a link to a bridge and bring it up. */
-static void attach_to_bridge_and_up(struct nl_sock *sock, const char *link_name, const char *bridge_name) {
-    struct rtnl_link *link, *bridge;
-    Zf(rtnl_link_get_kernel(sock, 0, link_name, &link) < 0, "failed to get link '%s'", link_name);
-    Zf(rtnl_link_get_kernel(sock, 0, bridge_name, &bridge) < 0, "failed to get bridge '%s'", bridge_name);
-
-   // Clone the link so we can modify and apply it
-   struct rtnl_link *link_change = rtnl_link_alloc();
-   Zf(link_change == NULL, "failed to allocate link");
-
-   rtnl_link_set_ifindex(link_change, rtnl_link_get_ifindex(link));
-   rtnl_link_set_master(link_change, rtnl_link_get_ifindex(bridge));
-   rtnl_link_set_flags(link_change, IFF_UP);
-
-   Zf(rtnl_link_change(sock, link, link_change, 0) < 0, "failed to attach and bring up '%s'", link_name);
-
-   rtnl_link_put(link_change);
-   rtnl_link_put(link);
-   rtnl_link_put(bridge);
-    VERBOSE("link '%s' attached to bridge '%s' and set up", link_name, bridge_name);
-}
-
-/* Move a network link to a different network namespace. */
-static void move_link_to_ns(struct nl_sock *sock, const char *link_name, pid_t pid) {
-    struct rtnl_link *link;
-    Zf(rtnl_link_get_kernel(sock, 0, link_name, &link) < 0, "failed to get link '%s'", link_name);
-    int if_index = rtnl_link_get_ifindex(link);
-    Zf(if_index <= 0, "invalid ifindex for link '%s'", link_name);
-
-    // Clone the link so we can modify and apply it
-    struct rtnl_link *link_change = rtnl_link_alloc();
-    Tf(link_change != NULL, "failed to allocate link for netns change");
-    rtnl_link_set_ifindex(link_change, if_index);
-    rtnl_link_set_ns_pid(link_change, pid);
-    Zf(rtnl_link_add(sock, link_change, NLM_F_ACK) < 0, "failed to move link '%s' to pid", link_name, pid);
-
-    rtnl_link_put(link_change);
-    rtnl_link_put(link);
-    VERBOSE("link '%s' moved to network namespace of pid %d", link_name, pid);
-}
-
-/* Check if the masquerade rule exists. */
-bool nft_nat_masquerade_exists(struct mnl_socket *nl) {
-    char buf[MNL_SOCKET_BUFFER_SIZE];
-    uint32_t seq = time(NULL);
-
-    // Request dump of all rules
-    struct nlmsghdr *nlh = nftnl_rule_nlmsg_build_hdr(buf, NFT_MSG_GETRULE, NFPROTO_IPV4, NLM_F_DUMP, seq);
-
-    struct nftnl_rule *req = nftnl_rule_alloc();
-    nftnl_rule_set_str(req, NFTNL_RULE_TABLE, "nat");
-    nftnl_rule_set_str(req, NFTNL_RULE_CHAIN, "postrouting");
-    nftnl_rule_nlmsg_build_payload(nlh, req);
-    nftnl_rule_free(req);
-
-    Zf(mnl_socket_sendto(nl, nlh, nlh->nlmsg_len) < 0, "send failed");
-
-    int len = mnl_socket_recvfrom(nl, buf, sizeof(buf));
-    if (len == 0) return false;
-    while (len > 0) {
-        struct nlmsghdr *nlh = (struct nlmsghdr *)buf;
-        for (; mnl_nlmsg_ok(nlh, len); nlh = mnl_nlmsg_next(nlh, &len)) {
-            // Check if the message is a new rule.
-            if (nlh->nlmsg_type != ((NFNL_SUBSYS_NFTABLES << 8) | NFT_MSG_NEWRULE)) continue;
-
-            struct nftnl_rule *rule = nftnl_rule_alloc();
-            nftnl_rule_nlmsg_parse(nlh, rule);
-
-            const char *table = nftnl_rule_get_str(rule, NFTNL_RULE_TABLE);
-            const char *chain = nftnl_rule_get_str(rule, NFTNL_RULE_CHAIN);
-            if (!table || !chain || strcmp(table, "nat") != 0 || strcmp(chain, "postrouting") != 0) {
-                nftnl_rule_free(rule);
-                continue;
-            }
-
-            bool has_payload = false, has_bitwise = false, has_cmp = false, has_masq = false;
-            uint32_t cmp_val = 0;
-
-            struct nftnl_expr_iter *it = nftnl_expr_iter_create(rule);
-            struct nftnl_expr *expr;
-            while ((expr = nftnl_expr_iter_next(it)) != NULL) {
-                const char *name = nftnl_expr_get_str(expr, NFTNL_EXPR_NAME);
-                if (!name) continue;
-
-                if (strcmp(name, "payload") == 0) {
-                    has_payload = true;
-                } else if (strcmp(name, "bitwise") == 0) {
-                    has_bitwise = true;
-                } else if (strcmp(name, "cmp") == 0) {
-                    uint32_t len = 0;
-                     const void *data = nftnl_expr_get_data(expr, NFTNL_EXPR_CMP_DATA, &len);
-                     if (data && len == sizeof(uint32_t)) {
-                        memcpy(&cmp_val, data, sizeof(cmp_val));
-                        has_cmp = true;
-                     }
-                } else if (strcmp(name, "masq") == 0) {
-                    has_masq = true;
-                }
-            }
-
-            nftnl_expr_iter_destroy(it);
-            nftnl_rule_free(rule);
-
-            if (has_payload && has_bitwise && has_cmp && has_masq) {
-                struct in_addr target;
-                inet_pton(AF_INET, "172.19.0.0", &target);
-                if (cmp_val == target.s_addr) {
-                    return true;
-                }
-            }
-        }
-
-        if (len == 0) return false;
-    }
-
-    return false;
-}
-
-
-
-/* Set up NAT rules for container outbound traffic. */
-static void setup_nat_masquerade() {
-    struct mnl_socket *nl = mnl_socket_open(NETLINK_NETFILTER);
-    Tf(nl != NULL, "Failed to open netlink socket for masquerade");
-    Zf(mnl_socket_bind(nl, 0, MNL_SOCKET_AUTOPID) < 0, "mnl bind failed for masquerade");
-
-    // Check if the masquerade rule already exists.
-    if (nft_nat_masquerade_exists(nl)) {
-        VERBOSE("nftables masquerade rule already exists");
-        mnl_socket_close(nl);
-        return;
-    }
-
-    char buf[MNL_SOCKET_BUFFER_SIZE * 2];
-    uint32_t seq = time(NULL);
-
-    struct mnl_nlmsg_batch *batch = mnl_nlmsg_batch_start(buf, sizeof(buf));
-    nftnl_batch_begin(mnl_nlmsg_batch_current(batch), seq++);
-    mnl_nlmsg_batch_next(batch);
-    struct nlmsghdr *nlh;
-
-    // Create the 'nat' table if it doesn't exist.
-    struct nftnl_table *table = nftnl_table_alloc();
-    nftnl_table_set_u32(table, NFTNL_TABLE_FAMILY, NFPROTO_IPV4);
-    nftnl_table_set_str(table, NFTNL_TABLE_NAME, "nat");
-    nlh = nftnl_table_nlmsg_build_hdr(mnl_nlmsg_batch_current(batch),
-                                     NFT_MSG_NEWTABLE, NFPROTO_IPV4,
-                                     NLM_F_CREATE | NLM_F_ACK, seq++);
-    nftnl_table_nlmsg_build_payload(nlh, table);
-    nftnl_table_free(table);
-    mnl_nlmsg_batch_next(batch);
-
-    // Create the 'postrouting' chain for NAT.
-    struct nftnl_chain *chain = nftnl_chain_alloc();
-    nftnl_chain_set_str(chain, NFTNL_CHAIN_TABLE, "nat");
-    nftnl_chain_set_str(chain, NFTNL_CHAIN_NAME, "postrouting");
-    nftnl_chain_set_str(chain, NFTNL_CHAIN_TYPE, "nat");
-    nftnl_chain_set_u32(chain, NFTNL_CHAIN_HOOKNUM, NF_IP_POST_ROUTING);
-    nftnl_chain_set_u32(chain, NFTNL_CHAIN_PRIO, 100); // SNAT priority
-    nftnl_chain_set_u32(chain, NFTNL_CHAIN_POLICY, NF_ACCEPT);
-
-    nlh = nftnl_chain_nlmsg_build_hdr(mnl_nlmsg_batch_current(batch),
-                                      NFT_MSG_NEWCHAIN, NFPROTO_IPV4,
-                                      NLM_F_CREATE | NLM_F_ACK, seq++);
-    nftnl_chain_nlmsg_build_payload(nlh, chain);
-    nftnl_chain_free(chain);
-    mnl_nlmsg_batch_next(batch);
-
-    // Add the masquerade rule for the container subnet.
-    struct nftnl_rule *rule = nftnl_rule_alloc();
-    nftnl_rule_set_str(rule, NFTNL_RULE_TABLE, "nat");
-    nftnl_rule_set_str(rule, NFTNL_RULE_CHAIN, "postrouting");
-    nftnl_rule_set_u32(rule, NFTNL_RULE_FAMILY, NFPROTO_IPV4);
-
-    struct nftnl_expr *match;
-
-   match = nftnl_expr_alloc("payload");
-   nftnl_expr_set_u32(match, NFTNL_EXPR_PAYLOAD_BASE, NFT_PAYLOAD_NETWORK_HEADER);
-   nftnl_expr_set_u32(match, NFTNL_EXPR_PAYLOAD_OFFSET, offsetof(struct iphdr, saddr));
-   nftnl_expr_set_u32(match, NFTNL_EXPR_PAYLOAD_LEN, sizeof(uint32_t));
-   nftnl_expr_set_u32(match, NFTNL_EXPR_PAYLOAD_DREG, NFT_REG_1);
-   nftnl_rule_add_expr(rule, match);
-
-   uint32_t mask = htonl(0xffff0000); // /16
-   match = nftnl_expr_alloc("bitwise");
-   nftnl_expr_set_u32(match, NFTNL_EXPR_BITWISE_SREG, NFT_REG_1);
-   nftnl_expr_set_u32(match, NFTNL_EXPR_BITWISE_DREG, NFT_REG_1);
-   nftnl_expr_set_u32(match, NFTNL_EXPR_BITWISE_LEN, sizeof(uint32_t));
-   nftnl_expr_set_data(match, NFTNL_EXPR_BITWISE_MASK, &mask, sizeof(mask));
-   uint32_t zero = 0;
-   nftnl_expr_set_data(match, NFTNL_EXPR_BITWISE_XOR, &zero, sizeof(zero));
-   nftnl_rule_add_expr(rule, match);
-
-   struct in_addr subnet;
-   inet_pton(AF_INET, "172.19.0.0", &subnet);
-
-   match = nftnl_expr_alloc("cmp");
-   nftnl_expr_set_u32(match, NFTNL_EXPR_CMP_SREG, NFT_REG_1);
-   nftnl_expr_set_u32(match, NFTNL_EXPR_CMP_OP, NFT_CMP_EQ);
-   nftnl_expr_set_data(match, NFTNL_EXPR_CMP_DATA, &subnet, sizeof(subnet));
-   nftnl_rule_add_expr(rule, match);
-
-    // Add the 'masquerade' action
-    struct nftnl_expr *expr = nftnl_expr_alloc("masq");
-    nftnl_rule_add_expr(rule, expr);
-
-    nlh = nftnl_rule_nlmsg_build_hdr(mnl_nlmsg_batch_current(batch),
-                                     NFT_MSG_NEWRULE, NFPROTO_IPV4,
-                                     NLM_F_CREATE | NLM_F_APPEND | NLM_F_ACK, seq++);
-    nftnl_rule_nlmsg_build_payload(nlh, rule);
-    nftnl_rule_free(rule);
-    mnl_nlmsg_batch_next(batch);
-
-    // End the batch
-    nftnl_batch_end(mnl_nlmsg_batch_current(batch), seq++);
-    mnl_nlmsg_batch_next(batch);
-
-    // Send the batch to the kernel
-    if (mnl_socket_sendto(nl, mnl_nlmsg_batch_head(batch), mnl_nlmsg_batch_size(batch)) < 0) {
-      Zf(1, "kernel rejected masquerade rule");
-      mnl_socket_close(nl);
-      return;
-    }
-
-    mnl_socket_close(nl);
-    VERBOSE("nftables masquerade rule installed");
-}
-
-/* Enable IP forwarding. */
-static void enable_ip_forwarding() {
-    FILE *f = fopen("/proc/sys/net/ipv4/ip_forward", "w");
-    Zf(f == NULL, "failed to open ip_forward");
-    Zf(fprintf(f, "1\n") < 0, "failed to write to ip_forward");
-    fclose(f);
-    VERBOSE("IP forwarding enabled");
-}
-
-/* Set up port forwarding from host to container. */
-static void setup_port_forwarding(int host_port, int guest_port, const struct in_addr *guest_ip) {
-    struct nftnl_rule *rule = nftnl_rule_alloc();
-    Tf(rule != NULL, "Failed to alloc nftnl_rule for port forwarding");
-
-    nftnl_rule_set_str(rule, NFTNL_RULE_TABLE, "nat");
-    nftnl_rule_set_str(rule, NFTNL_RULE_CHAIN, "prerouting");
-    nftnl_rule_set_u32(rule, NFTNL_RULE_FAMILY, NFPROTO_IPV4);
-
-    // Match TCP protocol by loading it from the IP header
-    struct nftnl_expr *expr;
-    expr = nftnl_expr_alloc("payload");
-    Tf(expr != NULL, "Failed to alloc payload expr for protocol");
-    nftnl_expr_set_u32(expr, NFTNL_EXPR_PAYLOAD_BASE, NFT_PAYLOAD_NETWORK_HEADER);
-    nftnl_expr_set_u32(expr, NFTNL_EXPR_PAYLOAD_OFFSET, offsetof(struct iphdr, protocol));
-    nftnl_expr_set_u32(expr, NFTNL_EXPR_PAYLOAD_LEN, sizeof(uint8_t));
-    nftnl_rule_add_expr(rule, expr);
-
-    expr = nftnl_expr_alloc("cmp");
-    Tf(expr != NULL, "Failed to alloc cmp expr for protocol");
-    nftnl_expr_set_u32(expr, NFTNL_EXPR_CMP_SREG, 1);
-    nftnl_expr_set_u32(expr, NFTNL_EXPR_CMP_OP, NFT_CMP_EQ);
-    nftnl_expr_set_u32(expr, NFTNL_EXPR_CMP_DATA, IPPROTO_TCP);
-    nftnl_rule_add_expr(rule, expr);
-
-    // Match destination port
-    expr = nftnl_expr_alloc("payload");
-    Tf(expr != NULL, "Failed to alloc payload expr for dport");
-    nftnl_expr_set_u32(expr, NFTNL_EXPR_PAYLOAD_BASE, NFT_PAYLOAD_TRANSPORT_HEADER);
-    nftnl_expr_set_u32(expr, NFTNL_EXPR_PAYLOAD_OFFSET, offsetof(struct tcphdr, th_dport));
-    nftnl_expr_set_u32(expr, NFTNL_EXPR_PAYLOAD_LEN, sizeof(uint16_t));
-    nftnl_rule_add_expr(rule, expr);
-
-    expr = nftnl_expr_alloc("cmp");
-    Tf(expr != NULL, "Failed to alloc cmp expr for dport");
-    nftnl_expr_set_u32(expr, NFTNL_EXPR_CMP_SREG, 1);
-    nftnl_expr_set_u32(expr, NFTNL_EXPR_CMP_OP, NFT_CMP_EQ);
-    nftnl_expr_set_u16(expr, NFTNL_EXPR_CMP_DATA, htons(host_port));
-    nftnl_rule_add_expr(rule, expr);
-
-    // Perform DNAT using registers for compatibility
-    expr = nftnl_expr_alloc("immediate");
-    Tf(expr != NULL, "Failed to alloc immediate expr for DNAT addr");
-    nftnl_expr_set_u32(expr, NFTNL_EXPR_IMM_DREG, NFT_REG_1);
-    nftnl_expr_set_data(expr, NFTNL_EXPR_IMM_DATA, guest_ip, sizeof(*guest_ip));
-    nftnl_rule_add_expr(rule, expr);
-
-    uint16_t guest_port_be = htons(guest_port);
-    expr = nftnl_expr_alloc("immediate");
-    Tf(expr != NULL, "Failed to alloc immediate expr for DNAT port");
-    nftnl_expr_set_u32(expr, NFTNL_EXPR_IMM_DREG, NFT_REG_2);
-    nftnl_expr_set_data(expr, NFTNL_EXPR_IMM_DATA, &guest_port_be, sizeof(guest_port_be));
-    nftnl_rule_add_expr(rule, expr);
-
-    expr = nftnl_expr_alloc("nat");
-    Tf(expr != NULL, "Failed to alloc nat expr");
-    nftnl_expr_set_u32(expr, NFTNL_EXPR_NAT_TYPE, NFT_NAT_DNAT);
-    nftnl_expr_set_u32(expr, NFTNL_EXPR_NAT_FAMILY, NFPROTO_IPV4);
-    nftnl_expr_set_u32(expr, NFTNL_EXPR_NAT_REG_ADDR_MIN, NFT_REG_1);
-    nftnl_expr_set_u32(expr, NFTNL_EXPR_NAT_REG_PROTO_MIN, NFT_REG_2);
-    nftnl_rule_add_expr(rule, expr);
-
-    // Send rule to kernel
-    struct mnl_socket *nl = mnl_socket_open(NETLINK_NETFILTER);
-    Tf(nl != NULL, "Failed to open netlink socket for port forward");
-    Zf(mnl_socket_bind(nl, 0, MNL_SOCKET_AUTOPID) < 0, "mnl bind failed for port forward");
-
-    char buf[MNL_SOCKET_BUFFER_SIZE];
-    struct nlmsghdr *nlh = nftnl_rule_nlmsg_build_hdr(buf, NFT_MSG_NEWRULE,
-                                                      NFPROTO_IPV4, NLM_F_CREATE | NLM_F_ACK, 0);
-    nftnl_rule_nlmsg_build_payload(nlh, rule);
-
-    int ret = mnl_socket_sendto(nl, nlh, nlh->nlmsg_len);
-    Zf(ret < 0, "Failed to send port forward rule");
-
-    ret = mnl_socket_recvfrom(nl, buf, sizeof(buf));
-    Zf(ret < 0, "Failed to receive ACK for port forward rule");
-
-    nftnl_rule_free(rule);
-    mnl_socket_close(nl);
-
-    VERBOSE("nftables DNAT rule added for tcp host port %d -> %s:%d", host_port, inet_ntoa(*guest_ip), guest_port);
-}
 
 /** Functions **/
 
@@ -726,8 +266,7 @@ void bind_mount(const char *src, const char *dst, enum bind_dep dep,
 
 /* Bind-mount a null-terminated array of struct bind objects. */
 void bind_mounts(const struct bind *binds, const char *newroot,
-                 unsigned long flags, const char * scratch)
-{
+                 unsigned long flags, const char * scratch) {
    for (int i = 0; binds[i].src != NULL; i++)
       bind_mount(binds[i].src, binds[i].dst, binds[i].dep,
                  newroot, flags, scratch);
@@ -739,101 +278,129 @@ void containerize(struct container *c) {
     gid_t host_gid = getegid();
     int sync_pipe[2];
 
-    /* Network configuration */
+    // Network configuration.
     const char *bridge_name = "clearly0";
     const char *veth_host_prefix = "veth-host";
-    const char *veth_guest_name = "eth0"; // Final name in container
-    char veth_peer_name[IFNAMSIZ]; // Temp name before renaming to eth0
-
+    const char *veth_peer_prefix = "veth-peer";
+    const char *veth_guest_name = "eth0"; 
+    
+    const int vlan = 0;
     const int cidr = 16;
-    char network_cidr[18];
+    char network_cidr[18]; // 172.19.0.0/16 + null terminator
+    struct in_addr subnet_ip  = { .s_addr = inet_addr("172.19.0.0") };
     struct in_addr bridge_ip  = { .s_addr = inet_addr("172.19.0.1") };
     struct in_addr guest_ip   = { .s_addr = inet_addr("172.19.0.2") };
-    snprintf(network_cidr, sizeof(network_cidr), "172.19.0.0/%d", cidr);
-
+    snprintf(network_cidr, sizeof(network_cidr), "%s/%d", inet_ntoa(subnet_ip), cidr);
 
     // Use a pipe to synchronize parent and child. The child will write to the
     // pipe only after it has entered its new namespaces.
     Zf(socketpair(AF_UNIX, SOCK_STREAM, 0, sync_pipe) == -1, "failed to create sync socketpair");
 
-
     pid_t child_pid = fork();
     Zf(child_pid == -1, "failed to fork");
 
     if (child_pid > 0) {
-        /* Parent Process */
-        close(sync_pipe[1]); // Close unused write end
+        /* Parent process (host).
 
-        // Set up host-side networking for the container.
-        char veth_host_name[IFNAMSIZ];
-        snprintf(veth_host_name, IFNAMSIZ, "%.*s%d", IFNAMSIZ - 11, veth_host_prefix, child_pid);
-        snprintf(veth_peer_name, IFNAMSIZ, "veth-peer%05d", child_pid % 100000);
+           Everything below this point is executed within the host.
+           The parent process will wait for the child to signal that it is
+           in the correct namespace, and later wait for it to exit.
+        */
+        close(sync_pipe[1]);
         
-        // Ensure bridge exists and is configured.
-        setup_bridge(bridge_name, &bridge_ip, cidr);
-
-        // Set up NAT rules.
-        setup_nat_masquerade(bridge_name, network_cidr);
-        enable_ip_forwarding();
-        
-        // Create the veth pair.
-        struct nl_sock *sock = nl_socket_alloc();
-        Tf(sock != NULL, "failed to allocate netlink socket");
-        Zf(nl_connect(sock, NETLINK_ROUTE) < 0, "failed to connect to netlink route socket");
-        
-        create_veth_pair(sock, veth_host_name, veth_peer_name);
-
-        // Set a random MAC address for the container interface.
-        int fd = socket(AF_INET, SOCK_DGRAM, 0);
-        Tf(fd >= 0, "failed to create socket for ioctl");
-        struct ifreq ifr = {0};
-        unsigned char mac[6];
-        mac[0] = 0x02; // locally administered unicast
-        for (int i = 1; i < 6; i++) {
-           mac[i] = rand() % 256;
+        // Ensure bridge exists.
+        if (!is_bridge_exists(bridge_name)) {
+            create_bridge(bridge_name, &bridge_ip, cidr);
         }
-        strncpy(ifr.ifr_name, veth_peer_name, IFNAMSIZ);
-        ifr.ifr_hwaddr.sa_family = ARPHRD_ETHER;
-        memcpy(ifr.ifr_hwaddr.sa_data, mac, 6);
-        Zf(ioctl(fd, SIOCSIFHWADDR, &ifr), "ioctl(SIOCSIFHWADDR) failed for %s", veth_peer_name);
-        close(fd);
-        VERBOSE("set MAC address for %s to %02x:%02x:%02x:%02x:%02x:%02x", veth_peer_name,
-                 mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
-        
-        // Attach host end of veth to bridge and bring it up.
-        attach_to_bridge_and_up(sock, veth_host_name, bridge_name);
 
-        // Wait for child to signal that it's in its new namespaces.
-        char buf;
-        Zf(read(sync_pipe[0], &buf, 1) != 1 || buf != 'S', "failed to sync with child");
-        
-        // Move peer end of veth into the container's network namespace FIRST.
-        move_link_to_ns(sock, veth_peer_name, child_pid);
+        // Ensure veth link pair.
+        char veth_host_name[IFNAMSIZ];      // Host-side veth name.
+        char veth_peer_name[IFNAMSIZ];      // Peer-side veth name (container-side).
+        snprintf(veth_host_name, IFNAMSIZ, "%.*s%d", IFNAMSIZ - 11, veth_host_prefix, child_pid);
+        snprintf(veth_peer_name, IFNAMSIZ, "%.*s%d", IFNAMSIZ - 11, veth_peer_prefix, child_pid);
+        create_veth_pair(veth_host_name, veth_peer_name);
 
-        // Signal the child that it can proceed.
-        Zf(write(sync_pipe[0], "R", 1) != 1, "failed to signal child");
-        close(sync_pipe[0]);
-        VERBOSE("parent synced with child");
-        
-        nl_socket_free(sock);
+        // Configure veth link pair.
+        set_veth_bridge(veth_host_name, bridge_name);
+        set_veth_vlan(veth_host_name, vlan); // Isolate within VLAN X.
+        set_veth_mac(veth_peer_name);        // Random MAC address.
+        set_veth_up(veth_host_name);         // Bring it up.
 
-        // Set up port forwarding rules.
+        // Ensure SNAT (Source NAT) masquerade.
+        if (!is_snat_masquerade_exists(&subnet_ip)) {
+            create_snat_masquerade(&subnet_ip, cidr); 
+        }
+
+        // Ensure DNAT (Destination NAT) forwarding.
         for (int i = 0; c->port_map_strs[i] != NULL; i++) {
             int host_port, guest_port;
             parse_port_map(c->port_map_strs[i], &host_port, &guest_port);
-            setup_port_forwarding(host_port, guest_port, &guest_ip);
+            if (!is_dnat_forwarding_exists(host_port, &guest_ip, guest_port)) {
+                create_dnat_forwarding(host_port, guest_port, &guest_ip);
+            }
         }
 
-        // Wait for child process to exit.
+        // Ensure IP forwarding (best-effort).
+        FILE *f = fopen("/proc/sys/net/ipv4/ip_forward", "w");
+        Zf(f == NULL, "failed to open ip_forward");
+        Zf(fprintf(f, "1\n") < 0, "failed to write to ip_forward");
+        VERBOSE("IP forwarding enabled");
+        fclose(f);
+        
+        /* Wait.
+
+           The child will write to the pipe only after it has entered its new
+           namespaces. The parent will read from the pipe to wait for the child
+           to be ready.
+        */
+        char buf;
+        Zf(read(sync_pipe[0], &buf, 1) != 1 || buf != 'S', "failed to sync with child");
+        
+        // Now, move veth peer into child's network namespace.
+        set_veth_ns_pid(veth_peer_name, child_pid);
+        VERBOSE("parent network configured");
+
+        /* Signal (!).
+
+           The parent will write to the pipe to signal the child that it can
+           proceed. The child will read from the pipe to wait for the parent
+           to be ready.
+        */
+        Zf(write(sync_pipe[0], "R", 1) != 1, "failed to signal child");
+        close(sync_pipe[0]);
+        VERBOSE("parent synced with child");
+
+        /* Wait.
+
+           Lastly we wait for the child process to exit.
+           This can be abrupt or worst-case scenario never.
+           Below this point, we should clean up.
+        */
         int status;
         waitpid(child_pid, &status, 0);
 
-        // Optional: cleanup network interfaces. For simplicity, we don't.
+        // Delete NAT forwarding.
+        for (int i = 0; c->port_map_strs[i] != NULL; i++) {
+            int host_port, guest_port;
+            parse_port_map(c->port_map_strs[i], &host_port, &guest_port);
+            if (is_dnat_forwarding_exists(host_port, &guest_ip, guest_port)) {
+                delete_dnat_forwarding(host_port, &guest_ip, guest_port);
+            } else {
+               WARNING("DNAT forwarding rule not found for host port %d, guest IP %s, guest port %d", host_port, inet_ntoa(guest_ip), guest_port);
+            }
+        }
+
+        // Exit.
         exit(WIFEXITED(status) ? WEXITSTATUS(status) : 1);
 
     } else {
-        /* Child Process */
-        close(sync_pipe[0]); // Close unused read end
+        /* Child process (container).
+
+           Everything below this point is executed within the container.
+           The child process will wait for the parent to signal that it is
+           in the correct namespace and ready to proceed.
+        */
+        close(sync_pipe[0]);
 
         if (c->join_pid) {
             join_namespaces(c->join_pid);
@@ -858,100 +425,39 @@ void containerize(struct container *c) {
         if (c->join)
             join_end(c->join_ct);
 
-        // Signal parent that we are in the correct namespaces.
+        /* Signal (!).
+
+           The child will write to the pipe to signal the parent that it is
+           in the correct namespaces. The parent will read from the pipe to
+           wait for the child to be ready.
+        */
         Zf(write(sync_pipe[1], "S", 1) != 1, "child failed to send sync signal");
 
-        // Wait for parent to finish moving veth
+        /* Wait.
+
+           The child will read from the pipe to wait for the parent to be ready.
+           After this, the child can proceed until it exits.
+        */
         char ack;
         Zf(read(sync_pipe[1], &ack, 1) != 1 || ack != 'R', "child failed to receive ready signal");
         close(sync_pipe[1]);
 
-        // Configure networking inside the new namespace.
-        struct nl_sock *sock = nl_socket_alloc();
-        Tf(sock != NULL, "failed to allocate netlink socket");
-        Zf(nl_connect(sock, NETLINK_ROUTE) < 0, "failed to connect to netlink route socket");
-
-        // Link names are based on the parent's PID (our PPID now).
+        // Retrieve our veth peer name.
         char veth_peer_name[IFNAMSIZ];
         snprintf(veth_peer_name, IFNAMSIZ, "veth-peer%05d", getpid() % 100000);
-        
-        // Get the link that was moved into our namespace.
-        struct rtnl_link *link;
-        Zf(rtnl_link_get_kernel(sock, 0, veth_peer_name, &link) < 0,
-           "child failed to get link '%s'", veth_peer_name);
-        
-        // To modify the link, we create a new change object.
-        errno = 0; // Clear errno before allocation
-        struct rtnl_link *change = rtnl_link_alloc();
-        if (change == NULL) {
-           errno = ENOMEM; // Set errno to a more appropriate value
-           Tf(change == NULL, "failed to allocate link for changes");
-        }
 
-        int if_index = rtnl_link_get_ifindex(link);
-        rtnl_link_set_ifindex(change, if_index);
+        // Configure veth link peer.
+        set_veth_name(veth_peer_name, veth_guest_name);
+        set_veth_up(veth_guest_name);
+        set_veth_ip(veth_guest_name, &guest_ip, cidr);
 
-        // Set the new name to 'eth0' and bring the interface up in one operation.
-        rtnl_link_set_name(change, veth_guest_name);
-        rtnl_link_set_flags(change, IFF_UP);
-        Zf(rtnl_link_change(sock, link, change, NLM_F_ACK) < 0,
-           "failed to rename and bring up guest interface");
-        
-        rtnl_link_put(change);
-        rtnl_link_put(link);
+        // Configure loopback interface.
+        set_veth_up("lo");
 
-        // Set its IP address.
-        struct rtnl_addr *addr = rtnl_addr_alloc();
-        struct nl_addr *local_ip;
-        char ip_str[INET_ADDRSTRLEN + 4];
-        snprintf(ip_str, sizeof(ip_str), "%s/%d", inet_ntoa(guest_ip), cidr);
-        Zf(nl_addr_parse(ip_str, AF_INET, &local_ip) < 0, "failed to parse guest address");
-        rtnl_addr_set_local(addr, local_ip);
-        nl_addr_put(local_ip);
-        rtnl_addr_set_ifindex(addr, if_index);
-        Zf(rtnl_addr_add(sock, addr, 0) < 0, "failed to add address to guest interface");
-        rtnl_addr_put(addr);
+        // Configure default route.
+        set_veth_route(veth_peer_name, &bridge_ip, "0.0.0.0/0");
 
-        // Configure lo interface.
-        struct rtnl_link *lo_link;
-        Zf(rtnl_link_get_kernel(sock, 0, "lo", &lo_link) < 0, "failed to get loopback link");
-        
-        // To modify the link, we create a new change object.
-        errno = 0; // Clear errno before allocation
-        struct rtnl_link *lo_change = rtnl_link_alloc();
-        if (lo_change == NULL) {
-           errno = ENOMEM; // Set errno to a more appropriate value
-           Tf(lo_change == NULL, "failed to allocate link for lo change");
-        }
-
-        rtnl_link_set_ifindex(lo_change, rtnl_link_get_ifindex(lo_link));
-        rtnl_link_set_flags(lo_change, IFF_UP);
-
-        Zf(rtnl_link_change(sock, lo_link, lo_change, NLM_F_ACK) < 0, "failed to bring up lo interface");
-
-        rtnl_link_put(lo_change);
-        rtnl_link_put(lo_link);
-        
-        // Set default route.
-        struct rtnl_route *route = rtnl_route_alloc();
-        
-        struct nl_addr *dst;
-        Zf(nl_addr_parse("0.0.0.0/0", AF_INET, &dst) < 0, "failed to parse route destination");
-        Zf(rtnl_route_set_dst(route, dst) < 0, "failed to set route destination");
-        nl_addr_put(dst);
-
-        struct nl_addr *gw_addr;
-        Zf(nl_addr_parse(inet_ntoa(bridge_ip), AF_INET, &gw_addr) < 0, "failed to parse gateway address");
-        struct rtnl_nexthop *nh = rtnl_route_nh_alloc();
-        rtnl_route_nh_set_ifindex(nh, if_index);
-        rtnl_route_nh_set_gateway(nh, gw_addr);
-        rtnl_route_add_nexthop(route, nh);
-        nl_addr_put(gw_addr);
-        Zf(rtnl_route_add(sock, route, 0) < 0, "failed to add default route");
-        rtnl_route_put(route);
-        
-        nl_socket_free(sock);
-        VERBOSE("child network configuration complete");
+        VERBOSE("child network configured");
 
         // Add nameserver entries to /etc/resolv.conf
         FILE *resolv_conf = fopen("/etc/resolv.conf", "w");
@@ -962,6 +468,7 @@ void containerize(struct container *c) {
         }
 
         // Add host entries to /etc/hosts
+        // It's a kind of poor-man's magic DNS.
         for (int i = 0; c->host_map_strs[i] != NULL; i++) {
             char *hostname;
             struct in_addr ip_addr;
