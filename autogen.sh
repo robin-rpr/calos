@@ -62,15 +62,11 @@ rm -Rf Makefile.in \
        build-aux \
        configure
 
-# Install Python dependencies
-pip3 install -r requirements.txt
-
 # Create configure and friends.
 if [[ -z $clean ]]; then
     autoreconf --force --install -Wall -Werror
     set +x
     echo
     echo 'Done. Now you can "./configure".'
-    echo 'Note: You may need to install Python dependencies with: make install-deps'
 fi
 

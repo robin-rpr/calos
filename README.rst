@@ -38,13 +38,10 @@ Quick Installation
 
 To build from source:
 
-1. Install Python dependencies: ``make install-deps``
+1. Install dependencies: ``pip3 install -r requirements.txt``
 2. Generate build system: ``./autogen.sh``
 3. Configure: ``./configure``
 4. Build and install: ``make && sudo make install``
-
-Alternatively, you can install dependencies manually:
-``pip3 install -r requirements.txt``
 
 How do I learn more?
 --------------------

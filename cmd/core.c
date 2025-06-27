@@ -284,12 +284,18 @@ void containerize(struct container *c) {
     const char *veth_peer_prefix = "if";
     const char *veth_guest_name = "eth0"; 
     
-    const int vlan = 100;
-    const int cidr = 16;
-    char network_cidr[18]; // 172.19.0.0/16 + null terminator
-    struct in_addr subnet_ip  = { .s_addr = inet_addr("172.19.0.0") };
-    struct in_addr bridge_ip  = { .s_addr = inet_addr("172.19.0.1") };
-    struct in_addr guest_ip   = { .s_addr = inet_addr("172.19.0.2") };
+    const int cidr = 10;
+    char network_cidr[18];
+    char pid_ip_str[INET_ADDRSTRLEN];
+
+    // Get the IP address for the pid.
+    uint32_t pid_ip = htonl((10 << 24) | getpid());
+    inet_ntop(AF_INET, &pid_ip, pid_ip_str, sizeof(pid_ip_str));
+
+    struct in_addr subnet_ip = { .s_addr = inet_addr("10.0.0.0") };
+    struct in_addr bridge_ip = { .s_addr = inet_addr("10.0.0.1") };
+    struct in_addr guest_ip  = { .s_addr = inet_addr(pid_ip_str) };
+
     snprintf(network_cidr, sizeof(network_cidr), "%s/%d", inet_ntoa(subnet_ip), cidr);
 
     // Use a pipe to synchronize parent and child. The child will write to the
@@ -314,17 +320,15 @@ void containerize(struct container *c) {
         }
 
         // Ensure veth link pair.
-        char veth_host_name[IFNAMSIZ];      // Host-side veth name.
-        char veth_peer_name[IFNAMSIZ];      // Peer-side veth name (container-side).
+        char veth_host_name[IFNAMSIZ]; // Host-side veth name.
+        char veth_peer_name[IFNAMSIZ]; // Peer-side veth name (container-side).
         snprintf(veth_host_name, IFNAMSIZ, "%s%06d", veth_host_prefix, child_pid % 1000000);
         snprintf(veth_peer_name, IFNAMSIZ, "%s%06d", veth_peer_prefix, child_pid % 1000000);
         create_veth_pair(veth_host_name, veth_peer_name);
 
         // Configure veth link pair.
         set_veth_bridge(veth_host_name, bridge_name);
-        set_veth_vlan(veth_host_name, vlan); // Isolate within a VLAN.
-        set_veth_mac(veth_peer_name);        // Random MAC address.
-        set_veth_up(veth_host_name);         // Bring it up.
+        set_veth_up(veth_host_name);
 
         // Ensure SNAT (Source NAT) masquerade.
         if (!is_snat_masquerade_exists(&subnet_ip)) {
@@ -448,8 +452,9 @@ void containerize(struct container *c) {
 
         // Configure veth link peer.
         set_veth_name(veth_peer_name, veth_guest_name);
-        set_veth_up(veth_guest_name);
         set_veth_ip(veth_guest_name, &guest_ip, cidr);
+        set_veth_mac(veth_guest_name); // Is Random.
+        set_veth_up(veth_guest_name);
 
         // Configure loopback interface.
         set_veth_up("lo");

@@ -126,8 +126,6 @@ void create_bridge(const char *bridge_name, const struct in_addr *ip, int cidr) 
     rtnl_link_set_family(bridge, AF_BRIDGE);
     rtnl_link_set_type(bridge, "bridge");
     rtnl_link_set_flags(bridge, IFF_UP);
-    rtnl_link_bridge_enable_vlan(bridge);
-    rtnl_link_bridge_set_vlan_filtering(bridge, 1);
 
     Zf(rtnl_link_add(sock, bridge, NLM_F_CREATE | NLM_F_EXCL | NLM_F_ACK) < 0,
        "failed to create bridge '%s'", bridge_name);
@@ -235,7 +233,7 @@ void set_veth_bridge(const char *veth_name, const char *bridge_name) {
    rtnl_link_set_ifindex(link_change, rtnl_link_get_ifindex(link));
    rtnl_link_set_master(link_change, rtnl_link_get_ifindex(bridge));
    
-   rtnl_link_set_flags(link_change, IFF_UP); // TODO
+   rtnl_link_set_flags(link_change, IFF_UP);
 
    // Send the link change to the kernel.
    Zf(rtnl_link_change(sock, link, link_change, 0) < 0, "failed to attach '%s' to bridge '%s'", veth_name, bridge_name);
@@ -377,54 +375,6 @@ void set_veth_ip(const char *veth_name, const struct in_addr *ip, int cidr) {
     nl_socket_free(sock);
 }
 
-/* Add a VLAN on the veth *port* as part of the bridge config. */
-void set_veth_vlan(const char *veth_name, int vlan_id) {
-    struct nl_sock *sock = nl_socket_alloc();
-    Tf(sock != NULL, "failed to allocate netlink socket");
-    Zf(nl_connect(sock, NETLINK_ROUTE) < 0, "failed to connect to netlink route socket");
-
-    // Get the veth link.
-    struct rtnl_link *link;
-    Zf(rtnl_link_get_kernel(sock, 0, veth_name, &link) < 0, "failed to get link '%s'", veth_name);
-    int if_index = rtnl_link_get_ifindex(link);
-
-    // Allocate a netlink message.
-    struct nl_msg *message = nlmsg_alloc();
-    Tf(message != NULL, "failed to allocate netlink message");
-    nlmsg_put(message, NL_AUTO_PORT, NL_AUTO_SEQ, RTM_SETLINK, 0, NLM_F_REQUEST | NLM_F_ACK);
-
-    // Allocate an ifinfomsg.
-    struct ifinfomsg ifi = {
-        .ifi_family = AF_BRIDGE,
-        .ifi_index = if_index,
-    };
-    Zf(nlmsg_append(message, &ifi, sizeof(ifi), NLMSG_ALIGNTO) < 0, "failed to append ifinfomsg");
-
-    // Allocate an af_spec nest.
-    struct nlattr *af_spec = nla_nest_start(message, IFLA_AF_SPEC);
-    Tf(af_spec != NULL, "failed to start IFLA_AF_SPEC nest");
-
-    // Allocate a bridge_vlan_info.
-    struct bridge_vlan_info vlan_info = {
-        .vid = (uint16_t)vlan_id,
-        .flags = BRIDGE_VLAN_INFO_PVID | BRIDGE_VLAN_INFO_UNTAGGED,
-    };
-    Zf(nla_put(message, IFLA_BRIDGE_VLAN_INFO, sizeof(vlan_info), &vlan_info) < 0, "failed to put IFLA_BRIDGE_VLAN_INFO");
-
-    // Close the nests.
-    nla_nest_end(message, af_spec);
-
-    // Send the message to the kernel.
-    Zf(nl_send_auto(sock, message) < 0, "failed to send netlink message");
-    Zf(nl_wait_for_ack(sock) < 0, "failed to wait for netlink ack");
-    rtnl_link_put(link);
-    nlmsg_free(message);
-    
-    // Free the socket.
-    VERBOSE("veth '%s' added to bridge VLAN %d", veth_name, vlan_id);
-    nl_socket_free(sock);
-}
-
 /* Set a veth to a network namespace of a given pid. */
 void set_veth_ns_pid(const char *link_name, pid_t pid) {
     struct nl_sock *sock = nl_socket_alloc();
@@ -460,6 +410,10 @@ void set_veth_mac(const char *veth_name) {
     int fd = socket(AF_INET, SOCK_DGRAM, 0);
     Tf(fd >= 0, "failed to create socket for ioctl");
 
+    // Seed the random number generator.
+    srand(time(NULL) ^ getpid());
+
+    // Allocate a MAC address.
     struct ifreq ifr = {0};
     unsigned char mac[6];
 
@@ -567,7 +521,7 @@ void create_snat_masquerade(const struct in_addr *subnet, int cidr) {
     match = nftnl_expr_alloc("cmp");
     nftnl_expr_set_u32(match, NFTNL_EXPR_CMP_SREG, NFT_REG_1);
     nftnl_expr_set_u32(match, NFTNL_EXPR_CMP_OP, NFT_CMP_EQ);
-    nftnl_expr_set_data(match, NFTNL_EXPR_CMP_DATA, &subnet, sizeof(subnet));
+    nftnl_expr_set_data(match, NFTNL_EXPR_CMP_DATA, &subnet->s_addr, sizeof(subnet->s_addr));
     nftnl_rule_add_expr(rule, match);
 
     // Create the 'masq' expression.

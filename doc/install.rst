@@ -93,6 +93,7 @@ We provide `tarballs <https://github.com/hpc/charliecloud/releases>`_ with a
 fairly standard :code:`configure` script. You can also clone the repository
 and build from there. Thus, build and install can be as simple as::
 
+  $ pip3 install -r requirements.txt
   $ ./configure
   $ make
   $ sudo make install
