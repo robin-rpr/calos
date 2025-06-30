@@ -278,7 +278,7 @@ man_pages = [
    ("charliecloud", "charliecloud",
     "Lightweight user-defined software stacks for high-performance computing",
     [], 7),
-   ("clearly-checkns", "clearly checkns",
+   ("clearly-check", "clearly check",
     'Check "clearly run" prerequisites, e.g., namespaces and "pivot_root(2)"',
     [], 1),
    ("completion.bash", "completion.bash",

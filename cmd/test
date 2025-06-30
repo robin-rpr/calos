@@ -1076,8 +1076,8 @@ fi
 
 # Ensure namespaces are configured properly.
 printf 'checking namespaces ...\n'
-if ! "${clearly_bin}/checkns"; then
-    fatal 'namespace sanity check (clearly checkns) failed'
+if ! "${clearly_bin}/check"; then
+    fatal 'namespace sanity check (clearly check) failed'
 fi
 printf '\n'
 

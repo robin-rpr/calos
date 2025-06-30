@@ -14,7 +14,7 @@ int main(int argc, char *argv[])
 	char **new_argv;
 
 	if (argc < 2) {
-		fprintf(stderr, "Usage: %s SUBCOMMAND [ARG...]\n", argv[0]);
+		fprintf(stderr, "usage: %s SUBCOMMAND [ARG...]\n", argv[0]);
 		exit(EXIT_FAILURE);
 	}
 

@@ -53,14 +53,13 @@
 
 
 const char usage[] = "\
-\n\
-Usage: clearly checkns\n\
+usage: check\n\
 \n\
 Check \"clearly run\" prerequisites, e.g., namespaces and \"pivot_root(2)\".\n\
 \n\
 Example:\n\
 \n\
-  $ clearly checkns\n\
+  $ clearly check\n\
   ok\n";
 
 #define TRY(x) if (x) fatal_(__FILE__, __LINE__, errno, #x)

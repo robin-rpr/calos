@@ -1,4 +1,4 @@
-:code:`clearly checkns`
+:code:`clearly check`
 ++++++++++++++++++
 
 .. only:: not man
@@ -11,14 +11,14 @@ Synopsis
 
 ::
 
-  $ clearly checkns
+  $ clearly check
 
 Example
 =======
 
 ::
 
-  $ clearly checkns
+  $ clearly check
   ok
 
 

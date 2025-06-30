@@ -121,7 +121,7 @@ extern void warnings_reprint(void);
 /** Global variables **/
 
 const struct argp argp = { options, parse_opt, args_doc, usage };
-extern char **environ;  // see environ(7)
+extern char **environ; // see environ(7)
 extern char *warnings;
 
 
@@ -164,7 +164,6 @@ int main(int argc, char *argv[])
                                .join_tag = NULL,
                                .overlay_size = NULL,
                                .host_map_strs = list_new(sizeof(char *), 0),
-                               .port_map_strs = list_new(sizeof(char *), 0),
                                .private_passwd = false,
                                .private_tmp = false,
                                .type = IMG_NONE,
@@ -190,7 +189,7 @@ int main(int argc, char *argv[])
       Z_ (unsetenv("ARGP_HELP_FMT"));
 
    if (arg_next >= argc - 1) {
-      printf("usage: clearly run [OPTION...] IMAGE -- COMMAND [ARG...]\n");
+      printf("usage: run [OPTION...] IMAGE -- COMMAND [ARG...]\n");
       FATAL(0, "IMAGE and/or COMMAND not specified");
    }
    args.c.img_ref = argv[arg_next++];
@@ -547,10 +546,6 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state)
    case 'm':  // --mount
       Ze ((arg[0] == '\0'), "mount point can't be empty string");
       args->c.newroot = arg;
-      break;
-   case 'p':  // --port
-      Ze(arg[0] == '\0', "port mapping can't be empty string");
-      list_append((void **)&(args->c.port_map_strs), &arg, sizeof(char *));
       break;
    case 's':  // --storage
       args->storage_dir = arg;

@@ -14,7 +14,7 @@ load common
     done
 }
 
-@test 'clearly checkns' {
+@test 'clearly check' {
     scope quick
-    run clearly checkns
+    run clearly check
 }

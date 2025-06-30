@@ -20,7 +20,7 @@ Overview
 
    install
    tutorial
-   clearly-checkns
+   clearly-check
    completion.bash
    clearly-convert
    clearly-fromhost

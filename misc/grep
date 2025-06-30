@@ -18,7 +18,7 @@ cd "$(dirname "$0")"/..
 find . \(    -path ./.git \
           -o -path ./autom4te.cache \
           -o -path ./doc/doctrees \
-          -o -path ./cmd/checkns \
+          -o -path ./cmd/check \
           -o -path ./cmd/image \
           -o -path ./cmd/run \
           -o -path ./cmd/daemon \

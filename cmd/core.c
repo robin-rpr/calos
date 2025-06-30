@@ -32,9 +32,10 @@
 #include <sys/wait.h>
 #include <time.h>
 #include <unistd.h>
+
 #include "misc.h"
 #include "core.h"
-#include "link.h"
+#include "net.h"
 #ifdef HAVE_LIBSQUASHFUSE
 #include "fuse.h"
 #endif
@@ -212,7 +213,6 @@ void iw(struct sock_fprog *p, int i,
         uint16_t op, uint32_t k, uint8_t jt, uint8_t jf);
 #endif
 void parse_host_map(const char* map_str, char** hostname, struct in_addr* ip_addr);
-void parse_port_map(const char* map_str, int* host_port, int* guest_port);
 void join_begin(const char *join_tag);
 void join_namespace(pid_t pid, const char *ns);
 void join_namespaces(pid_t pid);
@@ -331,17 +331,22 @@ void containerize(struct container *c) {
         set_veth_up(veth_host_name);
 
         // Ensure SNAT (Source NAT) masquerade.
-        if (!is_snat_masquerade_exists(&subnet_ip)) {
-            create_snat_masquerade(&subnet_ip, cidr); 
+        if (!is_nft_masquerade_exists(&subnet_ip)) {
+            create_nft_masquerade(&subnet_ip, cidr); 
         }
 
-        // Ensure DNAT (Destination NAT) forwarding.
-        for (int i = 0; c->port_map_strs[i] != NULL; i++) {
-            int host_port, guest_port;
-            parse_port_map(c->port_map_strs[i], &host_port, &guest_port);
-            if (!is_dnat_forwarding_exists(host_port, &guest_ip, guest_port)) {
-                create_dnat_forwarding(host_port, guest_port, &guest_ip);
-            }
+        // Ensure firewall reset.
+        if (is_nft_firewall_exists(&guest_ip)) {
+            delete_nft_firewall(&guest_ip);
+        }
+
+        // Ensure firewall allowlist.
+        for (int i = 0; c->host_map_strs[i] != NULL; i++) {
+            char *hostname;
+            struct in_addr ip_addr;
+            parse_host_map(c->host_map_strs[i], &hostname, &ip_addr);
+            set_nft_firewall_rule(&guest_ip, &ip_addr);
+            free(hostname);
         }
 
         // Ensure IP forwarding (best-effort).
@@ -382,17 +387,6 @@ void containerize(struct container *c) {
         */
         int status;
         waitpid(child_pid, &status, 0);
-
-        // Delete NAT forwarding.
-        for (int i = 0; c->port_map_strs[i] != NULL; i++) {
-            int host_port, guest_port;
-            parse_port_map(c->port_map_strs[i], &host_port, &guest_port);
-            if (is_dnat_forwarding_exists(host_port, &guest_ip, guest_port)) {
-                delete_dnat_forwarding(host_port, &guest_ip, guest_port);
-            } else {
-               WARNING("DNAT forwarding rule not found for host port %d, guest IP %s, guest port %d", host_port, inet_ntoa(guest_ip), guest_port);
-            }
-        }
 
         // Exit.
         exit(WIFEXITED(status) ? WEXITSTATUS(status) : 1);
@@ -498,7 +492,7 @@ void containerize(struct container *c) {
 
    Note that pivot_root(2) requires a complex dance to work, i.e., to avoid
    multiple undocumented error conditions. This dance is explained in detail
-   in bin/checkns.c. */
+   in bin/check.c. */
 void enter_udss(struct container *c)
 {
    char *nr_parent, *nr_base, *mkdir_scratch;
@@ -633,9 +627,8 @@ enum img_type image_type(const char *ref, const char *storage_dir)
    FATAL(0, "unknown image type: %s", ref);
 }
 
-char *img_name2path(const char *name, const char *storage_dir)
-   {
-      char *path;
+char *img_name2path(const char *name, const char *storage_dir){
+   char *path;
    char *name_fs = strdup(name);
 
    replace_char(name_fs, '/', '%');
@@ -668,21 +661,9 @@ void parse_host_map(const char* map_str, char** hostname, struct in_addr* ip_add
     free(str);
 }
 
-/* Helper function to parse "HOST_PORT:GUEST_PORT" string. */
-void parse_port_map(const char* map_str, int* host_port, int* guest_port) {
-    char* str = strdup(map_str);
-    char* colon = strchr(str, ':');
-    Tf(colon != NULL, "Invalid port map format. Expected HOST_PORT:GUEST_PORT");
-    *colon = '\0';
-    *host_port = atoi(str);
-    *guest_port = atoi(colon + 1);
-    free(str);
-}
-
 /* Begin coordinated section of namespace joining. */
-void join_begin(const char *join_tag)
-{
-      int fd;
+void join_begin(const char *join_tag) {
+   int fd;
 
    join.sem_name = cat("/run_sem-", join_tag);
    join.shm_name = cat("/run_shm-", join_tag);
@@ -718,8 +699,7 @@ void join_begin(const char *join_tag)
 }
 
 /* End coordinated section of namespace joining. */
-void join_end(int join_ct)
-{
+void join_end(int join_ct) {
    if (join.winner_p) {                                // winner still serial
       VERBOSE("join: winner initializing shared data");
       join.shared->winner_pid = getpid();
@@ -747,8 +727,7 @@ void join_end(int join_ct)
 }
 
 /* Join a specific namespace. */
-void join_namespace(pid_t pid, const char *ns)
-{
+void join_namespace(pid_t pid, const char *ns) {
    char *path;
    int fd;
 
@@ -775,16 +754,14 @@ void join_namespace(pid_t pid, const char *ns)
 }
 
 /* Join the existing namespaces created by the join winner. */
-void join_namespaces(pid_t pid)
-{
+void join_namespaces(pid_t pid) {
    VERBOSE("joining namespaces of pid %d", pid);
    join_namespace(pid, "user");
    join_namespace(pid, "mnt");
 }
 
 /* Replace the current process with user command and arguments. */
-void run_user_command(char *argv[], const char *initial_dir)
-{
+void run_user_command(char *argv[], const char *initial_dir) {
    LOG_IDS;
 
    if (initial_dir != NULL)
@@ -810,8 +787,7 @@ void run_user_command(char *argv[], const char *initial_dir)
      2. https://www.kernel.org/doc/html/latest/userspace-api/seccomp_filter.html
      3. https://elixir.bootlin.com/linux/latest/source/samples/seccomp */
 #ifdef HAVE_SECCOMP
-void seccomp_install(void)
-{
+void seccomp_install(void) {
    int arch_ct = sizeof(SECCOMP_ARCHS)/sizeof(SECCOMP_ARCHS[0]) - 1;
    int syscall_cts[arch_ct];
    struct sock_fprog p = { 0 };
@@ -974,8 +950,7 @@ void sem_timedwait_relative(sem_t *sem, int timeout)
 
 /* Activate the desired isolation namespaces. */
 void setup_namespaces(const struct container *c, uid_t uid_out, uid_t uid_in,
-                      gid_t gid_out, gid_t gid_in)
-{
+                      gid_t gid_out, gid_t gid_in) {
    int fd;
 
    LOG_IDS;
@@ -1020,8 +995,7 @@ void setup_namespaces(const struct container *c, uid_t uid_out, uid_t uid_in,
    see issue #212. After bind-mounting, we remove the files from the host;
    they persist inside the container and then disappear completely when the
    container exits. */
-void setup_passwd(const struct container *c)
-{
+void setup_passwd(const struct container *c) {
    int fd;
    char *path;
    struct group *g;
@@ -1077,8 +1051,7 @@ void setup_passwd(const struct container *c)
 }
 
 /* Mount a tmpfs at the given path. */
-void tmpfs_mount(const char *dst, const char *newroot, const char *data)
-{
+void tmpfs_mount(const char *dst, const char *newroot, const char *data) {
    char *dst_full = cat(newroot, dst);
 
    Zf (mount(NULL, dst_full, "tmpfs", 0, data),
@@ -1087,8 +1060,7 @@ void tmpfs_mount(const char *dst, const char *newroot, const char *data)
 
 /* Try to pull an image from a remote registry. Returns true if successful,
    false otherwise. */
-bool pull_image(const char *ref, const char *storage_dir)
-{
+bool pull_image(const char *ref, const char *storage_dir) {
    char *image_cmd;
    char *storage_arg = NULL;
    char *argv[8];

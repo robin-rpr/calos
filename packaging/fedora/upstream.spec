@@ -128,11 +128,11 @@ ln -s "${sphinxdir}/js"    %{buildroot}%{_pkgdocdir}/html/_static/js
 %files
 %license LICENSE
 %doc README.rst %{?el7:README.EL7}
-%{_libexecdir}/checkns
+%{_libexecdir}/check
 %{_libexecdir}/convert
 %{_libexecdir}/fromhost
 %{_libexecdir}/run
-%{_mandir}/man1/checkns.1*
+%{_mandir}/man1/check.1*
 %{_mandir}/man1/convert.1*
 %{_mandir}/man1/fromhost.1*
 %{_mandir}/man1/run.1*

@@ -23,7 +23,7 @@ _loc.rst \
 best_practices.rst \
 bugs.rst \
 charliecloud.rst \
-checkns.rst \
+check.rst \
 completion.bash.rst \
 convert.rst \
 fromhost.rst \
@@ -47,7 +47,7 @@ tutorial.rst
 if ENABLE_MAN
 man_MANS = \
 man/charliecloud.7 \
-man/clearly-checkns.1 \
+man/clearly-check.1 \
 man/completion.bash.7 \
 man/clearly-convert.1 \
 man/clearly-fromhost.1 \
@@ -61,7 +61,7 @@ nobase_html_DATA = \
 html/searchindex.js \
 html/_images/rd100-winner.png \
 html/best_practices.html \
-html/clearly-checkns.html \
+html/clearly-check.html \
 html/completion.bash.html \
 html/clearly-convert.html \
 html/clearly-fromhost.html \

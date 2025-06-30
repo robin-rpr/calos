@@ -5,18 +5,19 @@
 ## C programs
 
 cmddir = $(pkglibexecdir)
-cmd_PROGRAMS = checkns run
-
-checkns_SOURCES = checkns.c misc.h misc.c
-
-run_SOURCES = run.c core.h core.c link.h link.c misc.h misc.c
+cmd_PROGRAMS = check run link
+ 
+run_SOURCES = run.c core.h core.c net.h net.c misc.h misc.c
 if HAVE_LIBSQUASHFUSE
 run_SOURCES += fuse.h fuse.c
 endif
-
-# additional build flags for run
 run_CFLAGS = $(PTHREAD_CFLAGS) -DLIBEXECDIR="\"$(pkglibexecdir)\"" @LIBNL_CFLAGS@
 run_LDADD = $(CLEARLY_RUN_LIBS) @LIBMNL_LIBS@ @LIBNFTNL_LIBS@ @LIBNL_LIBS@
+
+check_SOURCES = check.c misc.h misc.c
+
+link_SOURCES = link.c net.h net.c misc.h misc.c
+link_LDADD = @LIBMNL_LIBS@ @LIBNFTNL_LIBS@ @LIBNL_LIBS@
 
 ## Shell scripts - distributed as-is
 

@@ -10,7 +10,7 @@ charliecloud man page
 See also
 --------
 
-clearly-checkns(1),
+clearly-check(1),
 completion.bash(7),
 clearly-convert(1),
 clearly-fromhost(1),
