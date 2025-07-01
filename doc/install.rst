@@ -63,6 +63,8 @@ After enabling the CRB repository, install the following packages:
     providing netfilter tables and rules management capabilities
   * :code:`libnl3-devel`: Development files for libnl3, providing network
     configuration and management capabilities
+  * :code:`libcap-devel`: Development files for libcap, providing system 
+    capabilities management capabilities
   * :code:`fuse3-devel`: Development files for FUSE 3, the filesystem in
     userspace interface
   * :code:`python3-devel`: Python 3 development headers and libraries

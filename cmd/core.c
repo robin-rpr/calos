@@ -26,12 +26,16 @@
 #include <sys/mman.h>
 #include <sys/mount.h>
 #include <sys/prctl.h>
+#include <sys/wait.h>
 #include <sys/stat.h>
 #include <sys/syscall.h>
 #include <sys/sysmacros.h>
-#include <sys/wait.h>
+#ifdef HAVE_LIBCAP
+#include <sys/capability.h>
+#endif
 #include <time.h>
 #include <unistd.h>
+
 
 #include "misc.h"
 #include "core.h"
@@ -337,6 +341,11 @@ void containerize(struct container *c) {
             create_nft_masquerade(&subnet_ip, cidr); 
         }
 
+        // Ensure DNAT (Destination NAT) denylist.
+        //if (!is_nft_deny_exists(&subnet_ip)) {
+        //    create_nft_deny(&subnet_ip, cidr);
+        //}
+
         // Ensure DNAT (Destination NAT) allowlist.
         //flush_nft_allow(&guest_ip, "tcp");
         //flush_nft_allow(&guest_ip, "udp");
@@ -467,6 +476,18 @@ void containerize(struct container *c) {
         set_veth_route(veth_guest_name, &bridge_ip, "0.0.0.0/0");
 
         VERBOSE("child network configured");
+
+        // Drop NET_ADMIN capability.
+#ifdef HAVE_LIBCAP
+        cap_t caps;
+        Tf( (caps = cap_get_proc()) != NULL, "can't get capabilities");
+        cap_value_t cap_list[1] = { CAP_NET_ADMIN };
+        Zf(cap_set_flag(caps, CAP_EFFECTIVE, 1, cap_list, CAP_CLEAR), "can't clear effective capability");
+        Zf(cap_set_flag(caps, CAP_PERMITTED, 1, cap_list, CAP_CLEAR), "can't clear permitted capability");
+        Zf(cap_set_proc(caps), "can't set capabilities");
+        Zf(cap_free(caps), "can't free capabilities");
+        VERBOSE("dropped NET_ADMIN capability");
+#endif
 
         // Add nameserver entries to /etc/resolv.conf
         FILE *resolv_conf = fopen("/etc/resolv.conf", "w");

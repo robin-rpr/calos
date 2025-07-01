@@ -321,8 +321,14 @@ PKG_CHECK_MODULES([LIBNL], [libnl-3.0 libnl-route-3.0])
 # Libmnl libraries.
 PKG_CHECK_MODULES([LIBMNL], [libmnl])
 
-# LIBNFTNL libraries.
+# Libnftnl libraries.
 PKG_CHECK_MODULES([LIBNFTNL], [libnftnl])
+
+# Libcap libraries.
+AC_CHECK_LIB([cap], [cap_get_proc], [
+  CLEARLY_RUN_LIBS="$CLEARLY_RUN_LIBS -lcap"
+  AC_DEFINE([HAVE_LIBCAP], [1], [Define to 1 if you have libcap.])
+])
 
 # POSIX IPC lives in librt.
 AC_CHECK_LIB([rt], [shm_open], [CLEARLY_RUN_LIBS="-lrt $CLEARLY_RUN_LIBS"], [
