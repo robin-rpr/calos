@@ -31,14 +31,15 @@ void set_veth_mac(const char *veth_name);
 void create_nft_masquerade(const struct in_addr *subnet, int cidr);
 bool is_nft_masquerade_exists(const struct in_addr *subnet);
 
-/* NFT (Netfilter Table) Firewalling */
-void delete_nft_firewall(const struct in_addr *guest_ip);
-bool is_nft_firewall_exists(const struct in_addr *guest_ip);
-void set_nft_firewall_rule(const struct in_addr *guest_ip, const struct in_addr *remote_ip);
+/* NFT (Netfilter Table) Allow */
+void create_nft_allow(const struct in_addr *guest_ip, const struct in_addr *ip_addr, const char *protocol);
+void flush_nft_allow(const struct in_addr *guest_ip, const char *protocol);
+
+/* NFT (Netfilter Table) Publish */
+void create_nft_publish(const struct in_addr *guest_ip, int host_port, int container_port, const char *protocol);
+void flush_nft_publish(const struct in_addr *guest_ip, const char *protocol);
 
 /* VXLAN (Virtual Extensible LAN) */
 void create_vxlan(const char *vxlan_name, uint32_t vni, const struct in_addr *remote_ip);
 bool is_vxlan_exists(uint32_t vni, const char *vxlan_name, const struct in_addr *remote_ip);
 void set_vxlan_bridge(const char *vxlan_name, const char *bridge_name);
-
-void add_port_forwarding(const struct in_addr *guest_ip, int host_port, int container_port, const char *protocol);

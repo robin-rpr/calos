@@ -213,6 +213,7 @@ void iw(struct sock_fprog *p, int i,
         uint16_t op, uint32_t k, uint8_t jt, uint8_t jf);
 #endif
 void parse_host_map(const char* map_str, char** hostname, struct in_addr* ip_addr);
+void parse_allow_map(const char* map_str, struct in_addr* ip_addr);
 void parse_port_map(const char* map_str, int* host_port, int* container_port);
 void join_begin(const char *join_tag);
 void join_namespace(pid_t pid, const char *ns);
@@ -336,26 +337,26 @@ void containerize(struct container *c) {
             create_nft_masquerade(&subnet_ip, cidr); 
         }
 
-        // Ensure firewall reset.
-        if (is_nft_firewall_exists(&guest_ip)) {
-            delete_nft_firewall(&guest_ip);
-        }
+        // Ensure DNAT (Destination NAT) allowlist.
+        //flush_nft_allow(&guest_ip, "tcp");
+        //flush_nft_allow(&guest_ip, "udp");
 
-        // Ensure firewall allowlist.
-        for (int i = 0; c->host_map_strs[i] != NULL; i++) {
-            char *hostname;
-            struct in_addr ip_addr;
-            parse_host_map(c->host_map_strs[i], &hostname, &ip_addr);
-            set_nft_firewall_rule(&guest_ip, &ip_addr);
-            free(hostname);
-        }
+        //for (int i = 0; c->allow_map_strs[i] != NULL; i++) {
+        //    struct in_addr ip_addr;
+        //    parse_allow_map(c->allow_map_strs[i], &ip_addr);
+        //    create_nft_allow(&guest_ip, &ip_addr, "tcp");
+        //    create_nft_allow(&guest_ip, &ip_addr, "udp");
+        //}
 
-        // Ensure port forwarding.
+        // Ensure DNAT (Destination NAT) publish.
+        flush_nft_publish(&guest_ip, "tcp");
+        flush_nft_publish(&guest_ip, "udp");
+
         for (int i = 0; c->port_map_strs[i] != NULL; i++) {
             int host_port, container_port;
             parse_port_map(c->port_map_strs[i], &host_port, &container_port);
-            add_port_forwarding(&guest_ip, host_port, container_port, "tcp");
-            add_port_forwarding(&guest_ip, host_port, container_port, "udp");
+            create_nft_publish(&guest_ip, host_port, container_port, "tcp");
+            create_nft_publish(&guest_ip, host_port, container_port, "udp");
         }
 
         // Ensure IP forwarding (best-effort).
@@ -667,6 +668,13 @@ void parse_host_map(const char* map_str, char** hostname, struct in_addr* ip_add
     *colon = '\0';
     *hostname = strdup(str); // Allocate memory for hostname
     Tf(inet_pton(AF_INET, colon + 1, ip_addr) == 1, "invalid IP address in host entry");
+    free(str);
+}
+
+/* Helper function to parse "DST" string. */
+void parse_allow_map(const char* map_str, struct in_addr* ip_addr) {
+    char* str = strdup(map_str);
+    Tf(inet_pton(AF_INET, str, ip_addr) == 1, "invalid IP address in allow entry");
     free(str);
 }
 
