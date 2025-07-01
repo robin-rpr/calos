@@ -53,7 +53,7 @@
 
 
 const char usage[] = "\
-usage: check\n\
+Usage: check\n\
 \n\
 Check \"clearly run\" prerequisites, e.g., namespaces and \"pivot_root(2)\".\n\
 \n\

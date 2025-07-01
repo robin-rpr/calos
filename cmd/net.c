@@ -693,7 +693,6 @@ void set_nft_firewall_rule(const struct in_addr *guest_ip, const struct in_addr 
 /* Create a VXLAN interface. 
 
    This function will create a VXLAN interface for the specified remote IP address.
-   It uses a fixed name "vxlan0" and a default VNI of 1000.
 
    1. Allocate a netlink socket.
    2. Allocate a vxlan link, set the name, type, VNI, remote IP, and port.
@@ -741,76 +740,140 @@ void create_vxlan(const char *vxlan_name, uint32_t vni, const struct in_addr *re
     nl_socket_free(sock);
 }
 
-/* Check if the VXLAN interface exists with the specified remote IP */
-bool is_vxlan_exists(const struct in_addr *remote_ip) {
+/* Check if a VXLAN interface exists with the specified remote IP and VNI.
+   If vxlan_name is "*", it searches all VXLAN interfaces.
+ */
+bool is_vxlan_exists(uint32_t vni, const char *vxlan_name, const struct in_addr *remote_ip) {
     struct nl_sock *sock = nl_socket_alloc();
     Tf(sock != NULL, "failed to allocate netlink socket for VXLAN check");
     Zf(nl_connect(sock, NETLINK_ROUTE) < 0, "failed to connect to netlink route socket for VXLAN check");
 
-    const char *vxlan_name_to_check = "vxlan0";
-    uint32_t vni_to_check = 1000;
+    bool found_match = false;
 
-    struct rtnl_link *link;
-    if (rtnl_link_get_kernel(sock, 0, vxlan_name_to_check, &link) < 0) {
-        VERBOSE("VXLAN interface '%s' not found", vxlan_name_to_check);
-        nl_socket_free(sock);
-        return false;
-    }
+    if (strcmp(vxlan_name, "*") == 0) {
+        // Iterate through all links to find a matching VXLAN interface
+        struct nl_cache *cache;
+        Zf(rtnl_link_alloc_cache(sock, AF_UNSPEC, &cache) < 0, "failed to allocate link cache");
 
-    // Check if it's actually a VXLAN type.
-    if (strcmp(rtnl_link_get_type(link), "vxlan") != 0) {
-        VERBOSE("Interface '%s' found but is not of type VXLAN", vxlan_name_to_check);
-        rtnl_link_put(link);
-        nl_socket_free(sock);
-        return false;
-    }
+        struct rtnl_link *link_iter;
+        for (link_iter = (struct rtnl_link *) nl_cache_get_first(cache);
+             link_iter != NULL;
+             link_iter = (struct rtnl_link *) nl_cache_get_next((struct nl_object *)link_iter)) {
 
-    // Check remote IP (group) and VNI.
-    struct nl_addr *group_addr = NULL;
-    struct in_addr group_ip_found = {0}; // Initialize to all zeros
-    bool remote_ip_matches = false;
-    uint32_t vni_found = 0; // Initialize to avoid uninitialized warning
+            // Check if it's a VXLAN type
+            if (rtnl_link_get_type(link_iter) == NULL || strcmp(rtnl_link_get_type(link_iter), "vxlan") != 0) {
+                continue; // Not a VXLAN interface, skip
+            }
 
-    int err_get_group = rtnl_link_vxlan_get_group(link, &group_addr);
-    int err_get_id = rtnl_link_vxlan_get_id(link, &vni_found);
+            struct nl_addr *group_addr = NULL;
+            struct in_addr group_ip_found = {0};
+            bool remote_ip_matches_current = false;
+            uint32_t vni_found = 0;
 
-    if (err_get_group == 0 && group_addr != NULL && nl_addr_get_family(group_addr) == AF_INET) {
-        // We are expecting an IPv4 remote_ip, so check if the group_addr is also IPv4
-        memcpy(&group_ip_found, nl_addr_get_binary_addr(group_addr), sizeof(group_ip_found));
-        if (group_ip_found.s_addr == remote_ip->s_addr) {
-            remote_ip_matches = true;
+            int err_get_group = rtnl_link_vxlan_get_group(link_iter, &group_addr);
+            int err_get_id = rtnl_link_vxlan_get_id(link_iter, &vni_found);
+
+            if (err_get_group == 0 && group_addr != NULL && nl_addr_get_family(group_addr) == AF_INET) {
+                memcpy(&group_ip_found, nl_addr_get_binary_addr(group_addr), sizeof(group_ip_found));
+                if (group_ip_found.s_addr == remote_ip->s_addr) {
+                    remote_ip_matches_current = true;
+                }
+            }
+
+            if (remote_ip_matches_current && (err_get_id == 0 && vni_found == vni)) {
+                found_match = true;
+                char expected_ip_str[INET_ADDRSTRLEN];
+                inet_ntop(AF_INET, remote_ip, expected_ip_str, sizeof(expected_ip_str));
+                VERBOSE("VXLAN interface '%s' with remote IP '%s' and VNI %u found (wildcard search)",
+                        rtnl_link_get_name(link_iter), expected_ip_str, vni);
+                if (group_addr) {
+                    nl_addr_put(group_addr);
+                }
+                break; // Found a match, no need to continue iterating
+            } else {
+                char expected_ip_str[INET_ADDRSTRLEN];
+                char found_ip_str[INET_ADDRSTRLEN];
+
+                inet_ntop(AF_INET, remote_ip, expected_ip_str, sizeof(expected_ip_str));
+                if (err_get_group == 0 && group_addr != NULL && nl_addr_get_family(group_addr) == AF_INET) {
+                    inet_ntop(AF_INET, &group_ip_found, found_ip_str, sizeof(found_ip_str));
+                } else {
+                    snprintf(found_ip_str, sizeof(found_ip_str), "N/A");
+                }
+                VERBOSE("Considering VXLAN interface '%s' but remote IP or VNI mismatch. Expected IP: %s, VNI: %u. Found IP: %s, VNI: %u",
+                        rtnl_link_get_name(link_iter), expected_ip_str, vni,
+                        found_ip_str, (err_get_id == 0) ? vni_found : 0);
+            }
+
+            if (group_addr) {
+                nl_addr_put(group_addr);
+            }
         }
-    }
+        nl_cache_free(cache);
 
-    bool exists = remote_ip_matches && (err_get_id == 0 && vni_found == vni_to_check);
-
-    char expected_ip_str[INET_ADDRSTRLEN];
-    char found_ip_str[INET_ADDRSTRLEN];
-
-    inet_ntop(AF_INET, remote_ip, expected_ip_str, sizeof(expected_ip_str));
-    if (err_get_group == 0 && group_addr != NULL && nl_addr_get_family(group_addr) == AF_INET) {
-        inet_ntop(AF_INET, &group_ip_found, found_ip_str, sizeof(found_ip_str));
     } else {
-        snprintf(found_ip_str, sizeof(found_ip_str), "N/A");
+        // Original logic: check for a specific VXLAN interface by name
+        struct rtnl_link *link;
+        if (rtnl_link_get_kernel(sock, 0, vxlan_name, &link) < 0) {
+            VERBOSE("VXLAN interface '%s' not found", vxlan_name);
+            nl_socket_free(sock);
+            return false;
+        }
+
+        // Check if it's actually a VXLAN type.
+        if (strcmp(rtnl_link_get_type(link), "vxlan") != 0) {
+            VERBOSE("Interface '%s' found but is not of type VXLAN", vxlan_name);
+            rtnl_link_put(link);
+            nl_socket_free(sock);
+            return false;
+        }
+
+        // Check remote IP (group) and VNI.
+        struct nl_addr *group_addr = NULL;
+        struct in_addr group_ip_found = {0};
+        bool remote_ip_matches = false;
+        uint32_t vni_found = 0;
+
+        int err_get_group = rtnl_link_vxlan_get_group(link, &group_addr);
+        int err_get_id = rtnl_link_vxlan_get_id(link, &vni_found);
+
+        if (err_get_group == 0 && group_addr != NULL && nl_addr_get_family(group_addr) == AF_INET) {
+            memcpy(&group_ip_found, nl_addr_get_binary_addr(group_addr), sizeof(group_ip_found));
+            if (group_ip_found.s_addr == remote_ip->s_addr) {
+                remote_ip_matches = true;
+            }
+        }
+
+        found_match = remote_ip_matches && (err_get_id == 0 && vni_found == vni);
+
+        char expected_ip_str[INET_ADDRSTRLEN];
+        char found_ip_str[INET_ADDRSTRLEN];
+
+        inet_ntop(AF_INET, remote_ip, expected_ip_str, sizeof(expected_ip_str));
+        if (err_get_group == 0 && group_addr != NULL && nl_addr_get_family(group_addr) == AF_INET) {
+            inet_ntop(AF_INET, &group_ip_found, found_ip_str, sizeof(found_ip_str));
+        } else {
+            snprintf(found_ip_str, sizeof(found_ip_str), "N/A");
+        }
+
+        if (found_match) {
+            VERBOSE("VXLAN interface '%s' with remote IP '%s' and VNI %u found",
+                    vxlan_name, expected_ip_str, vni);
+        } else {
+            VERBOSE("VXLAN interface '%s' found but remote IP or VNI mismatch. Expected IP: %s, VNI: %u. Found IP: %s, VNI: %u",
+                    vxlan_name, expected_ip_str, vni,
+                    found_ip_str, (err_get_id == 0) ? vni_found : 0);
+        }
+
+        // Clean up
+        if (group_addr) {
+            nl_addr_put(group_addr);
+        }
+        rtnl_link_put(link);
     }
 
-    if (exists) {
-        VERBOSE("VXLAN interface '%s' with remote IP '%s' and VNI %u found",
-                vxlan_name_to_check, expected_ip_str, vni_to_check);
-    } else {
-        VERBOSE("VXLAN interface '%s' found but remote IP or VNI mismatch. Expected IP: %s, VNI: %u. Found IP: %s, VNI: %u",
-                vxlan_name_to_check, expected_ip_str, vni_to_check,
-                found_ip_str, (err_get_id == 0) ? vni_found : 0); // Display 0 if VNI not found
-    }
-
-    // Clean up
-    if (group_addr) {
-        nl_addr_put(group_addr);
-    }
-    rtnl_link_put(link);
     nl_socket_free(sock);
-
-    return exists;
+    return found_match;
 }
 
 /* Set the VXLAN interface to the specified bridge */

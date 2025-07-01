@@ -189,7 +189,7 @@ int main(int argc, char *argv[])
       Z_ (unsetenv("ARGP_HELP_FMT"));
 
    if (arg_next >= argc - 1) {
-      printf("usage: run [OPTION...] IMAGE -- COMMAND [ARG...]\n");
+      printf("Usage: run [OPTION...] IMAGE -- COMMAND [ARG...]\n");
       FATAL(0, "IMAGE and/or COMMAND not specified");
    }
    args.c.img_ref = argv[arg_next++];

@@ -25,7 +25,7 @@
 
 
 const char usage[] = "\
-usage: link REMOTE\n\
+Usage: link REMOTE\n\
 \n\
 Link with another node.\n\
 \n\
@@ -46,7 +46,7 @@ void fatal_(const char *file, int line, int errno_, const char *str)
 
 int main(int argc, char *argv[])
 {
-   if (argc >= 2 && strcmp(argv[1], "--help") == 0) {
+   if ((argc >= 2 && strcmp(argv[1], "--help") == 0) || argc < 2) {
       fprintf(stderr, usage);
       return 0;
    }
@@ -70,8 +70,10 @@ int main(int argc, char *argv[])
       identifier in the system. */
    char vxlan_name[IFNAMSIZ];
    int vxlan_index = 1;
-   while (is_link_exists(vxlan_name)) {
-      TRY(snprintf(vxlan_name, sizeof(vxlan_name), "vxlan%d", vxlan_index));
+   for (;;) {
+      TRY(snprintf(vxlan_name, sizeof(vxlan_name), "vxlan%d", vxlan_index) < 0);
+      if (!is_link_exists(vxlan_name))
+         break;
       if (vxlan_index >= INT_MAX) {
          Zf(1, "VXLAN name index overflow");
       }
@@ -92,9 +94,11 @@ int main(int argc, char *argv[])
       The VXLAN interface acts as a virtual network link that encapsulates
       Ethernet frames in UDP packets, allowing transparent communication
       across the underlying network infrastructure. */
-   if (!is_vxlan_exists(&remote_ip)) {
+   if (!is_vxlan_exists(4242, "*", &remote_ip)) {
       create_vxlan(vxlan_name, 4242, &remote_ip);
+      INFO("Created VXLAN interface %s", vxlan_name);
       set_vxlan_bridge(vxlan_name, "clearly0");
+      INFO("Attached VXLAN interface %s to bridge clearly0", vxlan_name);
    }   
 
    /* Report success. */

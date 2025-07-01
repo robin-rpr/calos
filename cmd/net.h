@@ -34,5 +34,5 @@ void set_nft_firewall_rule(const struct in_addr *guest_ip, const struct in_addr 
 
 /* VXLAN (Virtual Extensible LAN) */
 void create_vxlan(const char *vxlan_name, uint32_t vni, const struct in_addr *remote_ip);
-bool is_vxlan_exists(const struct in_addr *remote_ip /* we left vxlan_name out */);
+bool is_vxlan_exists(uint32_t vni, const char *vxlan_name, const struct in_addr *remote_ip);
 void set_vxlan_bridge(const char *vxlan_name, const char *bridge_name);
