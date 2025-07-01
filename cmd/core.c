@@ -213,6 +213,7 @@ void iw(struct sock_fprog *p, int i,
         uint16_t op, uint32_t k, uint8_t jt, uint8_t jf);
 #endif
 void parse_host_map(const char* map_str, char** hostname, struct in_addr* ip_addr);
+void parse_port_map(const char* map_str, int* host_port, int* container_port);
 void join_begin(const char *join_tag);
 void join_namespace(pid_t pid, const char *ns);
 void join_namespaces(pid_t pid);
@@ -347,6 +348,14 @@ void containerize(struct container *c) {
             parse_host_map(c->host_map_strs[i], &hostname, &ip_addr);
             set_nft_firewall_rule(&guest_ip, &ip_addr);
             free(hostname);
+        }
+
+        // Ensure port forwarding.
+        for (int i = 0; c->port_map_strs[i] != NULL; i++) {
+            int host_port, container_port;
+            parse_port_map(c->port_map_strs[i], &host_port, &container_port);
+            add_port_forwarding(&guest_ip, host_port, container_port, "tcp");
+            add_port_forwarding(&guest_ip, host_port, container_port, "udp");
         }
 
         // Ensure IP forwarding (best-effort).
@@ -658,6 +667,19 @@ void parse_host_map(const char* map_str, char** hostname, struct in_addr* ip_add
     *colon = '\0';
     *hostname = strdup(str); // Allocate memory for hostname
     Tf(inet_pton(AF_INET, colon + 1, ip_addr) == 1, "invalid IP address in host entry");
+    free(str);
+}
+
+/* Helper function to parse "HOST_PORT:CONTAINER_PORT" string. */
+void parse_port_map(const char* map_str, int* host_port, int* container_port) {
+    char* str = strdup(map_str);
+    char* colon = strchr(str, ':');
+    Tf(colon != NULL, "invalid port entry format. Expected HOST_PORT:CONTAINER_PORT");
+    *colon = '\0';
+    *host_port = atoi(str);
+    *container_port = atoi(colon + 1);
+    Tf(*host_port > 0 && *host_port < 65536, "invalid host port number");
+    Tf(*container_port > 0 && *container_port < 65536, "invalid container port number");
     free(str);
 }
 

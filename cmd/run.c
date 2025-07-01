@@ -64,6 +64,7 @@ const struct argp_option options[] = {
    { "mount",         'm', "DIR",  0, "SquashFS mount point"},
    { "no-passwd",      -9, 0,      0, "don't bind-mount /etc/{passwd,group}"},
    { "host",          'h', "SRC:DST", 0, "map SRC at guest DST (e.g. google.com:1.2.3.4)" },
+   { "port",          'p', "SRC:DST", 0, "forward host port SRC to container port DST" },
    { "private-tmp",   't', 0,      0, "use container-private /tmp" },
    { "quiet",         'q', 0,      0, "print less output (can be repeated)"},
 #ifdef HAVE_SECCOMP
@@ -163,6 +164,7 @@ int main(int argc, char *argv[])
                                .join_tag = NULL,
                                .overlay_size = NULL,
                                .host_map_strs = list_new(sizeof(char *), 0),
+                               .port_map_strs = list_new(sizeof(char *), 0),
                                .private_passwd = false,
                                .private_tmp = false,
                                .type = IMG_NONE,
@@ -578,6 +580,10 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state)
       break;
    case 'W':  // --write-fake
       args->c.overlay_size = arg != NULL ? arg : WRITE_FAKE_DEFAULT;
+      break;
+   case 'p':  // --port
+      Ze(arg[0] == '\0', "port mapping can't be empty string");
+      list_append((void **)&(args->c.port_map_strs), &arg, sizeof(char *));
       break;
    case ARGP_KEY_NO_ARGS:
       argp_state_help(state, stderr, (  ARGP_HELP_SHORT_USAGE

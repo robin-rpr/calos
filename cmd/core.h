@@ -43,6 +43,7 @@ struct container {
    char *join_tag;       // identifier for synchronized join
    char *overlay_size;   // size of overlaid tmpfs (NULL for no overlay)
    char **host_map_strs; // e.g. "google.com:127.0.0.1"
+   char **port_map_strs; // e.g. "8080:80"
    bool private_passwd;  // don't bind custom /etc/{passwd,group}
    bool private_tmp;     // don't bind host's /tmp
    enum img_type type;   // directory, SquashFS, etc.

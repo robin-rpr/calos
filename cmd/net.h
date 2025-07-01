@@ -3,6 +3,10 @@
 #define _GNU_SOURCE
 #include <arpa/inet.h>
 #include <net/if.h>
+#include <netinet/in.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <sys/types.h>
 
 /** Function prototypes **/
 
@@ -36,3 +40,5 @@ void set_nft_firewall_rule(const struct in_addr *guest_ip, const struct in_addr 
 void create_vxlan(const char *vxlan_name, uint32_t vni, const struct in_addr *remote_ip);
 bool is_vxlan_exists(uint32_t vni, const char *vxlan_name, const struct in_addr *remote_ip);
 void set_vxlan_bridge(const char *vxlan_name, const char *bridge_name);
+
+void add_port_forwarding(const struct in_addr *guest_ip, int host_port, int container_port, const char *protocol);
