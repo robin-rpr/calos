@@ -25,13 +25,13 @@
 
 
 const char usage[] = "\
-Usage: link REMOTE\n\
+Usage: link REMOTE VNI\n\
 \n\
-Link with another node.\n\
+Link with VXLAN using VNI (Virtual Network Identifier) to remote node.\n\
 \n\
 Example:\n\
 \n\
-  $ clearly link 100.100.100.100\n\
+  $ clearly link 172.20.0.10 1234\n\
   ok\n";
 
 #define TRY(x) if (x) fatal_(__FILE__, __LINE__, errno, #x)
@@ -46,7 +46,7 @@ void fatal_(const char *file, int line, int errno_, const char *str)
 
 int main(int argc, char *argv[])
 {
-   if ((argc >= 2 && strcmp(argv[1], "--help") == 0) || argc < 2) {
+   if ((argc >= 2 && strcmp(argv[1], "--help") == 0)) {
       fprintf(stderr, usage);
       return 0;
    }
@@ -54,10 +54,30 @@ int main(int argc, char *argv[])
       version();
       return 0;
    }
+   if (argc < 2) {
+      fprintf(stderr, usage);
+      return 1;
+   }
 
    /* Parse remote IP. */
    struct in_addr remote_ip;
-   remote_ip.s_addr = inet_addr(argv[1]);
+   if (argc >= 2) {
+      remote_ip.s_addr = inet_addr(argv[1]);
+   } else {
+      fprintf(stderr, usage);
+      fprintf(stderr, "link: error: the following arguments are required: REMOTE");
+      return 1;
+   }
+
+   /* Parse VNI. */
+   uint32_t vni;
+   if (argc >= 3) {
+      vni = strtoul(argv[2], NULL, 10);
+   } else {
+      fprintf(stderr, usage);
+      fprintf(stderr, "link: error: the following arguments are required: VNI");
+      return 1;
+   }
 
    /* Find an unused VXLAN interface name.
    
@@ -94,8 +114,8 @@ int main(int argc, char *argv[])
       The VXLAN interface acts as a virtual network link that encapsulates
       Ethernet frames in UDP packets, allowing transparent communication
       across the underlying network infrastructure. */
-   if (!is_vxlan_exists(4242, "*", &remote_ip)) {
-      create_vxlan(vxlan_name, 4242, &remote_ip);
+   if (!is_vxlan_exists(vni, "*", &remote_ip)) {
+      create_vxlan(vxlan_name, vni, &remote_ip);
       INFO("Created VXLAN interface %s", vxlan_name);
       set_vxlan_bridge(vxlan_name, "clearly0");
       INFO("Attached VXLAN interface %s to bridge clearly0", vxlan_name);
