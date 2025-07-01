@@ -4,6 +4,7 @@ a.out
 /bin/clearly
 /cmd/check
 /cmd/run
+/cmd/link
 /cmd/image
 /cmd/daemon
 /cmd/image.c

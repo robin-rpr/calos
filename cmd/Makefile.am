@@ -17,6 +17,7 @@ run_LDADD = $(CLEARLY_RUN_LIBS) @LIBMNL_LIBS@ @LIBNFTNL_LIBS@ @LIBNL_LIBS@
 check_SOURCES = check.c misc.h misc.c
 
 link_SOURCES = link.c net.h net.c misc.h misc.c
+link_CFLAGS = @LIBNL_CFLAGS@
 link_LDADD = @LIBMNL_LIBS@ @LIBNFTNL_LIBS@ @LIBNL_LIBS@
 
 ## Shell scripts - distributed as-is
