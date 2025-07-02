@@ -32,14 +32,41 @@
 
 /** Macros **/
 
-/* Linux Kernel constants for netfilter.
-   partially sourced from <linux/netfilter/nf_tables.h> */
-#define NFPROTO_IPV4 2
-
-#define NF_ACCEPT 1
+/* <linux/netfilter.h> */
 #define NF_DROP   0
-#define NF_INET_POST_ROUTING 4
+#define NF_ACCEPT 1
+#define NF_STOLEN 2
+#define NF_QUEUE  3
+#define NF_REPEAT 4
 
+#define NFPROTO_UNSPEC  0
+#define NFPROTO_INET    1
+#define NFPROTO_IPV4    2
+#define NFPROTO_ARP     3
+#define NFPROTO_NETDEV  5
+#define NFPROTO_BRIDGE  7
+#define NFPROTO_IPV6   10
+#define NFPROTO_DECNET 12
+
+#define NF_INET_PRE_ROUTING  0
+#define NF_INET_LOCAL_IN     1
+#define NF_INET_FORWARD      2
+#define NF_INET_LOCAL_OUT    3
+#define NF_INET_POST_ROUTING 4
+#define NF_INET_NUMHOOKS     5
+#define NF_INET_INGRESS      5
+
+/* <linux/netfilter_bridge.h> */
+#define NF_BR_PRE_ROUTING  0
+#define NF_BR_LOCAL_IN     1
+#define NF_BR_FORWARD      2
+#define NF_BR_LOCAL_OUT    3
+#define NF_BR_POST_ROUTING 4
+#define NF_BR_BROUTING     5
+#define NF_BR_NUMHOOKS     6
+
+
+/* TODO: All below are not categorized yet. Please categorize! */
 #define NFT_PRIORITY_NAT_POSTROUTING -100
 #define NFT_POLICY_ACCEPT 0
 
@@ -691,7 +718,7 @@ bool is_nft_masquerade_exists(const struct in_addr *subnet) {
 
     1. Create the 'filter' table.
     2. Create the 'forward' chain.
-    3. Create the default drop rule for point-to-point traffic.
+    3. Create the default drop rule for container-to-container traffic.
     4. Send the batch command to the kernel.
 
     The assumption is that the subnet is a private subnet, and that the
@@ -713,10 +740,10 @@ void create_nft_filter(const struct in_addr *subnet, int cidr) {
     // Create the 'filter' table.
     struct nftnl_table *table = nftnl_table_alloc();
     Tf(table != NULL, "failed to allocate 'filter' table");
-    nftnl_table_set_u32(table, NFTNL_TABLE_FAMILY, NFPROTO_IPV4);
+    nftnl_table_set_u32(table, NFTNL_TABLE_FAMILY, NFPROTO_BRIDGE);
     nftnl_table_set_str(table, NFTNL_TABLE_NAME, "filter");
     nlh = nftnl_table_nlmsg_build_hdr(mnl_nlmsg_batch_current(batch),
-                                     NFT_MSG_NEWTABLE, NFPROTO_IPV4,
+                                     NFT_MSG_NEWTABLE, NFPROTO_BRIDGE,
                                      NLM_F_CREATE | NLM_F_ACK, seq++);
     nftnl_table_nlmsg_build_payload(nlh, table);
     nftnl_table_free(table);
@@ -728,12 +755,12 @@ void create_nft_filter(const struct in_addr *subnet, int cidr) {
     nftnl_chain_set_str(chain, NFTNL_CHAIN_TABLE, "filter");
     nftnl_chain_set_str(chain, NFTNL_CHAIN_NAME, "forward");
     nftnl_chain_set_str(chain, NFTNL_CHAIN_TYPE, "filter");
-    nftnl_chain_set_u32(chain, NFTNL_CHAIN_HOOKNUM, NF_IP_FORWARD);
+    nftnl_chain_set_u32(chain, NFTNL_CHAIN_HOOKNUM, NF_BR_FORWARD);
     nftnl_chain_set_u32(chain, NFTNL_CHAIN_PRIO, 0);
     nftnl_chain_set_u32(chain, NFTNL_CHAIN_POLICY, NF_ACCEPT); // Default policy is accept.
 
     nlh = nftnl_chain_nlmsg_build_hdr(mnl_nlmsg_batch_current(batch),
-                                      NFT_MSG_NEWCHAIN, NFPROTO_IPV4,
+                                      NFT_MSG_NEWCHAIN, NFPROTO_BRIDGE,
                                       NLM_F_CREATE | NLM_F_ACK, seq++);
     nftnl_chain_nlmsg_build_payload(nlh, chain);
     nftnl_chain_free(chain);
@@ -744,9 +771,27 @@ void create_nft_filter(const struct in_addr *subnet, int cidr) {
     Tf(rule != NULL, "failed to allocate 'default drop' rule");
     nftnl_rule_set_str(rule, NFTNL_RULE_TABLE, "filter");
     nftnl_rule_set_str(rule, NFTNL_RULE_CHAIN, "forward");
-    nftnl_rule_set_u32(rule, NFTNL_RULE_FAMILY, NFPROTO_IPV4);
+    nftnl_rule_set_u32(rule, NFTNL_RULE_FAMILY, NFPROTO_BRIDGE);
 
     struct nftnl_expr *expr;
+
+    // Load the Ethernet type into NFT_REG_1
+    expr = nftnl_expr_alloc("payload");
+    Tf(expr != NULL, "failed to allocate 'payload' expression for eth_type");
+    nftnl_expr_set_u32(expr, NFTNL_EXPR_PAYLOAD_BASE, NFT_PAYLOAD_LL_HEADER);
+    nftnl_expr_set_u32(expr, NFTNL_EXPR_PAYLOAD_OFFSET, 12);
+    nftnl_expr_set_u32(expr, NFTNL_EXPR_PAYLOAD_LEN, sizeof(uint16_t));
+    nftnl_expr_set_u32(expr, NFTNL_EXPR_PAYLOAD_DREG, NFT_REG_1);
+    nftnl_rule_add_expr(rule, expr);
+
+    // Compare NFT_REG_1 to ETH_P_IP
+    expr = nftnl_expr_alloc("cmp");
+    Tf(expr != NULL, "failed to allocate 'cmp' expression for eth_type");
+    nftnl_expr_set_u32(expr, NFTNL_EXPR_CMP_SREG, NFT_REG_1);
+    nftnl_expr_set_u32(expr, NFTNL_EXPR_CMP_OP, NFT_CMP_EQ);
+    uint16_t eth_ip = htons(ETH_P_IP);
+    nftnl_expr_set_data(expr, NFTNL_EXPR_CMP_DATA, &eth_ip, sizeof(eth_ip));
+    nftnl_rule_add_expr(rule, expr);
 
     // Match source address within the subnet
     expr = nftnl_expr_alloc("payload");
@@ -808,7 +853,7 @@ void create_nft_filter(const struct in_addr *subnet, int cidr) {
     nftnl_rule_add_expr(rule, expr);
 
     nlh = nftnl_rule_nlmsg_build_hdr(mnl_nlmsg_batch_current(batch),
-                                     NFT_MSG_NEWRULE, NFPROTO_IPV4,
+                                     NFT_MSG_NEWRULE, NFPROTO_BRIDGE,
                                      NLM_F_CREATE | NLM_F_APPEND | NLM_F_ACK, seq++);
     nftnl_rule_nlmsg_build_payload(nlh, rule);
     nftnl_rule_free(rule);
@@ -836,7 +881,7 @@ bool is_nft_filter_exists(const struct in_addr *subnet) {
     char buf[MNL_SOCKET_BUFFER_SIZE];
     uint32_t seq = time(NULL);
 
-    struct nlmsghdr *nlh = nftnl_rule_nlmsg_build_hdr(buf, NFT_MSG_GETRULE, NFPROTO_IPV4, NLM_F_DUMP, seq);
+    struct nlmsghdr *nlh = nftnl_rule_nlmsg_build_hdr(buf, NFT_MSG_GETRULE, NFPROTO_BRIDGE, NLM_F_DUMP, seq);
     struct nftnl_rule *req = nftnl_rule_alloc();
     Tf(req != NULL, "failed to allocate 'rule'");
     nftnl_rule_set_str(req, NFTNL_RULE_TABLE, "filter");
@@ -862,6 +907,11 @@ bool is_nft_filter_exists(const struct in_addr *subnet) {
             struct nftnl_rule *rule = nftnl_rule_alloc();
             Tf(rule != NULL, "failed to allocate 'rule'");
             nftnl_rule_nlmsg_parse(h, rule);
+
+            if (nftnl_rule_get_u32(rule, NFTNL_RULE_FAMILY) != NFPROTO_BRIDGE) {
+                nftnl_rule_free(rule);
+                continue;
+            }
 
             int saddr_matched = 0;
             int daddr_matched = 0;
@@ -923,9 +973,27 @@ void set_nft_filter_allow(const struct in_addr *src_ip, const struct in_addr *ds
     Tf(rule != NULL, "failed to allocate 'rule'");
     nftnl_rule_set_str(rule, NFTNL_RULE_TABLE, "filter");
     nftnl_rule_set_str(rule, NFTNL_RULE_CHAIN, "forward");
-    nftnl_rule_set_u32(rule, NFTNL_RULE_FAMILY, NFPROTO_IPV4);
+    nftnl_rule_set_u32(rule, NFTNL_RULE_FAMILY, NFPROTO_BRIDGE);
 
     struct nftnl_expr *expr;
+
+    // Load the Ethernet type into NFT_REG_1
+    expr = nftnl_expr_alloc("payload");
+    Tf(expr != NULL, "failed to allocate 'payload' expression for eth_type");
+    nftnl_expr_set_u32(expr, NFTNL_EXPR_PAYLOAD_BASE, NFT_PAYLOAD_LL_HEADER);
+    nftnl_expr_set_u32(expr, NFTNL_EXPR_PAYLOAD_OFFSET, 12);
+    nftnl_expr_set_u32(expr, NFTNL_EXPR_PAYLOAD_LEN, sizeof(uint16_t));
+    nftnl_expr_set_u32(expr, NFTNL_EXPR_PAYLOAD_DREG, NFT_REG_1);
+    nftnl_rule_add_expr(rule, expr);
+
+    // Compare NFT_REG_1 to ETH_P_IP
+    expr = nftnl_expr_alloc("cmp");
+    Tf(expr != NULL, "failed to allocate 'cmp' expression for eth_type");
+    nftnl_expr_set_u32(expr, NFTNL_EXPR_CMP_SREG, NFT_REG_1);
+    nftnl_expr_set_u32(expr, NFTNL_EXPR_CMP_OP, NFT_CMP_EQ);
+    uint16_t eth_ip = htons(ETH_P_IP);
+    nftnl_expr_set_data(expr, NFTNL_EXPR_CMP_DATA, &eth_ip, sizeof(eth_ip));
+    nftnl_rule_add_expr(rule, expr);
 
     // Match source IP
     expr = nftnl_expr_alloc("payload");
@@ -968,7 +1036,7 @@ void set_nft_filter_allow(const struct in_addr *src_ip, const struct in_addr *ds
 
     // Insert the rule at the beginning of the chain.
     nlh = nftnl_rule_nlmsg_build_hdr(mnl_nlmsg_batch_current(batch),
-                                     NFT_MSG_NEWRULE, NFPROTO_IPV4,
+                                     NFT_MSG_NEWRULE, NFPROTO_BRIDGE,
                                      NLM_F_CREATE | NLM_F_ACK, seq++);
     nftnl_rule_nlmsg_build_payload(nlh, rule);
     nftnl_rule_free(rule);
@@ -1001,7 +1069,7 @@ void flush_nft_filter(const struct in_addr *ip_to_flush) {
     uint32_t get_seq = time(NULL);
 
     struct nlmsghdr *nlh_get = nftnl_nlmsg_build_hdr(
-        get_buf, NFT_MSG_GETRULE, NFPROTO_IPV4, NLM_F_DUMP | NLM_F_ACK, get_seq);
+        get_buf, NFT_MSG_GETRULE, NFPROTO_BRIDGE, NLM_F_DUMP | NLM_F_ACK, get_seq);
     struct nftnl_rule *rule_template = nftnl_rule_alloc();
     Tf(rule_template != NULL, "failed to allocate rule template");
     nftnl_rule_set_str(rule_template, NFTNL_RULE_TABLE, "filter");
@@ -1044,6 +1112,11 @@ void flush_nft_filter(const struct in_addr *ip_to_flush) {
                 continue;
             }
 
+            if (nftnl_rule_get_u32(rule, NFTNL_RULE_FAMILY) != NFPROTO_BRIDGE) {
+                nftnl_rule_free(rule);
+                continue;
+            }
+
             bool is_accept_rule = false;
             bool ip_is_involved = false;
             
@@ -1074,7 +1147,7 @@ void flush_nft_filter(const struct in_addr *ip_to_flush) {
 
                 struct nlmsghdr *del_nlh = nftnl_rule_nlmsg_build_hdr(
                     mnl_nlmsg_batch_current(del_batch),
-                    NFT_MSG_DELRULE, NFPROTO_IPV4, NLM_F_ACK, del_seq++);
+                    NFT_MSG_DELRULE, NFPROTO_BRIDGE, NLM_F_ACK, del_seq++);
                 nftnl_rule_nlmsg_build_payload(del_nlh, rule);
                 mnl_nlmsg_batch_next(del_batch);
                 delete_count++;

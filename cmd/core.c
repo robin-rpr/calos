@@ -347,7 +347,8 @@ void containerize(struct container *c) {
         for (int i = 0; c->allow_map_strs[i] != NULL; i++) {
             struct in_addr ip_addr;
             parse_allow_map(c->allow_map_strs[i], &ip_addr);
-            set_nft_filter_allow(&guest_ip, &ip_addr);
+            set_nft_filter_allow(&ip_addr, &guest_ip); // Send
+            set_nft_filter_allow(&guest_ip, &ip_addr); // Receive
         }
 
         // Ensure DNAT (Destination NAT) Forward.
