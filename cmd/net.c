@@ -982,7 +982,10 @@ void set_nft_filter_allow(const struct in_addr *src_ip, const struct in_addr *ds
       return;
     }
 
-    VERBOSE("nftables filter allow rule created for %s -> %s", inet_ntoa(*src_ip), inet_ntoa(*dst_ip));
+    char src_buf[INET_ADDRSTRLEN], dst_buf[INET_ADDRSTRLEN];
+    VERBOSE("nftables filter allow rule created for %s -> %s",
+            inet_ntop(AF_INET, src_ip, src_buf, sizeof(src_buf)),
+            inet_ntop(AF_INET, dst_ip, dst_buf, sizeof(dst_buf)));
     mnl_socket_close(sock);
 }
 

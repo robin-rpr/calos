@@ -509,6 +509,10 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state)
       else
          FATAL(0, "invalid --test argument: %s; see source code", arg);
       break;
+   case 'a': // --allow
+      Ze(arg[0] == '\0', "allow mapping can't be empty string");
+      list_append((void **)&(args->c.allow_map_strs), &arg, sizeof(char *));
+      break;
    case 'b': {  // --bind
          char *src, *dst;
          for (i = 0; args->c.binds[i].src != NULL; i++) // count existing binds

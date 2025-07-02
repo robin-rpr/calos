@@ -342,13 +342,13 @@ void containerize(struct container *c) {
             create_nft_filter(&subnet_ip, cidr);
         }
 
-        //flush_nft_filter(&guest_ip);
+        flush_nft_filter(&guest_ip);
 
-        //for (int i = 0; c->allow_map_strs[i] != NULL; i++) {
-        //    struct in_addr ip_addr;
-        //    parse_allow_map(c->allow_map_strs[i], &ip_addr);
-        //    set_nft_filter_allow(&guest_ip, &ip_addr);
-        //}
+        for (int i = 0; c->allow_map_strs[i] != NULL; i++) {
+            struct in_addr ip_addr;
+            parse_allow_map(c->allow_map_strs[i], &ip_addr);
+            set_nft_filter_allow(&guest_ip, &ip_addr);
+        }
 
         // Ensure DNAT (Destination NAT) Forward.
         flush_nft_forward(&guest_ip, "tcp");
