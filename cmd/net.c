@@ -962,6 +962,7 @@ void set_nft_filter_allow(const struct in_addr *src_ip, const struct in_addr *ds
     // Immediate: Accept
     expr = nftnl_expr_alloc("immediate");
     Tf(expr != NULL, "failed to allocate 'immediate' expression");
+    nftnl_expr_set_u32(expr, NFTNL_EXPR_IMM_DREG, NFT_REG_VERDICT);
     nftnl_expr_set_u32(expr, NFTNL_EXPR_IMM_VERDICT, NF_ACCEPT);
     nftnl_rule_add_expr(rule, expr);
 
