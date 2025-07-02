@@ -165,7 +165,7 @@ int main(int argc, char *argv[])
                                .join_pid = 0,
                                .join_tag = NULL,
                                .overlay_size = NULL,
-                               .port_map_strs = list_new(sizeof(char *), 0),
+                               .publish_map_strs = list_new(sizeof(char *), 0),
                                .private_passwd = false,
                                .private_tmp = false,
                                .type = IMG_NONE,
@@ -582,9 +582,9 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state)
    case 'W':  // --write-fake
       args->c.overlay_size = arg != NULL ? arg : WRITE_FAKE_DEFAULT;
       break;
-   case 'p':  // --port
-      Ze(arg[0] == '\0', "port mapping can't be empty string");
-      list_append((void **)&(args->c.port_map_strs), &arg, sizeof(char *));
+   case 'p':  // --publish
+      Ze(arg[0] == '\0', "publish mapping can't be empty string");
+      list_append((void **)&(args->c.publish_map_strs), &arg, sizeof(char *));
       break;
    case ARGP_KEY_NO_ARGS:
       argp_state_help(state, stderr, (  ARGP_HELP_SHORT_USAGE

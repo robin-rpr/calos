@@ -218,7 +218,7 @@ void iw(struct sock_fprog *p, int i,
 #endif
 void parse_host_map(const char* map_str, char** hostname, struct in_addr* ip_addr);
 void parse_allow_map(const char* map_str, struct in_addr* ip_addr);
-void parse_port_map(const char* map_str, int* host_port, int* container_port);
+void parse_publish_map(const char* map_str, int* host_port, int* container_port);
 void join_begin(const char *join_tag);
 void join_namespace(pid_t pid, const char *ns);
 void join_namespaces(pid_t pid);
@@ -312,12 +312,7 @@ void containerize(struct container *c) {
     Zf(child_pid == -1, "failed to fork");
 
     if (child_pid > 0) {
-        /* Parent process (host).
-
-           Everything below this point is executed within the host.
-           The parent process will wait for the child to signal that it is
-           in the correct namespace, and later wait for it to exit.
-        */
+        /* Parent process */
         close(sync_pipe[1]);
         
         // Ensure bridge exists.
@@ -336,36 +331,34 @@ void containerize(struct container *c) {
         set_veth_bridge(veth_host_name, bridge_name);
         set_veth_up(veth_host_name);
 
-        // Ensure SNAT (Source NAT) masquerade.
+        // Ensure SNAT (Source NAT) Masquerade.
         if (!is_nft_masquerade_exists(&subnet_ip)) {
             create_nft_masquerade(&subnet_ip, cidr); 
         }
 
-        // Ensure DNAT (Destination NAT) denylist.
-        //if (!is_nft_deny_exists(&subnet_ip)) {
-        //    create_nft_deny(&subnet_ip, cidr);
-        //}
+        // Ensure DNAT (Destination NAT) Filter.
+        if (!is_nft_filter_exists(&subnet_ip)) {
+            VERBOSE("creating DNAT (Destination NAT) Filter");
+            create_nft_filter(&subnet_ip, cidr);
+        }
 
-        // Ensure DNAT (Destination NAT) allowlist.
-        //flush_nft_allow(&guest_ip, "tcp");
-        //flush_nft_allow(&guest_ip, "udp");
+        //flush_nft_filter(&guest_ip);
 
         //for (int i = 0; c->allow_map_strs[i] != NULL; i++) {
         //    struct in_addr ip_addr;
         //    parse_allow_map(c->allow_map_strs[i], &ip_addr);
-        //    create_nft_allow(&guest_ip, &ip_addr, "tcp");
-        //    create_nft_allow(&guest_ip, &ip_addr, "udp");
+        //    set_nft_filter_allow(&guest_ip, &ip_addr);
         //}
 
-        // Ensure DNAT (Destination NAT) publish.
-        flush_nft_publish(&guest_ip, "tcp");
-        flush_nft_publish(&guest_ip, "udp");
+        // Ensure DNAT (Destination NAT) Forward.
+        flush_nft_forward(&guest_ip, "tcp");
+        flush_nft_forward(&guest_ip, "udp");
 
-        for (int i = 0; c->port_map_strs[i] != NULL; i++) {
+        for (int i = 0; c->publish_map_strs[i] != NULL; i++) {
             int host_port, container_port;
-            parse_port_map(c->port_map_strs[i], &host_port, &container_port);
-            create_nft_publish(&guest_ip, host_port, container_port, "tcp");
-            create_nft_publish(&guest_ip, host_port, container_port, "udp");
+            parse_publish_map(c->publish_map_strs[i], &host_port, &container_port);
+            create_nft_forward(&guest_ip, host_port, container_port, "tcp");
+            create_nft_forward(&guest_ip, host_port, container_port, "udp");
         }
 
         // Ensure IP forwarding (best-effort).
@@ -375,12 +368,9 @@ void containerize(struct container *c) {
         VERBOSE("IP forwarding enabled");
         fclose(f);
         
-        /* Wait.
-
-           The child will write to the pipe only after it has entered its new
-           namespaces. The parent will read from the pipe to wait for the child
-           to be ready.
-        */
+        // The child will write to the pipe only after it has entered its new
+        // namespaces. The parent will read from the pipe to wait for the child
+        // to be ready.
         char buf;
         Zf(read(sync_pipe[0], &buf, 1) != 1 || buf != 'S', "failed to sync with child");
         
@@ -388,22 +378,16 @@ void containerize(struct container *c) {
         set_veth_ns_pid(veth_peer_name, child_pid);
         VERBOSE("parent network configured");
 
-        /* Signal (!).
-
-           The parent will write to the pipe to signal the child that it can
-           proceed. The child will read from the pipe to wait for the parent
-           to be ready.
-        */
+        // The parent will write to the pipe to signal the child that it can
+        // proceed. The child will read from the pipe to wait for the parent
+        // to be ready.
         Zf(write(sync_pipe[0], "R", 1) != 1, "failed to signal child");
         close(sync_pipe[0]);
         VERBOSE("parent synced with child");
 
-        /* Wait.
-
-           Lastly we wait for the child process to exit.
-           This can be abrupt or worst-case scenario never.
-           Below this point, we should clean up.
-        */
+        // Lastly we wait for the child process to exit.
+        // This can be abrupt or worst-case scenario never.
+        // Therefore cleanup requiring tasks should be avoided.
         int status;
         waitpid(child_pid, &status, 0);
 
@@ -411,12 +395,7 @@ void containerize(struct container *c) {
         exit(WIFEXITED(status) ? WEXITSTATUS(status) : 1);
 
     } else {
-        /* Child process (container).
-
-           Everything below this point is executed within the container.
-           The child process will wait for the parent to signal that it is
-           in the correct namespace and ready to proceed.
-        */
+        /* Child process */
         close(sync_pipe[0]);
 
         if (c->join_pid) {
@@ -442,19 +421,13 @@ void containerize(struct container *c) {
         if (c->join)
             join_end(c->join_ct);
 
-        /* Signal (!).
-
-           The child will write to the pipe to signal the parent that it is
-           in the correct namespaces. The parent will read from the pipe to
-           wait for the child to be ready.
-        */
+        // The child will write to the pipe to signal the parent that
+        // it is in the correct namespaces. The parent will read from the pipe
+        // to wait for the child to be ready.
         Zf(write(sync_pipe[1], "S", 1) != 1, "child failed to send sync signal");
 
-        /* Wait.
-
-           The child will read from the pipe to wait for the parent to be ready.
-           After this, the child can proceed until it exits.
-        */
+        // The child will read from the pipe to wait for the parent to be ready.
+        // After this, the child can proceed until it exits.
         char ack;
         Zf(read(sync_pipe[1], &ack, 1) != 1 || ack != 'R', "child failed to receive ready signal");
         close(sync_pipe[1]);
@@ -498,7 +471,7 @@ void containerize(struct container *c) {
         }
 
         // Add host entries to /etc/hosts
-        // It's a kind of poor-man's magic DNS.
+        // This implements a basic hostname resolution mechanism.
         for (int i = 0; c->host_map_strs[i] != NULL; i++) {
             char *hostname;
             struct in_addr ip_addr;
@@ -700,7 +673,7 @@ void parse_allow_map(const char* map_str, struct in_addr* ip_addr) {
 }
 
 /* Helper function to parse "HOST_PORT:CONTAINER_PORT" string. */
-void parse_port_map(const char* map_str, int* host_port, int* container_port) {
+void parse_publish_map(const char* map_str, int* host_port, int* container_port) {
     char* str = strdup(map_str);
     char* colon = strchr(str, ':');
     Tf(colon != NULL, "invalid port entry format. Expected HOST_PORT:CONTAINER_PORT");

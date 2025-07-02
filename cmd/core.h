@@ -44,7 +44,7 @@ struct container {
    pid_t join_pid;        // process in existing namespace to join
    char *join_tag;        // identifier for synchronized join
    char *overlay_size;    // size of overlaid tmpfs (NULL for no overlay)
-   char **port_map_strs;  // e.g. "8080:80"
+   char **publish_map_strs;  // e.g. "8080:80"
    bool private_passwd;   // don't bind custom /etc/{passwd,group}
    bool private_tmp;      // don't bind host's /tmp
    enum img_type type;    // directory, SquashFS, etc.

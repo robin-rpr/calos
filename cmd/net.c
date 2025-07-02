@@ -37,6 +37,7 @@
 #define NFPROTO_IPV4 2
 
 #define NF_ACCEPT 1
+#define NF_DROP   0
 #define NF_INET_POST_ROUTING 4
 
 #define NFT_PRIORITY_NAT_POSTROUTING -100
@@ -115,6 +116,7 @@ bool is_link_exists(const char *link_name) {
         return false;
     } else {
         VERBOSE("link '%s' found", link_name);
+        rtnl_link_put(link);
         nl_socket_free(sock);
         return true;
     }
@@ -157,10 +159,12 @@ void create_bridge(const char *bridge_name, const struct in_addr *ip, int cidr) 
     Zf(rtnl_link_get_kernel(sock, 0, bridge_name, &link) < 0,
        "failed to get new bridge link '%s'", bridge_name);
     int if_index = rtnl_link_get_ifindex(link);
+    rtnl_link_put(link);
 
     // Configure the IP Address & CIDR.
     // Allocate an address, set the local IP address, and set the ifindex.
     struct rtnl_addr *addr = rtnl_addr_alloc();
+    Tf(addr != NULL, "failed to allocate 'address'");
     char ip_str[INET_ADDRSTRLEN + 4]; // +4 for slash + 32-bit CIDR.
     struct nl_addr *local_ip;
     
@@ -194,6 +198,7 @@ bool is_bridge_exists(const char *bridge_name) {
         return false;
     } else {
         VERBOSE("bridge '%s' found", bridge_name);
+        rtnl_link_put(link);
         nl_socket_free(sock);
         return true;
     }
@@ -341,6 +346,7 @@ void set_veth_route(const char *veth_name, const struct in_addr *gateway, const 
 
     // Allocate a route.
     struct rtnl_route *route_change = rtnl_route_alloc();
+    Tf(route_change != NULL, "failed to allocate 'route'");
         
     // Parse the route destination.
     struct nl_addr *destination_addr;
@@ -354,6 +360,7 @@ void set_veth_route(const char *veth_name, const struct in_addr *gateway, const 
 
     // Allocate a nexthop.
     struct rtnl_nexthop *nexthop = rtnl_route_nh_alloc();
+    Tf(nexthop != NULL, "failed to allocate 'nexthop'");
     rtnl_route_nh_set_ifindex(nexthop, rtnl_link_get_ifindex(link));
     rtnl_route_nh_set_gateway(nexthop, gateway_addr);
     rtnl_route_add_nexthop(route_change, nexthop);
@@ -363,6 +370,7 @@ void set_veth_route(const char *veth_name, const struct in_addr *gateway, const 
     Zf(rtnl_route_add(sock, route_change, 0) < 0, "failed to add default route to '%s'", veth_name);
 
     rtnl_route_put(route_change);
+    rtnl_link_put(link);
 
    // Free the socket.
    VERBOSE("veth '%s' default route set to '%s' via '%s'", veth_name, destination, inet_ntoa(*gateway));
@@ -381,6 +389,7 @@ void set_veth_ip(const char *veth_name, const struct in_addr *ip, int cidr) {
 
     // Allocate an address.
     struct rtnl_addr *addr_change = rtnl_addr_alloc();
+    Tf(addr_change != NULL, "failed to allocate 'address'");
     struct nl_addr *parsed_ip;
 
     char ip_str[INET_ADDRSTRLEN + 4];
@@ -398,6 +407,7 @@ void set_veth_ip(const char *veth_name, const struct in_addr *ip, int cidr) {
     Zf(rtnl_addr_add(sock, addr_change, 0) < 0, "failed to add address to veth '%s'", veth_name);
 
     rtnl_addr_put(addr_change);
+    rtnl_link_put(link);
 
     // Free the socket.
     VERBOSE("veth '%s' IP address set to '%s'", veth_name, ip_str);
@@ -496,6 +506,7 @@ void create_nft_masquerade(const struct in_addr *subnet, int cidr) {
 
     // Create the 'nat' table.
     struct nftnl_table *table = nftnl_table_alloc();
+    Tf(table != NULL, "failed to allocate 'table'");
     nftnl_table_set_u32(table, NFTNL_TABLE_FAMILY, NFPROTO_IPV4);
     nftnl_table_set_str(table, NFTNL_TABLE_NAME, "nat");
     nlh = nftnl_table_nlmsg_build_hdr(mnl_nlmsg_batch_current(batch),
@@ -507,6 +518,7 @@ void create_nft_masquerade(const struct in_addr *subnet, int cidr) {
 
     // Create the 'postrouting' chain.
     struct nftnl_chain *chain = nftnl_chain_alloc();
+    Tf(chain != NULL, "failed to allocate 'chain'");
     nftnl_chain_set_str(chain, NFTNL_CHAIN_TABLE, "nat");
     nftnl_chain_set_str(chain, NFTNL_CHAIN_NAME, "postrouting");
     nftnl_chain_set_str(chain, NFTNL_CHAIN_TYPE, "nat");
@@ -523,6 +535,7 @@ void create_nft_masquerade(const struct in_addr *subnet, int cidr) {
 
     // Create an empty 'rule'.
     struct nftnl_rule *rule = nftnl_rule_alloc();
+    Tf(rule != NULL, "failed to allocate 'rule'");
     nftnl_rule_set_str(rule, NFTNL_RULE_TABLE, "nat");
     nftnl_rule_set_str(rule, NFTNL_RULE_CHAIN, "postrouting");
     nftnl_rule_set_u32(rule, NFTNL_RULE_FAMILY, NFPROTO_IPV4);
@@ -530,6 +543,7 @@ void create_nft_masquerade(const struct in_addr *subnet, int cidr) {
     // Create a match 'expr'ession for the subnet.
     struct nftnl_expr *match;
     match = nftnl_expr_alloc("payload");
+    Tf(match != NULL, "failed to allocate 'payload' expression");
     nftnl_expr_set_u32(match, NFTNL_EXPR_PAYLOAD_BASE, NFT_PAYLOAD_NETWORK_HEADER);
     nftnl_expr_set_u32(match, NFTNL_EXPR_PAYLOAD_OFFSET, offsetof(struct iphdr, saddr));
     nftnl_expr_set_u32(match, NFTNL_EXPR_PAYLOAD_LEN, sizeof(uint32_t));
@@ -539,6 +553,7 @@ void create_nft_masquerade(const struct in_addr *subnet, int cidr) {
     // Create a 'bitwise' allocation for the CIDR.
     uint32_t mask = htonl(0xFFFFFFFF << (32 - cidr));
     match = nftnl_expr_alloc("bitwise");
+    Tf(match != NULL, "failed to allocate 'bitwise' expression");
     nftnl_expr_set_u32(match, NFTNL_EXPR_BITWISE_SREG, NFT_REG_1);
     nftnl_expr_set_u32(match, NFTNL_EXPR_BITWISE_DREG, NFT_REG_1);
     nftnl_expr_set_u32(match, NFTNL_EXPR_BITWISE_LEN, sizeof(uint32_t));
@@ -549,6 +564,7 @@ void create_nft_masquerade(const struct in_addr *subnet, int cidr) {
 
     // Create a comparison 'expr'ession for the subnet.
     match = nftnl_expr_alloc("cmp");
+    Tf(match != NULL, "failed to allocate 'cmp' expression");
     nftnl_expr_set_u32(match, NFTNL_EXPR_CMP_SREG, NFT_REG_1);
     nftnl_expr_set_u32(match, NFTNL_EXPR_CMP_OP, NFT_CMP_EQ);
     nftnl_expr_set_data(match, NFTNL_EXPR_CMP_DATA, &subnet->s_addr, sizeof(subnet->s_addr));
@@ -556,6 +572,7 @@ void create_nft_masquerade(const struct in_addr *subnet, int cidr) {
 
     // Create the 'masq' expression.
     struct nftnl_expr *expr = nftnl_expr_alloc("masq");
+    Tf(expr != NULL, "failed to allocate 'masq' expression");
     nftnl_rule_add_expr(rule, expr);
 
     nlh = nftnl_rule_nlmsg_build_hdr(mnl_nlmsg_batch_current(batch),
@@ -594,6 +611,7 @@ bool is_nft_masquerade_exists(const struct in_addr *subnet) {
     struct nlmsghdr *nlh = nftnl_rule_nlmsg_build_hdr(buf, NFT_MSG_GETRULE, NFPROTO_IPV4, NLM_F_DUMP, seq);
 
     struct nftnl_rule *req = nftnl_rule_alloc();
+    Tf(req != NULL, "failed to allocate 'rule'");
     nftnl_rule_set_str(req, NFTNL_RULE_TABLE, "nat");
     nftnl_rule_set_str(req, NFTNL_RULE_CHAIN, "postrouting");
     nftnl_rule_nlmsg_build_payload(nlh, req);
@@ -610,6 +628,7 @@ bool is_nft_masquerade_exists(const struct in_addr *subnet) {
             if (nlh->nlmsg_type != ((NFNL_SUBSYS_NFTABLES << 8) | NFT_MSG_NEWRULE)) continue;
 
             struct nftnl_rule *rule = nftnl_rule_alloc();
+            Tf(rule != NULL, "failed to allocate 'rule'");
             nftnl_rule_nlmsg_parse(nlh, rule);
 
             const char *table = nftnl_rule_get_str(rule, NFTNL_RULE_TABLE);
@@ -633,9 +652,9 @@ bool is_nft_masquerade_exists(const struct in_addr *subnet) {
                 } else if (strcmp(name, "bitwise") == 0) {
                     has_bitwise = true;
                 } else if (strcmp(name, "cmp") == 0) {
-                    uint32_t len = 0;
-                     const void *data = nftnl_expr_get_data(expr, NFTNL_EXPR_CMP_DATA, &len);
-                     if (data && len == sizeof(uint32_t)) {
+                    uint32_t data_len = 0;
+                     const void *data = nftnl_expr_get_data(expr, NFTNL_EXPR_CMP_DATA, &data_len);
+                     if (data && data_len == sizeof(uint32_t)) {
                         memcpy(&cmp_val, data, sizeof(cmp_val));
                         has_cmp = true;
                      }
@@ -649,21 +668,441 @@ bool is_nft_masquerade_exists(const struct in_addr *subnet) {
 
             if (has_payload && has_bitwise && has_cmp && has_masq) {
                 if (cmp_val == subnet->s_addr) {
+                    mnl_socket_close(sock);
                     return true;
                 }
             }
         }
 
-        if (len == 0) return false;
+        if (len == 0) {
+            mnl_socket_close(sock);
+            return false;
+        }
     }
 
     mnl_socket_close(sock);
     return false;
 }
 
-/* Create a DNAT (Destination NAT) publish.
+/* Create a DNAT (Destination NAT) filter.
 
-   This function will create a DNAT (Destination NAT) publish rule.
+    This function creates a filter rule that drops all traffic that is not
+    within the specified subnet.
+
+    1. Create the 'filter' table.
+    2. Create the 'forward' chain.
+    3. Create the default drop rule for point-to-point traffic.
+    4. Send the batch command to the kernel.
+
+    The assumption is that the subnet is a private subnet, and that the
+    rules doesn't already exist.
+ */
+void create_nft_filter(const struct in_addr *subnet, int cidr) {
+    struct mnl_socket *sock = mnl_socket_open(NETLINK_NETFILTER);
+    Tf(sock != NULL, "Failed to open netlink socket for filter");
+    Zf(mnl_socket_bind(sock, 0, MNL_SOCKET_AUTOPID) < 0, "mnl bind failed for filter");
+
+    char buf[MNL_SOCKET_BUFFER_SIZE * 2];
+    uint32_t seq = time(NULL);
+
+    struct mnl_nlmsg_batch *batch = mnl_nlmsg_batch_start(buf, sizeof(buf));
+    nftnl_batch_begin(mnl_nlmsg_batch_current(batch), seq++);
+    mnl_nlmsg_batch_next(batch);
+    struct nlmsghdr *nlh;
+
+    // Create the 'filter' table.
+    struct nftnl_table *table = nftnl_table_alloc();
+    Tf(table != NULL, "failed to allocate 'filter' table");
+    nftnl_table_set_u32(table, NFTNL_TABLE_FAMILY, NFPROTO_IPV4);
+    nftnl_table_set_str(table, NFTNL_TABLE_NAME, "filter");
+    nlh = nftnl_table_nlmsg_build_hdr(mnl_nlmsg_batch_current(batch),
+                                     NFT_MSG_NEWTABLE, NFPROTO_IPV4,
+                                     NLM_F_CREATE | NLM_F_ACK, seq++);
+    nftnl_table_nlmsg_build_payload(nlh, table);
+    nftnl_table_free(table);
+    mnl_nlmsg_batch_next(batch);
+
+    // Create the 'forward' chain.
+    struct nftnl_chain *chain = nftnl_chain_alloc();
+    Tf(chain != NULL, "failed to allocate 'forward' chain");
+    nftnl_chain_set_str(chain, NFTNL_CHAIN_TABLE, "filter");
+    nftnl_chain_set_str(chain, NFTNL_CHAIN_NAME, "forward");
+    nftnl_chain_set_str(chain, NFTNL_CHAIN_TYPE, "filter");
+    nftnl_chain_set_u32(chain, NFTNL_CHAIN_HOOKNUM, NF_IP_FORWARD);
+    nftnl_chain_set_u32(chain, NFTNL_CHAIN_PRIO, 0);
+    nftnl_chain_set_u32(chain, NFTNL_CHAIN_POLICY, NF_ACCEPT); // Default policy is accept.
+
+    nlh = nftnl_chain_nlmsg_build_hdr(mnl_nlmsg_batch_current(batch),
+                                      NFT_MSG_NEWCHAIN, NFPROTO_IPV4,
+                                      NLM_F_CREATE | NLM_F_ACK, seq++);
+    nftnl_chain_nlmsg_build_payload(nlh, chain);
+    nftnl_chain_free(chain);
+    mnl_nlmsg_batch_next(batch);
+
+    // Create the default drop rule for container-to-container traffic.
+    struct nftnl_rule *rule = nftnl_rule_alloc();
+    Tf(rule != NULL, "failed to allocate 'default drop' rule");
+    nftnl_rule_set_str(rule, NFTNL_RULE_TABLE, "filter");
+    nftnl_rule_set_str(rule, NFTNL_RULE_CHAIN, "forward");
+    nftnl_rule_set_u32(rule, NFTNL_RULE_FAMILY, NFPROTO_IPV4);
+
+    struct nftnl_expr *expr;
+
+    // Match source address within the subnet
+    expr = nftnl_expr_alloc("payload");
+    Tf(expr != NULL, "failed to allocate 'payload' expression");
+    nftnl_expr_set_u32(expr, NFTNL_EXPR_PAYLOAD_BASE, NFT_PAYLOAD_NETWORK_HEADER);
+    nftnl_expr_set_u32(expr, NFTNL_EXPR_PAYLOAD_OFFSET, offsetof(struct iphdr, saddr));
+    nftnl_expr_set_u32(expr, NFTNL_EXPR_PAYLOAD_LEN, sizeof(uint32_t));
+    nftnl_expr_set_u32(expr, NFTNL_EXPR_PAYLOAD_DREG, NFT_REG_1);
+    nftnl_rule_add_expr(rule, expr);
+
+    uint32_t mask = htonl(0xFFFFFFFF << (32 - cidr));
+    expr = nftnl_expr_alloc("bitwise");
+    Tf(expr != NULL, "failed to allocate 'bitwise' expression");
+    nftnl_expr_set_u32(expr, NFTNL_EXPR_BITWISE_SREG, NFT_REG_1);
+    nftnl_expr_set_u32(expr, NFTNL_EXPR_BITWISE_DREG, NFT_REG_1);
+    nftnl_expr_set_u32(expr, NFTNL_EXPR_BITWISE_LEN, sizeof(uint32_t));
+    nftnl_expr_set_data(expr, NFTNL_EXPR_BITWISE_MASK, &mask, sizeof(mask));
+    uint32_t zero = 0;
+    nftnl_expr_set_data(expr, NFTNL_EXPR_BITWISE_XOR, &zero, sizeof(zero));
+    nftnl_rule_add_expr(rule, expr);
+
+    expr = nftnl_expr_alloc("cmp");
+    Tf(expr != NULL, "failed to allocate 'cmp' expression");
+    nftnl_expr_set_u32(expr, NFTNL_EXPR_CMP_SREG, NFT_REG_1);
+    nftnl_expr_set_u32(expr, NFTNL_EXPR_CMP_OP, NFT_CMP_EQ);
+    nftnl_expr_set_data(expr, NFTNL_EXPR_CMP_DATA, &subnet->s_addr, sizeof(subnet->s_addr));
+    nftnl_rule_add_expr(rule, expr);
+
+    // Match destination address within the subnet
+    expr = nftnl_expr_alloc("payload");
+    Tf(expr != NULL, "failed to allocate 'payload' expression");
+    nftnl_expr_set_u32(expr, NFTNL_EXPR_PAYLOAD_BASE, NFT_PAYLOAD_NETWORK_HEADER);
+    nftnl_expr_set_u32(expr, NFTNL_EXPR_PAYLOAD_OFFSET, offsetof(struct iphdr, daddr));
+    nftnl_expr_set_u32(expr, NFTNL_EXPR_PAYLOAD_LEN, sizeof(uint32_t));
+    nftnl_expr_set_u32(expr, NFTNL_EXPR_PAYLOAD_DREG, NFT_REG_1); // Can reuse REG_1
+    nftnl_rule_add_expr(rule, expr);
+
+    expr = nftnl_expr_alloc("bitwise");
+    Tf(expr != NULL, "failed to allocate 'bitwise' expression");
+    nftnl_expr_set_u32(expr, NFTNL_EXPR_BITWISE_SREG, NFT_REG_1);
+    nftnl_expr_set_u32(expr, NFTNL_EXPR_BITWISE_DREG, NFT_REG_1);
+    nftnl_expr_set_u32(expr, NFTNL_EXPR_BITWISE_LEN, sizeof(uint32_t));
+    nftnl_expr_set_data(expr, NFTNL_EXPR_BITWISE_MASK, &mask, sizeof(mask));
+    nftnl_expr_set_data(expr, NFTNL_EXPR_BITWISE_XOR, &zero, sizeof(zero));
+    nftnl_rule_add_expr(rule, expr);
+
+    expr = nftnl_expr_alloc("cmp");
+    Tf(expr != NULL, "failed to allocate 'cmp' expression");
+    nftnl_expr_set_u32(expr, NFTNL_EXPR_CMP_SREG, NFT_REG_1);
+    nftnl_expr_set_u32(expr, NFTNL_EXPR_CMP_OP, NFT_CMP_EQ);
+    nftnl_expr_set_data(expr, NFTNL_EXPR_CMP_DATA, &subnet->s_addr, sizeof(subnet->s_addr));
+    nftnl_rule_add_expr(rule, expr);
+
+    // Immediate: Drop
+    expr = nftnl_expr_alloc("immediate");
+    Tf(expr != NULL, "failed to allocate 'immediate' expression");
+    nftnl_expr_set_u32(expr, NFTNL_EXPR_IMM_DREG, NFT_REG_VERDICT);
+    nftnl_expr_set_u32(expr, NFTNL_EXPR_IMM_VERDICT, NF_DROP);
+    nftnl_rule_add_expr(rule, expr);
+
+    nlh = nftnl_rule_nlmsg_build_hdr(mnl_nlmsg_batch_current(batch),
+                                     NFT_MSG_NEWRULE, NFPROTO_IPV4,
+                                     NLM_F_CREATE | NLM_F_APPEND | NLM_F_ACK, seq++);
+    nftnl_rule_nlmsg_build_payload(nlh, rule);
+    nftnl_rule_free(rule);
+    mnl_nlmsg_batch_next(batch);
+
+    nftnl_batch_end(mnl_nlmsg_batch_current(batch), seq++);
+    mnl_nlmsg_batch_next(batch);
+
+    if (mnl_socket_sendto(sock, mnl_nlmsg_batch_head(batch), mnl_nlmsg_batch_size(batch)) < 0) {
+      Zf(1, "kernel rejected filter rule");
+      mnl_socket_close(sock);
+      return;
+    }
+
+    VERBOSE("nftables filter created for subnet %s/%d", inet_ntoa(*subnet), cidr);
+    mnl_socket_close(sock);
+}
+
+/* Check if the container-to-container filter drop rule exists. */
+bool is_nft_filter_exists(const struct in_addr *subnet) {
+    struct mnl_socket *sock = mnl_socket_open(NETLINK_NETFILTER);
+    Tf(sock != NULL, "Failed to open netlink socket for filter check");
+    Zf(mnl_socket_bind(sock, 0, MNL_SOCKET_AUTOPID) < 0, "mnl bind failed for filter check");
+
+    char buf[MNL_SOCKET_BUFFER_SIZE];
+    uint32_t seq = time(NULL);
+
+    struct nlmsghdr *nlh = nftnl_rule_nlmsg_build_hdr(buf, NFT_MSG_GETRULE, NFPROTO_IPV4, NLM_F_DUMP, seq);
+    struct nftnl_rule *req = nftnl_rule_alloc();
+    Tf(req != NULL, "failed to allocate 'rule'");
+    nftnl_rule_set_str(req, NFTNL_RULE_TABLE, "filter");
+    nftnl_rule_set_str(req, NFTNL_RULE_CHAIN, "forward");
+    nftnl_rule_nlmsg_build_payload(nlh, req);
+    nftnl_rule_free(req);
+
+    if (mnl_socket_sendto(sock, nlh, nlh->nlmsg_len) < 0) {
+        mnl_socket_close(sock);
+        return false;
+    }
+
+    int len;
+    while ((len = mnl_socket_recvfrom(sock, buf, sizeof(buf))) > 0) {
+        struct nlmsghdr *h = (struct nlmsghdr *)buf;
+        for (; mnl_nlmsg_ok(h, len); h = mnl_nlmsg_next(h, &len)) {
+            if (h->nlmsg_type == NLMSG_DONE || h->nlmsg_type == NLMSG_ERROR) {
+                 mnl_socket_close(sock);
+                 return false;
+            }
+            if (h->nlmsg_type != ((NFNL_SUBSYS_NFTABLES << 8) | NFT_MSG_NEWRULE)) continue;
+
+            struct nftnl_rule *rule = nftnl_rule_alloc();
+            Tf(rule != NULL, "failed to allocate 'rule'");
+            nftnl_rule_nlmsg_parse(h, rule);
+
+            int saddr_matched = 0;
+            int daddr_matched = 0;
+            bool has_drop_verdict = false;
+            
+            struct nftnl_expr_iter *it = nftnl_expr_iter_create(rule);
+            struct nftnl_expr *expr;
+            while ((expr = nftnl_expr_iter_next(it)) != NULL) {
+                const char *name = nftnl_expr_get_str(expr, NFTNL_EXPR_NAME);
+                if (!name) continue;
+
+                if (strcmp(name, "payload") == 0) {
+                    uint32_t offset = nftnl_expr_get_u32(expr, NFTNL_EXPR_PAYLOAD_OFFSET);
+                    if (offset == offsetof(struct iphdr, saddr)) saddr_matched = 1;
+                    else if (offset == offsetof(struct iphdr, daddr)) daddr_matched = 1;
+                } else if (strcmp(name, "bitwise") == 0) {
+                    if (saddr_matched == 1) saddr_matched = 2;
+                    if (daddr_matched == 1) daddr_matched = 2;
+                } else if (strcmp(name, "cmp") == 0) {
+                    uint32_t data_len = 0;
+                    const void *data = nftnl_expr_get_data(expr, NFTNL_EXPR_CMP_DATA, &data_len);
+                    if (data && data_len == sizeof(uint32_t) && memcmp(data, &subnet->s_addr, sizeof(uint32_t)) == 0) {
+                        if (saddr_matched == 2) saddr_matched = 3;
+                        if (daddr_matched == 2) daddr_matched = 3;
+                    }
+                } else if (strcmp(name, "immediate") == 0) {
+                    if (nftnl_expr_get_u32(expr, NFTNL_EXPR_IMM_VERDICT) == NF_DROP) has_drop_verdict = true;
+                }
+            }
+            nftnl_expr_iter_destroy(it);
+            nftnl_rule_free(rule);
+
+            if (saddr_matched == 3 && daddr_matched == 3 && has_drop_verdict) {
+                mnl_socket_close(sock);
+                return true;
+            }
+        }
+    }
+
+    mnl_socket_close(sock);
+    return false;
+}
+
+/* Set a filter allow rule for specific source and destination IPs. */
+void set_nft_filter_allow(const struct in_addr *src_ip, const struct in_addr *dst_ip) {
+    struct mnl_socket *sock = mnl_socket_open(NETLINK_NETFILTER);
+    Tf(sock != NULL, "Failed to open netlink socket for filter allow");
+    Zf(mnl_socket_bind(sock, 0, MNL_SOCKET_AUTOPID) < 0, "mnl bind failed for filter allow");
+
+    char buf[MNL_SOCKET_BUFFER_SIZE];
+    uint32_t seq = time(NULL);
+
+    struct mnl_nlmsg_batch *batch = mnl_nlmsg_batch_start(buf, sizeof(buf));
+    nftnl_batch_begin(mnl_nlmsg_batch_current(batch), seq++);
+    mnl_nlmsg_batch_next(batch);
+    struct nlmsghdr *nlh;
+
+    struct nftnl_rule *rule = nftnl_rule_alloc();
+    Tf(rule != NULL, "failed to allocate 'rule'");
+    nftnl_rule_set_str(rule, NFTNL_RULE_TABLE, "filter");
+    nftnl_rule_set_str(rule, NFTNL_RULE_CHAIN, "forward");
+    nftnl_rule_set_u32(rule, NFTNL_RULE_FAMILY, NFPROTO_IPV4);
+
+    struct nftnl_expr *expr;
+
+    // Match source IP
+    expr = nftnl_expr_alloc("payload");
+    Tf(expr != NULL, "failed to allocate 'payload' expression");
+    nftnl_expr_set_u32(expr, NFTNL_EXPR_PAYLOAD_BASE, NFT_PAYLOAD_NETWORK_HEADER);
+    nftnl_expr_set_u32(expr, NFTNL_EXPR_PAYLOAD_OFFSET, offsetof(struct iphdr, saddr));
+    nftnl_expr_set_u32(expr, NFTNL_EXPR_PAYLOAD_LEN, sizeof(uint32_t));
+    nftnl_expr_set_u32(expr, NFTNL_EXPR_PAYLOAD_DREG, NFT_REG_1);
+    nftnl_rule_add_expr(rule, expr);
+
+    expr = nftnl_expr_alloc("cmp");
+    Tf(expr != NULL, "failed to allocate 'cmp' expression");
+    nftnl_expr_set_u32(expr, NFTNL_EXPR_CMP_SREG, NFT_REG_1);
+    nftnl_expr_set_u32(expr, NFTNL_EXPR_CMP_OP, NFT_CMP_EQ);
+    nftnl_expr_set_data(expr, NFTNL_EXPR_CMP_DATA, &src_ip->s_addr, sizeof(src_ip->s_addr));
+    nftnl_rule_add_expr(rule, expr);
+
+    // Match destination IP
+    expr = nftnl_expr_alloc("payload");
+    Tf(expr != NULL, "failed to allocate 'payload' expression");
+    nftnl_expr_set_u32(expr, NFTNL_EXPR_PAYLOAD_BASE, NFT_PAYLOAD_NETWORK_HEADER);
+    nftnl_expr_set_u32(expr, NFTNL_EXPR_PAYLOAD_OFFSET, offsetof(struct iphdr, daddr));
+    nftnl_expr_set_u32(expr, NFTNL_EXPR_PAYLOAD_LEN, sizeof(uint32_t));
+    nftnl_expr_set_u32(expr, NFTNL_EXPR_PAYLOAD_DREG, NFT_REG_1); // Reuse REG_1
+    nftnl_rule_add_expr(rule, expr);
+
+    expr = nftnl_expr_alloc("cmp");
+    Tf(expr != NULL, "failed to allocate 'cmp' expression");
+    nftnl_expr_set_u32(expr, NFTNL_EXPR_CMP_SREG, NFT_REG_1);
+    nftnl_expr_set_u32(expr, NFTNL_EXPR_CMP_OP, NFT_CMP_EQ);
+    nftnl_expr_set_data(expr, NFTNL_EXPR_CMP_DATA, &dst_ip->s_addr, sizeof(dst_ip->s_addr));
+    nftnl_rule_add_expr(rule, expr);
+
+    // Immediate: Accept
+    expr = nftnl_expr_alloc("immediate");
+    Tf(expr != NULL, "failed to allocate 'immediate' expression");
+    nftnl_expr_set_u32(expr, NFTNL_EXPR_IMM_VERDICT, NF_ACCEPT);
+    nftnl_rule_add_expr(rule, expr);
+
+    // Insert the rule at the beginning of the chain.
+    nlh = nftnl_rule_nlmsg_build_hdr(mnl_nlmsg_batch_current(batch),
+                                     NFT_MSG_NEWRULE, NFPROTO_IPV4,
+                                     NLM_F_CREATE | NLM_F_ACK, seq++);
+    nftnl_rule_nlmsg_build_payload(nlh, rule);
+    nftnl_rule_free(rule);
+    mnl_nlmsg_batch_next(batch);
+
+    nftnl_batch_end(mnl_nlmsg_batch_current(batch), seq++);
+    mnl_nlmsg_batch_next(batch);
+
+    if (mnl_socket_sendto(sock, mnl_nlmsg_batch_head(batch), mnl_nlmsg_batch_size(batch)) < 0) {
+      Zf(1, "kernel rejected filter allow rule");
+      mnl_socket_close(sock);
+      return;
+    }
+
+    VERBOSE("nftables filter allow rule created for %s -> %s", inet_ntoa(*src_ip), inet_ntoa(*dst_ip));
+    mnl_socket_close(sock);
+}
+
+/* Flush all filter allow rules involving a specific IP address. */
+void flush_nft_filter(const struct in_addr *ip_to_flush) {
+    struct mnl_socket *sock = mnl_socket_open(NETLINK_NETFILTER);
+    Tf(sock != NULL, "failed to open netlink socket for filter flush");
+    Zf(mnl_socket_bind(sock, 0, MNL_SOCKET_AUTOPID) < 0, "failed to bind socket for filter flush");
+
+    char get_buf[MNL_SOCKET_BUFFER_SIZE];
+    char del_buf[MNL_SOCKET_BUFFER_SIZE];
+    uint32_t get_seq = time(NULL);
+
+    struct nlmsghdr *nlh_get = nftnl_nlmsg_build_hdr(
+        get_buf, NFT_MSG_GETRULE, NFPROTO_IPV4, NLM_F_DUMP | NLM_F_ACK, get_seq);
+    struct nftnl_rule *rule_template = nftnl_rule_alloc();
+    Tf(rule_template != NULL, "failed to allocate rule template");
+    nftnl_rule_set_str(rule_template, NFTNL_RULE_TABLE, "filter");
+    nftnl_rule_set_str(rule_template, NFTNL_RULE_CHAIN, "forward");
+    nftnl_rule_nlmsg_build_payload(nlh_get, rule_template);
+    nftnl_rule_free(rule_template);
+
+    if (mnl_socket_sendto(sock, nlh_get, nlh_get->nlmsg_len) < 0) {
+        mnl_socket_close(sock);
+        return;
+    }
+
+    struct mnl_nlmsg_batch *del_batch = mnl_nlmsg_batch_start(del_buf, sizeof(del_buf));
+    uint32_t del_seq = time(NULL);
+    int delete_count = 0;
+
+    nftnl_batch_begin(mnl_nlmsg_batch_current(del_batch), del_seq++);
+    mnl_nlmsg_batch_next(del_batch);
+
+    int ret;
+    char recv_buf[MNL_SOCKET_BUFFER_SIZE];
+    bool done = false;
+
+    while (!done && (ret = mnl_socket_recvfrom(sock, recv_buf, sizeof(recv_buf))) > 0) {
+        struct nlmsghdr *nlh;
+        int remaining_len = ret;
+
+        for (nlh = (struct nlmsghdr *)recv_buf; mnl_nlmsg_ok(nlh, remaining_len); nlh = mnl_nlmsg_next(nlh, &remaining_len)) {
+            if (nlh->nlmsg_type == NLMSG_DONE || nlh->nlmsg_type == NLMSG_ERROR) {
+                done = true;
+                break;
+            }
+
+            if (nlh->nlmsg_type != ((NFNL_SUBSYS_NFTABLES << 8) | NFT_MSG_NEWRULE)) continue;
+
+            struct nftnl_rule *rule = nftnl_rule_alloc();
+            Tf(rule != NULL, "failed to allocate rule for parsing");
+            if (nftnl_rule_nlmsg_parse(nlh, rule) < 0) {
+                nftnl_rule_free(rule);
+                continue;
+            }
+
+            bool is_accept_rule = false;
+            bool ip_is_involved = false;
+            
+            struct nftnl_expr_iter *iter = nftnl_expr_iter_create(rule);
+            struct nftnl_expr *expr;
+
+            while ((expr = nftnl_expr_iter_next(iter)) != NULL) {
+                const char *expr_name = nftnl_expr_get_str(expr, NFTNL_EXPR_NAME);
+                if (!expr_name) continue;
+
+                if (strcmp(expr_name, "immediate") == 0) {
+                    if (nftnl_expr_get_u32(expr, NFTNL_EXPR_IMM_VERDICT) == NF_ACCEPT) {
+                        is_accept_rule = true;
+                    }
+                } else if (strcmp(expr_name, "cmp") == 0) {
+                    uint32_t data_len;
+                    const void *addr = nftnl_expr_get_data(expr, NFTNL_EXPR_CMP_DATA, &data_len);
+                    if (addr && data_len == sizeof(ip_to_flush->s_addr) && memcmp(addr, &ip_to_flush->s_addr, sizeof(ip_to_flush->s_addr)) == 0) {
+                        ip_is_involved = true;
+                    }
+                }
+            }
+            nftnl_expr_iter_destroy(iter);
+
+            if (is_accept_rule && ip_is_involved) {
+                nftnl_rule_set_str(rule, NFTNL_RULE_TABLE, "filter");
+                nftnl_rule_set_str(rule, NFTNL_RULE_CHAIN, "forward");
+
+                struct nlmsghdr *del_nlh = nftnl_rule_nlmsg_build_hdr(
+                    mnl_nlmsg_batch_current(del_batch),
+                    NFT_MSG_DELRULE, NFPROTO_IPV4, NLM_F_ACK, del_seq++);
+                nftnl_rule_nlmsg_build_payload(del_nlh, rule);
+                mnl_nlmsg_batch_next(del_batch);
+                delete_count++;
+            }
+            nftnl_rule_free(rule);
+        }
+    }
+    if (ret < 0) {
+        perror("mnl_socket_recvfrom in flush_nft_filter");
+    }
+
+    if (delete_count > 0) {
+        nftnl_batch_end(mnl_nlmsg_batch_current(del_batch), del_seq++);
+        mnl_nlmsg_batch_next(del_batch);
+
+        Zf(mnl_socket_sendto(sock, mnl_nlmsg_batch_head(del_batch), mnl_nlmsg_batch_size(del_batch)) < 0,
+           "kernel rejected filter flush batch");
+
+        VERBOSE("flushed %d filter allow rule(s) involving guest %s",
+                delete_count, inet_ntoa(*ip_to_flush));
+    } else {
+        VERBOSE("no matching filter allow rules found for guest %s to flush",
+                inet_ntoa(*ip_to_flush));
+    }
+
+    mnl_nlmsg_batch_stop(del_batch);
+    mnl_socket_close(sock);
+}
+
+/* Create a DNAT (Destination NAT) forward.
+
+   This function will create a DNAT (Destination NAT) forward rule.
 
    1. Create the 'nat' table.
    2. Create the 'prerouting' chain.
@@ -673,10 +1112,10 @@ bool is_nft_masquerade_exists(const struct in_addr *subnet) {
    6. Add the rule to the batch.
    7. Send the batch to the kernel.
    
-   The assumption is that the publish rule doesn't already exist.
+   The assumption is that the forward rule doesn't already exist.
    If it does, this function will create a duplicate.
 */
-void create_nft_publish(const struct in_addr *guest_ip, int host_port, int container_port, const char *protocol) {
+void create_nft_forward(const struct in_addr *guest_ip, int host_port, int container_port, const char *protocol) {
     struct mnl_socket *sock = mnl_socket_open(NETLINK_NETFILTER);
     Tf(sock != NULL, "failed to allocate netlink socket");
     Zf(mnl_socket_bind(sock, 0, MNL_SOCKET_AUTOPID) < 0, "failed to bind socket");
@@ -691,6 +1130,7 @@ void create_nft_publish(const struct in_addr *guest_ip, int host_port, int conta
 
     // Use the "nat" table.
     struct nftnl_table *table = nftnl_table_alloc();
+    Tf(table != NULL, "failed to allocate 'table'");
     nftnl_table_set_u32(table, NFTNL_TABLE_FAMILY, NFPROTO_IPV4);
     nftnl_table_set_str(table, NFTNL_TABLE_NAME, "nat");
 
@@ -704,11 +1144,12 @@ void create_nft_publish(const struct in_addr *guest_ip, int host_port, int conta
 
     // Use the "prerouting" chain.
     struct nftnl_chain *chain = nftnl_chain_alloc();
+    Tf(chain != NULL, "failed to allocate 'chain'");
     nftnl_chain_set_str(chain, NFTNL_CHAIN_TABLE, "nat");
     nftnl_chain_set_str(chain, NFTNL_CHAIN_NAME, "prerouting");
     nftnl_chain_set_str(chain, NFTNL_CHAIN_TYPE, "nat");
     nftnl_chain_set_u32(chain, NFTNL_CHAIN_HOOKNUM, NF_IP_PRE_ROUTING);
-    nftnl_chain_set_u32(chain, NFTNL_CHAIN_PRIO, 100); // DNAT priority
+    nftnl_chain_set_u32(chain, NFTNL_CHAIN_PRIO, -100); // DNAT priority
 
     nlh = nftnl_chain_nlmsg_build_hdr(
         mnl_nlmsg_batch_current(batch),
@@ -720,6 +1161,7 @@ void create_nft_publish(const struct in_addr *guest_ip, int host_port, int conta
 
     // Create a new rule.
     struct nftnl_rule *rule = nftnl_rule_alloc();
+    Tf(rule != NULL, "failed to allocate 'rule'");
     nftnl_rule_set_str(rule, NFTNL_RULE_TABLE, "nat");
     nftnl_rule_set_str(rule, NFTNL_RULE_CHAIN, "prerouting");
     nftnl_rule_set_u32(rule, NFTNL_RULE_FAMILY, NFPROTO_IPV4);
@@ -727,6 +1169,7 @@ void create_nft_publish(const struct in_addr *guest_ip, int host_port, int conta
     
     // Match protocol.
     struct nftnl_expr *proto_expr = nftnl_expr_alloc("payload");
+    Tf(proto_expr != NULL, "failed to allocate 'payload' expression");
     nftnl_expr_set_u32(proto_expr, NFTNL_EXPR_PAYLOAD_BASE, NFT_PAYLOAD_NETWORK_HEADER);
     nftnl_expr_set_u32(proto_expr, NFTNL_EXPR_PAYLOAD_OFFSET, offsetof(struct iphdr, protocol));
     nftnl_expr_set_u32(proto_expr, NFTNL_EXPR_PAYLOAD_LEN, 1);
@@ -734,6 +1177,7 @@ void create_nft_publish(const struct in_addr *guest_ip, int host_port, int conta
     nftnl_rule_add_expr(rule, proto_expr);
 
     struct nftnl_expr *cmp_proto_expr = nftnl_expr_alloc("cmp");
+    Tf(cmp_proto_expr != NULL, "failed to allocate 'cmp' expression");
     int proto_num = (strcmp(protocol, "tcp") == 0) ? IPPROTO_TCP : IPPROTO_UDP;
     nftnl_expr_set_u32(cmp_proto_expr, NFTNL_EXPR_CMP_SREG, NFT_REG_3);
     nftnl_expr_set_u32(cmp_proto_expr, NFTNL_EXPR_CMP_OP, NFT_CMP_EQ);
@@ -743,6 +1187,7 @@ void create_nft_publish(const struct in_addr *guest_ip, int host_port, int conta
 
     // Match host port.
     struct nftnl_expr *port_expr = nftnl_expr_alloc("payload");
+    Tf(port_expr != NULL, "failed to allocate 'payload' expression");
     nftnl_expr_set_u32(port_expr, NFTNL_EXPR_PAYLOAD_BASE, NFT_PAYLOAD_TRANSPORT_HEADER);
     nftnl_expr_set_u32(port_expr, NFTNL_EXPR_PAYLOAD_OFFSET, 2);
     nftnl_expr_set_u32(port_expr, NFTNL_EXPR_PAYLOAD_LEN, 2);
@@ -750,6 +1195,7 @@ void create_nft_publish(const struct in_addr *guest_ip, int host_port, int conta
     nftnl_rule_add_expr(rule, port_expr);
 
     struct nftnl_expr *cmp_port_expr = nftnl_expr_alloc("cmp");
+    Tf(cmp_port_expr != NULL, "failed to allocate 'cmp' expression");
     nftnl_expr_set_u32(cmp_port_expr, NFTNL_EXPR_CMP_SREG, NFT_REG_4);
     nftnl_expr_set_u32(cmp_port_expr, NFTNL_EXPR_CMP_OP, NFT_CMP_EQ);
     nftnl_expr_set_u16(cmp_port_expr, NFTNL_EXPR_CMP_DATA, htons(host_port));
@@ -758,17 +1204,20 @@ void create_nft_publish(const struct in_addr *guest_ip, int host_port, int conta
     
     // Perform DNAT.
     struct nftnl_expr *imm_ip_expr = nftnl_expr_alloc("immediate");
+    Tf(imm_ip_expr != NULL, "failed to allocate 'immediate' expression");
     nftnl_expr_set_u32(imm_ip_expr, NFTNL_EXPR_IMM_DREG, NFT_REG_1);
     nftnl_expr_set_data(imm_ip_expr, NFTNL_EXPR_IMM_DATA, &guest_ip->s_addr, sizeof(guest_ip->s_addr));
     nftnl_rule_add_expr(rule, imm_ip_expr);
     
     struct nftnl_expr *imm_port_expr = nftnl_expr_alloc("immediate");
+    Tf(imm_port_expr != NULL, "failed to allocate 'immediate' expression");
     nftnl_expr_set_u32(imm_port_expr, NFTNL_EXPR_IMM_DREG, NFT_REG_2);
     uint16_t port_net = htons(container_port);
     nftnl_expr_set_data(imm_port_expr, NFTNL_EXPR_IMM_DATA, &port_net, sizeof(port_net));
     nftnl_rule_add_expr(rule, imm_port_expr);
 
     struct nftnl_expr *dnat_expr = nftnl_expr_alloc("nat");
+    Tf(dnat_expr != NULL, "failed to allocate 'nat' expression");
     nftnl_expr_set_u32(dnat_expr, NFTNL_EXPR_NAT_REG_ADDR_MIN, NFT_REG_1);
     nftnl_expr_set_u32(dnat_expr, NFTNL_EXPR_NAT_REG_PROTO_MIN, NFT_REG_2);
     nftnl_expr_set_u32(dnat_expr, NFTNL_EXPR_NAT_TYPE, NFT_NAT_DNAT);
@@ -806,8 +1255,8 @@ void create_nft_publish(const struct in_addr *guest_ip, int host_port, int conta
     mnl_socket_close(sock);
 }
 
-/* Flush all publish rules for a given guest IP and protocol. */
-void flush_nft_publish(const struct in_addr *guest_ip, const char *protocol) {
+/* Flush all forward rules for a given guest IP and protocol. */
+void flush_nft_forward(const struct in_addr *guest_ip, const char *protocol) {
     struct mnl_socket *sock = mnl_socket_open(NETLINK_NETFILTER);
     Tf(sock != NULL, "failed to allocate netlink socket");
     Zf(mnl_socket_bind(sock, 0, MNL_SOCKET_AUTOPID) < 0, "failed to bind socket");
@@ -882,6 +1331,7 @@ void flush_nft_publish(const struct in_addr *guest_ip, const char *protocol) {
             // Iterate over all expressions in the rule to find our matches.
             while ((expr = nftnl_expr_iter_next(iter)) != NULL) {
                 const char *expr_name = nftnl_expr_get_str(expr, NFTNL_EXPR_NAME);
+                if (!expr_name) continue;
 
                 if (strcmp(expr_name, "cmp") == 0) {
                     if (nftnl_expr_get_u32(expr, NFTNL_EXPR_CMP_SREG) == NFT_REG_3 &&
