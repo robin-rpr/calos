@@ -288,21 +288,30 @@ void containerize(struct container *c) {
     const char *bridge_name = "clearly0";
     const char *veth_host_prefix = "vethe";
     const char *veth_peer_prefix = "if";
-    const char *veth_guest_name = "eth0"; 
-    
+    const char *veth_guest_name = "eth0";
+
     const int cidr = 10;
     char network_cidr[18];
-    char pid_ip_str[INET_ADDRSTRLEN];
-
-    // Get the IP address for the pid.
-    uint32_t pid_ip = htonl((10 << 24) | getpid());
-    inet_ntop(AF_INET, &pid_ip, pid_ip_str, sizeof(pid_ip_str));
 
     struct in_addr subnet_ip = { .s_addr = inet_addr("10.0.0.0") };
     struct in_addr bridge_ip = { .s_addr = inet_addr("10.0.0.1") };
-    struct in_addr guest_ip  = { .s_addr = inet_addr(pid_ip_str) };
 
     snprintf(network_cidr, sizeof(network_cidr), "%s/%d", inet_ntoa(subnet_ip), cidr);
+
+    // Get an available IP address.
+    struct in_addr guest_ip = { .s_addr = 0 };
+    uint32_t start_ip = ntohl(bridge_ip.s_addr) + 1;
+    uint32_t end_ip = ntohl(subnet_ip.s_addr) + (1 << (32 - cidr)) - 1;
+    for (uint32_t ip = start_ip; ip < end_ip; ip++) {
+      if (ip == ntohl(bridge_ip.s_addr)) continue;
+      struct in_addr candidate = { htonl(ip) };
+      if (send_arp(&candidate, bridge_name, &bridge_ip) == 0) {
+         guest_ip = candidate;
+         break;
+      }
+   }
+
+    
 
     // Use a pipe to synchronize parent and child. The child will write to the
     // pipe only after it has entered its new namespaces.

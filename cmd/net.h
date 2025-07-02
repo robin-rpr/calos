@@ -10,14 +10,17 @@
 
 /** Function prototypes **/
 
-/* Basic */
+/* ARP (Address Resolution Protocol) */
+int send_arp(const struct in_addr *target_ip, const char *bridge_name, struct in_addr *bridge_ip);
+
+/* NL (Netlink) Link (Network Interface) */
 bool is_link_exists(const char *link_name);
 
-/* Bridge (Layer 2 switch) */
+/* NL (Netlink) Bridge (Layer 2 switch) */
 void create_bridge(const char *bridge_name, const struct in_addr *ip, int cidr);
 bool is_bridge_exists(const char *bridge_name);
 
-/* Veth (Virtual Ethernet) */
+/* NL (Netlink) Veth (Virtual Ethernet) */
 void create_veth_pair(const char *host_name, const char *peer_name);
 void set_veth_bridge(const char *veth_name, const char *bridge_name);
 void set_veth_up(const char *veth_name);

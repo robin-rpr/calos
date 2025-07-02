@@ -2,12 +2,12 @@
 
 #define _GNU_SOURCE
 #include <linux/netfilter/nf_tables.h>
+#include <linux/if_packet.h>
 #include <linux/if_bridge.h>
+#include <linux/if_arp.h>
 #include <time.h>
 #include <netdb.h>
 #include <arpa/inet.h>
-#include <net/if.h>
-#include <net/if_arp.h>
 #include <sys/ioctl.h>
 #include <netinet/in.h>
 #include <netinet/ip.h>
@@ -64,6 +64,9 @@
 #define NF_BR_POST_ROUTING 4
 #define NF_BR_BROUTING     5
 #define NF_BR_NUMHOOKS     6
+
+
+#define ARP_HLEN 6
 
 
 /* TODO: All below are not categorized yet. Please categorize! */
@@ -129,6 +132,111 @@
 #endif
 
 /** Functions **/
+
+/* Send an ARP probe to a given IP address.
+
+    This function will send an ARP probe to a given target IP address
+    via the provided bridge interface.
+
+    Return values:
+        0: IP address is available
+        1: IP address is taken
+        -1: Error
+*/
+int send_arp(const struct in_addr *target_ip, const char *bridge_name, struct in_addr *bridge_ip) {
+    int sockfd = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ARP));
+    if (sockfd == -1) { perror("socket"); return -1; }
+
+    // Define the structure of the ARP payload
+    struct arp_payload {
+        unsigned char sender_mac[ETH_ALEN];
+        uint32_t      sender_ip;
+        unsigned char target_mac[ETH_ALEN];
+        uint32_t      target_ip;
+    } __attribute__((packed));
+
+    struct sockaddr_ll sock_addr;
+    struct ifreq ifr;
+    memset(&ifr, 0, sizeof(ifr));
+    strncpy(ifr.ifr_name, bridge_name, IFNAMSIZ - 1);
+
+    if (ioctl(sockfd, SIOCGIFINDEX, &ifr) == -1) { perror("SIOCGIFINDEX"); close(sockfd); return -1; }
+    sock_addr.sll_ifindex = ifr.ifr_ifindex;
+    if (ioctl(sockfd, SIOCGIFHWADDR, &ifr) == -1) { perror("SIOCGIFHWADDR"); close(sockfd); return -1; }
+
+    // Total size of ARP request: Ethernet header + ARP header + ARP payload
+    unsigned char arp_request[sizeof(struct ethhdr) + sizeof(struct arphdr) + sizeof(struct arp_payload)];
+    struct ethhdr *eth_hdr = (struct ethhdr *)arp_request;
+    struct arphdr *arp_hdr = (struct arphdr *)(arp_request + sizeof(struct ethhdr));
+    struct arp_payload *arp_data = (struct arp_payload *)(arp_request + sizeof(struct ethhdr) + sizeof(struct arphdr));
+
+    // Ethernet Header
+    memset(eth_hdr->h_dest, 0xFF, ETH_ALEN); // Broadcast MAC
+    memcpy(eth_hdr->h_source, ifr.ifr_hwaddr.sa_data, ETH_ALEN);
+    eth_hdr->h_proto = htons(ETH_P_ARP);
+
+    // ARP Header
+    arp_hdr->ar_hrd = htons(ARPHRD_ETHER);  // Hardware type: Ethernet
+    arp_hdr->ar_pro = htons(ETH_P_IP);      // Protocol type: IP
+    arp_hdr->ar_hln = ETH_ALEN;             // Hardware address length: 6 bytes (MAC)
+    arp_hdr->ar_pln = 4;                    // Protocol address length: 4 bytes (IP)
+    arp_hdr->ar_op = htons(ARPOP_REQUEST);  // Operation: ARP Request
+
+    // ARP Payload
+    memcpy(arp_data->sender_mac, ifr.ifr_hwaddr.sa_data, ETH_ALEN);
+    memcpy(&arp_data->sender_ip, &bridge_ip, sizeof(bridge_ip));
+    memset(arp_data->target_mac, 0x00, ETH_ALEN); // Target MAC unknown (0s for request)
+    memcpy(&arp_data->target_ip, target_ip, sizeof(*target_ip));
+
+    sock_addr.sll_family = AF_PACKET;
+    sock_addr.sll_protocol = htons(ETH_P_ARP);
+    sock_addr.sll_hatype = ARPHRD_ETHER;
+    sock_addr.sll_pkttype = PACKET_BROADCAST;
+    sock_addr.sll_halen = ETH_ALEN;
+    memset(sock_addr.sll_addr, 0xFF, ETH_ALEN); // Broadcast to all
+
+    struct timeval tv = { .tv_sec = 1, .tv_usec = 0 }; // 1 second timeout
+    setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof(tv));
+
+    if (sendto(sockfd, arp_request, sizeof(arp_request), 0, (struct sockaddr *)&sock_addr, sizeof(sock_addr)) == -1) {
+        perror("sendto"); close(sockfd); return -1;
+    }
+
+    unsigned char buffer[sizeof(struct ethhdr) + sizeof(struct arphdr) + sizeof(struct arp_payload)];
+    ssize_t bytes_received;
+
+    while (1) {
+        bytes_received = recvfrom(sockfd, buffer, sizeof(buffer), 0, NULL, NULL);
+        if (bytes_received == -1) {
+            if (errno == EWOULDBLOCK || errno == EAGAIN) { 
+                // Timeout, IP is likely available.
+                close(sockfd);
+                return 0;
+            } 
+            perror("recvfrom"); close(sockfd); return -1;
+        }
+
+        if (bytes_received < (ssize_t)(sizeof(struct ethhdr) + sizeof(struct arphdr) + sizeof(struct arp_payload))) {
+            // Received packet is too small to be a complete ARP reply.
+            continue;
+        }
+
+        struct ethhdr *rcv_eth_hdr = (struct ethhdr *)buffer;
+        struct arphdr *rcv_arp_hdr = (struct arphdr *)(buffer + sizeof(struct ethhdr));
+        struct arp_payload *reply_payload = (struct arp_payload *)(buffer + sizeof(struct ethhdr) + sizeof(struct arphdr));
+
+
+        if (ntohs(rcv_eth_hdr->h_proto) == ETH_P_ARP && ntohs(rcv_arp_hdr->ar_op) == ARPOP_REPLY) {
+            struct in_addr reply_ip;
+            memcpy(&reply_ip, &reply_payload->sender_ip, sizeof(reply_ip));
+            if (reply_ip.s_addr == target_ip->s_addr) {
+                // IP is alredy taken.
+                close(sockfd);
+                return 1;
+            }
+        }
+    }
+}
 
 /* Return true if a link exists. */
 bool is_link_exists(const char *link_name) {
