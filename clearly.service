@@ -22,15 +22,15 @@ StandardError=journal
 SyslogIdentifier=clearly
 
 # Security settings
-NoNewPrivileges=true
-ProtectSystem=strict
-ProtectHome=true
-ReadWritePaths=/tmp/clearly /var/log
-ProtectKernelTunables=true
-ProtectKernelModules=true
-ProtectControlGroups=true
-RestrictRealtime=true
-RestrictSUIDSGID=true
+# ProtectSystem=strict
+# ProtectHome=true
+# ReadWritePaths=/tmp/clearly /var/log
+# ProtectKernelTunables=true
+# ProtectKernelModules=true
+# ProtectControlGroups=true
+# RestrictRealtime=true
+# RestrictSUIDSGID=true
+# NoNewPrivileges=true
 
 # Resource limits
 LimitNOFILE=65536

@@ -39,10 +39,6 @@ class ContainerManager:
                 if container_id in self.containers:
                     return {"error": "Container already exists"}
                 
-                # Create container directory
-                container_dir = os.path.join(self.temp_dir, container_id)
-                os.makedirs(container_dir, exist_ok=True)
-                
                 # Prepare command
                 cmd = ["clearly", "run", image_path]
                 
@@ -61,7 +57,6 @@ class ContainerManager:
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE,
                     text=True,
-                    cwd=container_dir
                 )
                 
                 # Store container info

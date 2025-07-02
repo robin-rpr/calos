@@ -372,11 +372,11 @@ void containerize(struct container *c) {
         }
 
         // Ensure IP forwarding (best-effort).
-        FILE *f = fopen("/proc/sys/net/ipv4/ip_forward", "w");
-        Zf(f == NULL, "failed to open ip_forward");
-        Zf(fprintf(f, "1\n") < 0, "failed to write to ip_forward");
-        VERBOSE("IP forwarding enabled");
-        fclose(f);
+        //FILE *f = fopen("/proc/sys/net/ipv4/ip_forward", "w");
+        //Zf(f == NULL, "failed to open ip_forward");
+        //Zf(fprintf(f, "1\n") < 0, "failed to write to ip_forward");
+        //VERBOSE("IP forwarding enabled");
+        //fclose(f);
         
         // The child will write to the pipe only after it has entered its new
         // namespaces. The parent will read from the pipe to wait for the child
