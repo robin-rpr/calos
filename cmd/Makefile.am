@@ -45,6 +45,7 @@ SUFFIXES = .py .c
 	cython $< \
 		-E LIBDIR="$(pkglibdir)" \
 		-E LIBEXECDIR="$(pkglibexecdir)" \
+		-E SHAREDIR="$(pkgsharedir)" \
 		--embed \
 		-3 \
 		-o $@ \

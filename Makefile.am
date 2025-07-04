@@ -1,4 +1,4 @@
-SUBDIRS = lib bin cmd doc examples misc packaging test
+SUBDIRS = lib bin cmd doc examples misc packaging test templates static
 
 EXTRA_DIST = LICENSE README.rst VERSION autogen.sh clearly.service
 
