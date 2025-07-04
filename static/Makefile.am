@@ -1,5 +1,5 @@
-EXTRA_DIST = icons images styles
+EXTRA_DIST = images styles
 
 install-data-hook:
-	mkdir -p $(DESTDIR)$(pkgdatadir)/static
-	cp -R $(srcdir)/* $(DESTDIR)$(pkgdatadir)/static/ 
+	mkdir -p $(DESTDIR)$(pkgsharedir)/
+	cp -R $(srcdir)/* $(DESTDIR)$(pkgsharedir)/
