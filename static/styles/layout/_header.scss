@@ -1,0 +1,84 @@
+#header {
+    border-bottom: 1px solid #e0e0e0;
+    height: 4rem;
+    width: 100%;
+
+    .header__container {
+        max-width: 99rem;
+        margin-left: auto;
+        margin-right: auto;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        padding-left: 2.5rem;
+        padding-right: 21px;
+        justify-content: space-between;
+
+        .container__skip-to-content {
+            display: none;
+        }
+
+        .container__logo {
+            height: 35.5px;
+            flex-shrink: 0;
+            margin-right: 3rem;
+        }
+
+        .container__actions {
+            display: flex;
+            justify-content: flex-end;
+            flex-shrink: 0;
+
+            * {
+                &:not(:last-child) {
+                    margin-right: -0.125rem;
+                }
+            }
+
+            .actions__button {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                position: relative;
+                width: 4rem;
+                height: 4rem;
+                background: transparent;
+                border: 0;
+                color: inherit;
+                cursor: pointer;
+                text-decoration: none;
+                font-size: 1.25rem;
+                transition: background 110ms;
+                
+                &:hover {
+                    background: #e0e0e0;
+
+                    .button__indicator {
+                        outline-color: #e0e0e0 !important;
+                    }
+                }
+
+                &:active {
+                    color: inherit;
+                }
+
+                .button__indicator {
+                    position: absolute;
+                    top: 1.125rem;
+                    outline: 4px solid white;
+                    right: 1.125rem;
+                    background: #b13544;
+                    color: #fff;
+                    font-size: 0.625rem;
+                    font-weight: 400;
+                    line-height: 1rem;
+                    letter-spacing: 0;
+                    height: 7px;
+                    width: 7px;
+                    border-radius: 50%;
+                    transition: outline-color 110ms;
+                }
+            }
+        }
+    }
+}

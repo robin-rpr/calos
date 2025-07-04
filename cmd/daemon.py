@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-import json
 import logging
 import os
 import signal
@@ -8,11 +7,31 @@ import subprocess
 import sys
 import threading
 import time
-from concurrent.futures import ThreadPoolExecutor
-from http.server import HTTPServer, BaseHTTPRequestHandler
-from urllib.parse import urlparse, parse_qs
+import sass
 
-# Configure logging
+from routes.container import container_blueprint, container_api_blueprint
+from flask import Flask, render_template, request, abort
+from concurrent.futures import ThreadPoolExecutor
+from flask_caching import Cache
+from datetime import timedelta
+
+# Add the share directory to Python path for imports
+# SHAREDIR is defined by Cython compilation
+try:
+    SHAREDIR
+except NameError:
+    SHAREDIR = None
+
+# Application
+if SHAREDIR is not None:
+    app = Flask(__name__, template_folder=SHAREDIR, static_folder=SHAREDIR)
+else:
+    app = Flask(__name__)
+
+# Caching
+app.cache = Cache(app, config={'CACHE_TYPE': 'simple'})
+
+# Logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
@@ -23,27 +42,65 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-class ContainerManager:
-    """Manages Clearly containers"""
+# Session Cookies
+app.config['SESSION_COOKIE_SECURE'] = app.config['ENVIRONMENT'] == 'production'
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=90)
+app.config['SESSION_REFRESH_EACH_REQUEST'] = True
+
+# Threadpool Executor
+executor = ThreadPoolExecutor()
+
+def before_request():
+    """Cache Stylesheets"""
+    scss_file = 'static/styles/main.scss'
+    css_file = 'static/styles/main.css'
+    with open(css_file, 'w', -1, 'utf8') as f:
+        f.write(sass.compile(filename=scss_file))
+
+def add_header(response):
+    """Cache Static Files"""
+    if request.path.startswith('/static/'):
+        response.cache_control.max_age = 86400
+        response.cache_control.no_cache = None
+        response.cache_control.public = True
+    return response
+
+def signal_handler(self, signum, frame):
+    """Handle Signals"""
+    logger.info(f"SIGNAL: {signum}, Shutting down...")
+    # Shutdown executor
+    if app.clearly:
+        with app.clearly.lock:
+            for container_id in list(app.clearly.containers.keys()):
+                app.clearly.stop_container(container_id)
+    # Shutdown thread pool
+    executor.shutdown(wait=True)
+    sys.exit(0)
+
+class Clearly:
+    """Clearly Executor"""
     
     def __init__(self):
-        self.containers = {}  # container_id -> container_info
+        # container_id -> container_info
+        self.containers = {} 
         self.lock = threading.Lock()
         self.temp_dir = "/tmp/clearly"
         os.makedirs(self.temp_dir, exist_ok=True)
     
-    def start_container(self, container_id, image_path, command=None, env_vars=None):
-        """Start a Clearly container"""
+    def start_container(self, container_id, image, command=None, environment=None):
+        """Start a container"""
         try:
             with self.lock:
                 if container_id in self.containers:
                     return {"error": "Container already exists"}
                 
                 # Prepare command
-                cmd = ["clearly", "run", image_path]
+                cmd = ["clearly", "run", image]
                 
-                if env_vars:
-                    for key, value in env_vars.items():
+                if environment:
+                    for key, value in environment.items():
                         cmd.extend(["--env", f"{key}={value}"])
                 
                 if command:
@@ -62,9 +119,9 @@ class ContainerManager:
                 # Store container info
                 container_info = {
                     "id": container_id,
-                    "image_path": image_path,
+                    "image": image,
                     "command": command,
-                    "env_vars": env_vars,
+                    "environment": environment,
                     "pid": process.pid,
                     "process": process,
                     "start_time": time.time(),
@@ -91,7 +148,7 @@ class ContainerManager:
             return {"error": str(e)}
     
     def stop_container(self, container_id):
-        """Stop a Clearly container"""
+        """Stop a container"""
         try:
             with self.lock:
                 if container_id not in self.containers:
@@ -185,218 +242,51 @@ class ContainerManager:
         except Exception as e:
             logger.error(f"Error collecting logs for container {container_id}: {e}")
 
-class ClearlyRequestHandler(BaseHTTPRequestHandler):
-    """HTTP request handler for Clearly daemon"""
-    
-    def __init__(self, *args, container_manager=None, **kwargs):
-        self.container_manager = container_manager
-        super().__init__(*args, **kwargs)
-    
-    def do_GET(self):
-        """Handle GET requests"""
-        try:
-            parsed_url = urlparse(self.path)
-            path = parsed_url.path
-            query_params = parse_qs(parsed_url.query)
-            
-            if path == "/containers":
-                # List all containers
-                response = self.container_manager.list_containers()
-                self._send_json_response(response)
-                
-            elif path.startswith("/containers/") and "/logs" in path:
-                # Get container logs
-                container_id = path.split("/")[2]
-                response = self.container_manager.get_container_logs(container_id)
-                self._send_json_response(response)
-                
-            elif path == "/health":
-                # Health check
-                self._send_json_response({"status": "healthy"})
-                
-            else:
-                self._send_error_response(404, "Not found")
-                
-        except Exception as e:
-            logger.error(f"Error handling GET request: {e}")
-            self._send_error_response(500, str(e))
-    
-    def do_POST(self):
-        """Handle POST requests"""
-        try:
-            parsed_url = urlparse(self.path)
-            path = parsed_url.path
-            
-            if path == "/containers":
-                # Start a new container
-                content_length = int(self.headers.get('Content-Length', 0))
-                post_data = self.rfile.read(content_length)
-                request_data = json.loads(post_data.decode('utf-8'))
-                
-                container_id = request_data.get('container_id')
-                image_path = request_data.get('image_path')
-                command = request_data.get('command')
-                env_vars = request_data.get('env_vars', {})
-                
-                if not container_id or not image_path:
-                    self._send_error_response(400, "Missing required fields: container_id, image_path")
-                    return
-                
-                response = self.container_manager.start_container(container_id, image_path, command, env_vars)
-                self._send_json_response(response)
-                
-            else:
-                self._send_error_response(404, "Not found")
-                
-        except Exception as e:
-            logger.error(f"Error handling POST request: {e}")
-            self._send_error_response(500, str(e))
-    
-    def do_DELETE(self):
-        """Handle DELETE requests"""
-        try:
-            parsed_url = urlparse(self.path)
-            path = parsed_url.path
-            
-            if path.startswith("/containers/"):
-                # Stop a container
-                container_id = path.split("/")[2]
-                response = self.container_manager.stop_container(container_id)
-                self._send_json_response(response)
-                
-            else:
-                self._send_error_response(404, "Not found")
-                
-        except Exception as e:
-            logger.error(f"Error handling DELETE request: {e}")
-            self._send_error_response(500, str(e))
-    
-    def _send_json_response(self, data):
-        """Send JSON response"""
-        response = json.dumps(data, indent=2)
-        self.send_response(200)
-        self.send_header('Content-Type', 'application/json')
-        self.send_header('Content-Length', str(len(response)))
-        self.end_headers()
-        self.wfile.write(response.encode('utf-8'))
-    
-    def _send_error_response(self, status_code, message):
-        """Send error response"""
-        error_data = {"error": message}
-        response = json.dumps(error_data, indent=2)
-        self.send_response(status_code)
-        self.send_header('Content-Type', 'application/json')
-        self.send_header('Content-Length', str(len(response)))
-        self.end_headers()
-        self.wfile.write(response.encode('utf-8'))
-    
-    def log_message(self, format, *args):
-        """Override to use our logger"""
-        logger.info(f"{self.address_string()} - {format % args}")
-
-class ClearlyDaemon:
-    """Main daemon class"""
-    
-    def __init__(self, host='0.0.0.0', port=8080, max_workers=10):
-        self.host = host
-        self.port = port
-        self.max_workers = max_workers
-        self.container_manager = ContainerManager()
-        self.server = None
-        self.executor = ThreadPoolExecutor(max_workers=max_workers)
-        self.running = False
-        
-        # Set up signal handlers
-        signal.signal(signal.SIGTERM, self._signal_handler)
-        signal.signal(signal.SIGINT, self._signal_handler)
-    
-    def start(self):
-        """Start the daemon"""
-        try:
-            # Create custom request handler with container manager
-            def handler(*args, **kwargs):
-                return ClearlyRequestHandler(*args, container_manager=self.container_manager, **kwargs)
-            
-            self.server = HTTPServer((self.host, self.port), handler)
-            self.running = True
-            
-            logger.info(f"Clearly daemon starting on {self.host}:{self.port}")
-            logger.info(f"Thread pool size: {self.max_workers}")
-            
-            # Start server in a separate thread
-            server_thread = threading.Thread(target=self.server.serve_forever, daemon=True)
-            server_thread.start()
-            
-            logger.info("Clearly daemon started successfully")
-            
-            # Keep main thread alive
-            while self.running:
-                time.sleep(1)
-                
-        except Exception as e:
-            logger.error(f"Failed to start daemon: {e}")
-            raise
-    
-    def stop(self):
-        """Stop the daemon"""
-        logger.info("Stopping Clearly daemon...")
-        self.running = False
-        
-        if self.server:
-            self.server.shutdown()
-            self.server.server_close()
-        
-        # Stop all containers
-        with self.container_manager.lock:
-            for container_id in list(self.container_manager.containers.keys()):
-                self.container_manager.stop_container(container_id)
-        
-        # Shutdown thread pool
-        self.executor.shutdown(wait=True)
-        
-        logger.info("Clearly daemon stopped")
-    
-    def _signal_handler(self, signum, frame):
-        """Handle shutdown signals"""
-        logger.info(f"Received signal {signum}, shutting down...")
-        self.stop()
-        sys.exit(0)
-
 def main():
     """Main entry point"""
     try:
-        # Parse command line arguments
-        import argparse
-        parser = argparse.ArgumentParser(description='Clearly Daemon')
-        parser.add_argument('--host', default='0.0.0.0', help='Host to bind to')
-        parser.add_argument('--port', type=int, default=4242, help='Port to bind to')
-        parser.add_argument('--max-workers', type=int, default=10, help='Maximum thread pool workers')
-        parser.add_argument('--daemon', action='store_true', help='Run as daemon')
+        # Register Processor
+        @app.context_processor
+        def context():
+            scripts = []
+            def script(script):
+                scripts.append(script)
+                return ''
+            return dict(script=script, scripts=lambda: scripts)
         
-        args = parser.parse_args()
-        
-        # Create and start daemon
-        daemon = ClearlyDaemon(
-            host=args.host,
-            port=args.port,
-            max_workers=args.max_workers
+        # Register Routes
+        @app.route('/')
+        @app.cache.cached(timeout=86400) # 24 hours
+        def index():
+            """Index"""
+            try:
+                example = "Example5"
+
+            except Exception as e:
+                app.logger.error("Failed to load index: %s", str(e), exc_info=True)
+                return abort(500, description="An error occurred")
+
+            return render_template('pages/index.html', example=example)
+
+        # Register Blueprints
+        app.register_blueprint(container_blueprint, url_prefix='/container')
+        app.register_blueprint(container_api_blueprint, url_prefix='/api/container')
+
+        # Register Signal Handlers
+        signal.signal(signal.SIGTERM, signal_handler)
+        signal.signal(signal.SIGINT, signal_handler)
+
+        # Register Clearly
+        app.clearly = Clearly()
+
+        # Start Server
+        app.run(
+            host='0.0.0.0',
+            port=8080,
+            debug=True,
+            extra_files=['templates/**/*.html', 'static/**/*.scss']
         )
         
-        if args.daemon:
-            # Fork to background
-            pid = os.fork()
-            if pid > 0:
-                # Parent process
-                sys.exit(0)
-            else:
-                # Child process
-                os.setsid()
-                os.umask(0)
-        
-        daemon.start()
-        
-    except KeyboardInterrupt:
-        logger.info("Interrupted by user")
     except Exception as e:
         logger.error(f"Fatal error: {e}")
         sys.exit(1)

@@ -55,6 +55,9 @@ a.out
 .DS_Store
 .fuse_*
 
+# Flask crap
+static/styles/*.css
+
 # Python crap
 __pycache__
 

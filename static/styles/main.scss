@@ -1,0 +1,82 @@
+/* Base */
+@import "./base/_mixins";
+@import "./base/_variables";
+
+/* Components */
+@import "./components/_searchbar";
+
+/* Layout */
+@import "./layout/_footer";
+@import "./layout/_header";
+@import "./layout/_navigation";
+@import "./layout/_backdrop";
+
+/* Pages */
+@import "./pages/_index";
+
+* {
+    box-sizing: border-box;
+}
+
+html {
+    -webkit-text-size-adjust: 100%;
+    font-feature-settings: normal;
+    -webkit-tap-highlight-color: transparent;
+    font-family: ui-sans-serif, -apple-system,
+                 system-ui, Segoe UI, Helvetica,
+                 Apple Color Emoji, Arial,sans-serif,
+                 Segoe UI Emoji, Segoe UI Symbol;
+    font-variation-settings: normal;
+    line-height: 1.5;
+    tab-size: 4
+}
+
+body {
+    background: #ffffff;
+    font-size: 16px;
+    color: #161616;
+    margin: 0;
+    width: 100%;
+    height: 100%;
+}
+
+dialog {
+    background: #ffffff;
+    border: none;
+    padding: 0;
+    max-width: 590px;
+    width: 100%;
+    box-shadow: 0 0 0 100vmax rgba(22, 22, 22, 0);
+    transition: display 150ms allow-discrete, overlay 150ms allow-discrete;
+    animation: close 150ms forwards;
+    
+    &[open] {
+        animation: open 150ms forwards;
+    }
+
+    &::backdrop {
+        /* Not used */
+        background: transparent;
+    }
+
+    @keyframes open {
+        from { box-shadow: 0 0 0 100vmax rgba(22, 22, 22, 0) }
+        to { box-shadow: 0 0 0 100vmax rgba(23, 23, 23, 0.6) }
+    }
+      
+    @keyframes close {
+        from { box-shadow: 0 0 0 100vmax rgba(23, 23, 23, 0.6); opacity: 0 }
+        to { box-shadow: 0 0 0 100vmax rgba(22, 22, 22, 0); opacity: 0 }
+    }
+}
+
+button, a {
+    font-family: inherit !important;
+    outline: none;
+}
+
+#app {
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+}

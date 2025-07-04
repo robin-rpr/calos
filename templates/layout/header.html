@@ -1,0 +1,25 @@
+<header id="header">
+    <div class="header__container">
+        <a class="container__skip-to-content" href="#main-content"
+            >Skip to main content</a
+        >
+
+        <!-- Logo -->
+        <div class="container__logo">
+            <a href="/">
+                <img src="{{ url_for('static', filename='images/logo.svg') }}" width="100%" height="100%" alt="Logo">
+            </a>
+        </div>
+
+        <!-- Search -->
+        {% include "components/searchbar.html" %}
+
+        <!-- Actions -->
+        <div class="container__actions">
+            <!-- Actions Buttons -->
+            <a class="actions__button" href="{% if profile is none %}/login{% else %}/account{% endif %}">
+                <i class="fa-sharp fa-light fa-user"></i>
+            </a>
+        </div>
+    </div>
+</header>

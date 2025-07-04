@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+
+{% block title %}
+Clearly
+{% endblock %}
+
+{% block content %}
+<div class="content__index">
+    <div class="index__hero">
+        <div class="hero__container">
+            <span class="container__welcome-message"></span>
+            <h1 class="container__heading">
+                Explore the Internet
+            </h1>
+            <form
+                class="container__search"
+                role="search"
+            >
+                <i class="fa-sharp fa-light fa-magnifying-glass"></i>
+                <label
+                    class="search__label"
+                    for="searchbar"
+                >Search</label
+                ><input
+                    class="search__input"
+                    type="text"
+                    role="searchbox"
+                    autocomplete="off"
+                    id="searchbar"
+                    placeholder="Enter an IP address/prefix, ASN, hostname or community"
+                    autofocus
+                />
+                <div class="search__quickstart">
+                    <div class="quickstart__my">
+                        Your network:
+                        <a class="my__asn" href="#">&nbsp;</a>,
+                        <a class="my__prefix" href="#">&nbsp;</a>
+                    </div>
+                    <div class="quickstart__random">
+                        Try one of these:
+                        <a class="random__ipv4prefix" href="#">IPv4 Prefix</a>,
+                        <a class="random__ipv4range" href="#">IPv4 Range</a>,
+                        <a class="random__ipv6" href="#">IPv6</a>,
+                        <a class="random__asn" href="#">ASN</a>
+                    </div>
+                </div>
+            </form>
+            <div class="container__cards">
+                <a class="cards__item">
+                    <div class="item__title">View your cases</div>
+                    <div class="item__description">
+                        Check the status of active cases and review case history
+                    </div>
+                    <i class="fa-sharp fa-light fa-eye"></i>
+                </a>
+                <a class="cards__item">
+                    <div class="item__title">Open a case</div>
+                    <div class="item__description">
+                        If you're unable to resolve an issue on your own, receive help from our experts
+                    </div>
+                    <i class="fa-sharp fa-light fa-folder-plus"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+    <div class="index__content">
+        <div class="content__wrapper">
+            <div class="wrapper__container">
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
