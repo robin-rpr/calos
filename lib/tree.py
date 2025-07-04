@@ -1,6 +1,6 @@
 import lark
 
-import _clearly as clearly
+import clearly as clearly
 
 ## Constants ##
 

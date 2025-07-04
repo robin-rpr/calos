@@ -176,9 +176,6 @@ mounting SquashFS images with FUSE.
   :code:`--usage`
     Print a short usage message and exit.
 
-  :code:`-V`, :code:`--version`
-    Print version and exit.
-
 **Note:** Because :code:`clearly run` is fully unprivileged, it is not possible to
 change UIDs and GIDs within the container (the relevant system calls fail). In
 particular, setuid, setgid, and setcap executables do not work. As a

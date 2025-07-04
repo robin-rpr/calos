@@ -72,7 +72,7 @@ copyright = u'Charliecloud a Series of LF Projects, LLC and others (web content 
 # built documents.
 #
 # The short X.Y version.
-version = open("../lib/_version.txt", "r").read().rstrip()
+version = open("../VERSION", "r").read().rstrip()
 # The full version, including alpha/beta/rc tags.
 release = version
 
@@ -281,9 +281,6 @@ man_pages = [
    ("clearly-check", "clearly check",
     'Check "clearly run" prerequisites, e.g., namespaces and "pivot_root(2)"',
     [], 1),
-   ("completion.bash", "completion.bash",
-    'Tab completion for the Charliecloud command line',
-    [], 7),
    ("clearly-convert", "clearly convert",
     'Convert an image from one format to another',
     [], 1),

@@ -8,7 +8,7 @@ container_api_blueprint = Blueprint('container_api', __name__)
 def api_container():
     """List all containers"""
     try:
-        response = app.clearly.list_containers()
+        response = app.executor.list_containers()
         return jsonify(response)
     except Exception as e:
         app.logger.error(f"Failed to list containers: {e}")
@@ -18,7 +18,7 @@ def api_container():
 def api_container_get(container_id):
     """Get container info"""
     try:
-        response = app.clearly.get_container_logs(container_id)
+        response = app.executor.get_container_logs(container_id)
         return jsonify(response)
     except Exception as e:
         app.logger.error(f"Failed to get container info: {e}")
@@ -33,7 +33,7 @@ def api_container_post(container_id):
         command = request.form.get('command', [])
         environment = request.form.get('environment', {})
 
-        response = app.clearly.start_container(container_id, image, command, environment)
+        response = app.executor.start_container(container_id, image, command, environment)
         return jsonify(response)
     except Exception as e:
         app.logger.error(f"Failed to start container: {e}")
@@ -43,7 +43,7 @@ def api_container_post(container_id):
 def api_container_delete(container_id):
     """Stop a container"""
     try:
-        response = app.clearly.stop_container(container_id)
+        response = app.executor.stop_container(container_id)
         return jsonify(response)
     except Exception as e:
         app.logger.error(f"Failed to stop container: {e}")

@@ -7,13 +7,13 @@ import os
 import os.path
 import sys
 
-import _clearly as clearly
-import _filesystem as filesystem
-import _image as image
-import _reference as reference
-import _pull as pull
-import _version as version
-import _build_cache
+import clearly as clearly
+import filesystem as filesystem
+import build_cache as _build_cache
+import image as image
+import reference as reference
+import pull as pull
+
 import lark
 
 
@@ -32,13 +32,6 @@ class Dependencies(Action_Exit):
       if (cli.verbose >= 1):
          print("lark path: %s" % os.path.normpath(inspect.getfile(lark)))
       sys.exit(0)
-
-class Version(Action_Exit):
-
-   def __call__(self, *args, **kwargs):
-      print(version.VERSION)
-      sys.exit(0)
-
 
 ## Plain functions ##
 

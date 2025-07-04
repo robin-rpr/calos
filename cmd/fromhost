@@ -35,7 +35,7 @@
 #      This is a bashism.
 
 clearly_lib=$(cd "$(dirname "$0")" && pwd)/../../lib
-. "${clearly_lib}/_base.sh"
+. "${clearly_lib}/base.sh"
 
 set -e
 
@@ -69,7 +69,6 @@ Options:
   -h, --help       print this help and exit
   -q, --quiet      make the program more quiet, can be repeated
   -v, --verbose    list the injected files
-  --version        print version and exit
 
 NOTE: This command is experimental. Features may be incomplete and/or buggy.
 EOF

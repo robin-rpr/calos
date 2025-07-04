@@ -80,10 +80,6 @@ int main(int argc, char *argv[])
       fprintf(stderr, usage);
       return 0;
    }
-   if (argc >= 2 && strcmp(argv[1], "--version") == 0) {
-      version();
-      return 0;
-   }
 
    /* Ensure that our image directory exists. It doesn't really matter what's
       in it. */

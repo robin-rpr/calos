@@ -4,10 +4,7 @@ set -e
 clearly_bin="$(cd "$(dirname "$0")" && pwd)"
 # shellcheck disable=SC2034
 clearly_base=${clearly_bin%/*}
-
 clearly_lib=${clearly_bin}/../../lib
-. "${clearly_lib}/_version.sh"
-
 
 # Log level. Incremented by “--verbose” and decremented by “--quiet”, as in the
 # Python code.
@@ -127,11 +124,6 @@ tag_to_path () {
 usage () {
     echo "${usage:?}" 1>&2
     exit "${1:-1}"
-}
-
-version () {
-    echo 1>&2 "$clearly_version"
-    exit 0
 }
 
 

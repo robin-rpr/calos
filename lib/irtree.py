@@ -10,12 +10,12 @@ import re
 import shutil
 import sys
 
-import _clearly as clearly
-import _build_cache as build_cache
-import _filesystem as filesystem
-import _image as image
-import _reference as reference
-import _force as force
+import clearly as clearly
+import build_cache as build_cache
+import filesystem as filesystem
+import image as image
+import reference as reference
+import force as force
 import lark
 
 

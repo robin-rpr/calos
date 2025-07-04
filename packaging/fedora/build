@@ -110,8 +110,8 @@ rpmbuild root:      %(rpmbuild)s
        "--", "make")
    cmd(CLEARLY_BASE + "/cmd/run", "-b", "%s:/mnt/0" % git_tmp, "-c", "/mnt/0", args.image,
        "--", "make", "dist")
-   clearly_version = open(git_tmp + "/lib/_version.txt").read()[:-1]
-   clearly_tarball = "charliecloud-%s.tar.gz" % clearly_version
+   clearly_version = open(git_tmp + "/VERSION").read()[:-1]
+   clearly_tarball = "clearly-%s.tar.gz" % clearly_version
    print("# Clearly version: %s" % clearly_version)
    print("# source tarball: %s" % clearly_tarball)
    os.rename("%s/%s" % (git_tmp, clearly_tarball),
@@ -119,8 +119,8 @@ rpmbuild root:      %(rpmbuild)s
 
    # Copy lint configuration and patchs.
    # FIXME: Put version into destination sometime?
-   shutil.copy("%s/packaging/fedora/charliecloud.rpmlintrc" % CLEARLY_BASE,
-               "%s/charliecloud.rpmlintrc" % rpm_specs)
+   shutil.copy("%s/packaging/fedora/clearly.rpmlintrc" % CLEARLY_BASE,
+               "%s/clearly.rpmlintrc" % rpm_specs)
    shutil.copy("%s/packaging/fedora/el7-pkgdir.patch" % CLEARLY_BASE,
                "%s/el7-pkgdir.patch" % rpm_sources)
 

@@ -345,11 +345,6 @@ clearly_libexec=${clearly_bin}/../../libexec
 # Run file.
 clearly_runfile=${clearly_libexec}/run
 
-# Clearly version.
-. "${clearly_lib}/_version.sh"
-clearly_version_base=$(echo "$clearly_version" | sed -E 's/~.+//')
-clearly_version_docker=$(echo "$clearly_version" | tr '~+' '--')
-
 # Separate directories for tarballs and images.
 #
 # Canonicalize both so the have consistent paths and we can reliably use them

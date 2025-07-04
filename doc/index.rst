@@ -21,7 +21,6 @@ Overview
    install
    tutorial
    clearly-check
-   completion.bash
    clearly-convert
    clearly-fromhost
    clearly-image

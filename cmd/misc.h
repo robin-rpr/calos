@@ -155,5 +155,4 @@ void replace_char(char *str, char old, char new);
 void split(char **a, char **b, const char *str, char del);
 size_t string_append(char *addr, char *str, size_t size, size_t offset);
 void username_set(void);
-void version(void);
 void warnings_reprint(void);

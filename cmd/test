@@ -35,11 +35,10 @@ warning () {
 ### Setup
 
 clearly_lib=$(cd "$(dirname "$0")" && pwd)/../../lib
-if [[ ! -f ${clearly_lib}/_base.sh ]]; then
-    fatal "install or build problem: not found: ${clearly_lib}/_base.sh"
+if [[ ! -f ${clearly_lib}/base.sh ]]; then
+    fatal "install or build problem: not found: ${clearly_lib}/base.sh"
 fi
-. "${clearly_lib}/_base.sh"
-. "${clearly_lib}/_contributors.bash"
+. "${clearly_lib}/base.sh"
 export clearly_bin
 export clearly_lib
 
@@ -77,7 +76,6 @@ Additional options:
   --srun-mpi MPI         srun --mpi argument; see srun --mpi=list
   --sudo                 enable tests that need sudo
   --lustre DIR           run-phase Lustre test directory; \$CLEARLY_TEST_LUSTREDIR
-  --version              print version and exit
 
 See the man page for important details.
 EOF
@@ -95,10 +93,10 @@ builder_check () {
     printf 'checking builder ...\n'
     case $CLEARLY_TEST_BUILDER in
     image)
-        if ! "${clearly_bin}/image" --dependencies; then
+        if ! "${clearly_bin}/clearly image" --dependencies; then
             fatal 'builder: image: missing dependencies'
         fi
-        bl=$(readlink -f "${clearly_bin}/image")
+        bl=$(readlink -f "${clearly_bin}/clearly")
         bv=$("$bl" --version)
         ;;
     buildah)
@@ -291,8 +289,8 @@ pack_fmt_set () {
 pedantry_set () {
     width=$1
     default=no
-    # Default to pedantic on CI or if user is a contributor.
-    if [[ -n $clearly_contributor || -n $CI ]]; then
+    # Default to pedantic on CI.
+    if [[ -n $CI ]]; then
         default=yes
     fi
     vset clearly_pedantic "$pedantic" '' $default "$width" 'pedantic mode'
@@ -726,12 +724,12 @@ USER=$(id -un)
 export USER
 
 # Ensure run has been compiled (issue #329).
-if ! "${clearly_bin}/run" --version > /dev/null 2>&1; then
+if ! "${clearly_bin}/clearly" --version > /dev/null 2>&1; then
     fatal "no working run found in $clearly_bin"
 fi
 
 # Some tests have specific libc requirements.
-case $(readelf -p .interp "${clearly_bin}/run") in
+case $(readelf -p .interp "${clearly_bin}/clearly run") in
     *musl*)            # e.g. /lib/ld-musl-x86_64.so.1
         export clearly_libc=musl
         ;;
@@ -746,23 +744,6 @@ if /bin/bash -c 'set -e; [[ 1 = 0 ]]; exit 0'; then
     # https://github.com/sstephenson/bats/issues/49
     fatal 'Bash minimum version is 4.1'
 fi
-
-# Is the user a contributor?
-email=
-# First, ask Git for the configured e-mail address.
-if command -v git > /dev/null 2>&1; then
-    email="$(git config --get user.email || true)"
-fi
-# If that doesn’t work, construct it from the environment.
-if [[ -z $email ]]; then
-    email="$USER@$(hostname --domain)"
-fi
-clearly_contributor=
-for i in "${clearly_contributors[@]}"; do
-    if [[ $i == "$email" ]]; then
-        clearly_contributor=yes
-    fi
-done
 
 # Ensure Bats is installed.
 if command -v bats > /dev/null 2>&1; then
@@ -942,9 +923,6 @@ while [[ $# -gt 0 ]]; do
         require_unset lustredir
         lustredir=${opt#*=}
         ;;
-    --version)
-        version
-        ;;
     *)
         fatal "unrecognized argument: $opt"
         ;;
@@ -961,12 +939,6 @@ printf 'tests:        %s\n' "$TEST_DIR"
 printf 'installed:    %s\n' "${TEST_INSTALLED:-no}"
 printf 'locale:       %s\n' "$LC_ALL"
 printf 'git workdir:  %s\n' "${TEST_GITWD:-no}"
-if [[ -n $clearly_contributor ]]; then
-    clearly_contributor_note="yes; $email in README.rst"
-else
-    clearly_contributor_note="no; $email not in README.rst"
-fi
-printf 'contributor:  %s\n\n' "$clearly_contributor_note"
 
 if [[ $phase = one-file ]]; then
     if [[ $one_file == *:* ]]; then
@@ -1020,26 +992,6 @@ printf '\n'
 if [[ $phase == *'perm'* ]] && [[ $CLEARLY_TEST_PERMDIRS == skip ]]; then
     fatal "phase $phase: CLEARLY_TEST_PERMDIRS: can't be 'skip'"
 fi
-
-# Check that different sources of version number are consistent.
-printf 'clearly test version: %s\n' "$clearly_version"
-run_version=$("${clearly_bin}/run" --version 2>&1)
-if [[ $clearly_version != "$run_version" ]]; then
-    warning "inconsistent run version: ${run_version}"
-fi
-if [[ -z $TEST_INSTALLED ]]; then
-    cf_version=$("${clearly_base}/configure" --version | head -1 | cut -d' ' -f3)
-    if [[ $clearly_version != "$cf_version" ]]; then
-        warning "inconsistent configure version: ${cf_version}"
-    fi
-    # Clearly version. Prefer git; otherwise use simple version.
-    src_version=$(   "${clearly_base}/misc/version" 2> /dev/null \
-                  || cat "${clearly_base}/VERSION")
-    if [[ $clearly_version != "$src_version" ]]; then
-        warning "inconsistent source version: ${src_version}"
-    fi
-fi
-printf '\n'
 
 # Ensure ofi path looks sane.
 if [[ -n "$fi_path" ]]; then

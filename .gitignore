@@ -7,14 +7,9 @@ a.out
 /cmd/link
 /cmd/image
 /cmd/daemon
+/cmd/version
 /cmd/image.c
 /cmd/daemon.c
-/lib/_*.c
-/lib/_*.so
-/lib/_contributors.bash
-/lib/_version.py
-/lib/_version.sh
-/lib/_version.txt
 /examples/copy/dirCa/symlink-to-dirCb
 /examples/copy/dirD/symlink-to-fileDa
 /examples/copy/dirEa/symlink-to-dirEb
@@ -42,23 +37,25 @@ a.out
 /test/sotest/bin/
 /test/sotest/lib/
 
-# perhaps-unpacked tarballs at root of working directory
-/charliecloud-*.tar*
-/charliecloud-*/
+# Perhaps-unpacked tarballs at root of working directory.
+/clearly-*.tar*
+/clearly-*/
 
-# debugging crap
+# Debugging crap.
 /build-cache.gv
 /build-cache.pdf
 
-# OS X crap
+# OS X crap.
 ._*
 .DS_Store
 .fuse_*
 
-# Flask crap
-static/styles/*.css
+# Nuitka crap.
+*.dist/
+*.build/
+*.onefile-build/
 
-# Python crap
+# Python crap.
 __pycache__
 
 # Vim crap.

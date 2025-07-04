@@ -140,9 +140,6 @@ Additional arguments
   :code:`-v`, :code:`--verbose`
     Be more verbose about what is going on. Can be repeated.
 
-  :code:`--version`
-    Print version and exit.
-
 .. warning::
 
    :code:`ldconfig` often prints scary-looking warnings on stderr even

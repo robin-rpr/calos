@@ -2,11 +2,11 @@ import json
 import os
 import os.path
 
-import _clearly as clearly
-import _build_cache as build_cache
-import _reference as reference
-import _registry as registry
-import _image as image
+import clearly as clearly
+import build_cache as build_cache
+import reference as reference
+import registry as registry
+import image as image
 
 
 ## Constants ##

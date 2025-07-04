@@ -70,10 +70,12 @@ After enabling the CRB repository, install the following packages:
   * :code:`python3-devel`: Python 3 development headers and libraries
   * :code:`python3-pip`: Python package installer for additional Python
     dependencies
-  * :code:`python3-wheel`: Built-package format for Python
-  * :code:`python3-cython`: Cython compiler for Python, used to compile
-    Python code to C for improved performance
-  * :code:`git`: Version control system for cloning the repository
+  * :code:`patchelf`: Nuitka requires this to modify the dynamic linker and
+    RPATH of executables during the build process.
+  * :code:`ccache`: C compiler cache for faster builds. This is optional, but
+    recommended.
+  * :code:`git`: Version control system for creating a runtime build cache,
+    during the image(1) build command process.
 
 Optional dependencies
 ~~~~~~~~~~~~~~~~~~~~
@@ -437,8 +439,8 @@ Python
 
 We use Python for scripts that would be really hard to do in Bash, when we
 think Python is likely to be available. Python code is compiled to C using
-Cython for improved performance and source protection. This requires Python
-3.6 or later and the Cython module.
+Nuitka for improved performance and source protection. This requires Python
+3.6 or later and the Nuitka module.
 
 ShellCheck
 ~~~~~~~~~~
@@ -524,15 +526,6 @@ Wget
 
 Wget is used to demonstrate building an image without a builder (the main test
 image used to exercise Charliecloud itself).
-
-
-Command line tab completion
-===========================
-
-Charliecloud offers experimental tab completion for Bash users. This feature is
-currently implemented for :code:`clearly image`, :code:`clearly run`, and
-:code:`clearly convert`. For details on setting up tab completion, as well as general
-documentation, see :ref:`completion.bash`.
 
 
 ..  LocalWords:  Werror Flameeyes plougher deps libc’s ericonr

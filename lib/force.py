@@ -1,7 +1,7 @@
 import re
 
-import _clearly as clearly
-import _filesystem as filesystem
+import clearly as clearly
+import filesystem as filesystem
 
 
 ## Globals ##

@@ -23,7 +23,7 @@ Synopsis
    $ clearly image [...] push [--image DIR] IMAGE_REF [DEST_REF]
    $ clearly image [...] reset
    $ clearly image [...] undelete IMAGE_REF
-   $ clearly image { --help | --version | --dependencies }
+   $ clearly image { --help | --dependencies }
 
 
 Description
@@ -45,9 +45,6 @@ Options that print brief information and then exit:
     Report dependency problems on standard output, if any, and exit. If all is
     well, there is no output and the exit is successful; in case of problems,
     the exit is unsuccessful.
-
-  :code:`--version`
-    Print version number and exit successfully.
 
 Common options placed before or after the sub-command:
 

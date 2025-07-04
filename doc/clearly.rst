@@ -11,7 +11,6 @@ See also
 --------
 
 clearly-check(1),
-completion.bash(7),
 clearly-convert(1),
 clearly-fromhost(1),
 clearly-image(1),

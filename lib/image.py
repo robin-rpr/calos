@@ -7,9 +7,9 @@ import re
 import sys
 import tarfile
 
-import _clearly as clearly
-import _filesystem as filesystem
-import _reference as reference
+import clearly as clearly
+import filesystem as filesystem
+import reference as reference
 
 
 ## Hairy Imports ##

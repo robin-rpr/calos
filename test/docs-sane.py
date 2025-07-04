@@ -18,7 +18,6 @@
 #         executables). Currently, the “correct” files in bin are:
 #
 #           - All executables
-#           - completion.bash
 #
 #      c. There aren’t any unexpcected .rst files, man files, or charliecloud.7
 #         “See also” entries.
@@ -35,9 +34,7 @@ import sys
 
 # Dict of documentation files. Executables are added in “main()”. Files that are
 # not executables should be manually added here.
-man_targets = {"charliecloud":       {"synopsis": "",
-                                      "sec":  7},
-               "completion.bash": {"synopsis": "Tab completion for the Charliecloud command line.",
+man_targets = {"clearly":       {"synopsis": "",
                                       "sec":  7}}
 
 

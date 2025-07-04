@@ -5,12 +5,12 @@ import os.path
 import re
 import sys
 
-import _clearly as clearly
-import _filesystem as filesystem
-import _grammar as grammar
-import _irtree as irtree
-import _force as force
-from _tree import Tree
+import clearly as clearly
+import filesystem as filesystem
+import grammar as grammar
+import irtree as irtree
+import force as force
+from tree import Tree
 import lark
 
 ## Main ##

@@ -1,11 +1,10 @@
 import json
 import os.path
 
-import _image as image
-import _clearly as clearly
-import _registry as registry
-import _version as version
-import _reference as reference
+import image as image
+import clearly as clearly
+import registry as registry
+import reference as reference
 
 ## Main ##
 
@@ -61,7 +60,6 @@ class Image_Pusher:
       # FIXME: URL of relevant docs?
       # FIXME: tidy blank/empty fields?
       return { "architecture": clearly.arch_host_get(),
-               "charliecloud_version": version.VERSION,
                "comment": "pushed with Clearly",
                "config": {},
                "container_config": {},

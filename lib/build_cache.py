@@ -38,11 +38,11 @@ import stat
 import tempfile
 import textwrap
 
-import _clearly as clearly
-import _filesystem as filesystem
-import _image as image
-import _reference as reference
-import _pull as pull
+import clearly as clearly
+import filesystem as filesystem
+import image as image
+import reference as reference
+import pull as pull
 
 
 ## Constants ##

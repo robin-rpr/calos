@@ -29,9 +29,8 @@ import warnings
 depfails = []  # 👻
 
 
-import _filesystem as filesystem
-import _registry as registry
-import _version as version
+import filesystem as filesystem
+import registry as registry
 
 
 ## Enums ##
@@ -690,7 +689,6 @@ def init(cli):
    if (file_ is not None):
       log_fp = file_.open("at")
    atexit.register(color_reset, log_fp)
-   VERBOSE("version: %s" % version.VERSION)
    VERBOSE("verbose level: %d (%s))" % (log_level.value, log_level.name))
    VERBOSE("save xattrs: %s" % str(xattrs_save))
    # signal handling

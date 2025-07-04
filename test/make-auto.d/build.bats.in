@@ -4,6 +4,5 @@ source common.bash  # for ShellCheck; removed by clearly test
     scope %(scope)s
     # shellcheck disable=SC2086
     build_ -t %(tag)s --file="%(path)s" "%(dirname)s"
-    #sudo docker tag %(tag)s "%(tag)s:$clearly_version_docker"
     builder_ok %(tag)s
 }

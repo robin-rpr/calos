@@ -872,12 +872,6 @@ void username_set(void)
    username = pw->pw_name;
 }
 
-/* Report the version number. */
-void version(void)
-{
-   fprintf(stderr, "%s\n", VERSION);
-}
-
 /* Reprint messages stored in “warnings” memory buffer. */
 void warnings_reprint(void)
 {

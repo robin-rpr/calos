@@ -7,18 +7,20 @@ import inspect
 import os.path
 import sys
 
-# Add the lib directory to Python path for imports
-# LIBDIR is defined by Cython compilation
-sys.path.insert(0, LIBDIR)
+if os.environ.get('HAVE_NUITKA', "False") == "False":
+    # Extend sys.path to include the parent directory. This is necessary because this
+    # script resides in a subdirectory, and we need to import shared modules located
+    # in the project's top-level 'lib' directory.
+    sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-# Import lib modules
-import _clearly as clearly
-import _build_cache as build_cache
-import _filesystem as filesystem
-import _build as build
-import _misc as misc
-import _pull as pull
-import _push as push
+import lib.clearly as clearly
+import lib.build_cache as build_cache
+import lib.filesystem as filesystem
+import lib.build as build
+import lib.misc as misc
+import lib.pull as pull
+import lib.push as push
+
 
 ## Main ##
 
@@ -34,7 +36,7 @@ def main():
 
    # Common options.
    #
-   # --dependencies (and --help and --version) are options rather than
+   # --dependencies (and --help) are options rather than
    # subcommands for consistency with other commands.
    #
    # These are also accepted *after* the subcommand, as it makes wrapping
@@ -141,9 +143,6 @@ def main():
             { "action": "count",
               "default": 0,
               "help": "print extra chatter (can be repeated)" }],
-           [["--version"],
-            { "action": misc.Version,
-              "help": "print version and exit" }],
            [["--xattrs"],
             { "action": "store_true",
               "help": "enable build cache support for xattrs and ACLs"}] ] }

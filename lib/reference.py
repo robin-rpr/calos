@@ -2,10 +2,10 @@ import lark
 import copy
 import os
 
-import _filesystem as filesystem
-import _clearly as clearly
-import _grammar as grammar
-from _tree import Tree
+import filesystem as filesystem
+import clearly as clearly
+import grammar as grammar
+from tree import Tree
 
 
 ## Classes ##

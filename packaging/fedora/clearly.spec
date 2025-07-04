@@ -133,12 +133,8 @@ ln -s "${sphinxdir}/js"    %{buildroot}%{_pkgdocdir}/html/_static/js
 %{_mandir}/man1/convert.1*
 %{_mandir}/man1/fromhost.1*
 %{_mandir}/man1/run.1*
-%{_mandir}/man7/charliecloud.7*
-%{_mandir}/man7/completion.bash.7*
-%{_prefix}/lib/%{name}/_base.sh
-%{_prefix}/lib/%{name}/_contributors.bash
-%{_prefix}/lib/%{name}/_version.sh
-%{_prefix}/lib/%{name}/_version.txt
+%{_mandir}/man7/clearly.7*
+%{_prefix}/lib/%{name}/base.sh
 
 %files builder
 %{_libexecdir}/image

@@ -80,7 +80,6 @@ const struct argp_option options[] = {
    { "unsafe",        -13, 0,           0, "do unsafe things (internal use only)" },
    { "unset-env",      -7, "GLOB",      0, "unset environment variable(s)" },
    { "verbose",       'v', 0,           0, "be more verbose (can be repeated)" },
-   { "version",       'V', 0,           0, "print version and exit" },
    { "warnings",      -16, "NUM",       0, "log NUM warnings and exit" },
    { "write",         'w', 0,           0, "mount image read-write (avoid)"},
    { "write-fake",    'W', "SIZE", OPTION_ARG_OPTIONAL,
@@ -570,10 +569,6 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state)
       i = parse_int(arg, false, "--uid");
       Te (i >= 0, "--uid: must be non-negative");
       args->c.container_uid = (uid_t) i;
-      break;
-   case 'V':  // --version
-      version();
-      exit(EXIT_SUCCESS);
       break;
    case 'v':  // --verbose
       Te(verbose >= 0, "--verbose incompatible with --quiet");

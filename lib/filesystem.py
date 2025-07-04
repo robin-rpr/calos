@@ -12,7 +12,7 @@ import stat
 import struct
 import tarfile
 
-import _clearly as clearly
+import clearly as clearly
 
 
 ## Constants ##

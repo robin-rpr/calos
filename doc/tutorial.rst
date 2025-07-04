@@ -97,7 +97,7 @@ Charliecloud you have (if not, please report a bug). For example::
 
   Run a command in a Charliecloud container.
   [...]
-  $ clearly run --version
+  $ clearly --version
   0.26
 
 Man pages for all commands are provided in this documentation (see table of

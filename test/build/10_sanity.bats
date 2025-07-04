@@ -17,13 +17,17 @@ load ../common
 }
 
 @test 'version number seems sane' {
-    # This checks the form of the version number but not whether it’s
+    # This checks the form of the version number but not whether it's
     # consistent with anything, because so far that level of strictness has
     # yielded hundreds of false positives but zero actual bugs.
     scope quick
-    echo "version: ${clearly_version}"
+    run clearly --version
+    echo "$output"
+    [[ $status -eq 0 ]]
+    clearly_version_from_cmd=$output
+    echo "version: ${clearly_version_from_cmd}"
     re='^0\.[0-9]+(\.[0-9]+)?(~pre\+([A-Za-z0-9]+\.)?([0-9a-f]+(\.dirty)?)?)?$'
-    [[ $clearly_version =~ $re ]]
+    [[ $clearly_version_from_cmd =~ $re ]]
 }
 
 @test 'executables seem sane' {

@@ -56,7 +56,6 @@ doctest \
 doctest-auto \
 force-auto \
 make-perms-test \
-old-storage \
 order-py
 
 # Program and shared library used for testing shared library injection. It's

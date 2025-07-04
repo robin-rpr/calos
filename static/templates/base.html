@@ -5,16 +5,16 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
         <title>{% block title %}Clearly{% endblock %}</title>
-        <link rel="icon" href="{{ url_for('static',filename='images/favicon.svg')}}" sizes="any" type="image/svg+xml">
-        <link rel="icon" href="{{ url_for('static',filename='images/favicon-64x64.png')}}" type="image/png" sizes="64x64" />
-        <link rel="icon" href="{{ url_for('static',filename='images/favicon-32x32.png')}}" type="image/png" sizes="32x32" />
-        <link rel="icon" href="{{ url_for('static',filename='images/favicon-16x16.png')}}" type="image/png" sizes="16x16" />
+        <link rel="icon" href="/static/images/favicon.svg" sizes="any" type="image/svg+xml">
+        <link rel="icon" href="/static/images/favicon-64x64.png" type="image/png" sizes="64x64" />
+        <link rel="icon" href="/static/images/favicon-32x32.png" type="image/png" sizes="32x32" />
+        <link rel="icon" href="/static/images/favicon-16x16.png" type="image/png" sizes="16x16" />
 
         <!-- FontAwesome -->
         <script src="https://kit.fontawesome.com/a69c8c907b.js" crossorigin="anonymous"></script>
 
         <!-- Styles -->
-        <link rel="stylesheet" href="{{ url_for('static',filename='styles/main.css')}}" type="text/css" />
+        <link rel="stylesheet" href="main.css" type="text/css" />
 
         <!-- Additional Headers -->
         {% block headers %}{% endblock %}
@@ -31,10 +31,5 @@
             </div>
             {% include "layout/footer.html" %}
         </main>
-
-        <!-- JavaScript -->
-        {% for script in scripts() %}
-        {{ script | safe }}
-        {% endfor %}
     </body>
 </html>

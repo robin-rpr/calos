@@ -7,13 +7,13 @@ import types
 import urllib
 import urllib.parse
 
-import _clearly as clearly
+import clearly as clearly
 
 
 ## Hairy imports ##
 
 # Requests is not bundled, so this noise makes the file parse and
-# --version/--help work even if it’s not installed.
+# --help work even if it’s not installed.
 try:
    import requests
    import requests.auth
