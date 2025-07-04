@@ -1,9 +1,0 @@
-# Python dependencies for Clearly
-# This file contains the list of required python packages for the project.
-
-lark==1.1.9
-libsass==0.23.0
-Jinja2==3.1.6
-requests==2.32.4
-wheel==0.45.1
-Nuitka==2.7.11

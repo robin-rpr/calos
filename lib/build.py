@@ -115,7 +115,7 @@ def cli_process_common(cli):
       for (cmd, args) in cli.force_cmd.items():
          clearly.VERBOSE("force command: %s" % clearly.argv_to_string([cmd] + args))
    if (    cli.force == clearly.Force_Mode.SECCOMP
-       and clearly.cmd([LIBEXECDIR + "/run", "--feature=seccomp"],
+       and clearly.cmd([PKGLIBEXECDIR + "/run", "--feature=seccomp"],
                   fail_ok=True) != 0):
       clearly.FATAL("run was not built with seccomp(2) support")
 

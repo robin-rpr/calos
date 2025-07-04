@@ -67,13 +67,14 @@ After enabling the CRB repository, install the following packages:
     capabilities management capabilities
   * :code:`fuse3-devel`: Development files for FUSE 3, the filesystem in
     userspace interface
-  * :code:`python3-devel`: Python 3 development headers and libraries
-  * :code:`python3-pip`: Python package installer for additional Python
-    dependencies
-  * :code:`patchelf`: Nuitka requires this to modify the dynamic linker and
-    RPATH of executables during the build process.
-  * :code:`ccache`: C compiler cache for faster builds. This is optional, but
-    recommended.
+  * :code:`python3-lark-parser`: Python 3 Lark parser library, used for parsing
+    and processing Dockerfile as well as docker-compose.yml files.
+  * :code:`python3-libsass`: Python 3 LibSass library, used for CSS preprocessing.
+  * :code:`python3-jinja2`: Python 3 Jinja2 library, used for templating.
+  * :code:`python3-requests`: Python 3 Requests library, used for HTTP requests.
+  * :code:`python3-wheel`: Python 3 Wheel library, used for building Python packages.
+  * :code:`python3-devel`: Python 3 development headers and libraries.
+  * :code:`python3`: Python 3 interpreter, used for building Python packages.
   * :code:`git`: Version control system for creating a runtime build cache,
     during the image(1) build command process.
 

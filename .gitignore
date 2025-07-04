@@ -10,6 +10,8 @@ a.out
 /cmd/version
 /cmd/image.c
 /cmd/daemon.c
+/lib/_*.c
+/lib/_*.so
 /examples/copy/dirCa/symlink-to-dirCb
 /examples/copy/dirD/symlink-to-fileDa
 /examples/copy/dirEa/symlink-to-dirEb
@@ -74,6 +76,7 @@ Makefile.in
 /cmd/.deps/
 /cmd/config.h
 /cmd/config.h.in
+/cmd/config.h.in~
 /cmd/stamp-h1
 /build-aux/
 /config.log

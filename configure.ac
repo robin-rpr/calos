@@ -627,31 +627,31 @@ EOF
     [-c 'import requests; print(requests.__version__)'])
 ])
 
-# Python module “nuitka”
-vmin_nuitka=3.1.0  # FIXME: haven't actually tested this
+# Python module “cython”
+vmin_cython=3.1.0  # FIXME: haven't actually tested this
 AS_IF([test -n "$PYTHON"], [
-  AC_MSG_CHECKING([for Nuitka module])
+  AC_MSG_CHECKING([for Cython module])
   cat <<EOF | $PYTHON
 import sys
 try:
-   import nuitka
+   import cython
 except Exception:
    sys.exit(1)
 EOF
   AS_IF([test $? -eq 0],
-    [NUITKA=$PYTHON; have_nuitka=yes],
-    [NUITKA=;         have_nuitka=no])
-  AC_MSG_RESULT($have_nuitka)
-  CLEARLY_CHECK_VERSION([NUITKA], [$vmin_nuitka],
-    [-c 'import nuitka; print(Nuitka.__version__)'])
+    [CYTHON=$PYTHON; have_cython=yes],
+    [CYTHON=;         have_cython=no])
+  AC_MSG_RESULT($have_cython)
+  CLEARLY_CHECK_VERSION([CYTHON], [$vmin_cython],
+    [-c 'import cython; print(Cython.__version__)'])
 ])
 
-# Check for C compiler (needed for Nuitka compilation)
-AC_MSG_CHECKING([for C compiler for Nuitka])
+# Check for C compiler (needed for Cython compilation)
+AC_MSG_CHECKING([for C compiler for Cython])
 AS_IF([test -n "$CC"],
   [AC_MSG_RESULT([yes ($CC)])],
   [AC_MSG_RESULT([no])
-   AC_MSG_ERROR([C compiler required for Nuitka compilation])])
+   AC_MSG_ERROR([C compiler required for Cython compilation])])
 
 # DOT
 vmin_dot=2.30.1
@@ -851,7 +851,7 @@ AM_CONDITIONAL([ENABLE_TEST], [test $enable_test = yes])
 AC_SUBST([PYEXT_SUFFIX], [`python3-config --extension-suffix`])
 AC_SUBST([CLEARLY_RUN_LIBS])
 AC_SUBST([SPHINX])
-AC_SUBST([NUITKA_VERSION])
+AC_SUBST([CYTHON_VERSION])
 
 AS_IF([test $have_overlayfs = yes],
       [AC_DEFINE([HAVE_OVERLAYFS], [1], [unprivileged overlayfs])])
@@ -883,7 +883,7 @@ AS_IF([   test $have_userns = yes],
 AS_IF([   test $enable_image = yes \
        && test -n "$PYTHON" \
        && test -n "$REQUESTS" \
-       && test -n "$NUITKA" \
+       && test -n "$CYTHON" \
        && test $have_run = yes],
       [have_image=yes],
       [have_image=no])

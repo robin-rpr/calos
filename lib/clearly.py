@@ -530,7 +530,7 @@ def bytes_hash(data):
 def run_modify(img, args, env, workdir="/", binds=[], run_args=[],
                   fail_ok=False):
    # Note: If you update these arguments, update the clearly image(1) man page too.
-   args = (  [LIBEXECDIR + "/run"]
+   args = (  [PKGLIBEXECDIR + "/run"]
            + run_args
            + ["-w", "-u0", "-g0", "--no-passwd", "--cd", workdir, "--unsafe"]
            + sum([["-b", i] for i in binds], [])

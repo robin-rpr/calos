@@ -11,22 +11,31 @@ import sys
 import os
 import re
 
-if os.environ.get('HAVE_NUITKA', 'False') == 'False':
+try:
+    # Cython provides LIBDIR.
+    sys.path.insert(0, LIBDIR)
+except NameError:
     # Extend sys.path to include the parent directory. This is necessary because this
     # script resides in a subdirectory, and we need to import shared modules located
     # in the project's top-level 'lib' directory.
-    sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 import lib.executor as executor
 
 
 ## Constants ##
 
-PKGDATADIR = os.environ.get('PKGDATADIR', './static')
-TEMPLATE_DIR = os.path.join(PKGDATADIR, 'templates')
-STATIC_DIR = PKGDATADIR
-LOG_FILE = '/var/log/clearly.log'
-CACHE_MAX_AGE = 86400  # 24 hours
+try:
+    # Cython provides PKGDATADIR.
+    STATIC_DIR = PKGDATADIR
+    TEMPLATE_DIR = os.path.join(PKGDATADIR, 'templates')
+except NameError:
+    # Define STATIC_DIR to be the static directory relative to the current file.
+    STATIC_DIR = os.path.join(os.path.dirname(__file__), '..', 'static')
+    TEMPLATE_DIR = os.path.join(STATIC_DIR, 'templates')
+
+# Caching
+CACHE_MAX_AGE = 86400 # 24 hours
 
 # Executor
 executor = executor.Executor()
@@ -39,7 +48,7 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler(LOG_FILE),
+        logging.FileHandler('/var/log/clearly.log'),
         logging.StreamHandler()
     ]
 )

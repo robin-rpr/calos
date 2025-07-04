@@ -7,11 +7,14 @@ import inspect
 import os.path
 import sys
 
-if os.environ.get('HAVE_NUITKA', "False") == "False":
+try:
+    # Cython provides LIBDIR.
+    sys.path.insert(0, LIBDIR)
+except NameError:
     # Extend sys.path to include the parent directory. This is necessary because this
     # script resides in a subdirectory, and we need to import shared modules located
     # in the project's top-level 'lib' directory.
-    sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 import lib.clearly as clearly
 import lib.build_cache as build_cache
