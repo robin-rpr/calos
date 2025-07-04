@@ -38,7 +38,7 @@ setup () {
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = *'/usr/libexec/clearly/run'* ]]
-    [[ $output = *'/usr/lib/clearly/base.sh'* ]]
+    [[ $output = *'/usr/lib/clearly/_base.sh'* ]]
     [[ $output = *'/usr/share/man/man7/clearly.7.gz'* ]]
     run clearly run "$img" -- rpm -ql "clearly-builder"
     echo "$output"
@@ -114,7 +114,7 @@ setup () {
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = *'/usr/libexec/clearly/run'* ]]
-    [[ $output = *'/usr/lib/clearly/base.sh'* ]]
+    [[ $output = *'/usr/lib/clearly/_base.sh'* ]]
     [[ $output = *'/usr/share/man/man7/clearly.7.gz'* ]]
     run clearly run "$img" -- rpm -ql "clearly-builder"
     echo "$output"

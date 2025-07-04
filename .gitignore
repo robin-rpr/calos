@@ -10,8 +10,8 @@ a.out
 /cmd/version
 /cmd/image.c
 /cmd/daemon.c
-/lib/_*.c
-/lib/_*.so
+/lib/*.c
+/lib/*.so
 /examples/copy/dirCa/symlink-to-dirCb
 /examples/copy/dirD/symlink-to-fileDa
 /examples/copy/dirEa/symlink-to-dirEb

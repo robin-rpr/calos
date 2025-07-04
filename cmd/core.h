@@ -32,7 +32,7 @@ struct container {
    struct bind *binds;    // mount paths to container
    gid_t container_gid;   // GID to use in container
    uid_t container_uid;   // UID to use in container
-   bool env_expand;       // expand variables in --set-env
+   bool env_expand;       // expand variables in --env
    char **argv;           // command to run in container
    char *host_home;       // if --home, host path to user homedir, else NULL
    char **host_map_strs;  // e.g. "google.com:127.0.0.1"
@@ -45,7 +45,7 @@ struct container {
    char *join_tag;        // identifier for synchronized join
    char *overlay_size;    // size of overlaid tmpfs (NULL for no overlay)
    char **publish_map_strs;  // e.g. "8080:80"
-   bool private_passwd;   // don't bind custom /etc/{passwd,group}
+   bool public_passwd;   // don't bind custom /etc/{passwd,group}
    bool private_tmp;      // don't bind host's /tmp
    enum img_type type;    // directory, SquashFS, etc.
    bool writable;         // re-mount image read-write

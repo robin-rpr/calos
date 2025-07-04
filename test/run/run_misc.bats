@@ -420,7 +420,7 @@ EOF
 }
 
 
-@test 'clearly run --set-env' {
+@test 'clearly run --env' {
     scope standard
 
     # Quirk that is probably too obscure to put in the documentation: The
@@ -552,14 +552,14 @@ EOF
 ('chse_fF', ':')
 EOF
 )
-    run clearly run --set-env="$f_in" "$clearly_timg" -- python3 -c 'import os; [print((k,v)) for (k,v) in sorted(os.environ.items()) if "chse_" in k]'
+    run clearly run --env="$f_in" "$clearly_timg" -- python3 -c 'import os; [print((k,v)) for (k,v) in sorted(os.environ.items()) if "chse_" in k]'
     echo "$output"
     [[ $status -eq 0 ]]
     diff -u <(echo "$output_expected") <(echo "$output")
 }
 
 
-@test 'clearly run --set-env0' {
+@test 'clearly run --env0' {
     scope standard
 
     export SET=foo
@@ -580,14 +580,14 @@ EOF
 ('chse_g1', 'foo\nbar')
 EOF
 )
-    run clearly run --set-env0="$f_in" "$clearly_timg" -- python3 -c 'import os; [print((k,v)) for (k,v) in sorted(os.environ.items()) if "chse_" in k]'
+    run clearly run --env0="$f_in" "$clearly_timg" -- python3 -c 'import os; [print((k,v)) for (k,v) in sorted(os.environ.items()) if "chse_" in k]'
     echo "$output"
     [[ $status -eq 0 ]]
     diff -u <(echo "$output_expected") <(echo "$output")
 }
 
 
-@test 'clearly run --set-env from Dockerfile' {
+@test 'clearly run --env from Dockerfile' {
     scope standard
     prerequisites_ok argenv
     img=${clearly_imgdir}/argenv
@@ -598,25 +598,25 @@ chse_env2_df=env2 env1
 EOF
 )
 
-    run clearly run --set-env "$img" -- sh -c 'env | grep -E "^chse_"'
+    run clearly run --env "$img" -- sh -c 'env | grep -E "^chse_"'
     echo "$output"
     [[ $status -eq 0 ]]
     diff -u <(echo "$output_expected") <(echo "$output")
 }
 
 
-@test 'clearly run --set-env errors' {
+@test 'clearly run --env errors' {
     scope standard
     f_in=${BATS_TMPDIR}/env.txt
 
     # file does not exist
-    run clearly run --set-env=doesnotexist.txt "$clearly_timg" -- /bin/true
+    run clearly run --env=doesnotexist.txt "$clearly_timg" -- /bin/true
     echo "$output"
     [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output = *"can't open: doesnotexist.txt: No such file or directory"* ]]
 
     # /clearly/environment missing
-    run clearly run --set-env "$clearly_timg" -- /bin/true
+    run clearly run --env "$clearly_timg" -- /bin/true
     echo "$output"
     [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output = *"can't open: /clearly/environment: No such file or directory"* ]]
@@ -626,14 +626,14 @@ EOF
 
     # invalid line: missing “=”
     echo 'FOO bar' > "$f_in"
-    run clearly run --set-env="$f_in" "$clearly_timg" -- /bin/true
+    run clearly run --env="$f_in" "$clearly_timg" -- /bin/true
     echo "$output"
     [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output = *"can't parse variable: no delimiter: ${f_in}:1"* ]]
 
     # invalid line: no name
     echo '=bar' > "$f_in"
-    run clearly run --set-env="$f_in" "$clearly_timg" -- /bin/true
+    run clearly run --env="$f_in" "$clearly_timg" -- /bin/true
     echo "$output"
     [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output = *"can't parse variable: empty name: ${f_in}:1"* ]]
@@ -641,18 +641,18 @@ EOF
 
 
 # shellcheck disable=SC2016
-@test 'clearly run --set-env command line' {
+@test 'clearly run --env command line' {
     scope standard
 
     # missing “'”
     # shellcheck disable=SC2086
-    run clearly run --set-env=foo='$test:app' --env-no-expand -v "$clearly_timg" -- /bin/true
+    run clearly run --env=foo='$test:app' --env-no-expand -v "$clearly_timg" -- /bin/true
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = *'environment: foo=$test:app'* ]]
 
     # missing environment variable
-    run clearly run --set-env='$PATH:foo' "$clearly_timg" -- /bin/true
+    run clearly run --env='$PATH:foo' "$clearly_timg" -- /bin/true
     echo "$output"
     [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output = *'$PATH:foo: No such file or directory'* ]]
@@ -733,7 +733,7 @@ EOF
 }
 
 
-@test 'clearly run mixed --set-env and --unset-env' {
+@test 'clearly run mixed --env and --unset-env' {
     scope standard
 
     # Input.
@@ -773,7 +773,7 @@ chmix_c1=u
 chmix_c2=t
 EOF
 )
-    run clearly run --set-env="$f1_in" --set-env="$f2_in" "$clearly_timg" -- \
+    run clearly run --env="$f1_in" --env="$f2_in" "$clearly_timg" -- \
                sh -c 'env | grep -E ^chmix_ | sort'
     echo "$output"
     [[ $status -eq 0 ]]
@@ -787,7 +787,7 @@ chmix_b1=w
 chmix_b2=v
 EOF
 )
-    run clearly run --unset-env=chmix_a1 --set-env="$f1_in" "$clearly_timg" -- \
+    run clearly run --unset-env=chmix_a1 --env="$f1_in" "$clearly_timg" -- \
                sh -c 'env | grep -E ^chmix_ | sort'
     echo "$output"
     [[ $status -eq 0 ]]
@@ -801,7 +801,7 @@ chmix_a3=x
 chmix_b1=w
 EOF
 )
-    run clearly run  --set-env="$f1_in" --unset-env=chmix_b2 "$clearly_timg" -- \
+    run clearly run  --env="$f1_in" --unset-env=chmix_b2 "$clearly_timg" -- \
                sh -c 'env | grep -E ^chmix_ | sort'
     echo "$output"
     [[ $status -eq 0 ]]
@@ -815,7 +815,7 @@ chmix_b1=w
 EOF
 )
     run clearly run --unset-env=chmix_a1 \
-               --set-env="$f1_in" \
+               --env="$f1_in" \
                --unset-env=chmix_b2 \
                "$clearly_timg" -- sh -c 'env | grep -E ^chmix_ | sort'
     echo "$output"
@@ -832,9 +832,9 @@ chmix_c1=u
 chmix_c2=t
 EOF
 )
-    run clearly run --set-env="$f1_in" \
+    run clearly run --env="$f1_in" \
                --unset-env=chmix_b2 \
-               --set-env="$f2_in" \
+               --env="$f2_in" \
                "$clearly_timg" -- sh -c 'env | grep -E ^chmix_ | sort'
     echo "$output"
     [[ $status -eq 0 ]]

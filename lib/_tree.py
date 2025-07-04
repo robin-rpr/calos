@@ -1,6 +1,6 @@
 import lark
 
-import clearly as clearly
+import _clearly as _clearly
 
 ## Constants ##
 
@@ -23,7 +23,7 @@ class Tree(lark.tree.Tree):
             text = c
             type_ = c.type
             width = len(pfx) + len(istr) + len(text) + len(type_) + 2
-            over = width - clearly.term_width
+            over = width - _clearly.term_width
             if (len(type_) > WIDTH_TOKEN_MAX):
                # trim token (unconditionally for consistent alignment)
                token_rm = len(type_) - WIDTH_TOKEN_MAX

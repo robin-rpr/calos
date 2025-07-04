@@ -52,38 +52,32 @@ const struct argp_option options[] = {
    { "allow",         'a', "DST",       0, "allow egress traffic to DST (e.g. 1.2.3.4)" },
    { "bind",          'b', "SRC[:DST]", 0, "mount SRC at guest DST (default: same as SRC)"},
    { "cd",            'c', "DIR",       0, "initial working directory in container"},
-   { "env-no-expand", -10, 0,           0, "don't expand $ in --set-env input"},
-   { "feature",       -11, "FEAT",      0, "exit successfully if FEAT is enabled" },
+   { "env-no-expand", -8,  0,           0, "don't expand $ in --env input"},
+   { "feature",       -9, "FEAT",       0, "exit successfully if FEAT is enabled" },
    { "gid",           'g', "GID",       0, "run as GID within container" },
-   { "home",          -12, 0,           0, "mount host $HOME at guest /home/$USER" },
+   { "home",          -10, 0,           0, "mount host $HOME at guest /home/$USER" },
    { "host",          'h', "SRC:DST",   0, "map SRC at guest DST (e.g. google.com:1.2.3.4)" },
    { "join",          'j', 0,           0, "use same container as peer clearly run" },
    { "join-pid",       -5, "PID",       0, "join a namespace using a PID" },
    { "join-ct",        -3, "N",         0, "number of join peers (implies --join)" },
    { "join-tag",       -4, "TAG",       0, "label for peer group (implies --join)" },
-   { "test",          -17, "TEST",      0, "do 'clearly test' TEST" },
+   { "test",          -13, "TEST",      0, "do 'clearly test' TEST" },
    { "mount",         'm', "DIR",       0, "SquashFS mount point"},
-   { "no-passwd",      -9, 0,           0, "don't bind-mount /etc/{passwd,group}"},
+   { "passwd",         -7, 0,           0, "bind-mount /etc/{passwd,group}"},
+   { "overlay-size",  'o', "SIZE", OPTION_ARG_OPTIONAL,
+                           "overlay read-write tmpfs size on top of image" },
    { "publish",       'p', "SRC:DST",   0, "forward host port SRC to container port DST" },
    { "private-tmp",   't', 0,           0, "use container-private /tmp" },
    { "quiet",         'q', 0,           0, "print less output (can be repeated)"},
-#ifdef HAVE_SECCOMP
-   { "seccomp",       -14, 0,           0,
-                           "fake success for some syscalls with seccomp(2)"},
-#endif
-   { "set-env",        -6, "ARG",  OPTION_ARG_OPTIONAL,
+   { "env",           'e', "ARG",       0,
                            "set env. variables per ARG (newline-delimited)"},
-   { "set-env0",      -15, "ARG",  OPTION_ARG_OPTIONAL,
-                           "set env. variables per ARG (null-delimited)"},
    { "storage",       's', "DIR",       0, "set DIR as storage directory"},
    { "uid",           'u', "UID",       0, "run as UID within container" },
-   { "unsafe",        -13, 0,           0, "do unsafe things (internal use only)" },
-   { "unset-env",      -7, "GLOB",      0, "unset environment variable(s)" },
+   { "unsafe",        -11, 0,           0, "do unsafe things (internal use only)" },
+   { "unset-env",      -6, "GLOB",      0, "unset environment variable(s)" },
    { "verbose",       'v', 0,           0, "be more verbose (can be repeated)" },
-   { "warnings",      -16, "NUM",       0, "log NUM warnings and exit" },
+   { "warnings",      -12, "NUM",       0, "log NUM warnings and exit" },
    { "write",         'w', 0,           0, "mount image read-write (avoid)"},
-   { "write-fake",    'W', "SIZE", OPTION_ARG_OPTIONAL,
-                           "overlay read-write tmpfs on top of image" },
    { 0 }
 };
 
@@ -94,9 +88,6 @@ struct args {
    struct container c;
    struct env_delta *env_deltas;
    char *initial_dir;
-#ifdef HAVE_SECCOMP
-   bool seccomp_p;
-#endif
    char *storage_dir;
    bool unsafe;
 };
@@ -163,17 +154,14 @@ int main(int argc, char *argv[])
                                .join_ct = 0,
                                .join_pid = 0,
                                .join_tag = NULL,
-                               .overlay_size = NULL,
+                               .overlay_size = WRITE_FAKE_DEFAULT,
                                .publish_map_strs = list_new(sizeof(char *), 0),
-                               .private_passwd = false,
+                               .public_passwd = false,
                                .private_tmp = false,
                                .type = IMG_NONE,
                                .writable = false },
       .env_deltas = list_new(sizeof(struct env_delta), 0),
       .initial_dir = NULL,
-#ifdef HAVE_SECCOMP
-      .seccomp_p = false,
-#endif
       .storage_dir = storage_default(),
       .unsafe = false };
 
@@ -243,16 +231,12 @@ int main(int argc, char *argv[])
    VERBOSE("join: %d %d %s %d", args.c.join, args.c.join_ct, args.c.join_tag,
            args.c.join_pid);
    VERBOSE("private /tmp: %d", args.c.private_tmp);
-#ifdef HAVE_SECCOMP
-   VERBOSE("seccomp: %d", args.seccomp_p);
-#endif
    VERBOSE("unsafe: %d", args.unsafe);
 
    containerize(&args.c);
    fix_environment(&args);
 #ifdef HAVE_SECCOMP
-   if (args.seccomp_p)
-      seccomp_install();
+   seccomp_install();
 #endif
    run_user_command(c_argv, args.initial_dir); // should never return
    exit(EXIT_FAILURE);
@@ -289,7 +273,7 @@ void fix_environment(struct args *args)
    // $TMPDIR: Unset.
    Z_ (unsetenv("TMPDIR"));
 
-   // --set-env and --unset-env.
+   // --env and --unset-env.
    for (size_t i = 0; args->env_deltas[i].action != ENV_END; i++) {
       struct env_delta ed = args->env_deltas[i];
       switch (ed.action) {
@@ -310,7 +294,7 @@ void fix_environment(struct args *args)
       }
    }
 
-   // $CLEARLY_RUNNING is not affected by --unset-env or --set-env.
+   // $CLEARLY_RUNNING is not affected by --unset-env or --env.
    Z_ (setenv("CLEARLY_RUNNING", "Weird Al Yankovic", 1));
 }
 
@@ -426,23 +410,20 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state)
    case -5: // --join-pid
       args->c.join_pid = parse_int(arg, false, "--join-pid");
       break;
-   case -6: // --set-env
-      parse_set_env(args, arg, '\n');
-      break;
-   case -7: { // --unset-env
+   case -6: { // --unset-env
         struct env_delta ed;
         Te (strlen(arg) > 0, "--unset-env: GLOB must have non-zero length");
         ed.action = ENV_UNSET_GLOB;
         ed.arg.glob = arg;
         list_append((void **)&(args->env_deltas), &ed, sizeof(ed));
       } break;
-   case -9: // --no-passwd
-      args->c.private_passwd = true;
+   case -7: // --passwd
+      args->c.public_passwd = true;
       break;
-   case -10: // --env-no-expand
+   case -8: // --env-no-expand
       args->c.env_expand = false;
       break;
-   case -11: // --feature
+   case -9: // --feature
       if (!strcmp(arg, "extglob")) {
 #ifdef HAVE_FNM_EXTMATCH
          exit(0);
@@ -477,30 +458,18 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state)
       else
          FATAL(0, "unknown feature: %s", arg);
       break;
-   case -12: // --home
+   case -10: // --home
       Tf (args->c.host_home = getenv("HOME"), "--home failed: $HOME not set");
-      if (args->c.overlay_size == NULL) {
-         VERBOSE("--home specified; also setting --write-fake");
-         args->c.overlay_size = WRITE_FAKE_DEFAULT;
-      }
       break;
-   case -13: // --unsafe
+   case -11: // --unsafe
       args->unsafe = true;
       break;
-#ifdef HAVE_SECCOMP
-   case -14: // --seccomp
-      args->seccomp_p = true;
-      break;
-#endif
-   case -15: // --set-env0
-      parse_set_env(args, arg, '\0');
-      break;
-   case -16: // --warnings
+   case -12: // --warnings
       for (int i = 1; i <= parse_int(arg, false, "--warnings"); i++)
          WARNING("this is warning %d!", i);
       exit(0);
       break;
-   case -17: // --test
+   case -13: // --test
       if (!strcmp(arg, "log"))
          test_logging(false);
       else if (!strcmp(arg, "log-fail"))
@@ -512,7 +481,7 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state)
       Ze(arg[0] == '\0', "allow mapping can't be empty string");
       list_append((void **)&(args->c.allow_map_strs), &arg, sizeof(char *));
       break;
-   case 'b': {  // --bind
+   case 'b': { // --bind
          char *src, *dst;
          for (i = 0; args->c.binds[i].src != NULL; i++) // count existing binds
             ;
@@ -535,6 +504,13 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state)
       break;
    case 'c':  // --cd
       args->initial_dir = arg;
+      break;
+   case 'e': // --env
+      if (arg == NULL && state->next < state->argc && 
+          strchr(state->argv[state->next], '=') != NULL) {
+         arg = state->argv[state->next++];
+      }
+      parse_set_env(args, arg, '\n');
       break;
    case 'g':  // --gid
       i = parse_int(arg, false, "--gid");
@@ -578,8 +554,9 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state)
    case 'w':  // --write
       args->c.writable = true;
       break;
-   case 'W':  // --write-fake
-      args->c.overlay_size = arg != NULL ? arg : WRITE_FAKE_DEFAULT;
+   case 'o':  // --overlay-size
+      Ze(arg[0] == '\0', "overlay size can't be empty string");
+      args->c.overlay_size = arg;
       break;
    case 'p':  // --publish
       Ze(arg[0] == '\0', "publish mapping can't be empty string");

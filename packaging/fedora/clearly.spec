@@ -134,7 +134,7 @@ ln -s "${sphinxdir}/js"    %{buildroot}%{_pkgdocdir}/html/_static/js
 %{_mandir}/man1/fromhost.1*
 %{_mandir}/man1/run.1*
 %{_mandir}/man7/clearly.7*
-%{_prefix}/lib/%{name}/base.sh
+%{_prefix}/lib/%{name}/_base.sh
 
 %files builder
 %{_libexecdir}/image

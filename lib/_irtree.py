@@ -10,12 +10,12 @@ import re
 import shutil
 import sys
 
-import clearly as clearly
-import build_cache as build_cache
-import filesystem as filesystem
-import image as image
-import reference as reference
-import force as force
+import _clearly as _clearly
+import _build_cache as _build_cache
+import _filesystem as _filesystem
+import _image as _image
+import _reference as _reference
+import _force as _force
 import lark
 
 
@@ -83,7 +83,7 @@ class Main_Loop(lark.Visitor):
             if (not (isinstance(inst, Directive_G)
                   or isinstance(inst, From__G)
                   or isinstance(inst, Instruction_No_Image))):
-               clearly.FATAL("first instruction must be ARG or FROM")
+               _clearly.FATAL("first instruction must be ARG or FROM")
          inst.init(self.inst_prev)
          # The three announce_maybe() calls are clunky but I couldn’t figure
          # out how to avoid the repeats.
@@ -94,7 +94,7 @@ class Main_Loop(lark.Visitor):
          except Instruction_Ignored:
             inst.announce_maybe()
             return
-         except clearly.Fatal_Error:
+         except _clearly.Fatal_Error:
             inst.announce_maybe()
             inst.prepare_rollback()
             raise
@@ -103,7 +103,7 @@ class Main_Loop(lark.Visitor):
                inst.checkout_for_build()
             try:
                inst.execute()
-            except clearly.Fatal_Error:
+            except _clearly.Fatal_Error:
                inst.rollback()
                raise
             if (inst.image_i >= 0):
@@ -134,20 +134,20 @@ def parse_tree_traverse(tree, image_ct_, cli_):
 
    # Check that all build arguments were consumed.
    if (len(cli.build_arg) != 0):
-      clearly.FATAL("--build-arg: not consumed: " + " ".join(cli.build_arg.keys()))
+      _clearly.FATAL("--build-arg: not consumed: " + " ".join(cli.build_arg.keys()))
 
    # Print summary & we’re done.
    if (ml.instruction_total_ct == 0):
-      clearly.FATAL("no instructions found: %s" % cli.file)
+      _clearly.FATAL("no instructions found: %s" % cli.file)
    assert (ml.inst_prev.image_i + 1 == image_ct)  # should’ve errored already
-   if ((cli.force != clearly.Force_Mode.NONE) and ml.miss_ct != 0):
-      clearly.INFO("--force=%s: modified %d RUN instructions"
+   if ((cli.force != _clearly.Force_Mode.NONE) and ml.miss_ct != 0):
+      _clearly.INFO("--force=%s: modified %d RUN instructions"
               % (cli.force.value, forcer.run_modified_ct))
-   clearly.INFO("grown in %d instructions: %s"
+   _clearly.INFO("grown in %d instructions: %s"
            % (ml.instruction_total_ct, ml.inst_prev.image))
    # FIXME: remove when we’re done encouraging people to use the build cache.
-   if (isinstance(build_cache.cache, build_cache.Disabled_Cache)):
-      clearly.INFO("build slow? consider enabling the build cache",
+   if (isinstance(_build_cache.cache, _build_cache.Disabled_Cache)):
+      _clearly.INFO("build slow? consider enabling the build cache",
               "https://hpc.github.io/charliecloud/command-usage.html#build-cache")
 
 def unescape(sl):
@@ -186,7 +186,7 @@ class Instruction(abc.ABC):
          clearly.variables_sub() here."""
       self.announced_p = False
       self.commit_files = set()
-      self.git_hash = build_cache.GIT_HASH_UNKNOWN
+      self.git_hash = _build_cache.GIT_HASH_UNKNOWN
       self.lineno = tree.meta.line
       self.options = dict()
       # saving options with only 1 saved value
@@ -194,7 +194,7 @@ class Instruction(abc.ABC):
          k = st.terminal("OPTION_KEY")
          v = st.terminal("OPTION_VALUE")
          if (k in self.options):
-            clearly.FATAL("%3d %s: repeated option --%s"
+            _clearly.FATAL("%3d %s: repeated option --%s"
                      % (self.lineno, self.str_name, k))
          self.options[k] = v
 
@@ -252,7 +252,7 @@ class Instruction(abc.ABC):
            1. True  => miss
            2. False => hit
            3. None  => unknown or n/a"""
-      if (self.git_hash == build_cache.GIT_HASH_UNKNOWN):
+      if (self.git_hash == _build_cache.GIT_HASH_UNKNOWN):
          return None
       else:
          return (self.git_hash is None)
@@ -274,7 +274,7 @@ class Instruction(abc.ABC):
 
    @property
    def status_char(self):
-      return build_cache.cache.status_char(self.miss)
+      return _build_cache.cache.status_char(self.miss)
 
    @property
    @abc.abstractmethod
@@ -287,7 +287,7 @@ class Instruction(abc.ABC):
 
    @property
    def workdir(self):
-      return filesystem.Path(self.image.metadata["cwd"])
+      return _filesystem.Path(self.image.metadata["cwd"])
 
    @workdir.setter
    def workdir(self, x):
@@ -297,9 +297,9 @@ class Instruction(abc.ABC):
       "Announce myself if I haven’t already been announced."
       if (not self.announced_p):
          self_ = str(self)
-         if (clearly.user() == "qwofford" and sys.stderr.isatty()):
+         if (_clearly.user() == "qwofford" and sys.stderr.isatty()):
             self_ = re.sub(r"^RSYNC", "NSYNC", self_)
-         clearly.INFO("%3s%s %s" % (self.lineno, self.status_char, self_))
+         _clearly.INFO("%3s%s %s" % (self.lineno, self.status_char, self_))
          self.announced_p = True
 
    def chdir(self, path):
@@ -309,16 +309,16 @@ class Instruction(abc.ABC):
          self.workdir //= path
 
    def checkout(self, base_image=None):
-      build_cache.cache.checkout(self.image, self.git_hash, base_image)
+      _build_cache.cache.checkout(self.image, self.git_hash, base_image)
 
    def checkout_for_build(self, base_image=None):
       self.parent.checkout(base_image)
       global forcer
-      forcer = force.new(self.image.unpack_path, cli.force, cli.force_cmd)
+      forcer = _force.new(self.image.unpack_path, cli.force, cli.force_cmd)
 
    def commit(self):
       path = self.image.unpack_path
-      self.git_hash = build_cache.cache.commit(path, self.sid, str(self),
+      self.git_hash = _build_cache.cache.commit(path, self.sid, str(self),
                                       self.commit_files)
 
    def execute(self):
@@ -345,14 +345,14 @@ class Instruction(abc.ABC):
 
    def metadata_update(self):
       self.image.metadata["history"].append(
-         { "created": clearly.now_utc_iso8601(),
+         { "created": _clearly.now_utc_iso8601(),
            "created_by": "%s %s" % (self.str_name, self.str_)})
       self.image.metadata_save()
 
    def options_assert_empty(self):
       try:
          k = next(iter(self.options.keys()))
-         clearly.FATAL("%s: invalid option --%s" % (self.str_name, k))
+         _clearly.FATAL("%s: invalid option --%s" % (self.str_name, k))
       except StopIteration:
          pass
 
@@ -383,30 +383,30 @@ class Instruction(abc.ABC):
               LABEL, SHELL, and WORKDIR must modify metadata here, not in
               execute(), so it’s available to later instructions even on
               cache hit."""
-      self.sid = build_cache.cache.sid_from_parent(self.parent.sid, self.sid_input)
-      self.git_hash = build_cache.cache.find_sid(self.sid, self.image.ref.for_path)
+      self.sid = _build_cache.cache.sid_from_parent(self.parent.sid, self.sid_input)
+      self.git_hash = _build_cache.cache.find_sid(self.sid, self.image.ref.for_path)
       return miss_ct + int(self.miss)
 
    def prepare_rollback(self):
       pass  # typically a no-op
 
    def ready(self):
-      build_cache.cache.ready(self.image)
+      _build_cache.cache.ready(self.image)
 
    def rollback(self):
       """Discard everything done by execute(), which may have completed
          partially, fully, or not at all."""
-      build_cache.cache.rollback(self.image.unpack_path)
+      _build_cache.cache.rollback(self.image.unpack_path)
 
    def unsupported_forever_warn(self, msg):
-      clearly.WARNING("not supported, ignored: %s %s" % (self.str_name, msg))
+      _clearly.WARNING("not supported, ignored: %s %s" % (self.str_name, msg))
 
    def unsupported_yet_fatal(self, msg, issue_no):
-      clearly.FATAL("not yet supported: issue #%d: %s %s"
+      _clearly.FATAL("not yet supported: issue #%d: %s %s"
                % (issue_no, self.str_name, msg))
 
    def unsupported_yet_warn(self, msg, issue_no):
-      clearly.WARNING("not yet supported, ignored: issue #%d: %s %s"
+      _clearly.WARNING("not yet supported, ignored: issue #%d: %s %s"
                  % (issue_no, self.str_name, msg))
 
 
@@ -430,33 +430,33 @@ class Copy(Instruction):
    def expand_dest(self):
       """Set self.dst from self.dst_raw with environment variables expanded
          and image root prepended."""
-      dst_raw = clearly.variables_sub(self.dst_raw, self.env_build)
+      dst_raw = _clearly.variables_sub(self.dst_raw, self.env_build)
       if (len(dst_raw) < 1):
-         clearly.FATAL("destination is empty after expansion: %s" % self.dst_raw)
+         _clearly.FATAL("destination is empty after expansion: %s" % self.dst_raw)
       base = self.image.unpack_path
       if (dst_raw[0] != "/"):
          base //= self.workdir
-      self.dst = base // clearly.variables_sub(self.dst_raw, self.env_build)
+      self.dst = base // _clearly.variables_sub(self.dst_raw, self.env_build)
 
    def expand_sources(self):
       """Set self.srcs from self.srcs_raw with environment variables and globs
          expanded, absolute paths with appropriate base, and validate that
          they are within the sources base."""
       if (cli.context == "-" and self.from_ is None):
-         clearly.FATAL("no context because “-” given")
+         _clearly.FATAL("no context because “-” given")
       if (len(self.srcs_raw) < 1):
-         clearly.FATAL("source or destination missing")
+         _clearly.FATAL("source or destination missing")
       self.srcs_base_set()
       self.srcs = list()
-      for src in (clearly.variables_sub(i, self.env_build) for i in self.srcs_raw):
+      for src in (_clearly.variables_sub(i, self.env_build) for i in self.srcs_raw):
          # glob can’t take Path
-         matches = sorted(filesystem.Path(i)
+         matches = sorted(_filesystem.Path(i)
                           for i in glob.glob("%s/%s" % (self.srcs_base, src)))
          if (len(matches) == 0):
-            clearly.FATAL("source not found: %s" % src)
+            _clearly.FATAL("source not found: %s" % src)
          for m in matches:
             self.srcs.append(m)
-            clearly.VERBOSE("source: %s" % m)
+            _clearly.VERBOSE("source: %s" % m)
             self.src_context_validate(m, src)
 
    def src_context_validate(self, m, src):
@@ -466,7 +466,7 @@ class Copy(Instruction):
       mc = m.resolve()
       if (not os.path.commonpath([mc, self.srcs_base])
                      .startswith(self.srcs_base)):
-         clearly.FATAL("can’t copy from outside context: %s" % src)
+         _clearly.FATAL("can’t copy from outside context: %s" % src)
 
    def srcs_base_set(self):
       "Set self.srcs_base according to context and --from."
@@ -474,21 +474,21 @@ class Copy(Instruction):
          self.srcs_base = cli.context
       else:
          if (self.from_ == self.image_i or self.from_ == self.image_alias):
-            clearly.FATAL("--from: stage %s is the current stage" % self.from_)
+            _clearly.FATAL("--from: stage %s is the current stage" % self.from_)
          if (not self.from_ in images):
             # FIXME: Would be nice to also report if a named stage is below.
             if (isinstance(self.from_, int) and self.from_ < image_ct):
                if (self.from_ < 0):
-                  clearly.FATAL("--from: invalid negative stage index %d"
+                  _clearly.FATAL("--from: invalid negative stage index %d"
                            % self.from_)
                else:
-                  clearly.FATAL("--from: stage %d does not exist yet"
+                  _clearly.FATAL("--from: stage %d does not exist yet"
                            % self.from_)
             else:
-               clearly.FATAL("--from: stage %s does not exist" % self.from_)
+               _clearly.FATAL("--from: stage %s does not exist" % self.from_)
          self.srcs_base = images[self.from_].unpack_path
       self.srcs_base = os.path.realpath(self.srcs_base)
-      clearly.VERBOSE("context: %s" % self.srcs_base)
+      _clearly.VERBOSE("context: %s" % self.srcs_base)
 
 
 class Instruction_No_Image(Instruction):
@@ -507,7 +507,7 @@ class Instruction_No_Image(Instruction):
 
    @property
    def status_char(self):
-      return build_cache.cache.status_char(None)
+      return _build_cache.cache.status_char(None)
 
    def checkout_for_build(self):
       pass
@@ -550,7 +550,7 @@ class Arg(Instruction):
 
    def __init__(self, *args):
       super().__init__(*args)
-      self.commit_files.add(filesystem.Path("clearly/metadata.json"))
+      self.commit_files.add(_filesystem.Path("clearly/metadata.json"))
       self.key = self.tree.terminal("WORD", 0)
       if (self.key in cli.build_arg):
          self.value = cli.build_arg[self.key]
@@ -560,7 +560,7 @@ class Arg(Instruction):
 
    @property
    def sid_input(self):
-      if (self.key in image.ARGS_MAGIC):
+      if (self.key in _image.ARGS_MAGIC):
          return (self.str_name + self.key).encode("UTF-8")
       else:
          return super().sid_input
@@ -570,13 +570,13 @@ class Arg(Instruction):
       s = "%s=" % self.key
       if (self.value is not None):
          s += "'%s'" % self.value
-      if (self.key in image.ARGS_MAGIC):
+      if (self.key in _image.ARGS_MAGIC):
          s += " [special]"
       return s
 
    def prepare(self, *args):
       if (self.value is not None):
-         self.value = clearly.variables_sub(self.value, self.env_build)
+         self.value = _clearly.variables_sub(self.value, self.env_build)
          self.env_arg[self.key] = self.value
       return super().prepare(*args)
 
@@ -619,7 +619,7 @@ class Arg_First(Instruction_No_Image):
       s = "%s=" % self.key
       if (self.value is not None):
          s += "'%s'" % self.value
-      if (self.key in image.ARGS_MAGIC):
+      if (self.key in _image.ARGS_MAGIC):
          s += " [special]"
       return s
 
@@ -695,15 +695,15 @@ class Copy_G(Copy):
          must exist already and be a directory. Unlike subdirectories, the
          metadata of dst will not be altered to match src."""
       def onerror(x):
-         clearly.FATAL("can’t scan directory: %s: %s" % (x.filename, x.strerror))
+         _clearly.FATAL("can’t scan directory: %s: %s" % (x.filename, x.strerror))
       # Use Path objects in this method because the path arithmetic was
       # getting too hard with strings.
       src = src.resolve()  # alternative to os.path.realpath()
-      dst = filesystem.Path(dst)
+      dst = _filesystem.Path(dst)
       assert (src.is_dir() and not src.is_symlink())
       assert (dst.is_dir() and not dst.is_symlink())
-      clearly.DEBUG("copying named directory: %s -> %s" % (src, dst))
-      for (dirpath, dirnames, filenames) in clearly.walk(src, onerror=onerror):
+      _clearly.DEBUG("copying named directory: %s -> %s" % (src, dst))
+      for (dirpath, dirnames, filenames) in _clearly.walk(src, onerror=onerror):
          subdir = dirpath.relative_to(src)
          dst_dir = dst // subdir
          # dirnames can contain symlinks, which we handle as files, so we’ll
@@ -713,37 +713,37 @@ class Copy_G(Copy):
          for d in dirnames2:
             src_path = dirpath // d
             dst_path = dst_dir // d
-            clearly.TRACE("dir: %s -> %s" % (src_path, dst_path))
+            _clearly.TRACE("dir: %s -> %s" % (src_path, dst_path))
             if (os.path.islink(src_path)):
                filenames.append(d)  # symlink, handle as file
-               clearly.TRACE("symlink to dir, will handle as file")
+               _clearly.TRACE("symlink to dir, will handle as file")
                continue
             else:
                dirnames.append(d)   # directory, descend into later
             # If destination exists, but isn’t a directory, remove it.
             if (os.path.exists(dst_path)):
                if (os.path.isdir(dst_path) and not os.path.islink(dst_path)):
-                  clearly.TRACE("dst_path exists and is a directory")
+                  _clearly.TRACE("dst_path exists and is a directory")
                else:
-                  clearly.TRACE("dst_path exists, not a directory, removing")
+                  _clearly.TRACE("dst_path exists, not a directory, removing")
                   dst_path.unlink()
             # If destination directory doesn’t exist, create it.
             if (not os.path.exists(dst_path)):
-               clearly.TRACE("mkdir dst_path")
-               clearly.ossafe("can’t mkdir: %s" % dst_path, os.mkdir, dst_path)
+               _clearly.TRACE("mkdir dst_path")
+               _clearly.ossafe("can’t mkdir: %s" % dst_path, os.mkdir, dst_path)
             # Copy metadata, now that we know the destination exists and is a
             # directory.
-            clearly.ossafe("can’t copy metadata: %s -> %s" % (src_path, dst_path),
+            _clearly.ossafe("can’t copy metadata: %s -> %s" % (src_path, dst_path),
                       shutil.copystat, src_path, dst_path, follow_symlinks=False)
          for f in filenames:
             src_path = dirpath // f
             dst_path = dst_dir // f
-            clearly.TRACE("file or symlink via copy2: %s -> %s"
+            _clearly.TRACE("file or symlink via copy2: %s -> %s"
                       % (src_path, dst_path))
             if (not (os.path.isfile(src_path) or os.path.islink(src_path))):
-               clearly.FATAL("can’t COPY: unknown file type: %s" % src_path)
+               _clearly.FATAL("can’t COPY: unknown file type: %s" % src_path)
             if (os.path.exists(dst_path)):
-               clearly.TRACE("destination exists, removing")
+               _clearly.TRACE("destination exists, removing")
                if (os.path.isdir(dst_path) and not os.path.islink(dst_path)):
                   dst_path.rmtree()
                else:
@@ -773,7 +773,7 @@ class Copy_G(Copy):
       if (dst.is_dir()):
          dst //= src.name
       src = src.resolve()
-      clearly.DEBUG("copying named file: %s -> %s" % (src, dst))
+      _clearly.DEBUG("copying named file: %s -> %s" % (src, dst))
       src.copy(dst)
 
    def dest_realpath(self, unpack_path, dst):
@@ -787,43 +787,43 @@ class Copy_G(Copy):
       while (len(dst_parts) > 0):
          iter_ct += 1
          if (iter_ct > 100):  # arbitrary
-            clearly.FATAL("can’t COPY: too many path components")
-         clearly.TRACE("current destination: %d %s" % (iter_ct, dst_canon))
+            _clearly.FATAL("can’t COPY: too many path components")
+         _clearly.TRACE("current destination: %d %s" % (iter_ct, dst_canon))
          #clearly.TRACE("parts remaining: %s" % dst_parts)
          part = dst_parts.pop()
          if (part == "/" or part == "//"):  # 3 or more slashes yields "/"
-            clearly.TRACE("skipping root")
+            _clearly.TRACE("skipping root")
             continue
          cand = dst_canon // part
-         clearly.TRACE("checking: %s" % cand)
+         _clearly.TRACE("checking: %s" % cand)
          if (not cand.is_symlink()):
-            clearly.TRACE("not symlink")
+            _clearly.TRACE("not symlink")
             dst_canon = cand
          else:
-            target = filesystem.Path(os.readlink(cand))
-            clearly.TRACE("symlink to: %s" % target)
+            target = _filesystem.Path(os.readlink(cand))
+            _clearly.TRACE("symlink to: %s" % target)
             assert (len(target.parts) > 0)  # POSIX says no empty symlinks
             if (target.is_absolute()):
-               clearly.TRACE("absolute")
-               dst_canon = filesystem.Path(unpack_path)
+               _clearly.TRACE("absolute")
+               dst_canon = _filesystem.Path(unpack_path)
             else:
-               clearly.TRACE("relative")
+               _clearly.TRACE("relative")
             dst_parts.extend(reversed(target.parts))
       return dst_canon
 
    def execute(self):
       # Locate the destination.
-      unpack_canon = filesystem.Path(self.image.unpack_path).resolve()
+      unpack_canon = _filesystem.Path(self.image.unpack_path).resolve()
       if (self.dst.startswith("/")):
-         dst = filesystem.Path(self.dst)
+         dst = _filesystem.Path(self.dst)
       else:
          dst = self.workdir // self.dst
-      clearly.VERBOSE("destination, as given: %s" % dst)
+      _clearly.VERBOSE("destination, as given: %s" % dst)
       dst_canon = self.dest_realpath(unpack_canon, dst) # strips trailing slash
-      clearly.VERBOSE("destination, canonical: %s" % dst_canon)
+      _clearly.VERBOSE("destination, canonical: %s" % dst_canon)
       if (not os.path.commonpath([dst_canon, unpack_canon])
               .startswith(str(unpack_canon))):
-         clearly.FATAL("can’t COPY: destination not in image: %s" % dst_canon)
+         _clearly.FATAL("can’t COPY: destination not in image: %s" % dst_canon)
       # Create the destination directory if needed.
       if (   self.dst.endswith("/")
           or len(self.srcs) > 1
@@ -831,10 +831,10 @@ class Copy_G(Copy):
          if (not dst_canon.exists()):
             dst_canon.mkdirs()
          elif (not dst_canon.is_dir()):  # not symlink b/c realpath()
-            clearly.FATAL("can’t COPY: not a directory: %s" % dst_canon)
+            _clearly.FATAL("can’t COPY: not a directory: %s" % dst_canon)
       if (dst_canon.parent.exists()):
          if (not dst_canon.parent.is_dir()):
-            clearly.FATAL("can’t COPY: not a directory: %s" % dst_canon.parent)
+            _clearly.FATAL("can’t COPY: not a directory: %s" % dst_canon.parent)
       else:
          dst_canon.parent.mkdirs()
       # Copy each source.
@@ -844,7 +844,7 @@ class Copy_G(Copy):
          elif (src.is_dir()):
             self.copy_src_dir(src, dst_canon)
          else:
-            clearly.FATAL("can’t COPY: unknown file type: %s" % src)
+            _clearly.FATAL("can’t COPY: unknown file type: %s" % src)
 
    def prepare(self, miss_ct):
       # Complain about unsupported stuff.
@@ -854,9 +854,9 @@ class Copy_G(Copy):
       self.options_assert_empty()
       # Expand operands.
       self.expand_sources()
-      self.dst = clearly.variables_sub(self.dst_raw, self.env_build)
+      self.dst = _clearly.variables_sub(self.dst_raw, self.env_build)
       # Gather metadata for hashing.
-      self.src_metadata = filesystem.Path.stat_bytes_all(self.srcs)
+      self.src_metadata = _filesystem.Path.stat_bytes_all(self.srcs)
       # Pass on to superclass.
       return super().prepare(miss_ct)
 
@@ -869,7 +869,7 @@ class Directive_G(Instruction_Supported_Never):
       return "#%s" % self.tree.terminal("DIRECTIVE_NAME")
 
    def prepare(self, *args):
-      clearly.WARNING("not supported, ignored: parser directives")
+      _clearly.WARNING("not supported, ignored: parser directives")
       raise Instruction_Ignored()
 
 
@@ -880,8 +880,8 @@ class Env(Instruction):
 
    def __init__(self, *args):
       super().__init__(*args)
-      self.commit_files |= {filesystem.Path("clearly/environment"),
-                            filesystem.Path("clearly/metadata.json")}
+      self.commit_files |= {_filesystem.Path("clearly/environment"),
+                            _filesystem.Path("clearly/metadata.json")}
 
    @property
    def str_(self):
@@ -893,7 +893,7 @@ class Env(Instruction):
             print("%s=%s" % (k, v), file=fp)
 
    def prepare(self, *args):
-      self.value = clearly.variables_sub(unescape(self.value), self.env_build)
+      self.value = _clearly.variables_sub(unescape(self.value), self.env_build)
       self.env_env[self.key] = self.value
       return super().prepare(*args)
 
@@ -946,7 +946,7 @@ class From__G(Instruction):
       return base_text + ((" AS " + self.alias) if self.alias else "")
 
    def checkout_for_build(self):
-      assert (isinstance(build_cache.cache, build_cache.Disabled_Cache))
+      assert (isinstance(_build_cache.cache, _build_cache.Disabled_Cache))
       super().checkout_for_build(self.base_image)
 
    def execute(self):
@@ -977,7 +977,7 @@ class From__G(Instruction):
          tag = cli.tag
       elif (self.image_i > image_ct - 1):
          # Too many images!
-         clearly.FATAL("expected %d stages but found at least %d"
+         _clearly.FATAL("expected %d stages but found at least %d"
                   % (image_ct, self.image_i + 1))
       else:
          # Not last image; append stage index to tag.
@@ -987,21 +987,21 @@ class From__G(Instruction):
          # stage as the base.
          self.base_alias = self.base_text
          self.base_text = str(images[self.base_text].ref)
-      self.base_image = image.Image(reference.Reference(self.base_text, argfrom))
-      self.image = image.Image(reference.Reference(tag))
+      self.base_image = _image.Image(_reference.Reference(self.base_text, argfrom))
+      self.image = _image.Image(_reference.Reference(tag))
       images[self.image_i] = self.image
       if (self.image_alias is not None):
          images[self.image_alias] = self.image
-      clearly.VERBOSE("image path: %s" % self.image.unpack_path)
+      _clearly.VERBOSE("image path: %s" % self.image.unpack_path)
       # More error checking.
       if (str(self.image.ref) == str(self.base_image.ref)):
-         clearly.FATAL("output image ref same as FROM: %s" % self.base_image.ref)
+         _clearly.FATAL("output image ref same as FROM: %s" % self.base_image.ref)
       # Close previous stage if needed. In particular, we need the previous
       # stage’s image directory to exist because (a) we need to read its
       # metadata and (b) in case there’s a COPY later. Cache disabled will
       # already have the image directory and there is no notion of branch
       # “ready”, so do nothing in that case.
-      if (self.image_i > 0 and not isinstance(build_cache.cache, build_cache.Disabled_Cache)):
+      if (self.image_i > 0 and not isinstance(_build_cache.cache, _build_cache.Disabled_Cache)):
          if (miss_ct == 0):
             # No previous miss already checked out the image. This will still
             # be fast most of the time since the correct branch is likely
@@ -1012,7 +1012,7 @@ class From__G(Instruction):
       # been closed; thus, act as own parent.
       self.parent = self
       # Pull base image if needed. This tells us hit/miss.
-      (self.sid, self.git_hash) = build_cache.cache.find_image(self.base_image)
+      (self.sid, self.git_hash) = _build_cache.cache.find_image(self.base_image)
       unpack_no_git = (    self.base_image.unpack_exist_p
                        and not self.base_image.unpack_cache_linked)
       # Announce (before we start pulling).
@@ -1021,14 +1021,14 @@ class From__G(Instruction):
       if (self.miss):
          if (unpack_no_git):
             # Use case is mostly images built by old version still in storage.
-            if (not isinstance(build_cache.cache, build_cache.Disabled_Cache)):
-               clearly.WARNING("base image only exists non-cached; adding to cache")
-            (self.sid, self.git_hash) = build_cache.cache.adopt(self.base_image)
+            if (not isinstance(_build_cache.cache, _build_cache.Disabled_Cache)):
+               _clearly.WARNING("base image only exists non-cached; adding to cache")
+            (self.sid, self.git_hash) = _build_cache.cache.adopt(self.base_image)
          else:
-            (self.sid, self.git_hash) = build_cache.cache.pull_lazy(self.base_image,
+            (self.sid, self.git_hash) = _build_cache.cache.pull_lazy(self.base_image,
                                                            self.base_image.ref)
       elif (unpack_no_git):
-         clearly.WARNING("base image also exists non-cached; using cache")
+         _clearly.WARNING("base image also exists non-cached; using cache")
       # Load metadata
       self.image.metadata_load(self.base_image)
       self.env_arg.update(argfrom)  # from pre-FROM ARG
@@ -1049,11 +1049,11 @@ class From__G(Instruction):
       except AttributeError:
          image = None
       if (base_image is not None or image is not None):
-         clearly.INFO("something went wrong, rolling back ...")
+         _clearly.INFO("something went wrong, rolling back ...")
          if (base_image is not None):
-            build_cache.cache.unpack_delete(base_image, missing_ok=True)
+            _build_cache.cache.unpack_delete(base_image, missing_ok=True)
          if (image is not None):
-            build_cache.cache.unpack_delete(image, missing_ok=True)
+            _build_cache.cache.unpack_delete(image, missing_ok=True)
 
 
 class Label(Instruction):
@@ -1063,14 +1063,14 @@ class Label(Instruction):
 
    def __init__(self, *args):
       super().__init__(*args)
-      self.commit_files |= {clearly.Path("clearly/metadata.json")}
+      self.commit_files |= {_clearly.Path("clearly/metadata.json")}
 
    @property
    def str_(self):
       return "%s='%s'" % (self.key, self.value)
 
    def prepare(self, *args):
-      self.value = clearly.variables_sub(unescape(self.value), self.env_build)
+      self.value = _clearly.variables_sub(unescape(self.value), self.env_build)
       self.image.metadata["labels"][self.key] = self.value
       return super().prepare(*args)
 
@@ -1120,7 +1120,7 @@ class Rsync_G(Copy):
                self.rsync_options.append(word)
             else:                          # short option(s)
                if (len(word) == 1):
-                  clearly.FATAL("RSYNC: %d: invalid argument: %s" % (line_no, word))
+                  _clearly.FATAL("RSYNC: %d: invalid argument: %s" % (line_no, word))
                # Append options individually so we can process them more later.
                for m in re.finditer(r"[^=]=.*$|[^=]", word[1:]):
                   self.rsync_options.append("-" + m[0])
@@ -1128,7 +1128,7 @@ class Rsync_G(Copy):
          # Not an option, so it must be a source or destination path.
          self.srcs_raw.append(word)
       if (len(self.srcs_raw) == 0):
-         clearly.FATAL("RSYNC: %d: source and destination missing" % line_no)
+         _clearly.FATAL("RSYNC: %d: source and destination missing" % line_no)
       self.dst_raw = self.srcs_raw.pop()
 
    @property
@@ -1179,7 +1179,7 @@ class Rsync_G(Copy):
             plus_options += ["-l", "--safe-links"]
          elif (self.plus_option == "u"):
             plus_options += ["-l", "--copy-unsafe-links"]
-      clearly.cmd(["rsync"] + plus_options + self.rsync_options_concise
+      _clearly.cmd(["rsync"] + plus_options + self.rsync_options_concise
                        + self.srcs + [self.dst])
 
    def expand_rsync_froms(self):
@@ -1189,10 +1189,10 @@ class Rsync_G(Copy):
          if (m is not None):
             key = m[1]
             if (m[2] == "-"):
-               clearly.FATAL("--*-from: can’t use standard input")
+               _clearly.FATAL("--*-from: can’t use standard input")
             elif (":" in m[2]):
-               clearly.FATAL("--*-from: can’t use remote hosts (colon in path)")
-            path = clearly.Path(m[2])
+               _clearly.FATAL("--*-from: can’t use remote hosts (colon in path)")
+            path = _clearly.Path(m[2])
             if (path.is_absolute()):
                path = self.image.unpack_path // path
             else:
@@ -1206,26 +1206,26 @@ class Rsync_G(Copy):
       self.expand_dest()
       self.expand_rsync_froms()
       # Gather metadata for hashing.
-      self.src_metadata = filesystem.Path.stat_bytes_all(self.srcs)
+      self.src_metadata = _filesystem.Path.stat_bytes_all(self.srcs)
       # Pass on to superclass.
       return super().prepare(miss_ct)
 
    def rsync_validate(self):
       # Reject bad + options.
       if (self.plus_option not in ("mluz")):
-         clearly.FATAL("invalid plus option: %s" % self.plus_option)
+         _clearly.FATAL("invalid plus option: %s" % self.plus_option)
       # Reject SSH and rsync transports. I *believe* simply the presence of
       # “:” (colon) in the filename triggers this behavior.
       for src in self.srcs_raw:
          if (":" in src):
-            clearly.FATAL("SSH and rsync transports not supported: %s" % src)
+            _clearly.FATAL("SSH and rsync transports not supported: %s" % src)
       # Reject bad flags.
       bad = { "--daemon",
               "-n", "--dry-run",
               "--remove-source-files" }
       for o in self.rsync_options:
          if (o in bad):
-            clearly.FATAL("disallowed option: %s" % o)
+            _clearly.FATAL("disallowed option: %s" % o)
 
    def src_context_validate(self, *args):
       """We let rsync(1) enforce in-contextness because in some cases it
@@ -1241,9 +1241,9 @@ class Run(Instruction):
    def str_name(self):
       # Can’t get this from the forcer object because it might not have been
       # initialized yet.
-      if (cli.force == clearly.Force_Mode.NONE):
+      if (cli.force == _clearly.Force_Mode.NONE):
          tag = ".N"
-      elif (cli.force == clearly.Force_Mode.FAKEROOT):
+      elif (cli.force == _clearly.Force_Mode.FAKEROOT):
          # FIXME: This causes spurious misses because it adds the force tag to
          # *all* RUN instructions, not just those that actually were modified
          # (i.e, any RUN instruction will miss the equivalent RUN without
@@ -1251,7 +1251,7 @@ class Run(Instruction):
          # modifications until the result is checked out, which happens after
          # we check the cache. See issue #1339.
          tag = ".F"
-      elif (cli.force == clearly.Force_Mode.SECCOMP):
+      elif (cli.force == _clearly.Force_Mode.SECCOMP):
          tag = ".S"
       else:
          assert False, "unreachable code reached (force mode = %s)" % cli.force
@@ -1260,10 +1260,10 @@ class Run(Instruction):
    def execute(self):
       rootfs = self.image.unpack_path
       cmd = forcer.run_modified(self.cmd, self.env_build)
-      exit_code = clearly.run_modify(rootfs, cmd, self.env_build, self.workdir,
+      exit_code = _clearly.run_modify(rootfs, cmd, self.env_build, self.workdir,
                                    cli.bind, forcer.run_args, fail_ok=True)
       if (exit_code != 0):
-         clearly.FATAL("build failed: RUN command exited with %d" % exit_code)
+         _clearly.FATAL("build failed: RUN command exited with %d" % exit_code)
 
 
 class Run_Exec_G(Run):
@@ -1275,7 +1275,7 @@ class Run_Exec_G(Run):
       return json.dumps(self.cmd)  # double quotes, shlex.quote is less verbose
 
    def prepare(self, *args):
-      self.cmd = [    clearly.variables_sub(unescape(i), self.env_build)
+      self.cmd = [    _clearly.variables_sub(unescape(i), self.env_build)
                   for i in self.tree.terminals("STRING_QUOTED")]
       return super().prepare(*args)
 
@@ -1303,14 +1303,14 @@ class Shell_G(Instruction):
 
    def __init__(self, *args):
       super().__init__(*args)
-      self.commit_files.add(filesystem.Path("clearly/metadata.json"))
+      self.commit_files.add(_filesystem.Path("clearly/metadata.json"))
 
    @property
    def str_(self):
       return str(self.shell)
 
    def prepare(self, *args):
-      self.shell = [    clearly.variables_sub(unescape(i), self.env_build)
+      self.shell = [    _clearly.variables_sub(unescape(i), self.env_build)
                     for i in self.tree.terminals("STRING_QUOTED")]
       return super().prepare(*args)
 
@@ -1362,7 +1362,7 @@ class Workdir_G(Instruction):
       (self.image.unpack_path // self.workdir).mkdirs()
 
    def prepare(self, *args):
-      self.path = filesystem.Path(clearly.variables_sub(
+      self.path = _filesystem.Path(_clearly.variables_sub(
          self.tree.terminals_cat("LINE_CHUNK"), self.env_build))
       self.chdir(self.path)
       return super().prepare(*args)

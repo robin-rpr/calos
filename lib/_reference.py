@@ -2,10 +2,10 @@ import lark
 import copy
 import os
 
-import filesystem as filesystem
-import clearly as clearly
-import grammar as grammar
-from tree import Tree
+import _filesystem as _filesystem
+import _clearly as _clearly
+import _grammar as _grammar
+from _tree import Tree
 
 
 ## Classes ##
@@ -62,7 +62,7 @@ class Reference:
 
    @staticmethod
    def path_to_ref(path):
-      if (isinstance(path, filesystem.Path)):
+      if (isinstance(path, _filesystem.Path)):
          path = path.name
       return path.replace("+", ":").replace("%", "/")
 
@@ -74,31 +74,31 @@ class Reference:
    def glob(class_, image_glob):
       """Return a possibly-empty iterator of references in the storage
          directory matching the given glob."""
-      for path in clearly.storage.unpack_base.glob(class_.ref_to_pathstr(image_glob)):
+      for path in _clearly.storage.unpack_base.glob(class_.ref_to_pathstr(image_glob)):
          yield class_(class_.path_to_ref(path))
 
    @classmethod
    def parse(class_, s, variables):
       if (class_.parser is None):
-         class_.parser = lark.Lark(grammar.GRAMMAR_IMAGE_REF, parser="earley",
+         class_.parser = lark.Lark(_grammar.GRAMMAR_IMAGE_REF, parser="earley",
                                    propagate_positions=True, tree_class=Tree)
       s = s.translate(str.maketrans("%+", "/:", "&"))
       hint="https://hpc.github.io/charliecloud/faq.html#how-do-i-specify-an-image-reference"
-      s = clearly.variables_sub(s, variables)
+      s = _clearly.variables_sub(s, variables)
       if "$" in s:
-         clearly.FATAL("image reference contains an undefined variable: %s" % s)
+         _clearly.FATAL("image reference contains an undefined variable: %s" % s)
       try:
          tree = class_.parser.parse(s)
       except lark.exceptions.UnexpectedInput as x:
          if (x.column == -1):
-            clearly.FATAL("image ref syntax, at end: %s" % s, hint);
+            _clearly.FATAL("image ref syntax, at end: %s" % s, hint);
          else:
-            clearly.FATAL("image ref syntax, char %d: %s" % (x.column, s), hint)
+            _clearly.FATAL("image ref syntax, char %d: %s" % (x.column, s), hint)
       except lark.exceptions.UnexpectedEOF as x:
          # We get UnexpectedEOF because of Lark issue #237. This exception
          # doesn't have a column location.
-         clearly.FATAL("image ref syntax, at end: %s" % s, hint)
-      clearly.DEBUG(tree.pretty())
+         _clearly.FATAL("image ref syntax, at end: %s" % s, hint)
+      _clearly.DEBUG(tree.pretty())
       return tree
 
    def __str__(self):
@@ -191,13 +191,13 @@ fields:
       self.port = t.child_terminal("ir_hostport", "IR_PORT")
       if (self.port is not None):
          self.port = int(self.port)
-      self.path = [    clearly.variables_sub(s, self.variables)
+      self.path = [    _clearly.variables_sub(s, self.variables)
                    for s in t.child_terminals("ir_path", "IR_PATH_COMPONENT")]
       self.name = t.child_terminal("ir_name", "IR_PATH_COMPONENT")
       self.tag = t.child_terminal("ir_tag", "IR_TAG")
       self.digest = t.child_terminal("ir_digest", "HEX_STRING")
       for a in ("host", "port", "name", "tag", "digest"):
-         setattr(self, a, clearly.variables_sub(getattr(self, a), self.variables))
+         setattr(self, a, _clearly.variables_sub(getattr(self, a), self.variables))
       # Resolve grammar ambiguity for hostnames w/o dot or port.
       if (    self.host is not None
           and "." not in self.host

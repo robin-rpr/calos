@@ -35,10 +35,10 @@ warning () {
 ### Setup
 
 clearly_lib=$(cd "$(dirname "$0")" && pwd)/../../lib
-if [[ ! -f ${clearly_lib}/base.sh ]]; then
-    fatal "install or build problem: not found: ${clearly_lib}/base.sh"
+if [[ ! -f ${clearly_lib}/_base.sh ]]; then
+    fatal "install or build problem: not found: ${clearly_lib}/_base.sh"
 fi
-. "${clearly_lib}/base.sh"
+. "${clearly_lib}/_base.sh"
 export clearly_bin
 export clearly_lib
 

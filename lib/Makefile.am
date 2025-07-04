@@ -11,13 +11,13 @@ mylibdir = $(pkglibdir)
 # shared objects for faster execution.
 
 cython_modules = \
-  build build_cache clearly filesystem misc pull push reference \
-  executor registry image irtree tree force grammar version
+  _build _build_cache _clearly _filesystem _misc _pull _push \
+  _reference _executor _registry _image _irtree _tree _force _grammar
 
 cython_c_files = $(cython_modules:%=%.c)
 cython_so_files = $(cython_modules:%=%@PYEXT_SUFFIX@)
 
-dist_mylib_DATA = base.sh
+dist_mylib_DATA = _base.sh
 
 # SUFFIXES is required by Automake to define custom build rules. Without this
 # declaration, Automake will not recognize our .py -> .c -> @PYEXT_SUFFIX@
@@ -38,7 +38,7 @@ SUFFIXES = .py .c @PYEXT_SUFFIX@
 	  $< -o $@ $(shell python3-config --ldflags)
 
 all-local: $(cython_so_files)
-mylib_DATA += $(cython_so_files)
+mylib_DATA = $(cython_so_files)
 mylib_LTLIBRARIES =
 
 uninstall-hook:

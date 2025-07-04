@@ -5,18 +5,18 @@ import os.path
 import re
 import sys
 
-import clearly as clearly
-import filesystem as filesystem
-import grammar as grammar
-import irtree as irtree
-import force as force
-from tree import Tree
+import _clearly as _clearly
+import _filesystem as _filesystem
+import _grammar as _grammar
+import _irtree as _irtree
+import _force as _force
+from _tree import Tree
 import lark
 
 ## Main ##
 
 def main(cli):
-   irtree.cli = cli
+   _irtree.cli = cli
 
    cli_process_common(cli)
 
@@ -29,7 +29,7 @@ def main(cli):
    # Count the number of stages (i.e., FROM instructions)
    image_ct = sum(1 for i in tree.children_("from_"))
 
-   irtree.parse_tree_traverse(tree, image_ct, cli)
+   _irtree.parse_tree_traverse(tree, image_ct, cli)
 
 ## Functions ##
 
@@ -54,22 +54,22 @@ def cli_process(cli):
          ext_last = None
       if (base == "Dockerfile"):
          cli.tag = ext_all
-         clearly.VERBOSE("inferring name from Dockerfile extension: %s" % cli.tag)
+         _clearly.VERBOSE("inferring name from Dockerfile extension: %s" % cli.tag)
       elif (ext_last in ("df", "dockerfile")):
          cli.tag = base_all
-         clearly.VERBOSE("inferring name from Dockerfile basename: %s" % cli.tag)
+         _clearly.VERBOSE("inferring name from Dockerfile basename: %s" % cli.tag)
       elif (os.path.abspath(cli.context) != "/"):
          cli.tag = os.path.basename(os.path.abspath(cli.context))
-         clearly.VERBOSE("inferring name from context directory: %s" % cli.tag)
+         _clearly.VERBOSE("inferring name from context directory: %s" % cli.tag)
       else:
          assert (os.path.abspath(cli.context) == "/")
          cli.tag = "root"
-         clearly.VERBOSE("inferring name with root context directory: %s" % cli.tag)
+         _clearly.VERBOSE("inferring name with root context directory: %s" % cli.tag)
       cli.tag = re.sub(r"[^a-z0-9_.-]", "", cli.tag.lower())
-      clearly.INFO("inferred image name: %s" % cli.tag)
+      _clearly.INFO("inferred image name: %s" % cli.tag)
 
 
-   clearly.DEBUG(cli)
+   _clearly.DEBUG(cli)
 
    # Guess whether the context is a URL, and error out if so. This can be a
    # typical looking URL e.g. “https://...” or also something like
@@ -79,45 +79,45 @@ def cli_process(cli):
    if (re.search(r"""  ^((git|git+ssh|http|https|ssh)://
                      | ^[\w.~%!$&'\(\)\*\+,;=-]+@[\w.~%!$&'\(\)\*\+,;=-]+:)""",
                  cli.context, re.VERBOSE) is not None):
-      clearly.FATAL("not yet supported: issue #773: URL context: %s" % cli.context)
+      _clearly.FATAL("not yet supported: issue #773: URL context: %s" % cli.context)
    if (os.path.exists(cli.context + "/.dockerignore")):
-      clearly.WARNING("not yet supported, ignored: issue #777: .dockerignore file")
+      _clearly.WARNING("not yet supported, ignored: issue #777: .dockerignore file")
 
    # Read input file.
    if (cli.file == "-" or cli.context == "-"):
-      text = clearly.ossafe("can’t read stdin", sys.stdin.read)
+      text = _clearly.ossafe("can’t read stdin", sys.stdin.read)
    elif (not os.path.isdir(cli.context)):
-      clearly.FATAL("context must be a directory: %s" % cli.context)
+      _clearly.FATAL("context must be a directory: %s" % cli.context)
    else:
-      fp = filesystem.Path(cli.file).open("rt")
-      text = clearly.ossafe("can’t read: %s" % cli.file, fp.read)
-      clearly.close_(fp)
+      fp = _filesystem.Path(cli.file).open("rt")
+      text = _clearly.ossafe("can’t read: %s" % cli.file, fp.read)
+      _clearly.close_(fp)
 
    return text
 
 # Process common opts in build.
 def cli_process_common(cli):
    # --force and friends.
-   if (cli.force_cmd and cli.force == clearly.Force_Mode.FAKEROOT):
-      clearly.FATAL("--force-cmd and --force=fakeroot are incompatible")
+   if (cli.force_cmd and cli.force == _clearly.Force_Mode.FAKEROOT):
+      _clearly.FATAL("--force-cmd and --force=fakeroot are incompatible")
    if (not cli.force_cmd):
-      cli.force_cmd = force.FORCE_CMD_DEFAULT
+      cli.force_cmd = _force.FORCE_CMD_DEFAULT
    else:
-      cli.force = clearly.Force_Mode.SECCOMP
+      cli.force = _clearly.Force_Mode.SECCOMP
       # convert cli.force_cmd to parsed dict
       force_cmd = dict()
       for line in cli.force_cmd:
-         (cmd, args) = force.force_cmd_parse(line)
+         (cmd, args) = _force.force_cmd_parse(line)
          force_cmd[cmd] = args
       cli.force_cmd = force_cmd
-   clearly.VERBOSE("force mode: %s" % cli.force)
-   if (cli.force == clearly.Force_Mode.SECCOMP):
+   _clearly.VERBOSE("force mode: %s" % cli.force)
+   if (cli.force == _clearly.Force_Mode.SECCOMP):
       for (cmd, args) in cli.force_cmd.items():
-         clearly.VERBOSE("force command: %s" % clearly.argv_to_string([cmd] + args))
-   if (    cli.force == clearly.Force_Mode.SECCOMP
-       and clearly.cmd([PKGLIBEXECDIR + "/run", "--feature=seccomp"],
+         _clearly.VERBOSE("force command: %s" % _clearly.argv_to_string([cmd] + args))
+   if (    cli.force == _clearly.Force_Mode.SECCOMP
+       and _clearly.cmd([PKGLIBEXECDIR + "/run", "--feature=seccomp"],
                   fail_ok=True) != 0):
-      clearly.FATAL("run was not built with seccomp(2) support")
+      _clearly.FATAL("run was not built with seccomp(2) support")
 
    # Deal with build arguments.
    def build_arg_get(arg):
@@ -127,13 +127,13 @@ def cli_process_common(cli):
       else:
          v = os.getenv(kv[0])
          if (v is None):
-            clearly.FATAL("--build-arg: %s: no value and not in environment" % kv[0])
+            _clearly.FATAL("--build-arg: %s: no value and not in environment" % kv[0])
          return (kv[0], v)
    cli.build_arg = dict( build_arg_get(i) for i in cli.build_arg )
 
 def parse_dockerfile(text, cli):
    # Parse it.
-   parser = lark.Lark(grammar.GRAMMAR_DOCKERFILE, parser="earley",
+   parser = lark.Lark(_grammar.GRAMMAR_DOCKERFILE, parser="earley",
                       propagate_positions=True, tree_class=Tree)
    # Avoid Lark issue #237: lark.exceptions.UnexpectedEOF if the file does not
    # end in newline.
@@ -141,21 +141,21 @@ def parse_dockerfile(text, cli):
    try:
       tree = parser.parse(text)
    except lark.exceptions.UnexpectedInput as x:
-      clearly.VERBOSE(x)  # noise about what was expected in the grammar
-      clearly.FATAL("can’t parse: %s:%d,%d\n\n%s"
+      _clearly.VERBOSE(x)  # noise about what was expected in the grammar
+      _clearly.FATAL("can’t parse: %s:%d,%d\n\n%s"
                % (cli.file, x.line, x.column, x.get_context(text, 39)))
-   clearly.VERBOSE(tree.pretty()[:-1])  # rm trailing newline
+   _clearly.VERBOSE(tree.pretty()[:-1])  # rm trailing newline
 
    # Sometimes we exit after parsing.
    if (cli.parse_only):
-      clearly.exit(0)
+      _clearly.exit(0)
 
    # If we use RSYNC, error out quickly if appropriate rsync(1) not present.
    if (tree.child("rsync") is not None):
       try:
-         clearly.version_check(["rsync", "--version"], clearly.RSYNC_MIN)
-      except clearly.Fatal_Error:
-         clearly.ERROR("Dockerfile uses RSYNC, so rsync(1) is required")
+         _clearly.version_check(["rsync", "--version"], _clearly.RSYNC_MIN)
+      except _clearly.Fatal_Error:
+         _clearly.ERROR("Dockerfile uses RSYNC, so rsync(1) is required")
          raise
 
    return tree

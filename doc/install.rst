@@ -73,6 +73,7 @@ After enabling the CRB repository, install the following packages:
   * :code:`python3-jinja2`: Python 3 Jinja2 library, used for templating.
   * :code:`python3-requests`: Python 3 Requests library, used for HTTP requests.
   * :code:`python3-wheel`: Python 3 Wheel library, used for building Python packages.
+  * :code:`python3-cython`: Python 3 Cython library, used for building Python packages.
   * :code:`python3-devel`: Python 3 development headers and libraries.
   * :code:`python3`: Python 3 interpreter, used for building Python packages.
   * :code:`git`: Version control system for creating a runtime build cache,

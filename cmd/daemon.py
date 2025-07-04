@@ -12,15 +12,15 @@ import os
 import re
 
 try:
-    # Cython provides LIBDIR.
-    sys.path.insert(0, LIBDIR)
+    # Cython provides PKGLIBDIR.
+    sys.path.insert(0, PKGLIBDIR)
 except NameError:
     # Extend sys.path to include the parent directory. This is necessary because this
     # script resides in a subdirectory, and we need to import shared modules located
     # in the project's top-level 'lib' directory.
-    sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../lib'))
 
-import lib.executor as executor
+import _executor as _executor
 
 
 ## Constants ##
@@ -38,7 +38,7 @@ except NameError:
 CACHE_MAX_AGE = 86400 # 24 hours
 
 # Executor
-executor = executor.Executor()
+_executor = _executor.Executor()
 
 # Jinja2 Environment
 jinja_env = Environment(loader=FileSystemLoader(TEMPLATE_DIR), autoescape=True)
@@ -81,7 +81,15 @@ class HTTPHandler(BaseHTTPRequestHandler):
         """Handle POST requests."""
         try:
             content_length = int(self.headers.get('Content-Length', 0))
-            self.serve_api('POST', json.load(self.rfile) if content_length else {})
+            
+            # Read the request body.
+            if content_length:
+                body = self.rfile.read(content_length).decode('utf-8')
+                payload = json.loads(body) if body.strip() else {}
+            else:
+                payload = {}
+                
+            self.serve_api('POST', payload)
         except Exception as e:
             logger.error(f"Error handling request for {self.path}: {e}", exc_info=True)
             self.send_error(500, "Internal Server Error")
@@ -90,7 +98,15 @@ class HTTPHandler(BaseHTTPRequestHandler):
         """Handle DELETE requests."""
         try:
             content_length = int(self.headers.get('Content-Length', 0))
-            self.serve_api('DELETE', json.load(self.rfile) if content_length else {})
+            
+            # Read the request body.
+            if content_length:
+                body = self.rfile.read(content_length).decode('utf-8')
+                payload = json.loads(body) if body.strip() else {}
+            else:
+                payload = {}
+                
+            self.serve_api('DELETE', payload)
         except Exception as e:
             logger.error(f"Error handling request for {self.path}: {e}", exc_info=True)
             self.send_error(500, "Internal Server Error")
@@ -122,24 +138,28 @@ class HTTPHandler(BaseHTTPRequestHandler):
         if method == 'GET':
             # GET
             if self.path == '/api/containers':
-                return self._send_json(executor.list_containers())
+                return self.send_json(_executor.list_containers())
             elif re.fullmatch(r'/api/containers/[^/]+', self.path):
                 id = self.path.split('/')[-1]
-                return self._send_json(executor.get_container(id))
+                return self.send_json(_executor.get_container(id))
+            elif re.fullmatch(r'/api/containers/[^/]+/logs', self.path):
+                id = self.path.split('/')[-1]
+                return self.send_json(_executor.get_container_logs(id))
         elif method == 'POST':
             # POST
             if self.path == '/api/containers':
                 id = payload.get('id', None)
                 image = payload.get('image', 'ubuntu:latest')
                 command = payload.get('command', [])
+                publish = payload.get('publish', {})
                 environment = payload.get('environment', {})
 
-                return self._send_json(executor.start_container(id, image, command, environment))
+                return self.send_json(_executor.start_container(id, image, command, publish, environment))
         elif method == 'DELETE':
             # DELETE
             if re.fullmatch(r'/api/containers/[^/]+', self.path):
                 id = self.path.split('/')[-1]
-                return self._send_json(executor.stop_container(id))
+                return self.send_json(_executor.stop_container(id))
         
         return self.send_error(404, "Not Found")
 
@@ -184,9 +204,9 @@ class HTTPHandler(BaseHTTPRequestHandler):
 def signal_handler(signum, frame):
     """Handle Signals"""
     logger.info(f"SIGNAL: {signum}, Shutting down...")
-    with executor.lock:
-        for container_id in list(executor.containers.keys()):
-            executor.stop_container(container_id)
+    with _executor.lock:
+        for container_id in list(_executor.containers.keys()):
+            _executor.stop_container(container_id)
     if 'server' in globals():
         server.server_close()
     sys.exit(0)

@@ -7,12 +7,12 @@ import os
 import os.path
 import sys
 
-import clearly as clearly
-import filesystem as filesystem
-import build_cache as _build_cache
-import image as image
-import reference as reference
-import pull as pull
+import _clearly as _clearly
+import _filesystem as _filesystem
+import _build_cache as _build_cache
+import _image as _image
+import _reference as _reference
+import _pull as _pull
 
 import lark
 
@@ -28,7 +28,7 @@ class Dependencies(Action_Exit):
 
    def __call__(self, ap, cli, *args, **kwargs):
       # clearly.init() not yet called, so must get verbosity from arguments.
-      clearly.dependencies_check()
+      _clearly.dependencies_check()
       if (cli.verbose >= 1):
          print("lark path: %s" % os.path.normpath(inspect.getfile(lark)))
       sys.exit(0)
@@ -39,8 +39,8 @@ class Dependencies(Action_Exit):
 # because caller manages that.
 
 def build_cache(cli):
-   if (cli.bucache == clearly.Build_Mode.DISABLED):
-      clearly.FATAL("build-cache subcommand invalid with build cache disabled")
+   if (cli.bucache == _clearly.Build_Mode.DISABLED):
+      _clearly.FATAL("build-cache subcommand invalid with build cache disabled")
    if (cli.reset):
       _build_cache.cache.reset()
    if (cli.gc):
@@ -55,18 +55,18 @@ def delete(cli):
    fail_ct = 0
    for ref in cli.image_ref:
       delete_ct = 0
-      for img in itertools.chain(image.Image.glob(ref),
-                                 image.Image.glob(ref + "_stage[0-9]*")):
+      for img in itertools.chain(_image.Image.glob(ref),
+                                 _image.Image.glob(ref + "_stage[0-9]*")):
          _build_cache.cache.unpack_delete(img)
-         to_delete = reference.Reference.ref_to_pathstr(str(img))
+         to_delete = _reference.Reference.ref_to_pathstr(str(img))
          _build_cache.cache.branch_delete(to_delete)
          delete_ct += 1
       if (delete_ct == 0):
          fail_ct += 1
-         clearly.ERROR("no matching image, can’t delete: %s" % ref)
+         _clearly.ERROR("no matching image, can’t delete: %s" % ref)
    _build_cache.cache.worktrees_fix()
    if (fail_ct > 0):
-      clearly.FATAL("unable to delete %d invalid image(s)" % fail_ct)
+      _clearly.FATAL("unable to delete %d invalid image(s)" % fail_ct)
 
 def gestalt_bucache(cli):
    _build_cache.have_deps()
@@ -76,33 +76,33 @@ def gestalt_bucache_dot(cli):
    _build_cache.have_dot()
 
 def gestalt_logging(cli):
-   clearly.TRACE("trace")
-   clearly.DEBUG("debug")
-   clearly.VERBOSE("verbose")
-   clearly.INFO("info")
-   clearly.WARNING("warning")
-   clearly.ERROR("error")
+   _clearly.TRACE("trace")
+   _clearly.DEBUG("debug")
+   _clearly.VERBOSE("verbose")
+   _clearly.INFO("info")
+   _clearly.WARNING("warning")
+   _clearly.ERROR("error")
    if (cli.fail):
-      clearly.FATAL("the program failed inexplicably")
+      _clearly.FATAL("the program failed inexplicably")
 
 def gestalt_python_path(cli):
    print(sys.executable)
 
 def gestalt_storage_path(cli):
-   print(clearly.storage.root)
+   print(_clearly.storage.root)
 
 def import_(cli):
    if (not os.path.exists(cli.path)):
-      clearly.FATAL("can’t copy: not found: %s" % cli.path)
-   if (clearly.xattrs_save):
-      clearly.WARNING("--xattrs unsupported by “clearly image import” (see FAQ)")
-   pathstr = reference.Reference.ref_to_pathstr(cli.image_ref)
-   if (cli.bucache == clearly.Build_Mode.ENABLED):
+      _clearly.FATAL("can’t copy: not found: %s" % cli.path)
+   if (_clearly.xattrs_save):
+      _clearly.WARNING("--xattrs unsupported by “clearly image import” (see FAQ)")
+   pathstr = _reference.Reference.ref_to_pathstr(cli.image_ref)
+   if (cli.bucache == _clearly.Build_Mode.ENABLED):
       # Un-tag previously deleted branch, if it exists.
       _build_cache.cache.tag_delete(pathstr, fail_ok=True)
-   dst = image.Image(reference.Reference(cli.image_ref))
-   clearly.INFO("importing:    %s" % cli.path)
-   clearly.INFO("destination:  %s" % dst)
+   dst = _image.Image(_reference.Reference(cli.image_ref))
+   _clearly.INFO("importing:    %s" % cli.path)
+   _clearly.INFO("destination:  %s" % dst)
    dst.unpack_clear()
    if (os.path.isdir(cli.path)):
       dst.copy_unpacked(cli.path)
@@ -113,33 +113,33 @@ def import_(cli):
       dst.metadata["history"].append({ "empty_layer": False,
                                        "command":     "clearly image import"})
    dst.metadata_save()
-   clearly.done_notify()
+   _clearly.done_notify()
 
 def list_(cli):
    if (cli.undeletable):
       # list undeletable images
-      imgdir = clearly.storage.build_cache // "refs/tags"
+      imgdir = _clearly.storage.build_cache // "refs/tags"
    else:
       # list images
-      imgdir = clearly.storage.unpack_base
+      imgdir = _clearly.storage.unpack_base
    if (cli.image_ref is None):
       # list all images
-      if (not os.path.isdir(clearly.storage.root)):
-         clearly.FATAL("does not exist: %s" % clearly.storage.root)
-      if (not clearly.storage.valid_p):
-         clearly.FATAL("not a storage directory: %s" % clearly.storage.root)
+      if (not os.path.isdir(_clearly.storage.root)):
+         _clearly.FATAL("does not exist: %s" % _clearly.storage.root)
+      if (not _clearly.storage.valid_p):
+         _clearly.FATAL("not a storage directory: %s" % _clearly.storage.root)
       images = sorted(imgdir.listdir())
       if (len(images) >= 1):
          img_width = max(len(ref) for ref in images)
          for ref in images:
-            img = image.Image(reference.Reference(filesystem.Path(ref).parts[-1]))
+            img = _image.Image(_reference.Reference(_filesystem.Path(ref).parts[-1]))
             if cli.long:
                print("%-*s | %s" % (img_width, img, img.last_modified.ctime()))
             else:
                print(img)
    else:
       # list specified image
-      img = image.Image(reference.Reference(cli.image_ref))
+      img = _image.Image(_reference.Reference(cli.image_ref))
       print("details of image:    %s" % img.ref)
       # present locally?
       if (not img.unpack_exist_p):
@@ -158,13 +158,13 @@ def list_(cli):
          if (os.path.exists(img.unpack_path)):
             wdc = _build_cache.cache.worktree_head(img)
             if (wdc is None):
-               clearly.WARNING("stored image not connected to build cache")
+               _clearly.WARNING("stored image not connected to build cache")
             elif (wdc != commit):
-               clearly.WARNING("stored image doesn’t match build cache: %s" % wdc)
+               _clearly.WARNING("stored image doesn’t match build cache: %s" % wdc)
       print("in build cache:      %s" % cached)
       # present remotely?
       print("full remote ref:     %s" % img.ref.canonical)
-      pullet = pull.Image_Puller(img, img.ref)
+      pullet = _pull.Image_Puller(img, img.ref)
       try:
          pullet.fatman_load()
          remote = "yes"
@@ -180,32 +180,32 @@ def list_(cli):
             # handles case where arch_keys is empty, e.g.
             # mcr.microsoft.com/windows:20H2.
             arch_avail = [None]
-      except clearly.Image_Unavailable_Error:
+      except _clearly.Image_Unavailable_Error:
          remote = "no (or you are not authorized)"
          arch_aware = "n/a"
          arch_avail = ["n/a"]
-      except clearly.No_Fatman_Error:
+      except _clearly.No_Fatman_Error:
          remote = "yes"
          arch_aware = "no"
          arch_avail = ["unknown"]
       pullet.done()
       print("available remotely:  %s" % remote)
       print("remote arch-aware:   %s" % arch_aware)
-      print("host architecture:   %s" % clearly.arch_host)
+      print("host architecture:   %s" % _clearly.arch_host)
       print("archs available:     %s" % arch_avail[0])
       for arch in arch_avail[1:]:
          print((" " * 21) + arch)
 
 def reset(cli):
-   clearly.storage.reset()
+   _clearly.storage.reset()
 
 def undelete(cli):
-   if (cli.bucache != clearly.Build_Mode.ENABLED):
-      clearly.FATAL("only available when cache is enabled")
-   img = image.Image(reference.Reference(cli.image_ref))
+   if (cli.bucache != _clearly.Build_Mode.ENABLED):
+      _clearly.FATAL("only available when cache is enabled")
+   img = _image.Image(_reference.Reference(cli.image_ref))
    if (img.unpack_exist_p):
-      clearly.FATAL("image exists; will not overwrite")
+      _clearly.FATAL("image exists; will not overwrite")
    (_, git_hash) = _build_cache.cache.find_deleted_image(img)
    if (git_hash is None):
-      clearly.FATAL("image not in cache")
+      _clearly.FATAL("image not in cache")
    _build_cache.cache.checkout_ready(img, git_hash)

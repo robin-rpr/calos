@@ -57,7 +57,7 @@ mounting SquashFS images with FUSE.
     Initial working directory in container.
 
   :code:`--env-no-expand`
-    Don’t expand variables when using :code:`--set-env`.
+    Don’t expand variables when using :code:`--env`.
 
   :code:`--feature=FEAT`
     If feature :code:`FEAT` is enabled, exit successfully (zero); otherwise,
@@ -123,13 +123,13 @@ mounting SquashFS images with FUSE.
     bind-mounted at container :code:`/tmp`. If this is specified, a new
     :code:`tmpfs` is mounted on the container’s :code:`/tmp` instead.
 
-  :code:`--set-env`, :code:`--set-env=FILE`, :code:`--set-env=VAR=VALUE`
+  :code:`--env`, :code:`--env=FILE`, :code:`--env=VAR=VALUE`
     Set environment variables with newline-separated file
     (:code:`/clearly/environment` within the image if not specified) or on the
     command line. See below for details.
 
-  :code:`--set-env0`, :code:`--set-env0=FILE`, :code:`--set-env0=VAR=VALUE`
-    Like :code:`--set-env`, but file is null-byte separated.
+  :code:`--env0`, :code:`--env0=FILE`, :code:`--env0=VAR=VALUE`
+    Like :code:`--env`, but file is null-byte separated.
 
   :code:`-u`, :code:`--uid=UID`
     Run as user :code:`UID` within container.
@@ -381,13 +381,13 @@ environment is passed through unaltered, except:
 * by default (:code:`--home` not specified), :code:`HOME` is set to
   :code:`/root`, if it exists, and :code:`/` otherwise.
 * limited tweaks to avoid significant guest breakage;
-* user-set variables via :code:`--set-env`;
+* user-set variables via :code:`--env`;
 * user-unset variables via :code:`--unset-env`; and
 * set :code:`CLEARLY_RUNNING`.
 
 This section describes these features.
 
-The default tweaks happen first, then :code:`--set-env` and
+The default tweaks happen first, then :code:`--env` and
 :code:`--unset-env` in the order specified on the command line, and then
 :code:`CLEARLY_RUNNING`. The two options can be repeated arbitrarily many times,
 e.g. to add/remove multiple variable sets or add only some variables in a
@@ -434,7 +434,7 @@ By default, :code:`clearly run` makes the following environment variable changes
   made available in the guest at :code:`/tmp` unless :code:`--private-tmp` is
   given.
 
-Setting variables with :code:`--set-env` or :code:`--set-env0`
+Setting variables with :code:`--env` or :code:`--env0`
 --------------------------------------------------------------
 
 The purpose of these two options is to set environment variables within the
@@ -446,7 +446,7 @@ flags take an optional argument with two possible forms:
    sets an environment variable directly. For example, to set :code:`FOO` to
    the string value :code:`bar`::
 
-     $ clearly run --set-env=FOO=bar ...
+     $ clearly run --env=FOO=bar ...
 
    Single straight quotes around the value (:code:`'`, ASCII 39) are stripped,
    though be aware that both single and double quotes are also interpreted by
@@ -454,14 +454,14 @@ flags take an optional argument with two possible forms:
    double quotes are removed by the shell and the single quotes are removed by
    :code:`clearly run`::
 
-     $ clearly run --set-env="'BAZ=qux'" ...
+     $ clearly run --env="'BAZ=qux'" ...
 
 2. **If the argument does not contain an equals sign**, it is a host path to a
    file containing zero or more variables using the same syntax as above
    (except with no prior shell processing).
 
-   With :code:`--set-env`, this file contains a sequence of assignments
-   separated by newline (:code:`\n` or ASCII 10); with :code:`--set-env0`, the
+   With :code:`--env`, this file contains a sequence of assignments
+   separated by newline (:code:`\n` or ASCII 10); with :code:`--env0`, the
    assignments are separated by the null byte (i.e., :code:`\0` or ASCII 0).
    Empty assignments are ignored, and no comments are interpreted. (This
    syntax is designed to accept the output of :code:`printenv` and be easily
@@ -472,7 +472,7 @@ flags take an optional argument with two possible forms:
      $ cat /tmp/env.txt
      FOO=bar
      BAZ='qux'
-     $ clearly run --set-env=/tmp/env.txt ...
+     $ clearly run --env=/tmp/env.txt ...
 
    For directory images only (because the file is read before containerizing),
    guest paths can be given by prepending the image path.
@@ -488,16 +488,16 @@ flags take an optional argument with two possible forms:
      [...]
      $ clearly image build -t foo .
      $ clearly convert foo /var/tmp/foo.sqfs
-     $ clearly run --set-env /var/tmp/foo.sqfs -- ...
+     $ clearly run --env /var/tmp/foo.sqfs -- ...
 
-   (Note the image path is interpreted correctly, not as the :code:`--set-env`
+   (Note the image path is interpreted correctly, not as the :code:`--env`
    argument.)
 
    At present, there is no way to use files other than :code:`/clearly/environment`
    within SquashFS images.
 
 Environment variables are expanded for values that look like search paths,
-unless :code:`--env-no-expand` is given prior to :code:`--set-env`. In this
+unless :code:`--env-no-expand` is given prior to :code:`--env`. In this
 case, the value is a sequence of zero or more possibly-empty items separated
 by colon (:code:`:`, ASCII 58). If an item begins with dollar sign (:code:`$`,
 ASCII 36), then the rest of the item is the name of an environment variable.
@@ -512,17 +512,17 @@ For example, to set :code:`HOSTPATH` to the search path in the current shell
 (this is expanded by :code:`clearly run`, though letting the shell do it happens to
 be equivalent)::
 
-  $ clearly run --set-env='HOSTPATH=$PATH' ...
+  $ clearly run --env='HOSTPATH=$PATH' ...
 
 To prepend :code:`/opt/bin` to this current search path::
 
-  $ clearly run --set-env='PATH=/opt/bin:$PATH' ...
+  $ clearly run --env='PATH=/opt/bin:$PATH' ...
 
 To prepend :code:`/opt/bin` to the search path set by the Dockerfile, as
 retrieved from guest file :code:`/clearly/environment` (here we really cannot let
 the shell expand :code:`$PATH`)::
 
-  $ clearly run --set-env --set-env='PATH=/opt/bin:$PATH' ...
+  $ clearly run --env --env='PATH=/opt/bin:$PATH' ...
 
 Examples of valid assignment, assuming that environment variable :code:`BAR`
 is set to :code:`bar` and :code:`UNSET` is unset or set to the empty string:

@@ -35,7 +35,7 @@
 #      This is a bashism.
 
 clearly_lib=$(cd "$(dirname "$0")" && pwd)/../../lib
-. "${clearly_lib}/base.sh"
+. "${clearly_lib}/_base.sh"
 
 set -e
 

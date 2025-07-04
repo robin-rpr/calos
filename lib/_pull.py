@@ -2,11 +2,11 @@ import json
 import os
 import os.path
 
-import clearly as clearly
-import build_cache as build_cache
-import reference as reference
-import registry as registry
-import image as image
+import _clearly as _clearly
+import _build_cache as _build_cache
+import _reference as _reference
+import _registry as _registry
+import _image as _image
 
 
 ## Constants ##
@@ -25,20 +25,20 @@ manifests_internal = {
 
 def main(cli):
    # Set things up.
-   src_ref = reference.Reference(cli.source_ref)
-   dst_ref = src_ref if cli.dest_ref is None else reference.Reference(cli.dest_ref)
+   src_ref = _reference.Reference(cli.source_ref)
+   dst_ref = src_ref if cli.dest_ref is None else _reference.Reference(cli.dest_ref)
    if (cli.parse_only):
       print(src_ref.as_verbose_str)
-      clearly.exit(0)
-   if (clearly.xattrs_save):
-      clearly.WARNING("--xattrs unsupported for “clearly image pull” (see FAQ)")
-   dst_img = image.Image(dst_ref)
-   clearly.INFO("pulling image:    %s" % src_ref)
+      _clearly.exit(0)
+   if (_clearly.xattrs_save):
+      _clearly.WARNING("--xattrs unsupported for “clearly image pull” (see FAQ)")
+   dst_img = _image.Image(dst_ref)
+   _clearly.INFO("pulling image:    %s" % src_ref)
    if (src_ref != dst_ref):
-      clearly.INFO("destination:      %s" % dst_ref)
-   clearly.INFO("requesting arch:  %s" % clearly.arch)
-   build_cache.cache.pull_eager(dst_img, src_ref, cli.last_layer)
-   clearly.done_notify()
+      _clearly.INFO("destination:      %s" % dst_ref)
+   _clearly.INFO("requesting arch:  %s" % _clearly.arch)
+   _build_cache.cache.pull_eager(dst_img, src_ref, cli.last_layer)
+   _clearly.done_notify()
 
 
 ## Classes ##
@@ -60,7 +60,7 @@ class Image_Puller:
       self.digests = dict()
       self.image = image
       self.layer_hashes = None
-      self.registry = registry.HTTP(src_ref)
+      self.registry = _registry.HTTP(src_ref)
       self.sid_input = None
       self.src_ref = src_ref
 
@@ -69,22 +69,22 @@ class Image_Puller:
       if (self.config_hash is None):
          return None
       else:
-         return clearly.storage.download_cache // (self.config_hash + ".json")
+         return _clearly.storage.download_cache // (self.config_hash + ".json")
 
    @property
    def fatman_path(self):
-      return clearly.storage.fatman_for_download(self.image.ref)
+      return _clearly.storage.fatman_for_download(self.image.ref)
 
    @property
    def manifest_path(self):
       if (str(self.image.ref) in manifests_internal):
          return "[internal library]"
       else:
-         if (clearly.arch == "yolo" or self.architectures is None):
+         if (_clearly.arch == "yolo" or self.architectures is None):
             digest = None
          else:
-            digest = self.architectures[clearly.arch]
-         return clearly.storage.manifest_for_download(self.image.ref, digest)
+            digest = self.architectures[_clearly.arch]
+         return _clearly.storage.manifest_for_download(self.image.ref, digest)
 
    def done(self):
       self.registry.close()
@@ -92,53 +92,53 @@ class Image_Puller:
    def download(self):
       "Download image metadata and layers and put them in the download cache."
       # Spec: https://docs.docker.com/registry/spec/manifest-v2-2/
-      clearly.VERBOSE("downloading image: %s" % self.image)
+      _clearly.VERBOSE("downloading image: %s" % self.image)
       have_skinny = False
       try:
          # fat manifest
-         if (clearly.arch != "yolo"):
+         if (_clearly.arch != "yolo"):
             try:
                self.fatman_load()
-               if (not self.architectures.in_warn(clearly.arch)):
-                  clearly.FATAL("requested arch unavailable: %s" % clearly.arch,
+               if (not self.architectures.in_warn(_clearly.arch)):
+                  _clearly.FATAL("requested arch unavailable: %s" % _clearly.arch,
                            ("available: %s"
                             % " ".join(sorted(self.architectures.keys()))))
-            except clearly.No_Fatman_Error:
+            except _clearly.No_Fatman_Error:
                # currently, this error is only raised if we’ve downloaded the
                # skinny manifest.
                have_skinny = True
-               if (clearly.arch == "amd64"):
+               if (_clearly.arch == "amd64"):
                   # We’re guessing that enough arch-unaware images are amd64 to
                   # barge ahead if requested architecture is amd64.
-                  clearly.arch = "yolo"
-                  clearly.WARNING("image is architecture-unaware")
-                  clearly.WARNING("requested arch is amd64; using --arch=yolo")
+                  _clearly.arch = "yolo"
+                  _clearly.WARNING("image is architecture-unaware")
+                  _clearly.WARNING("requested arch is amd64; using --arch=yolo")
                else:
-                  clearly.FATAL("image is architecture-unaware",
+                  _clearly.FATAL("image is architecture-unaware",
                            "consider --arch=yolo")
          # manifest
          self.manifest_load(have_skinny)
-      except clearly.Image_Unavailable_Error:
-         if (clearly.user() == "qwofford"):
+      except _clearly.Image_Unavailable_Error:
+         if (_clearly.user() == "qwofford"):
             h = "Quincy, use --auth!!"
          else:
             h = "if your registry needs authentication, use --auth"
-         clearly.FATAL("unauthorized or not in registry: %s" % self.registry.ref, h)
+         _clearly.FATAL("unauthorized or not in registry: %s" % self.registry.ref, h)
       # config
-      clearly.VERBOSE("config path: %s" % self.config_path)
+      _clearly.VERBOSE("config path: %s" % self.config_path)
       if (self.config_path is not None):
-         if (os.path.exists(self.config_path) and clearly.dlcache_p):
-            clearly.INFO("config: using existing file")
+         if (os.path.exists(self.config_path) and _clearly.dlcache_p):
+            _clearly.INFO("config: using existing file")
          else:
             self.registry.blob_to_file(self.config_hash, self.config_path,
                                        "config: downloading")
       # layers
       for (i, lh) in enumerate(self.layer_hashes, start=1):
          path = self.layer_path(lh)
-         clearly.VERBOSE("layer path: %s" % path)
+         _clearly.VERBOSE("layer path: %s" % path)
          msg = "layer %d/%d: %s" % (i, len(self.layer_hashes), lh[:7])
-         if (os.path.exists(path) and clearly.dlcache_p):
-            clearly.INFO("%s: using existing file" % msg)
+         if (os.path.exists(path) and _clearly.dlcache_p):
+            _clearly.INFO("%s: using existing file" % msg)
          else:
             self.registry.blob_to_file(lh, path, "%s: downloading" % msg)
       # done
@@ -151,7 +151,7 @@ class Image_Puller:
          code = data["errors"][0]["code"]
          msg = data["errors"][0]["message"]
       except (IndexError, KeyError):
-         clearly.FATAL("malformed error data", "yes, this is ironic")
+         _clearly.FATAL("malformed error data", "yes, this is ironic")
       return (code, msg)
 
    def fatman_load(self):
@@ -170,10 +170,10 @@ class Image_Puller:
       self.architectures = None
       if (str(self.src_ref) in manifests_internal):
          # cheat; internal manifest library matches every architecture
-         self.architectures = clearly.Arch_Dict({ clearly.arch_host: None })
+         self.architectures = _clearly.Arch_Dict({ _clearly.arch_host: None })
          # Assume that image has no digest. This is a kludge, but it makes my
          # solution to issue #1365 work so ¯\_(ツ)_/¯
-         self.digests[clearly.arch_host] = "no digest"
+         self.digests[_clearly.arch_host] = "no digest"
          return
       # raises Image_Unavailable_Error if needed
       self.registry.fatman_to_file(self.fatman_path,
@@ -188,18 +188,18 @@ class Image_Puller:
          # directory (see PR #1657).
          if (not self.manifest_path.exists()):
             self.manifest_path.symlink_to(self.fatman_path.name)
-         raise clearly.No_Fatman_Error()
+         raise _clearly.No_Fatman_Error()
       if ("errors" in fm):
          # fm is an error blob.
          (code, msg) = self.error_decode(fm)
          if (code == "MANIFEST_UNKNOWN"):
-            clearly.INFO("manifest list: no such image")
+            _clearly.INFO("manifest list: no such image")
             return
          else:
-            clearly.FATAL("manifest list: error: %s" % msg)
-      self.architectures = clearly.Arch_Dict()
+            _clearly.FATAL("manifest list: error: %s" % msg)
+      self.architectures = _clearly.Arch_Dict()
       if ("manifests" not in fm):
-         clearly.FATAL("manifest list has no key 'manifests'")
+         _clearly.FATAL("manifest list has no key 'manifests'")
       for m in fm["manifests"]:
          try:
             if (m["platform"]["os"] != "linux"):
@@ -209,17 +209,17 @@ class Image_Puller:
                arch = "%s/%s" % (arch, m["platform"]["variant"])
             digest = m["digest"]
          except KeyError:
-            clearly.FATAL("manifest lists missing a required key")
+            _clearly.FATAL("manifest lists missing a required key")
          if (arch in self.architectures):
-            clearly.FATAL("manifest list: duplicate architecture: %s" % arch)
-         self.architectures[arch] = clearly.digest_trim(digest)
+            _clearly.FATAL("manifest list: duplicate architecture: %s" % arch)
+         self.architectures[arch] = _clearly.digest_trim(digest)
          self.digests[arch] = digest.split(":")[1]
       if (len(self.architectures) == 0):
-         clearly.WARNING("no valid architectures found")
+         _clearly.WARNING("no valid architectures found")
 
    def layer_path(self, layer_hash):
       "Return the path to tarball for layer layer_hash."
-      return clearly.storage.download_cache // (layer_hash + ".tar.gz")
+      return _clearly.storage.download_cache // (layer_hash + ".tar.gz")
 
    def manifest_digest_by_arch(self):
       "Return skinny manifest digest for target architecture."
@@ -228,11 +228,11 @@ class Image_Puller:
       digest  = None
       variant = None
       try:
-         arch, variant = clearly.arch.split("/", maxsplit=1)
+         arch, variant = _clearly.arch.split("/", maxsplit=1)
       except ValueError:
-         arch = clearly.arch
+         arch = _clearly.arch
       if ("manifests" not in fatman):
-         clearly.FATAL("manifest list has no manifests")
+         _clearly.FATAL("manifest list has no manifests")
       for k in fatman["manifests"]:
          if (k.get('platform').get('os') != 'linux'):
             continue
@@ -241,7 +241,7 @@ class Image_Puller:
                     or k.get('platform').get('variant') == variant)):
             digest = k.get('digest')
       if (digest is None):
-         clearly.FATAL("arch not found for image: %s" % arch,
+         _clearly.FATAL("arch not found for image: %s" % arch,
                   'try "clearly image list IMAGE_REF"')
       return digest
 
@@ -250,21 +250,21 @@ class Image_Puller:
          self.layer_hashes. If the image does not exist,
          exit with error."""
       def bad_key(key):
-         clearly.FATAL("manifest: %s: no key: %s" % (self.manifest_path, key))
+         _clearly.FATAL("manifest: %s: no key: %s" % (self.manifest_path, key))
       self.config_hash = None
       self.layer_hashes = None
       # obtain the manifest
       try:
          # internal manifest library, e.g. for “FROM scratch”
          manifest = manifests_internal[str(self.src_ref)]
-         clearly.INFO("manifest: using internal library")
+         _clearly.INFO("manifest: using internal library")
       except KeyError:
          # download the file and parse it
-         if (clearly.arch == "yolo" or self.architectures is None):
+         if (_clearly.arch == "yolo" or self.architectures is None):
             digest = None
          else:
-            digest = self.architectures[clearly.arch]
-         clearly.DEBUG("manifest digest: %s" % digest)
+            digest = self.architectures[_clearly.arch]
+         _clearly.DEBUG("manifest digest: %s" % digest)
          if (not have_skinny):
             self.registry.manifest_to_file(self.manifest_path,
                                           "manifest: downloading",
@@ -276,20 +276,20 @@ class Image_Puller:
       except KeyError:
          bad_key("schemaVersion")
       if (version not in {1,2}):
-         clearly.FATAL("unsupported manifest schema version: %s" % repr(version))
+         _clearly.FATAL("unsupported manifest schema version: %s" % repr(version))
       # load config hash
       #
       # FIXME: Manifest version 1 does not list a config blob. It does have
       # things (plural) that look like a config at history/v1Compatibility as
       # an embedded JSON string :P but I haven’t dug into it.
       if (version == 1):
-         clearly.VERBOSE("no config; manifest schema version 1")
+         _clearly.VERBOSE("no config; manifest schema version 1")
          self.config_hash = None
       else:  # version == 2
          try:
             self.config_hash = manifest["config"]["digest"]
             if (self.config_hash is not None):
-               self.config_hash = clearly.digest_trim(self.config_hash)
+               self.config_hash = _clearly.digest_trim(self.config_hash)
          except KeyError:
             bad_key("config/digest")
       # load layer hashes
@@ -305,7 +305,7 @@ class Image_Puller:
       for i in manifest[key1]:
          if (key2 not in i):
             bad_key("%s/%s" % (key1, key2))
-         self.layer_hashes.append(clearly.digest_trim(i[key2]))
+         self.layer_hashes.append(_clearly.digest_trim(i[key2]))
       if (version == 1):
          self.layer_hashes.reverse()
       # Remember State_ID input. We can’t rely on the manifest existing in
@@ -314,19 +314,19 @@ class Image_Puller:
 
    def unpack(self, last_layer=None):
       layer_paths = [self.layer_path(h) for h in self.layer_hashes]
-      build_cache.cache.unpack_delete(self.image, missing_ok=True)
+      _build_cache.cache.unpack_delete(self.image, missing_ok=True)
       self.image.unpack(layer_paths, last_layer)
       self.image.metadata_replace(self.config_path)
       # Check architecture we got. This is limited because image metadata does
       # not store the variant. Move fast and break things, I guess.
       arch_image = self.image.metadata["arch"] or "unknown"
-      arch_short = clearly.arch.split("/")[0]
-      arch_host_short = clearly.arch_host.split("/")[0]
+      arch_short = _clearly.arch.split("/")[0]
+      arch_host_short = _clearly.arch_host.split("/")[0]
       if (arch_image != "unknown" and arch_image != arch_host_short):
-         host_mismatch = " (may not match host %s)" % clearly.arch_host
+         host_mismatch = " (may not match host %s)" % _clearly.arch_host
       else:
          host_mismatch = ""
-      clearly.INFO("image arch: %s%s" % (arch_image, host_mismatch))
-      if (clearly.arch != "yolo" and arch_short != arch_image):
-         clearly.WARNING("image architecture does not match requested: %s ≠ %s"
-                    % (clearly.arch, arch_image))
+      _clearly.INFO("image arch: %s%s" % (arch_image, host_mismatch))
+      if (_clearly.arch != "yolo" and arch_short != arch_image):
+         _clearly.WARNING("image architecture does not match requested: %s ≠ %s"
+                    % (_clearly.arch, arch_image))

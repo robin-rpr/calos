@@ -52,6 +52,12 @@ SUFFIXES = .py .c
 		--module-name $(subst -,_,$(basename $<))
 	chmod +rx,-w $@  # respects umask
 
+# Version script
+version: ../configure
+	printf "#!/bin/sh\n" > $@
+	printf "echo '@PACKAGE_VERSION@'" >> $@
+	chmod +x $@
+
 # Link with Python libraries
 image_LDADD = $(PYTHON_LIB)
 daemon_LDADD = $(PYTHON_LIB)

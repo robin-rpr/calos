@@ -7,9 +7,9 @@ import re
 import sys
 import tarfile
 
-import clearly as clearly
-import filesystem as filesystem
-import reference as reference
+import _clearly as _clearly
+import _filesystem as _filesystem
+import _reference as _reference
 
 
 ## Hairy Imports ##
@@ -24,7 +24,7 @@ LARK_MIN = (1, 1, 9)
 LARK_MAX = (99, 0, 0)
 lark_version = tuple(int(i) for i in lark.__version__.split("."))
 if (not LARK_MIN <= lark_version <= LARK_MAX):
-   clearly.depfails.append(("bad", 'found Python module "lark" version %d.%d.%d but need between %d.%d.%d and %d.%d.%d inclusive' % (lark_version + LARK_MIN + LARK_MAX)))
+   _clearly.depfails.append(("bad", 'found Python module "lark" version %d.%d.%d but need between %d.%d.%d and %d.%d.%d inclusive' % (lark_version + LARK_MIN + LARK_MAX)))
 
 
 ## Constants ##
@@ -78,21 +78,21 @@ class Image:
 
    def __init__(self, ref, unpack_path=None):
       if (isinstance(ref, str)):
-         ref = reference.Reference(ref)
-      assert isinstance(ref, reference.Reference)
+         ref = _reference.Reference(ref)
+      assert isinstance(ref, _reference.Reference)
       self.ref = ref
       if (unpack_path is not None):
-         assert isinstance(unpack_path, filesystem.Path)
+         assert isinstance(unpack_path, _filesystem.Path)
          self.unpack_path = unpack_path
       else:
-         self.unpack_path = clearly.storage.unpack(self.ref)
+         self.unpack_path = _clearly.storage.unpack(self.ref)
       self.metadata_init()
 
    @classmethod
    def glob(class_, image_glob):
       """Return a possibly-empty iterator of images in the storage directory
          matching the given glob."""
-      for ref in reference.Reference.glob(image_glob):
+      for ref in _reference.Reference.glob(image_glob):
          yield class_(ref)
 
    def __str__(self):
@@ -103,7 +103,7 @@ class Image:
       """True if it's OK to delete me, either my unpack directory (a) is at
          the expected location within the storage directory xor (b) is not not
          but it looks like an image; False otherwise."""
-      if (self.unpack_path == clearly.storage.unpack_base // self.unpack_path.name):
+      if (self.unpack_path == _clearly.storage.unpack_base // self.unpack_path.name):
          return True
       else:
          if (all(os.path.isdir(self.unpack_path // i)
@@ -140,12 +140,12 @@ class Image:
          can be either a path (string or filesystem.Path object) or an Image object;
          in the latter case other.unpack_path is used. other need not be a
          valid image; the essentials will be created if needed."""
-      if (isinstance(other, str) or isinstance(other, filesystem.Path)):
+      if (isinstance(other, str) or isinstance(other, _filesystem.Path)):
          src_path = other
       else:
          src_path = other.unpack_path
-      clearly.VERBOSE("copying image: %s -> %s" % (src_path, self.unpack_path))
-      filesystem.Path(src_path).copytree(self.unpack_path, symlinks=True)
+      _clearly.VERBOSE("copying image: %s -> %s" % (src_path, self.unpack_path))
+      _filesystem.Path(src_path).copytree(self.unpack_path, symlinks=True)
       # Simpler to copy this file then delete it, rather than filter it out.
       (self.unpack_path // GIT_DIR).unlink(missing_ok=True)
       self.unpack_init()
@@ -175,26 +175,26 @@ class Image:
       for (i, path) in enumerate(layer_tars, start=1):
          lh = os.path.basename(path).split(".", 1)[0]
          lh_short = lh[:7]
-         clearly.INFO("layer %d/%d: %s: listing" % (i, len(layer_tars), lh_short))
+         _clearly.INFO("layer %d/%d: %s: listing" % (i, len(layer_tars), lh_short))
          try:
-            fp = filesystem.TarFile.open(path)
-            members = clearly.OrderedSet(fp.getmembers())  # reads whole file :(
+            fp = _filesystem.TarFile.open(path)
+            members = _clearly.OrderedSet(fp.getmembers())  # reads whole file :(
          except tarfile.TarError as x:
-            clearly.FATAL("cannot open: %s: %s" % (path, x))
+            _clearly.FATAL("cannot open: %s: %s" % (path, x))
          if (lh in layers and len(members) > 0):
-            clearly.WARNING("ignoring duplicate non-empty layer: %s" % lh_short)
+            _clearly.WARNING("ignoring duplicate non-empty layer: %s" % lh_short)
          if (len(members) > 0):
             layers[lh] = TT(fp, members)
          else:
-            clearly.WARNING("ignoring empty layer: %s" % lh_short)
+            _clearly.WARNING("ignoring empty layer: %s" % lh_short)
             empty_cnt += 1
-      clearly.VERBOSE("skipped %d empty layers" % empty_cnt)
+      _clearly.VERBOSE("skipped %d empty layers" % empty_cnt)
       return layers
 
    def metadata_init(self):
       "Initialize empty metadata structure."
       # Elsewhere can assume the existence and types of everything here.
-      self.metadata = { "arch": clearly.arch_host.split("/")[0],  # no variant
+      self.metadata = { "arch": _clearly.arch_host.split("/")[0],  # no variant
                         "arg": { **ARG_DEFAULTS_MAGIC, **ARG_DEFAULTS },
                         "cwd": "/",
                         "env": dict(),
@@ -213,9 +213,9 @@ class Image:
          path = self.metadata_path
       path //= "metadata.json"
       if (path.exists()):
-         clearly.VERBOSE("loading metadata")
+         _clearly.VERBOSE("loading metadata")
       else:
-         clearly.WARNING("no metadata to load; using defaults")
+         _clearly.WARNING("no metadata to load; using defaults")
          self.metadata_init()
          return
       self.metadata = path.json_from_file("metadata")
@@ -244,7 +244,7 @@ class Image:
          if (v is not None and v != ""):
             self.metadata[dst_key] = v
       if ("config" not in config):
-         clearly.FATAL("config missing key 'config'")
+         _clearly.FATAL("config missing key 'config'")
       # architecture
       set_("arch", "architecture")
       # $CWD
@@ -256,11 +256,11 @@ class Image:
             try:
                (k,v) = line.split("=", maxsplit=1)
             except AttributeError:
-               clearly.FATAL("can't parse config: bad Env line: %s" % line)
+               _clearly.FATAL("can't parse config: bad Env line: %s" % line)
             self.metadata["env"][k] = v
       # History.
       if ("history" not in config):
-         clearly.FATAL("invalid config: missing history")
+         _clearly.FATAL("invalid config: missing history")
       self.metadata["history"] = config["history"]
       # labels
       set_("labels", "config", "Labels")  # copy reference
@@ -275,12 +275,12 @@ class Image:
    def metadata_replace(self, config_json):
       self.metadata_init()
       if (config_json is None):
-         clearly.INFO("no config found; initializing empty metadata")
+         _clearly.INFO("no config found; initializing empty metadata")
       else:
          # Copy pulled config file into the image so we still have it.
          path = self.metadata_path // "config.pulled.json"
          config_json.copy(path)
-         clearly.VERBOSE("pulled config path: %s" % path)
+         _clearly.VERBOSE("pulled config path: %s" % path)
          self.metadata_merge_from_config(path.json_from_file("config"))
       self.metadata_save()
 
@@ -294,19 +294,19 @@ class Image:
       # Serialize. We take care to pretty-print this so it can (sometimes) be
       # parsed by simple things like grep and sed.
       out = json.dumps(metadata, indent=2, sort_keys=True)
-      clearly.DEBUG("metadata:\n%s" % out)
+      _clearly.DEBUG("metadata:\n%s" % out)
       # Main metadata file.
       path = self.metadata_path // "metadata.json"
-      clearly.VERBOSE("writing metadata file: %s" % path)
+      _clearly.VERBOSE("writing metadata file: %s" % path)
       path.file_write(out + "\n")
       # /clearly/environment
       path = self.metadata_path // "environment"
-      clearly.VERBOSE("writing environment file: %s" % path)
+      _clearly.VERBOSE("writing environment file: %s" % path)
       path.file_write( (  "\n".join("%s=%s" % (k,v) for (k,v)
                                     in sorted(metadata["env"].items()))
                         + "\n"))
       # mkdir volumes
-      clearly.VERBOSE("ensuring volume directories exist")
+      _clearly.VERBOSE("ensuring volume directories exist")
       for path in metadata["volumes"]:
          (self.unpack_path // path).mkdirs()
 
@@ -319,15 +319,15 @@ class Image:
       base = "%s.tar" % self.ref.for_path
       path = tarball_dir // base
       try:
-         clearly.INFO("layer 1/1: gathering")
-         clearly.VERBOSE("writing tarball: %s" % path)
-         fp = filesystem.TarFile.open(path, "w", format=tarfile.PAX_FORMAT)
+         _clearly.INFO("layer 1/1: gathering")
+         _clearly.VERBOSE("writing tarball: %s" % path)
+         fp = _filesystem.TarFile.open(path, "w", format=tarfile.PAX_FORMAT)
          unpack_path = self.unpack_path.resolve()  # aliases use symlinks
-         clearly.VERBOSE("canonicalized unpack path: %s" % unpack_path)
+         _clearly.VERBOSE("canonicalized unpack path: %s" % unpack_path)
          fp.add_(unpack_path, arcname=".")
          fp.close()
       except OSError as x:
-         clearly.FATAL("can't write tarball: %s" % x.strerror)
+         _clearly.FATAL("can't write tarball: %s" % x.strerror)
       return [base]
 
    def unpack(self, layer_tars, last_layer=None):
@@ -338,7 +338,7 @@ class Image:
          exist."""
       if (last_layer is None):
          last_layer = sys.maxsize
-      clearly.INFO("flattening image")
+      _clearly.INFO("flattening image")
       self.unpack_layers(layer_tars, last_layer)
       self.unpack_init()
 
@@ -349,33 +349,33 @@ class Image:
       """If the unpack directory does not exist, do nothing. If the unpack
          directory is already an image, remove it. Otherwise, error."""
       if (not os.path.exists(self.unpack_path)):
-         clearly.VERBOSE("no image found: %s" % self.unpack_path)
+         _clearly.VERBOSE("no image found: %s" % self.unpack_path)
       else:
          if (not os.path.isdir(self.unpack_path)):
-            clearly.FATAL("can't flatten: %s exists but is not a directory"
+            _clearly.FATAL("can't flatten: %s exists but is not a directory"
                   % self.unpack_path)
          if (not self.deleteable):
-            clearly.FATAL("can't flatten: %s exists but does not appear to be an image"
+            _clearly.FATAL("can't flatten: %s exists but does not appear to be an image"
                      % self.unpack_path)
-         clearly.VERBOSE("removing image: %s" % self.unpack_path)
-         t = clearly.Timer()
+         _clearly.VERBOSE("removing image: %s" % self.unpack_path)
+         t = _clearly.Timer()
          self.unpack_path.rmtree()
          t.log("removed image")
 
    def unpack_delete(self):
-      clearly.VERBOSE("unpack path: %s" % self.unpack_path)
+      _clearly.VERBOSE("unpack path: %s" % self.unpack_path)
       if (not self.unpack_exist_p):
-         clearly.FATAL("image not found, can't delete: %s" % self.ref)
+         _clearly.FATAL("image not found, can't delete: %s" % self.ref)
       if (self.deleteable):
-         clearly.INFO("deleting image: %s" % self.ref)
+         _clearly.INFO("deleting image: %s" % self.ref)
          self.unpack_path.chmod_min()
          for (dir_, subdirs, _) in os.walk(self.unpack_path):
             # must fix as subdirs so we can traverse into them
             for subdir in subdirs:
-               (filesystem.Path(dir_) // subdir).chmod_min()
+               (_filesystem.Path(dir_) // subdir).chmod_min()
          self.unpack_path.rmtree()
       else:
-         clearly.FATAL("storage directory seems broken: not an image: %s" % self.ref)
+         _clearly.FATAL("storage directory seems broken: not an image: %s" % self.ref)
 
    def unpack_init(self):
       """Initialize the unpack directory, which must exist. Any setup already
@@ -405,34 +405,34 @@ class Image:
       for (i, (lh, (fp, members))) in enumerate(layers.items(), start=1):
          lh_short = lh[:7]
          if (i > last_layer):
-            clearly.INFO("layer %d/%d: %s: skipping per --last-layer"
+            _clearly.INFO("layer %d/%d: %s: skipping per --last-layer"
                  % (i, len(layers), lh_short))
          else:
-            clearly.INFO("layer %d/%d: %s: extracting" % (i, len(layers), lh_short))
+            _clearly.INFO("layer %d/%d: %s: extracting" % (i, len(layers), lh_short))
             try:
                fp.extractall(path=self.unpack_path, members=members)
             except OSError as x:
-               clearly.FATAL("can't extract layer %d: %s" % (i, x.strerror))
+               _clearly.FATAL("can't extract layer %d: %s" % (i, x.strerror))
 
    def validate_members(self, layers):
-      clearly.INFO("validating tarball members")
+      _clearly.INFO("validating tarball members")
       top_dirs = set()
-      clearly.VERBOSE("pass 1: canonicalizing member paths")
+      _clearly.VERBOSE("pass 1: canonicalizing member paths")
       for (i, (lh, (fp, members))) in enumerate(layers.items(), start=1):
          abs_ct = 0
          for m in list(members):   # copy b/c we remove items from the set
             # Remove members with empty paths.
             if (len(m.name) == 0):
-               clearly.WARNING("layer %d/%d: %s: skipping member with empty path"
+               _clearly.WARNING("layer %d/%d: %s: skipping member with empty path"
                        % (i, len(layers), lh[:7]))
                members.remove(m)
             # Convert member paths to filesystem.Path objects for easier processing.
             # Note: In my testing, parsing a string into a filesystem.Path object took
             # about 2.5µs, so this should be plenty fast.
-            m.name = filesystem.Path(m.name)
+            m.name = _filesystem.Path(m.name)
             # Reject members with up-levels.
             if (".." in m.name.parts):
-               clearly.FATAL("rejecting up-level member: %s: %s" % (fp.name, m.name))
+               _clearly.FATAL("rejecting up-level member: %s: %s" % (fp.name, m.name))
             # Correct absolute paths.
             if (m.name.is_absolute()):
                m.name = m.name.relative_to("/")
@@ -441,21 +441,21 @@ class Image:
             if (len(m.name.parts) > 1 or m.isdir()):
                top_dirs.add(m.name.first)
          if (abs_ct > 0):
-            clearly.WARNING("layer %d/%d: %s: fixed %d absolute member paths"
+            _clearly.WARNING("layer %d/%d: %s: fixed %d absolute member paths"
                     % (i, len(layers), lh[:7], abs_ct))
       top_dirs.discard(None)  # ignore "."
       # Convert to tarbomb if (1) there is a single enclosing directory and
       # (2) that directory is not one of the standard directories, e.g. to
       # allow images containing just "/bin/fooprog".
       if (len(top_dirs) != 1 or not top_dirs.isdisjoint(STANDARD_DIRS)):
-         clearly.VERBOSE("pass 2: conversion to tarbomb not needed")
+         _clearly.VERBOSE("pass 2: conversion to tarbomb not needed")
       else:
-         clearly.VERBOSE("pass 2: converting to tarbomb")
+         _clearly.VERBOSE("pass 2: converting to tarbomb")
          for (i, (lh, (fp, members))) in enumerate(layers.items(), start=1):
             for m in members:
                if (len(m.name.parts) > 0):  # ignore "."
-                  m.name = filesystem.Path(*m.name.parts[1:])  # strip first component
-      clearly.VERBOSE("pass 3: analyzing members")
+                  m.name = _filesystem.Path(*m.name.parts[1:])  # strip first component
+      _clearly.VERBOSE("pass 3: analyzing members")
       for (i, (lh, (fp, members))) in enumerate(layers.items(), start=1):
          dev_ct = 0
          link_fix_ct = 0
@@ -464,11 +464,11 @@ class Image:
             if (m.isdev()):
                # Device or FIFO: Ignore.
                dev_ct += 1
-               clearly.VERBOSE("ignoring device file: %s" % m.name)
+               _clearly.VERBOSE("ignoring device file: %s" % m.name)
                members.remove(m)
                continue
             elif (m.issym() or m.islnk()):
-               link_fix_ct += filesystem.TarFile.fix_link_target(m, fp.name)
+               link_fix_ct += _filesystem.TarFile.fix_link_target(m, fp.name)
             elif (m.isdir()):
                # Directory: Fix bad permissions (hello, Red Hat).
                m.mode |= 0o700
@@ -476,25 +476,25 @@ class Image:
                # Regular file: Fix bad permissions (HELLO RED HAT!!).
                m.mode |= 0o600
             else:
-               clearly.FATAL("unknown member type: %s" % m.name)
+               _clearly.FATAL("unknown member type: %s" % m.name)
             # Discard Git metadata (files that begin with ".git").
             if (re.search(r"^(\./)?\.git", m.name)):
-               clearly.WARNING("ignoring member: %s" % m.name)
+               _clearly.WARNING("ignoring member: %s" % m.name)
                members.remove(m)
                continue
             # Discard anything under /dev. Docker puts regular files and
             # directories in here on "docker export". Note leading slashes
             # already taken care of in TarFile.fix_member_path() above.
             if (re.search(r"^(\./)?dev/.", m.name)):
-               clearly.VERBOSE("ignoring member under /dev: %s" % m.name)
+               _clearly.VERBOSE("ignoring member under /dev: %s" % m.name)
                members.remove(m)
                continue
-            filesystem.TarFile.fix_member_uidgid(m)
+            _filesystem.TarFile.fix_member_uidgid(m)
          if (dev_ct > 0):
-            clearly.WARNING("layer %d/%d: %s: ignored %d devices and/or FIFOs"
+            _clearly.WARNING("layer %d/%d: %s: ignored %d devices and/or FIFOs"
                     % (i, len(layers), lh[:7], dev_ct))
          if (link_fix_ct > 0):
-            clearly.INFO("layer %d/%d: %s: changed %d absolute symbolic and/or hard links to relative"
+            _clearly.INFO("layer %d/%d: %s: changed %d absolute symbolic and/or hard links to relative"
                     % (i, len(layers), lh[:7], link_fix_ct))
 
    def whiteout_rm_prefix(self, layers, max_i, prefix):
@@ -502,24 +502,24 @@ class Image:
          prefix of prefix. For example, if prefix is foo/bar, then ignore
          foo/bar and foo/bar/baz but not foo/barbaz. Return count of members
          ignored."""
-      clearly.TRACE("finding members with prefix: %s" % prefix)
+      _clearly.TRACE("finding members with prefix: %s" % prefix)
       prefix = os.path.normpath(prefix)  # "./foo" == "foo"
       ignore_ct = 0
       for (i, (lh, (fp, members))) in enumerate(layers.items(), start=1):
          if (i > max_i): break
          members2 = list(members)  # copy b/c we'll alter members
          for m in members2:
-            if (clearly.prefix_path(prefix, m.name)):
+            if (_clearly.prefix_path(prefix, m.name)):
                ignore_ct += 1
                members.remove(m)
-               clearly.TRACE("layer %d/%d: %s: ignoring %s"
+               _clearly.TRACE("layer %d/%d: %s: ignoring %s"
                      % (i, len(layers), lh[:7], m.name))
       return ignore_ct
 
    def whiteouts_resolve(self, layers):
       """Resolve whiteouts. See:
          https://github.com/opencontainers/image-spec/blob/master/layer.md"""
-      clearly.INFO("resolving whiteouts")
+      _clearly.INFO("resolving whiteouts")
       for (i, (lh, (fp, members))) in enumerate(layers.items(), start=1):
          wo_ct = 0
          ig_ct = 0
@@ -532,13 +532,13 @@ class Image:
                members.remove(m)
                if (filename == ".wh..wh..opq"):
                   # "Opaque whiteout": remove contents of dir_.
-                  clearly.DEBUG("found opaque whiteout: %s" % m.name)
+                  _clearly.DEBUG("found opaque whiteout: %s" % m.name)
                   ig_ct += self.whiteout_rm_prefix(layers, i - 1, dir_)
                else:
                   # "Explicit whiteout": remove same-name file without ".wh.".
-                  clearly.DEBUG("found explicit whiteout: %s" % m.name)
+                  _clearly.DEBUG("found explicit whiteout: %s" % m.name)
                   ig_ct += self.whiteout_rm_prefix(layers, i - 1,
                                                    dir_ + "/" + filename[4:])
          if (wo_ct > 0):
-            clearly.VERBOSE("layer %d/%d: %s: %d whiteouts; %d members ignored"
+            _clearly.VERBOSE("layer %d/%d: %s: %d whiteouts; %d members ignored"
                     % (i, len(layers), lh[:7], wo_ct, ig_ct))

@@ -8,32 +8,32 @@ import os.path
 import sys
 
 try:
-    # Cython provides LIBDIR.
-    sys.path.insert(0, LIBDIR)
+    # Cython provides PKGLIBDIR.
+    sys.path.insert(0, PKGLIBDIR)
 except NameError:
     # Extend sys.path to include the parent directory. This is necessary because this
     # script resides in a subdirectory, and we need to import shared modules located
     # in the project's top-level 'lib' directory.
-    sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../lib'))
 
-import lib.clearly as clearly
-import lib.build_cache as build_cache
-import lib.filesystem as filesystem
-import lib.build as build
-import lib.misc as misc
-import lib.pull as pull
-import lib.push as push
+import _clearly as _clearly
+import _build_cache as _build_cache
+import _filesystem as _filesystem
+import _build as _build
+import _misc as _misc
+import _pull as _pull
+import _push as _push
 
 
 ## Main ##
 
 def main():
 
-   ap = clearly.ArgumentParser(
+   ap = _clearly.ArgumentParser(
       description="Build and manage images; completely unprivileged.",
       epilog="""Storage directory is used for caching and temporary images.
                 Location: first defined of --storage, $CLEARLY_IMAGE_STORAGE, and
-                %s.""" % filesystem.Storage.root_default(),
+                %s.""" % _filesystem.Storage.root_default(),
       sub_title="subcommands",
       sub_metavar="CMD")
 
@@ -80,17 +80,17 @@ def main():
       { ("bucache", "build cache common options"): [
            [["--cache"],
             { "action": "store_const",
-              "const": clearly.Build_Mode.ENABLED,
+              "const": _clearly.Build_Mode.ENABLED,
               "dest": "bucache",
               "help": "enable build cache" }],
            [["--no-cache"],
             { "action": "store_const",
-              "const": clearly.Build_Mode.DISABLED,
+              "const": _clearly.Build_Mode.DISABLED,
               "dest": "bucache",
               "help": "disable build cache" }],
            [["--rebuild"],
             { "action": "store_const",
-              "const": clearly.Build_Mode.REBUILD,
+              "const": _clearly.Build_Mode.REBUILD,
               "dest": "bucache",
               "help": "force cache misses for non-FROM instructions" }] ],
         (None, "misc common options"): [
@@ -109,15 +109,15 @@ def main():
               "help": "break into PDB before LINE of MODULE" }],
            [["--cache-large"],
             { "metavar": "SIZE",
-              "type": lambda s: clearly.positive(s) * 2**20,  # internal unit: bytes
-              "default": clearly.positive(
+              "type": lambda s: _clearly.positive(s) * 2**20,  # internal unit: bytes
+              "default": _clearly.positive(
                  os.environ.get("CLEARLY_IMAGE_CACHE_LARGE", 0)) * 2**20,
               "help": "large file threshold in MiB" }],
            [["--debug"],
             { "action": "store_true",
               "help": "add short traceback to fatal error hints" }],
            [["--dependencies"],
-            { "action": misc.Dependencies,
+            { "action": _misc.Dependencies,
               "help": "print any missing dependencies and exit" }],
            [["--no-lock"],
             { "action": "store_true",
@@ -137,7 +137,7 @@ def main():
               "help": "print less output (can be repeated)"}],
            [["-s", "--storage"],
             { "metavar": "DIR",
-              "type": filesystem.Path,
+              "type": _filesystem.Path,
               "help": "set builder internal storage directory to DIR" }],
            [["--tls-no-verify"],
             { "action": "store_true",
@@ -184,7 +184,7 @@ def main():
 
    # build
    sp = ap.add_parser("build", "build image from Dockerfile")
-   add_opts(sp, build.main, deps_check=True, stog_init=True)
+   add_opts(sp, _build.main, deps_check=True, stog_init=True)
    sp.add_argument("-b", "--bind", metavar="SRC[:DST]",
                    action="append", default=[],
                    help="mount SRC at guest DST (default: same as SRC)")
@@ -194,7 +194,7 @@ def main():
    sp.add_argument("-f", "--file", metavar="DOCKERFILE",
                    help="Dockerfile to use (default: CONTEXT/Dockerfile)")
    sp.add_argument("--force", metavar="MODE", nargs="?", default="seccomp",
-                   type=clearly.Force_Mode, const="seccomp",
+                   type=_clearly.Force_Mode, const="seccomp",
                    help="inject unprivileged build workarounds")
    sp.add_argument("--force-cmd", metavar="CMD,ARG1[,ARG2...]",
                    action="append", default=[],
@@ -210,7 +210,7 @@ def main():
 
    # build-cache
    sp = ap.add_parser("build-cache", "print build cache information")
-   add_opts(sp, misc.build_cache, deps_check=True, stog_init=True)
+   add_opts(sp, _misc.build_cache, deps_check=True, stog_init=True)
    sp.add_argument("--gc",
                    action="store_true",
                    help="run garbage collection first")
@@ -225,7 +225,7 @@ def main():
 
    # delete
    sp = ap.add_parser("delete", "delete image from internal storage")
-   add_opts(sp, misc.delete, deps_check=True, stog_init=True)
+   add_opts(sp, _misc.delete, deps_check=True, stog_init=True)
    sp.add_argument("image_ref", metavar="IMAGE_GLOB", help="image(s) to delete", nargs='+')
 
    # gestalt (has sub-subcommands)
@@ -234,25 +234,25 @@ def main():
    add_opts(sp, lambda x: False, deps_check=False, stog_init=False)
    # bucache
    tp = sp.add_parser("bucache", "exit successfully if build cache available")
-   add_opts(tp, misc.gestalt_bucache, deps_check=True, stog_init=False)
+   add_opts(tp, _misc.gestalt_bucache, deps_check=True, stog_init=False)
    # bucache-dot
    tp = sp.add_parser("bucache-dot", "exit success if can produce DOT trees")
-   add_opts(tp, misc.gestalt_bucache_dot, deps_check=True, stog_init=False)
+   add_opts(tp, _misc.gestalt_bucache_dot, deps_check=True, stog_init=False)
    # storage-path
    tp = sp.add_parser("storage-path", "print storage directory path")
-   add_opts(tp, misc.gestalt_storage_path, deps_check=False, stog_init=False)
+   add_opts(tp, _misc.gestalt_storage_path, deps_check=False, stog_init=False)
    # python-path
    tp = sp.add_parser("python-path", "print path to python interpreter in use")
-   add_opts(tp, misc.gestalt_python_path, deps_check=False, stog_init=False)
+   add_opts(tp, _misc.gestalt_python_path, deps_check=False, stog_init=False)
    # logging
    tp = sp.add_parser("logging", "print logging messages at all levels")
-   add_opts(tp, misc.gestalt_logging, deps_check=False, stog_init=False)
+   add_opts(tp, _misc.gestalt_logging, deps_check=False, stog_init=False)
    tp.add_argument("--fail", action="store_true",
                    help="also generate a fatal error")
 
    # import
    sp = ap.add_parser("import", "copy external image into storage")
-   add_opts(sp, misc.import_, deps_check=True, stog_init=True)
+   add_opts(sp, _misc.import_, deps_check=True, stog_init=True)
    sp.add_argument("path", metavar="PATH",
                    help="directory or tarball to import")
    sp.add_argument("image_ref", metavar="IMAGE_REF",
@@ -260,7 +260,7 @@ def main():
 
    # list
    sp = ap.add_parser("list", "print information about image(s)")
-   add_opts(sp, misc.list_, deps_check=True, stog_init=True)
+   add_opts(sp, _misc.list_, deps_check=True, stog_init=True)
    sp.add_argument("-l", "--long", action="store_true",
                    help="use long listing format")
    sp.add_argument("-u", "--undeletable", action="store_true",
@@ -273,7 +273,7 @@ def main():
    # pull
    sp = ap.add_parser("pull",
                       "copy image from remote repository to local filesystem")
-   add_opts(sp, pull.main, deps_check=True, stog_init=True)
+   add_opts(sp, _pull.main, deps_check=True, stog_init=True)
    sp.add_argument("--last-layer", metavar="N", type=int,
                    help="stop after unpacking N layers")
    sp.add_argument("--parse-only", action="store_true",
@@ -285,8 +285,8 @@ def main():
    # push
    sp = ap.add_parser("push",
                       "copy image from local filesystem to remote repository")
-   add_opts(sp, push.main, deps_check=True, stog_init=True)
-   sp.add_argument("--image", metavar="DIR", type=filesystem.Path,
+   add_opts(sp, _push.main, deps_check=True, stog_init=True)
+   sp.add_argument("--image", metavar="DIR", type=_filesystem.Path,
                    help="path to unpacked image (default: opaque path in storage dir)")
    sp.add_argument("source_ref", metavar="IMAGE_REF", help="image to push")
    sp.add_argument("dest_ref", metavar="DEST_REF", nargs="?",
@@ -294,35 +294,35 @@ def main():
 
    # reset
    sp = ap.add_parser("reset", "delete everything in image builder storage")
-   add_opts(sp, misc.reset, deps_check=True, stog_init=False)
+   add_opts(sp, _misc.reset, deps_check=True, stog_init=False)
 
    # undelete
    sp = ap.add_parser("undelete", "recover image from build cache")
-   add_opts(sp, misc.undelete, deps_check=True, stog_init=True)
+   add_opts(sp, _misc.undelete, deps_check=True, stog_init=True)
    sp.add_argument("image_ref", metavar="IMAGE_REF", help="image to recover")
 
    # Monkey patch problematic characters out of stdout and stderr.
-   clearly.monkey_write_streams()
+   _clearly.monkey_write_streams()
 
    # Parse it up!
    if (len(sys.argv) < 2):
        ap.print_help(file=sys.stderr)
-       clearly.exit(1)
+       _clearly.exit(1)
    cli = ap.parse_args()
 
    # Initialize.
-   clearly.init(cli)
+   _clearly.init(cli)
    if (dependencies_check[cli.func]):
-      clearly.dependencies_check()
+      _clearly.dependencies_check()
    if (storage_init[cli.func]):
-      clearly.storage.init()
-      build_cache.init(cli)
+      _clearly.storage.init()
+      _build_cache.init(cli)
 
    # Dispatch.
-   clearly.profile_start()
+   _clearly.profile_start()
    cli.func(cli)
-   clearly.warnings_dump()
-   clearly.exit(0)
+   _clearly.warnings_dump()
+   _clearly.exit(0)
 
 
 ## Functions ##
@@ -346,7 +346,7 @@ def breakpoint_inject(module_name, line_no):
                if (    isinstance(child, ast.stmt)
                    and hasattr(child, "lineno")
                    and child.lineno == line_no):
-                  clearly.WARNING(  "--break: injecting PDB breakpoint: %s:%d (%s)"
+                  _clearly.WARNING(  "--break: injecting PDB breakpoint: %s:%d (%s)"
                              % (module_name, line_no, type(child).__name__))
                   parent.body[i:i] = inject_tree.body
                   self.inject_ct += 1
@@ -355,7 +355,7 @@ def breakpoint_inject(module_name, line_no):
          return parent
 
    if (module_name not in sys.modules):
-      clearly.FATAL("--break: no module named %s" % module_name)
+      _clearly.FATAL("--break: no module named %s" % module_name)
    module = sys.modules[module_name]
    src_text = inspect.getsource(module)
    src_path = inspect.getsourcefile(module)
@@ -365,7 +365,7 @@ def breakpoint_inject(module_name, line_no):
    ijor = PDB_Injector()
    ijor.visit(module_tree)  # calls generic_visit() on all nodes
    if (ijor.inject_ct < 1):
-      clearly.FATAL("--break: no statement found at %s:%d" % (module_name, line_no))
+      _clearly.FATAL("--break: no statement found at %s:%d" % (module_name, line_no))
    assert (ijor.inject_ct == 1)
 
    ast.fix_missing_locations(module_tree)
@@ -408,20 +408,20 @@ if (__name__ == "__main__"):
             (opt, _, arg_eq) = opt.partition("=")
             if (opt == "--break"):
                if (not sys.stdin.isatty()):
-                  clearly.FATAL("--break: standard input must be a terminal")
+                  _clearly.FATAL("--break: standard input must be a terminal")
                if (arg_eq != ""):
                   arg = arg_eq
                try:
                   (module_name, line_no) = arg.split(":")
                   line_no = int(line_no)
                except ValueError:
-                  clearly.FATAL("--break: can't parse MODULE:LIST: %s" % arg)
+                  _clearly.FATAL("--break: can't parse MODULE:LIST: %s" % arg)
                breakpoint_inject(module_name, line_no)
       # If we injected into __main__, we already ran main() when re-executing
       # this module inside breakpoint_inject().
       if ("breakpoint_reexecuted" not in globals()):
          main()
-   except clearly.Fatal_Error as x:
-      clearly.warnings_dump()
-      clearly.ERROR(*x.args, **x.kwargs)
-      clearly.exit(1)
+   except _clearly.Fatal_Error as x:
+      _clearly.warnings_dump()
+      _clearly.ERROR(*x.args, **x.kwargs)
+      _clearly.exit(1)

@@ -214,7 +214,7 @@ experimental and has a couple quirks.
    :code:`FI_PROVIDER`. The path to search for shared providers can be specified
    with :code:`FI_PROVIDER_PATH`. These variables can be inherited from the host
    or explicitly set with the container's environment file
-   :code:`/clearly/environent` via :code:`--set-env`.
+   :code:`/clearly/environent` via :code:`--env`.
 
    To avoid issues and reduce complexity, the inferred injection destination
    for libfabric providers and replacement will always at the path in the image

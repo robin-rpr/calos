@@ -38,11 +38,11 @@ import stat
 import tempfile
 import textwrap
 
-import clearly as clearly
-import filesystem as filesystem
-import image as image
-import reference as reference
-import pull as pull
+import _clearly as _clearly
+import _filesystem as _filesystem
+import _image as _image
+import _reference as _reference
+import _pull as _pull
 
 
 ## Constants ##
@@ -148,7 +148,7 @@ dot_base = None
 git = None
 
 # Default path within image to metadata pickle.
-PICKLE_PATH = filesystem.Path("clearly/git.pickle")
+PICKLE_PATH = _filesystem.Path("clearly/git.pickle")
 
 
 ## Functions ##
@@ -163,39 +163,39 @@ def have_deps(required=True):
    global git
    git = shutil.which("git")
    if (git is None):
-      (clearly.FATAL if required else clearly.VERBOSE)("no git(1) found")
+      (_clearly.FATAL if required else _clearly.VERBOSE)("no git(1) found")
       return False
    # As of 2.34.1, we get: "git version 2.34.1\n".
-   return clearly.version_check([git, "--version"], GIT_MIN, required=required)
+   return _clearly.version_check([git, "--version"], GIT_MIN, required=required)
 
 def have_dot():
-   clearly.version_check(["git2dot.py", "--version"], GIT2DOT_MIN)
-   clearly.version_check(["dot", "-V"], DOT_MIN)
+   _clearly.version_check(["git2dot.py", "--version"], GIT2DOT_MIN)
+   _clearly.version_check(["dot", "-V"], DOT_MIN)
 
 def init(cli):
    # At this point --bucache is what the user wanted, either directly or via
    # --no-cache. If it’s None, chose the right default; otherwise, try what
    # the user asked for and fail if we can’t do it.
-   if (cli.bucache != clearly.Build_Mode.DISABLED):
+   if (cli.bucache != _clearly.Build_Mode.DISABLED):
       ok = have_deps(False)
       if (cli.bucache is None):
-         cli.bucache = clearly.Build_Mode.ENABLED if ok else clearly.Build_Mode.DISABLED
-         clearly.VERBOSE("using default build cache mode")
-      if (cli.bucache != clearly.Build_Mode.DISABLED and not ok):
-         clearly.FATAL("insufficient Git for build cache mode: %s"
+         cli.bucache = _clearly.Build_Mode.ENABLED if ok else _clearly.Build_Mode.DISABLED
+         _clearly.VERBOSE("using default build cache mode")
+      if (cli.bucache != _clearly.Build_Mode.DISABLED and not ok):
+         _clearly.FATAL("insufficient Git for build cache mode: %s"
                   % cli.bucache.value)
    # Set cache appropriately. We could also do this with a factory method, but
    # that seems overkill.
    global cache
-   if (cli.bucache == clearly.Build_Mode.ENABLED):
+   if (cli.bucache == _clearly.Build_Mode.ENABLED):
       cache = Enabled_Cache(cli.cache_large)
-   elif (cli.bucache == clearly.Build_Mode.REBUILD):
+   elif (cli.bucache == _clearly.Build_Mode.REBUILD):
       cache = Rebuild_Cache(cli.cache_large)
-   elif (cli.bucache == clearly.Build_Mode.DISABLED):
+   elif (cli.bucache == _clearly.Build_Mode.DISABLED):
       cache = Disabled_Cache(cli.cache_large)
    else:
       assert False, "unreachable"
-   clearly.VERBOSE("build cache mode: %s" % cache)
+   _clearly.VERBOSE("build cache mode: %s" % cache)
    # DOT output path
    try:
       global dot_base
@@ -281,12 +281,12 @@ class File_Metadata:
       self.hardlink_to = None
       self.large_name = None
       self.xattrs = dict()
-      if clearly.xattrs_save:
-         for xattr in clearly.ossafe("can’t list xattrs: %s" % self.path_abs,
+      if _clearly.xattrs_save:
+         for xattr in _clearly.ossafe("can’t list xattrs: %s" % self.path_abs,
                                 os.listxattr, self.path_abs,
                                 follow_symlinks=False):
             self.xattrs[xattr] = \
-               clearly.ossafe(("can’t get xattr: %s: %s"
+               _clearly.ossafe(("can’t get xattr: %s: %s"
                                        % (self.path_abs, xattr)),
                          os.getxattr, self.path_abs, xattr,
                          follow_symlinks=False)
@@ -350,7 +350,7 @@ class File_Metadata:
       # Setup.
       if (path is None):
          assert (hardlinks is None)
-         path = filesystem.Path()
+         path = _filesystem.Path()
          hardlinks = dict()
       fm = class_(image_root, path)
       if (fm.path == GIT_DIR):
@@ -369,18 +369,18 @@ class File_Metadata:
             or stat.S_ISFIFO(fm.mode)):
          # RPM databases get corrupted. Easy fix is delete them. See #1351.
          if (path.match("var/lib/rpm/__db.*")):
-            clearly.VERBOSE("deleting, see issue #1351: %s" % path)
+            _clearly.VERBOSE("deleting, see issue #1351: %s" % path)
             fm.path_abs.unlink()
             fm.dont_restore = True
             return fm
       elif (   stat.S_ISSOCK(fm.mode)):
-         clearly.WARNING("socket in image, deleting: %s" % path)
+         _clearly.WARNING("socket in image, deleting: %s" % path)
          fm.path_abs.unlink()
          fm.dont_restore = True
          return fm
       elif (   stat.S_ISCHR(fm.mode)
             or stat.S_ISBLK(fm.mode)):
-         clearly.FATAL("device files invalid in image: %s" % path)
+         _clearly.FATAL("device files invalid in image: %s" % path)
       elif (   stat.S_ISDIR(fm.mode)):
          entries = sorted(fm.path_abs.listdir())
          for i in entries:
@@ -388,18 +388,18 @@ class File_Metadata:
             fm.children[i] = class_.git_prepare(image_root, large_file_thresh,
                                                 path // i, hardlinks)
       else:
-         clearly.FATAL("unexpected file type in image: %x: %s"
+         _clearly.FATAL("unexpected file type in image: %x: %s"
                   % (stat.IFMT(fm.mode), path))
       # Deal with hard links (directories can’t be hard-linked).
       if (fm.st.st_nlink > 1 and not stat.S_ISDIR(fm.mode)):
          if ((fm.st.st_dev, fm.st.st_ino) in hardlinks):
-            clearly.DEBUG("hard link: deleting subsequent: %d %d %s"
+            _clearly.DEBUG("hard link: deleting subsequent: %d %d %s"
                      % (fm.st.st_dev, fm.st.st_ino, path))
             fm.hardlink_to = hardlinks[(fm.st.st_dev, fm.st.st_ino)]
             fm.path_abs.unlink()
             return fm
          else:
-            clearly.DEBUG("hard link: recording first: %d %d %s"
+            _clearly.DEBUG("hard link: recording first: %d %d %s"
                      % (fm.st.st_dev, fm.st.st_ino, path))
             hardlinks[(fm.st.st_dev, fm.st.st_ino)] = path
       # Deal with large files. This comparison is a little sloppy (no files
@@ -423,7 +423,7 @@ class File_Metadata:
          return fm
       # Rename if necessary.
       if (not path.git_compatible_p):
-         clearly.DEBUG("renaming: %s -> %s" % (path, path.git_escaped))
+         _clearly.DEBUG("renaming: %s -> %s" % (path, path.git_escaped))
          fm.path_abs.rename(fm.path_abs.git_escaped)
       # Done.
       return fm
@@ -433,7 +433,7 @@ class File_Metadata:
       if (data is None):
          data = (image_root // PICKLE_PATH).file_read_all(text=False)
       fm_tree = pickle.loads(data)
-      fm_tree.unpickle_fix(image_root, path=filesystem.Path("."))
+      fm_tree.unpickle_fix(image_root, path=_filesystem.Path("."))
       return fm_tree
 
    def __getstate__(self):
@@ -475,7 +475,7 @@ class File_Metadata:
       # can have them left over without being tagged don’t restore.
       if (self.dont_restore or self.path.match("var/lib/rpm/__db.*")):
          if (not quick and self.path != GIT_DIR):
-            clearly.INFO("ignoring un-restorable file: /%s" % self.path)
+            _clearly.INFO("ignoring un-restorable file: /%s" % self.path)
          return
       # Make sure I exist, and with the correct name.
       if (self.hardlink_to is not None):
@@ -483,16 +483,16 @@ class File_Metadata:
          # so the first (stored) link is always available by the time we get
          # to subsequent (unstored) links.
          target = self.image_root // self.hardlink_to
-         clearly.DEBUG("hard link: restoring: %s -> %s" % (self.path_abs, target))
-         clearly.ossafe("can’t hardlink: %s -> %s" % (self.path_abs,
+         _clearly.DEBUG("hard link: restoring: %s -> %s" % (self.path_abs, target))
+         _clearly.ossafe("can’t hardlink: %s -> %s" % (self.path_abs,
                                                        target),
                    os.link, target, self.path_abs, follow_symlinks=False)
       elif (self.large_name is not None):
          self.large_restore()
       elif (self.empty_dir_p):
-         clearly.ossafe("can’t mkdir: %s" % self.path, os.mkdir, self.path_abs)
+         _clearly.ossafe("can’t mkdir: %s" % self.path, os.mkdir, self.path_abs)
       elif (stat.S_ISFIFO(self.mode)):
-         clearly.ossafe("can’t make FIFO: %s" % self.path, os.mkfifo, self.path_abs)
+         _clearly.ossafe("can’t make FIFO: %s" % self.path, os.mkfifo, self.path_abs)
       elif (not self.path.git_compatible_p):
          self.path_abs.git_escaped.rename(self.path_abs)
       for (xattr, val) in self.xattrs.items():
@@ -507,9 +507,9 @@ class File_Metadata:
            or stat.S_ISDIR(self.mode)        # maybe just created or modified
            or stat.S_ISFIFO(self.mode))      # we just made the FIFO
           and not stat.S_ISLNK(self.mode)):  # can’t not follow symlinks
-         clearly.ossafe("can’t restore times: %s" % self.path_abs, os.utime,
+         _clearly.ossafe("can’t restore times: %s" % self.path_abs, os.utime,
                    self.path_abs, ns=(self.atime_ns, self.mtime_ns))
-         clearly.ossafe("can’t restore mode: %s" % self.path_abs, os.chmod,
+         _clearly.ossafe("can’t restore mode: %s" % self.path_abs, os.chmod,
                    self.path_abs, stat.S_IMODE(self.mode))
 
    def large_name_get(self):
@@ -520,7 +520,7 @@ class File_Metadata:
          h.update(bytes(repr(getattr(self, attr)).encode("UTF-8")))
       # The digest is unique, but add an encoded path to aid debugging.
       return (  h.hexdigest() + "%"
-              + str(self.path).replace("/", "%"))[:clearly.FILENAME_MAX_CHARS]
+              + str(self.path).replace("/", "%"))[:_clearly.FILENAME_MAX_CHARS]
 
    def large_names(self):
       "Return a set containing the large names of myself and all descendants."
@@ -536,21 +536,21 @@ class File_Metadata:
       """Move my file to large file storage, or delete it if it already
          exists, then return the appropriate large name."""
       large_name = self.large_name_get()
-      target = clearly.storage.build_large_path(large_name)
+      target = _clearly.storage.build_large_path(large_name)
       if (target.exists()):
          op = "found"
          self.path_abs.unlink()
       else:
          op = "moving to"
          self.path_abs.rename(target)
-      clearly.DEBUG("large file: %s: %s: %s" % (self.path, op, large_name))
+      _clearly.DEBUG("large file: %s: %s: %s" % (self.path, op, large_name))
       return large_name
 
    def large_restore(self):
       "Restore large file from OOB storage."
-      target = clearly.storage.build_large_path(self.large_name)
-      clearly.DEBUG("large file: %s: copying: %s" % (self.path_abs, self.large_name))
-      filesystem.copy(target, self.path_abs)
+      target = _clearly.storage.build_large_path(self.large_name)
+      _clearly.DEBUG("large file: %s: copying: %s" % (self.path_abs, self.large_name))
+      _filesystem.copy(target, self.path_abs)
 
    def pickle(self):
       (self.image_root // PICKLE_PATH) \
@@ -586,7 +586,7 @@ class File_Metadata:
          self.xattrs = dict()
       # old: hardlink_to: stored as string
       if (isinstance(self.hardlink_to, str)):
-         self.hardlink_to = filesystem.Path(self.hardlink_to)
+         self.hardlink_to = _filesystem.Path(self.hardlink_to)
       # old: children, name: just a list, and instances know their names
       if (isinstance(self.children, list)):
          children_new = dict()
@@ -640,11 +640,11 @@ class State_ID:
          characters are ignored."""
       text = re.sub(r"[^0-9A-Fa-f]", "", str(text))[-32:]
       if (len(text) < 32):
-         clearly.FATAL("state ID too short: %s" % text)
+         _clearly.FATAL("state ID too short: %s" % text)
       try:
          b = bytes.fromhex(text)
       except ValueError:
-         clearly.FATAL("state ID: malformed hex: %s" % text);
+         _clearly.FATAL("state ID: malformed hex: %s" % text);
       return class_(b)
 
    def __eq__(self, other):
@@ -683,7 +683,7 @@ class Enabled_Cache:
       elif (not {"HEAD", "objects", "refs"} <= ls):
          # Non-empty but not an existing cache.
          # See: https://git-scm.com/docs/gitrepository-layout
-         clearly.FATAL("storage broken: not a build cache: %s" % self.root)
+         _clearly.FATAL("storage broken: not a build cache: %s" % self.root)
       else:
          self.configure()         # updates config if needed
       self.worktrees_fix()
@@ -709,7 +709,7 @@ class Enabled_Cache:
 
    @property
    def root(self):
-      return clearly.storage.build_cache
+      return _clearly.storage.build_cache
 
    def adopt(self, img):
       self.worktree_adopt(img, "root")
@@ -722,11 +722,11 @@ class Enabled_Cache:
       return (sid, gh)
 
    def bootstrap(self):
-      clearly.INFO("initializing empty build cache")
+      _clearly.INFO("initializing empty build cache")
       self.bootstrap_ct += 1
       # Initialize bare repo. Don’t use wrapper because the build cache
       # doesn’t exist yet.
-      clearly.cmd_quiet([git, "init", "--bare", "-b", "root", self.root], env={})
+      _clearly.cmd_quiet([git, "init", "--bare", "-b", "root", self.root], env={})
       self.configure()
       # Create empty root commit. This is done in a strange way with no real
       # working directory at all, because (1) cloning the bucache doesn’t
@@ -743,7 +743,7 @@ class Enabled_Cache:
             self.git(["commit", "--allow-empty",
                                 "-m", "ROOT\n\n%s" % self.root_id], env=env)
       except OSError as x:
-         clearly.FATAL("can’t create or delete temporary directory: %s: %s"
+         _clearly.FATAL("can’t create or delete temporary directory: %s: %s"
                   % (x.filename, x.strerror))
 
    def branch_delete(self, branch):
@@ -778,11 +778,11 @@ class Enabled_Cache:
    def branch_nocheckout(self, src_ref, dest):
       """Create ready branch for Ref src_ref pointing to dest, which can
          be either an Ref or a Git commit reference (as a string)."""
-      if (isinstance(dest, reference.Reference)):
+      if (isinstance(dest, _reference.Reference)):
          dest = self.branch_name_ready(dest)
       # Some versions of Git won’t let us update a branch that’s already
       # checked out, so detach that worktree if it exists.
-      src_img = image.Image(src_ref)
+      src_img = _image.Image(src_ref)
       if (src_img.unpack_exist_p):
          self.git(["checkout", "--detach"], cwd=src_img.unpack_path)
       self.git(["branch", "-f", self.branch_name_ready(src_ref), dest])
@@ -812,14 +812,14 @@ class Enabled_Cache:
       #
       # WARNING: files must be empty for the first image commit.
       self.git_prepare(path, files)
-      t = clearly.Timer()
+      t = _clearly.Timer()
       if (len(files) == 0):
          git_files = ["-A"]
       else:
          git_files = list(files) + ["clearly/git.pickle"]
       self.git(["add"] + git_files, cwd=path)
       t.log("prepared index")
-      t = clearly.Timer()
+      t = _clearly.Timer()
       self.git(["commit", "-q", "--allow-empty",
                           "-m", "%s\n\n%s" % (msg, sid)], cwd=path)
       t.log("committed")
@@ -860,11 +860,11 @@ class Enabled_Cache:
                pass
             config.set(s, k, v)
       if (changed):
-         clearly.VERBOSE("writing updated Git config")
+         _clearly.VERBOSE("writing updated Git config")
          fp.seek(0)
          fp.truncate()
-         clearly.ossafe("can’t write Git config: %s" % path, config.write, fp)
-      clearly.close_(fp)
+         _clearly.ossafe("can’t write Git config: %s" % path, config.write, fp)
+      _clearly.close_(fp)
       # Ignore list entries:
       #
       #   1. Git has no default gitignore, but cancel any global gitignore rules
@@ -888,8 +888,8 @@ class Enabled_Cache:
       # to prevent deleted .gitignore files from creeping back in. (I couldn’t
       # figure out how to fix this for “filter-branch” either, which I didn’t
       # want to use anyway for the reasons above.)
-      if (clearly.storage.bucache_needs_ignore_upgrade.exists()):
-         clearly.INFO("upgrading build cache to v6+, some cached data may be lost",
+      if (_clearly.storage.bucache_needs_ignore_upgrade.exists()):
+         _clearly.INFO("upgrading build cache to v6+, some cached data may be lost",
                  "see release notes for v0.32")
          text = self.git(["fast-export", "--no-data", "--", "--all"],
                          encoding="UTF-8").stdout
@@ -918,7 +918,7 @@ class Enabled_Cache:
          #filesystem.Path("/tmp/new").file_write(text)
          self.git(["fast-import", "--force"], input=text)
          self.git(["reflog", "expire", "--all", "--expire=now"])
-         clearly.storage.bucache_needs_ignore_upgrade.unlink()
+         _clearly.storage.bucache_needs_ignore_upgrade.unlink()
 
    def find_commit(self, git_id):
       """Return (state ID, commit) of commit-ish git_id, or (None, None) if it
@@ -933,7 +933,7 @@ class Enabled_Cache:
       else:
          sid = None
          commit = None
-      clearly.VERBOSE("commit-ish %s: %s %s" % (git_id, commit, sid))
+      _clearly.VERBOSE("commit-ish %s: %s %s" % (git_id, commit, sid))
       return (sid, commit)
 
    def find_deleted_image(self, img):
@@ -951,7 +951,7 @@ class Enabled_Cache:
       commit = self.find_sid_(sid, branch)
       if (commit is None):
          commit = self.find_sid_(sid)
-      clearly.VERBOSE("commit for %s: %s" % (sid, commit))
+      _clearly.VERBOSE("commit for %s: %s" % (sid, commit))
       return commit
 
    def find_sid_(self, sid, branch=None):
@@ -973,33 +973,33 @@ class Enabled_Cache:
          return cp.stdout.split(maxsplit=1)[0]
 
    def garbageinate(self):
-      clearly.INFO("collecting cache garbage")
-      t = clearly.Timer()
+      _clearly.INFO("collecting cache garbage")
+      t = _clearly.Timer()
       # Expire the reflog with a recent time instead of now in case there is a
       # parallel Git operation in progress.
       self.git(["-c", "gc.bigPackthreshold=0", "-c", "gc.pruneExpire=now",
                 "-c", "gc.reflogExpire=now", "gc"], quiet=False)
       t.log("collected garbage")
-      t = clearly.Timer()
+      t = _clearly.Timer()
       digests = self.git(["rev-list", "--all", "--reflog",
                                       "--date-order"]).stdout.split("\n")
       assert (digests[-1] == "")  # trailing newline
       digests[-2:] = []           # discard root commit and trailing newline
-      p = clearly.Progress("enumerating large files", "commits", 1, len(digests))
+      p = _clearly.Progress("enumerating large files", "commits", 1, len(digests))
       larges_used = set()
       for d in digests:
          data = self.git(["show", "%s:%s" % (d, PICKLE_PATH)],
                          encoding=None).stdout
-         fm = File_Metadata.unpickle(filesystem.Path("/DUMMY"), data)
+         fm = File_Metadata.unpickle(_filesystem.Path("/DUMMY"), data)
          larges_used |= fm.large_names()
          p.update(1)
       p.done()
       t.log("enumerated large files")
-      t = clearly.Timer()
-      clearly.INFO("found %d large files used; deleting others" % len(larges_used))
-      for l in clearly.storage.build_large.listdir():
+      t = _clearly.Timer()
+      _clearly.INFO("found %d large files used; deleting others" % len(larges_used))
+      for l in _clearly.storage.build_large.listdir():
          if (l not in larges_used):
-            (clearly.storage.build_large // l).unlink()
+            (_clearly.storage.build_large // l).unlink()
       t.log("deleted unused large files")
 
    def git(self, argv, cwd=None, quiet=True, *args, **kwargs):
@@ -1016,7 +1016,7 @@ class Enabled_Cache:
             kwargs["env"] = dict()
          kwargs["env"].setdefault("GIT_DIR", str(cwd // GIT_DIR))
          kwargs["env"].setdefault("GIT_WORK_TREE", str(cwd))
-      return (clearly.cmd_stdout if quiet else clearly.cmd)([git] + argv, cwd=cwd,
+      return (_clearly.cmd_stdout if quiet else _clearly.cmd)([git] + argv, cwd=cwd,
                                                   *args, **kwargs)
 
    def git_prepare(self, unpack_path, files, write=True):
@@ -1024,7 +1024,7 @@ class Enabled_Cache:
          File_Metadata.git_prepare() for lots of details). If files is None,
          regenerate self.file_metadata by walking the directory tree.
          Otherwise, update metadata only for files in files."""
-      t = clearly.Timer()
+      t = _clearly.Timer()
       if (len(files) == 0):
          self.file_metadata = File_Metadata.git_prepare(unpack_path,
                                                         self.large_threshold)
@@ -1044,7 +1044,7 @@ class Enabled_Cache:
          that Git breaks (e.g., file permissions). Otherwise (i.e., not
          quick), read the File_Metadata tree the pickled file and do a full
          restore. This method will dirty the Git working directory."""
-      t = clearly.Timer()
+      t = _clearly.Timer()
       if (not quick):
          self.file_metadata = File_Metadata.unpickle(unpack_path)
       if (len(files) == 0):
@@ -1057,19 +1057,19 @@ class Enabled_Cache:
    def pull_eager(self, img, src_ref, last_layer=None):
       """Pull image, always checking if the repository version is newer. This
          is the pull operation invoked from the command line."""
-      pullet = pull.Image_Puller(img, src_ref)
+      pullet = _pull.Image_Puller(img, src_ref)
       pullet.download()  # will use dlcache if appropriate
       dl_sid = self.sid_from_parent(self.root_id, pullet.sid_input)
       dl_git_hash = self.find_sid(dl_sid, img.ref.for_path)
       if (dl_git_hash is not None):
          # Downloaded image is in cache, check it out.
-         clearly.INFO("pulled image: found in build cache")
+         _clearly.INFO("pulled image: found in build cache")
          # Remove tag for previously deleted branch, if it exists.
          self.tag_delete(img.ref.for_path, fail_ok=True)
          self.checkout_ready(img, dl_git_hash)
       else:
          # Unpack and commit downloaded image. This also creates the worktree.
-         clearly.INFO("pulled image: adding to build cache")
+         _clearly.INFO("pulled image: adding to build cache")
          self.pull_lazy(img, src_ref, last_layer, pullet)
 
    def pull_lazy(self, img, src_ref, last_layer=None, pullet=None):
@@ -1080,7 +1080,7 @@ class Enabled_Cache:
          Image_Puller.download() has already been called)."""
       if (pullet is None):
          # a young hen, especially one less than one year old
-         pullet = pull.Image_Puller(img, src_ref)
+         pullet = _pull.Image_Puller(img, src_ref)
          pullet.download()
       pullet.unpack(last_layer)
       sid = self.sid_from_parent(self.root_id, pullet.sid_input)
@@ -1105,45 +1105,45 @@ class Enabled_Cache:
 
    def reset(self):
       if (self.bootstrap_ct >= 1):
-         clearly.WARNING("not resetting brand-new cache")
+         _clearly.WARNING("not resetting brand-new cache")
       else:
          # Kill any Git garbage collection that may be running, to avoid race
          # conditions while deleting the cache (see issue #1406). Open
          # directly to avoid a TOCTOU race.
-         pid_path = clearly.storage.build_cache // "gc.pid"
+         pid_path = _clearly.storage.build_cache // "gc.pid"
          try:
             fp = open(pid_path, "rt", encoding="UTF-8")
-            text = clearly.ossafe("can’t read: %s" % pid_path, fp.read)
+            text = _clearly.ossafe("can’t read: %s" % pid_path, fp.read)
             pid = int(text.split()[0])
-            clearly.INFO("stopping build cache garbage collection, PID %d" % pid)
-            clearly.kill_blocking(pid)
-            clearly.close_(fp)
+            _clearly.INFO("stopping build cache garbage collection, PID %d" % pid)
+            _clearly.kill_blocking(pid)
+            _clearly.close_(fp)
          except FileNotFoundError:
             # no PID file, therefore no GC running
             pass
          except OSError as x:
-            clearly.FATAL("can’t open GC PID file: %s: %s" % (pid_path, x.strerror))
+            _clearly.FATAL("can’t open GC PID file: %s: %s" % (pid_path, x.strerror))
          # Delete images that are worktrees referring back to the build cache.
-         clearly.INFO("deleting build cache")
-         for d in clearly.storage.unpack_base.listdir():
-            dotgit = clearly.storage.unpack_base // d // GIT_DIR
+         _clearly.INFO("deleting build cache")
+         for d in _clearly.storage.unpack_base.listdir():
+            dotgit = _clearly.storage.unpack_base // d // GIT_DIR
             if (os.path.exists(dotgit)):
-               clearly.VERBOSE("deleting cached image: %s" % d)
-               (clearly.storage.unpack_base // d).rmtree()
+               _clearly.VERBOSE("deleting cached image: %s" % d)
+               (_clearly.storage.unpack_base // d).rmtree()
          # Delete build cache.
          self.root.rmtree()
-         clearly.storage.build_large.rmtree()
+         _clearly.storage.build_large.rmtree()
          # Create new.
          self.root.mkdir()
-         clearly.storage.build_large.mkdir()
+         _clearly.storage.build_large.mkdir()
          self.bootstrap()
 
    def rollback(self, path):
       """Restore path to the last committed state, including both tracked and
          untracked files."""
-      clearly.INFO("something went wrong, rolling back ...")
+      _clearly.INFO("something went wrong, rolling back ...")
       self.git_prepare(path, [], write=False)
-      t = clearly.Timer()
+      t = _clearly.Timer()
       self.git(["reset", "--hard", "HEAD"], cwd=path, quiet=False)
       self.git(["clean", "-fdq"], cwd=path, quiet=False)
       t.log("reverted worktree")
@@ -1172,20 +1172,20 @@ class Enabled_Cache:
       # branches (FIXME: how to count unnamed branch tips?)
       image_ct = self.git(["branch", "--list"]).stdout.count("\n")
       # file count and size on disk
-      (file_ct, byte_ct) = filesystem.Path(self.root).du()
+      (file_ct, byte_ct) = _filesystem.Path(self.root).du()
       commit_ct = int(self.git(["rev-list", "--all", "--reflog",
                                             "--count"]).stdout)
-      (file_ct, file_suffix) = clearly.si_decimal(file_ct)
-      (byte_ct, byte_suffix) = clearly.si_binary_bytes(byte_ct)
+      (file_ct, file_suffix) = _clearly.si_decimal(file_ct)
+      (byte_ct, byte_suffix) = _clearly.si_binary_bytes(byte_ct)
       # print it
       print("named images:   %5d" % image_ct)
       print("state IDs:      %5d" % len(states))
-      print("large files:    %5d" % len(clearly.storage.build_large.listdir()))
+      print("large files:    %5d" % len(_clearly.storage.build_large.listdir()))
       print("commits:        %5d" % commit_ct)
       print("internal files: %5d %s" % (file_ct, file_suffix))
       print("disk used:      %5d %s" % (byte_ct, byte_suffix))
       # some information directly from Git
-      if (clearly.log_level >= clearly.Log_Level.VERBOSE):
+      if (_clearly.log_level >= _clearly.Log_Level.VERBOSE):
          out = self.git(["count-objects", "-vH"]).stdout
          print("Git statistics:")
          print(textwrap.indent(out, "  "), end="")
@@ -1199,13 +1199,13 @@ class Enabled_Cache:
 
    def tree_dot(self):
       have_dot()
-      path_gv = filesystem.Path(dot_base + ".gv")
-      path_pdf = filesystem.Path(dot_base + ".pdf")
+      path_gv = _filesystem.Path(dot_base + ".gv")
+      path_pdf = _filesystem.Path(dot_base + ".pdf")
       if (not path_gv.is_absolute()):
          path_gv = os.getcwd() // path_gv
          path_pdf = os.getcwd() // path_pdf
-      clearly.VERBOSE("writing %s" % path_gv)
-      clearly.cmd_quiet(
+      _clearly.VERBOSE("writing %s" % path_gv)
+      _clearly.cmd_quiet(
 ["git2dot.py",
  "--range", "--all --reflog --topo-order",
  "--font-name", "Nimbus Mono",
@@ -1217,14 +1217,14 @@ class Enabled_Cache:
  "--mnode", '[label="{label}", shape=box, color=black, fillcolor=white]',
  "-D", "@SID@", "([0-9A-F]{4}):",
  "-l", "@SID@|%s", str(path_gv)], cwd=self.root)
-      clearly.VERBOSE("writing %s" % path_pdf)
-      clearly.cmd_quiet(["dot", "-Tpdf", "-o%s" % path_pdf, str(path_gv)])
+      _clearly.VERBOSE("writing %s" % path_pdf)
+      _clearly.cmd_quiet(["dot", "-Tpdf", "-o%s" % path_pdf, str(path_gv)])
 
    def tree_print(self):
       # Note the percent codes are interpreted by Git.
       # See: https://git-scm.com/docs/git-log#_pretty_formats
       args = ["log", "--graph", "--all", "--reflog", "--topo-order"]
-      if (clearly.log_level == clearly.Log_Level.INFO):
+      if (_clearly.log_level == _clearly.Log_Level.INFO):
          # ref names, subject (instruction), branch heads.
          fmt = "%C(auto)%d %Creset%<|(77,trunc)%s"
          args.append("--decorate-refs=refs/heads")
@@ -1260,17 +1260,17 @@ class Enabled_Cache:
       if (img.unpack_cache_linked):
          self.git_prepare(img.unpack_path, [], write=False)  # clean worktree
          if (self.commit_hash_p(base) and base == self.worktree_head(img)):
-            clearly.VERBOSE("already checked out: %s %s" % (img.unpack_path, base))
+            _clearly.VERBOSE("already checked out: %s %s" % (img.unpack_path, base))
          else:
-            clearly.INFO("updating existing image ...")
-            t = clearly.Timer()
+            _clearly.INFO("updating existing image ...")
+            t = _clearly.Timer()
             self.git(["checkout", "-B", self.branch_name_unready(img.ref),
                       base], cwd=img.unpack_path)
             t.log("adjusted worktree")
       else:
-         clearly.INFO("copying image from cache ...")
+         _clearly.INFO("copying image from cache ...")
          img.unpack_clear()
-         t = clearly.Timer()
+         t = _clearly.Timer()
          self.git(["worktree", "add", "-f", "-B",
                    self.branch_name_unready(img.ref),
                    img.unpack_path, base])
@@ -1287,16 +1287,16 @@ class Enabled_Cache:
          *cannot* use an existing directory but shutil.copytree *must* create
          its own directory (until Python 3.8, and we have to support 3.6). So
          we use some renaming."""
-      if (os.path.isdir(clearly.storage.image_tmp)):
-         clearly.WARNING("temporary image still exists, deleting",
+      if (os.path.isdir(_clearly.storage.image_tmp)):
+         _clearly.WARNING("temporary image still exists, deleting",
                     "maybe a previous command crashed?")
-         clearly.storage.image_tmp.rmtree()
-      img.unpack_path.rename(clearly.storage.image_tmp)
+         _clearly.storage.image_tmp.rmtree()
+      img.unpack_path.rename(_clearly.storage.image_tmp)
       self.worktree_add(img, base)
-      (img.unpack_path // GIT_DIR).rename(   clearly.storage.image_tmp
+      (img.unpack_path // GIT_DIR).rename(   _clearly.storage.image_tmp
                                                // GIT_DIR)
       img.unpack_path.rmtree()
-      clearly.storage.image_tmp.rename(img.unpack_path)
+      _clearly.storage.image_tmp.rename(img.unpack_path)
 
    def worktree_head(self, img):
       cp = self.git(["rev-parse", "--short", "HEAD"],
@@ -1325,49 +1325,49 @@ class Enabled_Cache:
 
          [1]: https://git-scm.com/docs/git-worktree
          [2]: https://git-scm.com/docs/gitrepository-layout"""
-      t = clearly.Timer()
-      wt_actuals = { filesystem.Path(i).parts[-(len(GIT_DIR.split("/"))+1)]
-                     for i in glob.iglob(str(   clearly.storage.unpack_base
+      t = _clearly.Timer()
+      wt_actuals = { _filesystem.Path(i).parts[-(len(GIT_DIR.split("/"))+1)]
+                     for i in glob.iglob(str(   _clearly.storage.unpack_base
                                              // "*" // GIT_DIR)) }
-      wt_gits =    { filesystem.Path(i).name
+      wt_gits =    { _filesystem.Path(i).name
                      for i in glob.iglob("%s/worktrees/*" % self.root) }
       # Unlink images that think they are in Git but are not. This should not
       # happen, but it does, and I wasn’t able to figure out how it happened.
       wt_gits_orphaned = wt_actuals - wt_gits
       for img_dir in wt_gits_orphaned:
-         link = clearly.storage.unpack_base // img_dir // GIT_DIR
+         link = _clearly.storage.unpack_base // img_dir // GIT_DIR
          # Transient unlinks by another process are not a problem.
          if link.exists():
-            clearly.WARNING("image erroneously marked cached, fixing: %s" % link,
-                     clearly.BUG_REPORT_PLZ)
+            _clearly.WARNING("image erroneously marked cached, fixing: %s" % link,
+                     _clearly.BUG_REPORT_PLZ)
             link.unlink()
       wt_actuals -= wt_gits_orphaned
       # Delete worktree data for images that no longer exist or aren’t
       # Git-enabled any more.
       wt_gits_deleted = wt_gits - wt_actuals
       for wt in wt_gits_deleted:
-         (clearly.storage.build_cache // "worktrees" // wt).rmtree()
-      clearly.VERBOSE("deleted %d stale worktree metadatas" % len(wt_gits_deleted))
+         (_clearly.storage.build_cache // "worktrees" // wt).rmtree()
+      _clearly.VERBOSE("deleted %d stale worktree metadatas" % len(wt_gits_deleted))
       wt_gits -= wt_gits_deleted
       # Validate that the pointers are in sync now.
       if (wt_gits != wt_actuals):
-         clearly.ERROR("found images -> cache links: %s" % " ".join(wt_actuals))
-         clearly.ERROR("found cache -> images links: %s" % " ".join(wt_gits))
-         clearly.FATAL("build cache is desynchronized, cannot proceed",
-                  clearly.BUG_REPORT_PLZ)
+         _clearly.ERROR("found images -> cache links: %s" % " ".join(wt_actuals))
+         _clearly.ERROR("found cache -> images links: %s" % " ".join(wt_gits))
+         _clearly.FATAL("build cache is desynchronized, cannot proceed",
+                  _clearly.BUG_REPORT_PLZ)
       # If storage directory moved, repair all the paths.
       if (len(wt_gits) > 0):
-         wt_dir_stored = filesystem.Path((   clearly.storage.build_cache
+         wt_dir_stored = _filesystem.Path((   _clearly.storage.build_cache
                                   // "worktrees"
                                   // next(iter(wt_gits))
                                   // "gitdir").file_read_all())
-         if (not wt_dir_stored.is_relative_to(clearly.storage.root)):
+         if (not wt_dir_stored.is_relative_to(_clearly.storage.root)):
             for wt in wt_actuals:
-               wt_repo_dir = clearly.storage.build_cache // "worktrees" // wt
-               wt_img_git = clearly.storage.unpack_base // wt // GIT_DIR
+               wt_repo_dir = _clearly.storage.build_cache // "worktrees" // wt
+               wt_img_git = _clearly.storage.unpack_base // wt // GIT_DIR
                wt_img_git.file_write("gitdir: %s\n" % str(wt_repo_dir))
                (wt_repo_dir // "gitdir").file_write(str(wt_img_git) + "\n")
-            clearly.VERBOSE("fixed %d worktrees" % len(wt_actuals))
+            _clearly.VERBOSE("fixed %d worktrees" % len(wt_actuals))
       t.log("re-linked worktrees")
 
 
@@ -1392,7 +1392,7 @@ class Disabled_Cache(Rebuild_Cache):
       pass
 
    def checkout(self, img, git_hash, base_image):
-      clearly.INFO("copying image ...")
+      _clearly.INFO("copying image ...")
       img.unpack_clear()
       img.copy_unpacked(base_image)
 
@@ -1414,16 +1414,16 @@ class Disabled_Cache(Rebuild_Cache):
       #
       # Enabled_Cache takes care of this in git_prepare(), and
       # --force=fakeroot bypasses it in some other way I haven’t looked into.
-      for (dir_, subdirs, files) in clearly.walk(path):
+      for (dir_, subdirs, files) in _clearly.walk(path):
          for i in itertools.chain(subdirs, files):
             (dir_ // i).chmod_min()
 
    def pull_lazy(self, img, src_ref, last_layer=None, pullet=None):
       if (pullet is None and os.path.exists(img.unpack_path)):
-         clearly.VERBOSE("base image already exists, skipping pull")
+         _clearly.VERBOSE("base image already exists, skipping pull")
       else:
          if (pullet is None):
-            pullet = pull.Image_Puller(img, src_ref)
+            pullet = _pull.Image_Puller(img, src_ref)
             pullet.download()
          img.unpack_clear()
          pullet.unpack(last_layer)

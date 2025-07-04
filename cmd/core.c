@@ -563,7 +563,7 @@ void enter_udss(struct container *c)
    // Bind-mount default files and directories.
    bind_mounts(BINDS_DEFAULT, c->newroot, MS_RDONLY, NULL);
    // /etc/passwd and /etc/group.
-   if (!c->private_passwd)
+   if (c->public_passwd)
       setup_passwd(c);
    // Container /tmp.
    if (c->private_tmp) {
@@ -1037,7 +1037,7 @@ void setup_passwd(const struct container *c) {
 
    // /etc/passwd
    T_ (path = cat(host_tmp, "/run_passwd.XXXXXX"));
-   T_ (-1 != (fd = mkstemp(path)));  // mkstemp(3) writes path
+   T_ (-1 != (fd = mkstemp(path))); // mkstemp(3) writes path
    if (c->container_uid != 0)
       T_ (1 <= dprintf(fd, "root:x:0:0:root:/root:/bin/sh\n"));
    if (c->container_uid != 65534)

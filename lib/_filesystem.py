@@ -12,7 +12,7 @@ import stat
 import struct
 import tarfile
 
-import clearly as clearly
+import _clearly as _clearly
 
 
 ## Constants ##
@@ -165,7 +165,7 @@ class Path(os.PathLike):
          elif (shutil.which("gzip") is not None):
             cls.gzip = "gzip"
          else:
-            clearly.FATAL("can’t find path to gzip or pigz")
+            _clearly.FATAL("can’t find path to gzip or pigz")
 
    def _tidy(self):
       "Repair self.path assumptions (see attribute docs above)."
@@ -335,7 +335,7 @@ class Path(os.PathLike):
       except FileNotFoundError:
          return False
       except OSError as x:
-         clearly.FATAL("can’t stat: %s: %s" % (self, x.strerror))
+         _clearly.FATAL("can’t stat: %s: %s" % (self, x.strerror))
       return True
 
    def glob(self, pattern):
@@ -346,7 +346,7 @@ class Path(os.PathLike):
       return ret
 
    def hardlink_to(self, target):
-      clearly.ossafe("can’t hard link: %s -> %s", os.link, target, self)
+      _clearly.ossafe("can’t hard link: %s -> %s", os.link, target, self)
 
    def is_absolute(self):
       return (self.path[0] == "/")
@@ -398,18 +398,18 @@ class Path(os.PathLike):
       return fnmatch.fnmatchcase(self.__fspath__(), pattern)
 
    def mkdir(self):
-      clearly.TRACE("ensuring directory: %s" % self)
+      _clearly.TRACE("ensuring directory: %s" % self)
       if (self.is_dir()):
          return  # target exists and is a directory, do nothing
       try:
          os.mkdir(self)
       except FileExistsError as x:
-         clearly.FATAL("can’t mkdir: exists and not a directory: %s" % x.filename)
+         _clearly.FATAL("can’t mkdir: exists and not a directory: %s" % x.filename)
       except OSError as x:
-         clearly.FATAL("can’t mkdir: %s: %s" % (x.filename, x.strerror))
+         _clearly.FATAL("can’t mkdir: %s: %s" % (x.filename, x.strerror))
 
    def open(self, mode, *args, **kwargs):
-      return clearly.ossafe("can’t open for %s: %s" % (mode, self),
+      return _clearly.ossafe("can’t open for %s: %s" % (mode, self),
                        open, self, mode, *args, **kwargs)
 
    def relative_to(self, other):
@@ -451,7 +451,7 @@ class Path(os.PathLike):
 
    def rename(self, path_new):
       path_new = self.__class__(path_new)
-      clearly.ossafe("can’t rename: %s -> %s" % (self, path_new),
+      _clearly.ossafe("can’t rename: %s -> %s" % (self, path_new),
                 os.rename, self, path_new)
       return path_new
 
@@ -466,7 +466,7 @@ class Path(os.PathLike):
       return self.__class__(os.path.realpath(self))
 
    def rmdir(self):
-      clearly.ossafe("can’t rmdir: %s" % self, os.rmdir, self)
+      _clearly.ossafe("can’t rmdir: %s" % self, os.rmdir, self)
 
    def stat(self, links):
       """e.g.:
@@ -482,7 +482,7 @@ class Path(os.PathLike):
            True
            >>> stat.S_ISLNK(st.st_mode)
            False"""
-      return clearly.ossafe("can’t stat: %s" % self,
+      return _clearly.ossafe("can’t stat: %s" % self,
                        os.stat, self, follow_symlinks=links)
 
    def symlink_to(self, target, clobber=False):
@@ -492,18 +492,18 @@ class Path(os.PathLike):
          os.symlink(target, self)
       except FileExistsError:
          if (not self.is_symlink()):
-            clearly.FATAL("can’t symlink: source exists and isn’t a symlink: %s"
+            _clearly.FATAL("can’t symlink: source exists and isn’t a symlink: %s"
                      % self)
          if (self.readlink() != target):
-            clearly.FATAL("can’t symlink: %s exists; want target %s but existing is %s"
+            _clearly.FATAL("can’t symlink: %s exists; want target %s but existing is %s"
                      % (self, target, self.readlink()))
       except OSError as x:
-         clearly.FATAL("can’t symlink: %s -> %s: %s" % (self, target, x.strerror))
+         _clearly.FATAL("can’t symlink: %s -> %s: %s" % (self, target, x.strerror))
 
    def unlink(self, missing_ok=False):
       if (missing_ok and not self.exists()):
          return
-      clearly.ossafe("can’t unlink: %s" % self, os.unlink, self)
+      _clearly.ossafe("can’t unlink: %s" % self, os.unlink, self)
 
    def with_name(self, name_new):
       """e.g.:
@@ -663,8 +663,8 @@ class Path(os.PathLike):
 
    def chdir(self):
       "Change CWD to path and return previous CWD. Exit on error."
-      old = clearly.ossafe("can’t getcwd(2)", os.getcwd)
-      clearly.ossafe("can’t chdir(2): %s" % self, os.chdir, self)
+      old = _clearly.ossafe("can’t getcwd(2)", os.getcwd)
+      _clearly.ossafe("can’t chdir(2): %s" % self, os.chdir, self)
       return self.__class__(old)
 
    def chmod_min(self, st_old=None):
@@ -686,9 +686,9 @@ class Path(os.PathLike):
       perms_old = stat.S_IMODE(st.st_mode)
       perms_new = perms_old | (0o700 if stat.S_ISDIR(st.st_mode) else 0o400)
       if (perms_new != perms_old):
-         clearly.VERBOSE("fixing permissions: %s: %03o -> %03o"
+         _clearly.VERBOSE("fixing permissions: %s: %03o -> %03o"
                  % (self, perms_old, perms_new))
-         clearly.ossafe("can’t chmod: %s" % self, os.chmod, self, perms_new)
+         _clearly.ossafe("can’t chmod: %s" % self, os.chmod, self, perms_new)
       if (st_old):
          # stat_result is a deeply weird object (a “structsec” rather than a
          # named tuple), including multiple values for the same field when
@@ -747,25 +747,25 @@ class Path(os.PathLike):
             while (remaining > 0):
                copied = os.copy_file_range(src_fd, dst_fd, remaining)
                if (copied == 0):
-                  clearly.FATAL("zero bytes copied: %s -> %s" % (self, dst))
+                  _clearly.FATAL("zero bytes copied: %s -> %s" % (self, dst))
                remaining -= copied
             os.close(src_fd)
             os.close(dst_fd)
          except OSError as x:
-            clearly.FATAL("can’t copy data (fast): %s -> %s: %s"
+            _clearly.FATAL("can’t copy data (fast): %s -> %s: %s"
                      % (self, dst, x.strerror))
       else:
          # Slow path.
          try:
             shutil.copyfile(self, dst, follow_symlinks=False)
          except OSError as x:
-            clearly.FATAL("can’t copy data (slow): %s -> %s: %s"
+            _clearly.FATAL("can’t copy data (slow): %s -> %s: %s"
                      % (self, dst, x.strerror))
       try:
          # Metadata.
          shutil.copystat(self, dst, follow_symlinks=False)
       except OSError as x:
-         clearly.FATAL("can’t copy metadata: %s -> %s" % (self, dst, x.strerror))
+         _clearly.FATAL("can’t copy metadata: %s -> %s" % (self, dst, x.strerror))
 
    def copytree(self, *args, **kwargs):
       "Wrapper for shutil.copytree() that exits on the first error."
@@ -795,7 +795,7 @@ class Path(os.PathLike):
          any shared data extents."""
       file_ct = 1
       byte_ct = self.disk_bytes()
-      for (dir_, subdirs, files) in clearly.walk(self):
+      for (dir_, subdirs, files) in _clearly.walk(self):
          file_ct += len(subdirs) + len(files)
          byte_ct += sum((self.__class__(dir_) // i).disk_bytes()
                         for i in subdirs + files)
@@ -806,7 +806,7 @@ class Path(os.PathLike):
          symlink), do nothing; otherwise, create it as an empty regular file."""
       if (not os.path.lexists(self)):
          fp = self.open("w")
-         clearly.close_(fp)
+         _clearly.close_(fp)
 
    def file_gzip(self, args=[]):
       """Run pigz(1) if it’s available, otherwise gzip(1), on file at path and
@@ -823,14 +823,14 @@ class Path(os.PathLike):
       if (path_c.exists()):
          path_c.unlink()
       # Compress.
-      clearly.cmd([self.gzip] + args + [str(self)])
+      _clearly.cmd([self.gzip] + args + [str(self)])
       # Zero out GZIP header timestamp, bytes 4–7 zero-indexed inclusive [1],
       # to ensure layer hash is consistent. See issue #1080.
       # [1]: https://datatracker.ietf.org/doc/html/rfc1952 §2.3.1
       fp = path_c.open("r+b")
-      clearly.ossafe("can’t seek: %s" % fp, fp.seek, 4)
-      clearly.ossafe("can’t write: %s" % fp, fp.write, b'\x00\x00\x00\x00')
-      clearly.close_(fp)
+      _clearly.ossafe("can’t seek: %s" % fp, fp.seek, 4)
+      _clearly.ossafe("can’t write: %s" % fp, fp.write, b'\x00\x00\x00\x00')
+      _clearly.close_(fp)
       return path_c
 
    def file_hash(self):
@@ -843,11 +843,11 @@ class Path(os.PathLike):
       fp = self.open("rb")
       h = hashlib.sha256()
       while True:
-         data = clearly.ossafe("can’t read: %s" % self, fp.read, 2**18)
+         data = _clearly.ossafe("can’t read: %s" % self, fp.read, 2**18)
          if (len(data) == 0):  # EOF
             break
          h.update(data)
-      clearly.close_(fp)
+      _clearly.close_(fp)
       return h.hexdigest()
 
    def file_read_all(self, text=True):
@@ -865,8 +865,8 @@ class Path(os.PathLike):
          mode = "rb"
          encoding = None
       fp = self.open(mode, encoding=encoding)
-      data = clearly.ossafe("can’t read: %s" % self, fp.read)
-      clearly.close_(fp)
+      data = _clearly.ossafe("can’t read: %s" % self, fp.read)
+      _clearly.close_(fp)
       return data
 
    def file_size(self, follow_symlinks=False):
@@ -884,8 +884,8 @@ class Path(os.PathLike):
       if (isinstance(content, str)):
          content = content.encode("UTF-8")
       fp = self.open("wb")
-      clearly.ossafe("can’t write: %s" % self, fp.write, content)
-      clearly.close_(fp)
+      _clearly.ossafe("can’t write: %s" % self, fp.write, content)
+      _clearly.close_(fp)
 
    def grep_p(self, rx):
       """Return True if file at path contains a line matching regular
@@ -900,7 +900,7 @@ class Path(os.PathLike):
                   return True
          return False
       except OSError as x:
-         clearly.FATAL("can’t read %s: %s" % (self, x.strerror))
+         _clearly.FATAL("can’t read %s: %s" % (self, x.strerror))
 
    def iterdir(self):
       """e.g.:
@@ -909,18 +909,18 @@ class Path(os.PathLike):
            >>> dir = Path("/proc/self/task")
            >>> set(dir.iterdir()) == { dir // str(os.getpid()) }
            True"""
-      for entry in clearly.ossafe("can’t scan: %s" % self, os.scandir, self):
+      for entry in _clearly.ossafe("can’t scan: %s" % self, os.scandir, self):
          yield self.__class__(entry.path)
 
    def json_from_file(self, msg):
-      clearly.DEBUG("loading JSON: %s: %s" % (msg, self))
+      _clearly.DEBUG("loading JSON: %s: %s" % (msg, self))
       text = self.file_read_all()
-      clearly.TRACE("text:\n%s" % text)
+      _clearly.TRACE("text:\n%s" % text)
       try:
          data = json.loads(text)
-         clearly.DEBUG("result:\n%s" % pprint.pformat(data, indent=2))
+         _clearly.DEBUG("result:\n%s" % pprint.pformat(data, indent=2))
       except json.JSONDecodeError as x:
-         clearly.FATAL("can’t parse JSON: %s:%d: %s" % (self, x.lineno, x.msg))
+         _clearly.FATAL("can’t parse JSON: %s:%d: %s" % (self, x.lineno, x.msg))
       return data
 
    def listdir(self):
@@ -932,16 +932,16 @@ class Path(os.PathLike):
            >>> import os
            >>> Path("/proc/self/task").listdir() == { str(os.getpid()) }
            True"""
-      return set(clearly.ossafe("can’t list: %s" % self, os.listdir, self))
+      return set(_clearly.ossafe("can’t list: %s" % self, os.listdir, self))
 
    def mkdirs(self, exist_ok=True):
       "Like “mkdir -p”."
-      clearly.TRACE("ensuring directory and parents: %s" % self)
+      _clearly.TRACE("ensuring directory and parents: %s" % self)
       try:
          os.makedirs(self, exist_ok=exist_ok)
       except OSError as x:
          # x.filename might be an intermediate directory
-         clearly.FATAL("can’t mkdir: %s: %s: %s" % (self, x.filename, x.strerror))
+         _clearly.FATAL("can’t mkdir: %s: %s: %s" % (self, x.filename, x.strerror))
 
    def mountpoint(self):
       """Return the mount point of the filesystem containing, or, if symlink,
@@ -957,7 +957,7 @@ class Path(os.PathLike):
       try:
          pc = self.resolve()
       except RuntimeError:
-         clearly.FATAL("not found, can’t resolve: %s" % self)
+         _clearly.FATAL("not found, can’t resolve: %s" % self)
       dev_child = pc.stat(False).st_dev
       while (not pc.root_p):
          dev_parent = pc.parent.stat(False).st_dev
@@ -969,27 +969,27 @@ class Path(os.PathLike):
       return self.__class__("/")
 
    def rmtree(self):
-      clearly.TRACE("deleting directory: %s" % self)
+      _clearly.TRACE("deleting directory: %s" % self)
       try:
          shutil.rmtree(self)
       except OSError as x:
-         clearly.FATAL("can’t recursively delete directory %s: %s: %s"
+         _clearly.FATAL("can’t recursively delete directory %s: %s: %s"
                   % (self, x.filename, x.strerror))
 
    def setxattr(self, name, value):
-      if (clearly.xattrs_save):
+      if (_clearly.xattrs_save):
          try:
             os.setxattr(self, name, value, follow_symlinks=False)
          except OSError as x:
             if (x.errno == errno.ENOTSUP):  # no OSError subclass
-               clearly.WARNING("xattrs not supported on %s, setting --no-xattr"
+               _clearly.WARNING("xattrs not supported on %s, setting --no-xattr"
                           % self.mountpoint())
-               clearly.xattrs_save = False
+               _clearly.xattrs_save = False
             else:
-               clearly.FATAL("can’t set xattr: %s: %s: %s"
+               _clearly.FATAL("can’t set xattr: %s: %s: %s"
                         % (self, name, x.strerror))
-      if (not clearly.xattrs_save):  # not “else” because maybe changed in “if”
-         clearly.DEBUG("xattrs disabled, ignoring: %s: %s" % (self, name))
+      if (not _clearly.xattrs_save):  # not “else” because maybe changed in “if”
+         _clearly.DEBUG("xattrs disabled, ignoring: %s: %s" % (self, name))
          return
 
    def stat_bytes(self, links):
@@ -1005,7 +1005,7 @@ class Path(os.PathLike):
       # FIXME: Locale issues related to sorting?
       md = self.stat_bytes(True)
       if (self.is_dir()):
-         for (dir_, dirs, files) in clearly.walk(self):
+         for (dir_, dirs, files) in _clearly.walk(self):
             md += dir_.stat_bytes(False)
             for f in sorted(files):
                md += (dir_ // f).stat_bytes(False)
@@ -1075,7 +1075,7 @@ class Storage:
 
    @staticmethod
    def root_default():
-      return Path("/var/tmp/%s.clearly" % clearly.user())
+      return Path("/var/tmp/%s.clearly" % _clearly.user())
 
    @staticmethod
    def root_env():
@@ -1083,7 +1083,7 @@ class Storage:
          return None
       path = Path(os.environ["CLEARLY_IMAGE_STORAGE"])
       if (not path.is_absolute()):
-         clearly.FATAL("$CLEARLY_IMAGE_STORAGE: not absolute path: %s" % path)
+         _clearly.FATAL("$CLEARLY_IMAGE_STORAGE: not absolute path: %s" % path)
       return path
 
    @property
@@ -1147,11 +1147,11 @@ class Storage:
       for path in self.download_cache.glob("part_*"):
          path = Path(path)
          path = self.download_cache // path.name
-         clearly.VERBOSE("deleting: %s" % path)
+         _clearly.VERBOSE("deleting: %s" % path)
          path.unlink()
          part_ct += 1
       if (part_ct > 0):
-         clearly.WARNING("deleted %d partially downloaded files" % part_ct)
+         _clearly.WARNING("deleted %d partially downloaded files" % part_ct)
 
    def fatman_for_download(self, image_ref):
       return self.download_cache // ("%s.fat.json" % image_ref.for_path)
@@ -1173,15 +1173,15 @@ class Storage:
                hint = "let Clearly create %s; see FAQ" % self.root.name
             else:
                hint = None
-            clearly.FATAL("storage directory seems invalid: %s" % self.root, hint)
+            _clearly.FATAL("storage directory seems invalid: %s" % self.root, hint)
          v_found = self.version_read()
       if (v_found == STORAGE_VERSION):
-         clearly.VERBOSE("found storage dir v%d: %s" % (STORAGE_VERSION, self.root))
+         _clearly.VERBOSE("found storage dir v%d: %s" % (STORAGE_VERSION, self.root))
          self.lock()
       elif (v_found is None or v_found >= STORAGE_MIN_VERSION):
         # v_found is either None if initializing, or it is at least the minimum
         # storage version
-         clearly.INFO("%s storage directory: v%d %s"
+         _clearly.INFO("%s storage directory: v%d %s"
                  % (op, STORAGE_VERSION, self.root))
          self.root.mkdir()
          self.lock()
@@ -1195,7 +1195,7 @@ class Storage:
          self.upload_cache.mkdir()
          self.version_file.file_write("%d\n" % STORAGE_VERSION)
       else:                         # can’t upgrade
-         clearly.FATAL("incompatible storage directory v%d: %s"
+         _clearly.FATAL("incompatible storage directory v%d: %s"
                   % (v_found, self.root),
                   "you can delete and re-initialize with “clearly image reset”")
       self.validate_strict()
@@ -1219,10 +1219,10 @@ class Storage:
          fcntl.lockf(self.lockfile_fp, fcntl.LOCK_EX | fcntl.LOCK_NB)
       except OSError as x:
          if (x.errno in { errno.EACCES, errno.EAGAIN }):
-            clearly.FATAL("storage directory is already in use",
+            _clearly.FATAL("storage directory is already in use",
                      "concurrent instances of one image cannot share the same storage directory")
          else:
-            clearly.FATAL("can’t lock storage directory: %s" % x.strerror)
+            _clearly.FATAL("can’t lock storage directory: %s" % x.strerror)
 
    def manifest_for_download(self, image_ref, digest):
       if (digest is None):
@@ -1235,7 +1235,7 @@ class Storage:
          self.root.rmtree()
          self.init()  # largely for debugging
       else:
-         clearly.FATAL("%s not a builder storage" % (self.root));
+         _clearly.FATAL("%s not a builder storage" % (self.root));
 
    def unpack(self, image_ref):
       return self.unpack_base // image_ref.for_path
@@ -1247,7 +1247,7 @@ class Storage:
          nothing unexpected may be present. However, it is not comprehensive.
          The main purpose is to check for bad upgrades and other programming
          errors, not meddling."""
-      clearly.DEBUG("validating storage directory: %s" % self.root)
+      _clearly.DEBUG("validating storage directory: %s" % self.root)
       msg_prefix = "invalid storage directory"
       # Check that all expected files exist, and no others. Note that we don’t
       # verify file *type*, assuming that kind of error is rare.
@@ -1261,23 +1261,23 @@ class Storage:
          try:
             entries.remove(entry)
          except KeyError:
-            clearly.FATAL("%s: missing file or directory: %s" % (msg_prefix, entry))
+            _clearly.FATAL("%s: missing file or directory: %s" % (msg_prefix, entry))
       # Ignore some files that may or may not exist.
       entries -= { i.name for i in (self.lockfile, self.mount_point) }
       # Delete some files that exist only if we crashed.
       for i in (self.image_tmp, ):
          if (i.name in entries):
-            clearly.WARNING("deleting leftover temporary file/dir: %s" % i.name)
+            _clearly.WARNING("deleting leftover temporary file/dir: %s" % i.name)
             i.rmtree()
             entries.remove(i.name)
       # If anything is left, yell about it.
       if (len(entries) > 0):
-         clearly.FATAL("%s: extraneous file(s): %s"
+         _clearly.FATAL("%s: extraneous file(s): %s"
                % (msg_prefix, " ".join(sorted(entries))))
       # check version
       v_found = self.version_read()
       if (v_found != STORAGE_VERSION):
-         clearly.FATAL("%s: version mismatch: %d expected, %d found"
+         _clearly.FATAL("%s: version mismatch: %d expected, %d found"
                % (msg_prefix, STORAGE_VERSION, v_found))
       # check that no image directories have “:” in filename
       assert isinstance(self.unpack_base, Path) # remove if test suite passes
@@ -1285,15 +1285,15 @@ class Storage:
       imgs_bad = set()
       for img in imgs:
          if (":" in img):  # bad char check b/c problem here is bad upgrade
-            clearly.FATAL("%s: storage directory broken: bad image dir name: %s"
-                     % (msg_prefix, img), clearly.BUG_REPORT_PLZ)
+            _clearly.FATAL("%s: storage directory broken: bad image dir name: %s"
+                     % (msg_prefix, img), _clearly.BUG_REPORT_PLZ)
 
    def version_read(self):
       text = self.version_file.file_read_all()
       try:
          return int(text)
       except ValueError:
-         clearly.FATAL('malformed storage version: "%s"' % text)
+         _clearly.FATAL('malformed storage version: "%s"' % text)
 
 
 class TarFile(tarfile.TarFile):
@@ -1324,7 +1324,7 @@ class TarFile(tarfile.TarFile):
       fix_ct = 0
       # Empty target not allowed; have to check string b/c "" -> Path(".").
       if (len(ti.linkname) == 0):
-         clearly.FATAL("rejecting link with empty target: %s: %s" % (tb, ti.name))
+         _clearly.FATAL("rejecting link with empty target: %s: %s" % (tb, ti.name))
       # Fix absolute link targets.
       if (tgt.is_absolute()):
          if (ti.issym()):
@@ -1339,13 +1339,13 @@ class TarFile(tarfile.TarFile):
             new = tgt.relative_to("/")
          else:
             assert False, "not a link"
-         clearly.DEBUG("absolute %s: %s -> %s: changing target to: %s"
+         _clearly.DEBUG("absolute %s: %s -> %s: changing target to: %s"
                % (kind, src, tgt, new))
          tgt = new
          fix_ct = 1
       # Reject links that climb out of image (FIXME: repair instead).
       if (".." in os.path.normpath(src // tgt).split("/")):
-         clearly.FATAL("rejecting too many up-levels: %s: %s -> %s" % (tb, src, tgt))
+         _clearly.FATAL("rejecting too many up-levels: %s: %s -> %s" % (tb, src, tgt))
       # Done.
       ti.linkname = str(tgt)
       return fix_ct
@@ -1354,16 +1354,16 @@ class TarFile(tarfile.TarFile):
    def fix_member_uidgid(ti):
       assert (ti.name[0] != "/")  # absolute paths unsafe but shouldn’t happen
       if (not (ti.isfile() or ti.isdir() or ti.issym() or ti.islnk())):
-         clearly.FATAL("invalid file type: %s" % ti.name)
+         _clearly.FATAL("invalid file type: %s" % ti.name)
       ti.uid = 0
       ti.uname = "root"
       ti.gid = 0
       ti.gname = "root"
       if (ti.mode & stat.S_ISUID):
-         clearly.VERBOSE("stripping unsafe setuid bit: %s" % ti.name)
+         _clearly.VERBOSE("stripping unsafe setuid bit: %s" % ti.name)
          ti.mode &= ~stat.S_ISUID
       if (ti.mode & stat.S_ISGID):
-         clearly.VERBOSE("stripping unsafe setgid bit: %s" % ti.name)
+         _clearly.VERBOSE("stripping unsafe setgid bit: %s" % ti.name)
          ti.mode &= ~stat.S_ISGID
 
    # Need new method name because add() is called recursively and we don’t
@@ -1372,7 +1372,7 @@ class TarFile(tarfile.TarFile):
       def filter_(ti):
          assert (ti.name == "." or ti.name[:2] == "./")
          if (ti.name in ("./clearly/git", "./clearly/git.pickle")):
-            clearly.DEBUG("omitting from push: %s" % ti.name)
+            _clearly.DEBUG("omitting from push: %s" % ti.name)
             return None
          self.fix_member_uidgid(ti)
          return ti
@@ -1389,7 +1389,7 @@ class TarFile(tarfile.TarFile):
          # other than lstat().
          st = None
       except OSError as x:
-         clearly.FATAL("can’t lstat: %s" % targetpath, targetpath)
+         _clearly.FATAL("can’t lstat: %s" % targetpath, targetpath)
       if (st is not None):
          if (stat.S_ISREG(st.st_mode)):
             if (regulars):
@@ -1401,22 +1401,22 @@ class TarFile(tarfile.TarFile):
             if (dirs):
                Path(targetpath).rmtree()
          else:
-            clearly.FATAL("invalid file type 0%o in previous layer; see inode(7): %s"
+            _clearly.FATAL("invalid file type 0%o in previous layer; see inode(7): %s"
                      % (stat.S_IFMT(st.st_mode), targetpath))
 
    def makedir(self, tarinfo, targetpath):
       # Note: This gets called a lot, e.g. once for each component in the path
       # of the member being extracted.
-      clearly.TRACE("makedir: %s" % targetpath)
+      _clearly.TRACE("makedir: %s" % targetpath)
       self.clobber(targetpath, regulars=True, symlinks=True)
       super().makedir(tarinfo, targetpath)
 
    def makefile(self, tarinfo, targetpath):
-      clearly.TRACE("makefile: %s" % targetpath)
+      _clearly.TRACE("makefile: %s" % targetpath)
       self.clobber(targetpath, symlinks=True, dirs=True)
       super().makefile(tarinfo, targetpath)
 
    def makelink(self, tarinfo, targetpath):
-      clearly.TRACE("makelink: %s -> %s" % (targetpath, tarinfo.linkname))
+      _clearly.TRACE("makelink: %s -> %s" % (targetpath, tarinfo.linkname))
       self.clobber(targetpath, regulars=True, symlinks=True, dirs=True)
       super().makelink(tarinfo, targetpath)

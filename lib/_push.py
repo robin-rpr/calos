@@ -1,35 +1,35 @@
 import json
 import os.path
 
-import image as image
-import clearly as clearly
-import registry as registry
-import reference as reference
+import _image as _image
+import _clearly as _clearly
+import _registry as _registry
+import _reference as _reference
 
 ## Main ##
 
 def main(cli):
-   src_ref = reference.Reference(cli.source_ref)
-   clearly.INFO("pushing image:   %s" % src_ref)
-   img = image.Image(src_ref, cli.image)
+   src_ref = _reference.Reference(cli.source_ref)
+   _clearly.INFO("pushing image:   %s" % src_ref)
+   img = _image.Image(src_ref, cli.image)
    # FIXME: validate it's an image using Megan's new function (PR #908)
    if (not os.path.isdir(img.unpack_path)):
       if (cli.image is not None):
-         clearly.FATAL("can’t push: %s does not appear to be an image" % cli.image)
+         _clearly.FATAL("can’t push: %s does not appear to be an image" % cli.image)
       else:
-         clearly.FATAL("can’t push: no image %s" % src_ref)
+         _clearly.FATAL("can’t push: no image %s" % src_ref)
    if (cli.image is not None):
-      clearly.INFO("image path:      %s" % img.unpack_path)
+      _clearly.INFO("image path:      %s" % img.unpack_path)
    else:
-      clearly.VERBOSE("image path:      %s" % img.unpack_path)
+      _clearly.VERBOSE("image path:      %s" % img.unpack_path)
    if (cli.dest_ref is not None):
-      dst_ref = reference.Reference(cli.dest_ref)
-      clearly.INFO("destination:     %s" % dst_ref)
+      dst_ref = _reference.Reference(cli.dest_ref)
+      _clearly.INFO("destination:     %s" % dst_ref)
    else:
-      dst_ref = reference.Reference(cli.source_ref)
+      dst_ref = _reference.Reference(cli.source_ref)
    up = Image_Pusher(img, dst_ref)
    up.push()
-   clearly.done_notify()
+   _clearly.done_notify()
 
 
 ## Classes ##
@@ -59,11 +59,11 @@ class Image_Pusher:
       "Return an empty config, ready to be filled in."
       # FIXME: URL of relevant docs?
       # FIXME: tidy blank/empty fields?
-      return { "architecture": clearly.arch_host_get(),
+      return { "architecture": _clearly.arch_host_get(),
                "comment": "pushed with Clearly",
                "config": {},
                "container_config": {},
-               "created": clearly.now_utc_iso8601(),
+               "created": _clearly.now_utc_iso8601(),
                "history": [],
                "os": "linux",
                "rootfs": { "diff_ids": [], "type": "layers" },
@@ -73,18 +73,18 @@ class Image_Pusher:
    def manifest_new(class_):
       "Return an empty manifest, ready to be filled in."
       return { "schemaVersion": 2,
-               "mediaType": registry.TYPES_MANIFEST["docker2"],
-               "config": { "mediaType": registry.TYPE_CONFIG,
+               "mediaType": _registry.TYPES_MANIFEST["docker2"],
+               "config": { "mediaType": _registry.TYPE_CONFIG,
                            "size": None,
                            "digest": None },
                "layers": [],
                "weirdal": "yankovic" }
 
    def cleanup(self):
-      clearly.INFO("cleaning up")
+      _clearly.INFO("cleaning up")
       # Delete the tarballs since we can’t yet cache them.
       for (_, tar_c) in self.layers:
-         clearly.VERBOSE("deleting tarball: %s" % tar_c)
+         _clearly.VERBOSE("deleting tarball: %s" % tar_c)
          tar_c.unlink()
 
    def prepare(self):
@@ -98,16 +98,16 @@ class Image_Pusher:
       # Initializing an HTTP instance for the registry and doing a 'GET'
       # request right out the gate ensures the user needs to authenticate
       # before we prepare the image for upload (#1426).
-      self.registry = registry.HTTP(self.dst_ref)
+      self.registry = _registry.HTTP(self.dst_ref)
       self.registry.request("GET", self.registry._url_base)
-      tars_uc = self.image.tarballs_write(clearly.storage.upload_cache)
+      tars_uc = self.image.tarballs_write(_clearly.storage.upload_cache)
       tars_c = list()
       config = self.config_new()
       manifest = self.manifest_new()
       # Prepare layers.
       for (i, tar_uc) in enumerate(tars_uc, start=1):
-         clearly.INFO("layer %d/%d: preparing" % (i, len(tars_uc)))
-         path_uc = clearly.storage.upload_cache // tar_uc
+         _clearly.INFO("layer %d/%d: preparing" % (i, len(tars_uc)))
+         path_uc = _clearly.storage.upload_cache // tar_uc
          hash_uc = path_uc.file_hash()
          config["rootfs"]["diff_ids"].append("sha256:" + hash_uc)
          size_uc = path_uc.file_size()
@@ -116,11 +116,11 @@ class Image_Pusher:
          hash_c = path_c.file_hash()
          size_c = path_c.file_size()
          tars_c.append((hash_c, path_c))
-         manifest["layers"].append({ "mediaType": registry.TYPE_LAYER,
+         manifest["layers"].append({ "mediaType": _registry.TYPE_LAYER,
                                      "size": size_c,
                                      "digest": "sha256:" + hash_c })
       # Prepare metadata.
-      clearly.INFO("preparing metadata")
+      _clearly.INFO("preparing metadata")
       self.image.metadata_load()
       # Environment. Note that this is *not* a dictionary for some reason but
       # a list of name/value pairs separated by equals [1], with no quoting.
@@ -156,12 +156,12 @@ class Image_Pusher:
       config["history"] = hist
       # Pack it up to go.
       config_bytes = json.dumps(config, indent=2).encode("UTF-8")
-      config_hash = clearly.bytes_hash(config_bytes)
+      config_hash = _clearly.bytes_hash(config_bytes)
       manifest["config"]["size"] = len(config_bytes)
       manifest["config"]["digest"] = "sha256:" + config_hash
-      clearly.DEBUG("config: %s\n%s" % (config_hash, config_bytes.decode("UTF-8")))
+      _clearly.DEBUG("config: %s\n%s" % (config_hash, config_bytes.decode("UTF-8")))
       manifest_bytes = json.dumps(manifest, indent=2).encode("UTF-8")
-      clearly.DEBUG("manifest:\n%s" % manifest_bytes.decode("UTF-8"))
+      _clearly.DEBUG("manifest:\n%s" % manifest_bytes.decode("UTF-8"))
       # Store for the next steps.
       self.layers = tars_c
       self.config = config_bytes
@@ -173,7 +173,7 @@ class Image_Pusher:
       self.cleanup()
 
    def upload(self):
-      clearly.INFO("starting upload")
+      _clearly.INFO("starting upload")
       for (i, (digest, tarball)) in enumerate(self.layers, start=1):
          self.registry.layer_from_file(digest, tarball,
                                  "layer %d/%d: " % (i, len(self.layers)))

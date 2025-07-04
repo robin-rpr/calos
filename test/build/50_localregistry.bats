@@ -136,7 +136,7 @@ EOF
     clearly image pull --tls-no-verify localhost:5000/tmpimg
     clearly convert localhost:5000/tmpimg "$BATS_TMPDIR"/tmpimg
 
-    run clearly run "$BATS_TMPDIR"/tmpimg --unset-env='*' --set-env -- env
+    run clearly run "$BATS_TMPDIR"/tmpimg --unset-env='*' --env -- env
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = *'weird=al yankovic'* ]]

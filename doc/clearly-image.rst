@@ -1946,7 +1946,7 @@ know!)
 
   * Environment variables set with :code:`ENV` are effective in downstream
     Dockerfiles and also written to :code:`/clearly/environment` for use in
-    :code:`clearly run --set-env`.
+    :code:`clearly run --env`.
 
   * Mount point directories specified with :code:`VOLUME` are created in the
     image if they don’t exist, but no other action is taken.
