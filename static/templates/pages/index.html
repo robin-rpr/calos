@@ -42,16 +42,17 @@ Clearly
                     <div class="panel__list" id="containers-list">
                         <div class="list__item">
                             <div class="item__status item__status--running"></div>
-                            <img class="item__icon" src="/static/images/container.svg">
+                            <div class="item__icon">
+                                <i class="fa-kit fa-container"></i>
+                            </div>
                             <div class="item__name">rocky-linux-1vcpu-512mb-10GB</div>
                             <div class="item__ip-address">10.42.21.123</div>
-                            <div class="item__tags">
-                                <!-- <span class="tag__item"></span> -->
-                                <button class="tag__button">
-                                    Add tags
-                                </button>
+                            <div class="item__ports">
+                                <a href="http://localhost:8080" target="_blank"></a>8080:80</a>
                             </div>
-                            <div class="item__actions">Upsize</div>
+                            <div class="item__image">
+                                bgpdata/collector:latest
+                            </div>
                             <button class="item__more">
                                 <i class="fa-sharp fa-light fa-ellipsis"></i>
                             </button>

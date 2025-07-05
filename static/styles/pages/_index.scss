@@ -165,7 +165,7 @@
                                 }
 
                                 &--unhealthy {
-                                    background: #bd3229;
+                                    background: #d6b822;
                                 }
 
                                 &--completed {
@@ -177,7 +177,8 @@
                                 }
                             }
                             .item__icon {
-                                width: 19px;
+                                font-size: 1.125rem;
+                                color: #b5bac1;
                             }
                             .item__name {
                                 font-weight: 350;
@@ -188,9 +189,18 @@
                                 line-height: 1;
                                 color: #8f8f8f;
                             }
-                            .item__tags {}
-                            .item__actions {}
-                            .item__more {}
+                            .item__ports {
+                                text-decoration: none;
+                                font-weight: 250;
+                                color: #0167ff;
+                            }
+                            .item__image {
+                                font-weight: 250;
+                            }
+                            .item__more {
+                                font-size: 1.125rem;
+                                background: none;
+                            }
                         }
                     }
                 }
