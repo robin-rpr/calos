@@ -38,7 +38,7 @@ except NameError:
 CACHE_MAX_AGE = 86400 # 24 hours
 
 # Executor
-_executor = _executor.Executor()
+executor = _executor.Executor()
 
 # Jinja2 Environment
 jinja_env = Environment(loader=FileSystemLoader(TEMPLATE_DIR), autoescape=True)
@@ -138,13 +138,14 @@ class HTTPHandler(BaseHTTPRequestHandler):
         if method == 'GET':
             # GET
             if self.path == '/api/containers':
-                return self.send_json(_executor.list_containers())
+                return self.send_json(executor.list_containers())
             elif re.fullmatch(r'/api/containers/[^/]+', self.path):
                 id = self.path.split('/')[-1]
-                return self.send_json(_executor.get_container(id))
+                return self.send_json(executor.get_container(id))
             elif re.fullmatch(r'/api/containers/[^/]+/logs', self.path):
-                id = self.path.split('/')[-1]
-                return self.send_json(_executor.get_container_logs(id))
+                id = self.path.split('/')[-2]
+                print(id)
+                return self.send_json(executor.get_container_logs(id))
         elif method == 'POST':
             # POST
             if self.path == '/api/containers':
@@ -154,12 +155,12 @@ class HTTPHandler(BaseHTTPRequestHandler):
                 publish = payload.get('publish', {})
                 environment = payload.get('environment', {})
 
-                return self.send_json(_executor.start_container(id, image, command, publish, environment))
+                return self.send_json(executor.start_container(id, image, command, publish, environment))
         elif method == 'DELETE':
             # DELETE
             if re.fullmatch(r'/api/containers/[^/]+', self.path):
                 id = self.path.split('/')[-1]
-                return self.send_json(_executor.stop_container(id))
+                return self.send_json(executor.stop_container(id))
         
         return self.send_error(404, "Not Found")
 
@@ -204,9 +205,9 @@ class HTTPHandler(BaseHTTPRequestHandler):
 def signal_handler(signum, frame):
     """Handle Signals"""
     logger.info(f"SIGNAL: {signum}, Shutting down...")
-    with _executor.lock:
-        for container_id in list(_executor.containers.keys()):
-            _executor.stop_container(container_id)
+    with executor.lock:
+        for id in list(executor.containers.keys()):
+            executor.stop_container(id)
     if 'server' in globals():
         server.server_close()
     sys.exit(0)
