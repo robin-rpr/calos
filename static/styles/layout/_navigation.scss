@@ -9,9 +9,14 @@
 
     .navigation__container {
         height: 100%;
+        display: flex;
+        flex-direction: column;
+        padding: 1rem 0;
 
         .container__logo {
-            padding: 1rem 1.25rem;
+            margin: 0 1.25rem 1.25rem;
+            height: 29px;
+            width: fit-content;
             display: block;
         }
 
@@ -19,6 +24,9 @@
             padding: 0 0.5rem;
             font-size: 0.875rem;
             font-weight: 300;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
 
             .list__title {
                 padding: 0.25rem 0.75rem 0.5rem;
@@ -27,6 +35,10 @@
 
             .list__divider {
                 width: 100%;
+
+                &--grow {
+                    flex-grow: 1;
+                }
             }
 
             .list__link,

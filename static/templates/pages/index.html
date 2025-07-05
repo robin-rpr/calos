@@ -6,68 +6,77 @@ Clearly
 
 {% block content %}
 <div class="content__index">
-    <div class="index__hero">
-        <div class="hero__container">
-            <span class="container__welcome-message"></span>
-            <h1 class="container__heading">
-                Explore the Internet
-            </h1>
-            <form
-                class="container__search"
-                role="search"
-            >
-                <i class="fa-sharp fa-light fa-magnifying-glass"></i>
-                <label
-                    class="search__label"
-                    for="searchbar"
-                >Search</label
-                ><input
-                    class="search__input"
-                    type="text"
-                    role="searchbox"
-                    autocomplete="off"
-                    id="searchbar"
-                    placeholder="Enter an IP address/prefix, ASN, hostname or community"
-                    autofocus
-                />
-                <div class="search__quickstart">
-                    <div class="quickstart__my">
-                        Your network:
-                        <a class="my__asn" href="#">&nbsp;</a>,
-                        <a class="my__prefix" href="#">&nbsp;</a>
-                    </div>
-                    <div class="quickstart__random">
-                        Try one of these:
-                        <a class="random__ipv4prefix" href="#">IPv4 Prefix</a>,
-                        <a class="random__ipv4range" href="#">IPv4 Range</a>,
-                        <a class="random__ipv6" href="#">IPv6</a>,
-                        <a class="random__asn" href="#">ASN</a>
-                    </div>
+    <div class="index__header">
+        <div class="header__container">
+            <img class="header__image" src="/static/images/shape-1.svg">
+            <div class="header__content">
+                <h1 class="content__title">
+                    BGPDATA
+                </h1>
+                <div class="content__description">
+                    BGPDATA is a platform for managing your prefixes.
                 </div>
-            </form>
-            <div class="container__cards">
-                <a class="cards__item">
-                    <div class="item__title">View your cases</div>
-                    <div class="item__description">
-                        Check the status of active cases and review case history
-                    </div>
-                    <i class="fa-sharp fa-light fa-eye"></i>
-                </a>
-                <a class="cards__item">
-                    <div class="item__title">Open a case</div>
-                    <div class="item__description">
-                        If you're unable to resolve an issue on your own, receive help from our experts
-                    </div>
-                    <i class="fa-sharp fa-light fa-folder-plus"></i>
-                </a>
+            </div>
+        </div>
+    </div>
+    <div class="index__tabs">
+        <div class="tabs__container">
+            <div class="container__tabs" id="tabs">
+                <div class="tab__item tab__item--active" target="overview">
+                    Overview
+                </div>
+                <div class="tab__item" target="prefixes">
+                    All Prefixes
+                </div>
+                <div class="tab__item" target="connectivity">
+                    Connectivity
+                </div>
+                <div class="tab__item" target="activity">
+                    Activity
+                </div>
+                <div class="tab__item" target="whois">
+                    Whois
+                </div>
             </div>
         </div>
     </div>
     <div class="index__content">
-        <div class="content__wrapper">
-            <div class="wrapper__container">
+        <div class="content__container">
+            <div class="container__content">
+                <div class="content__panel" id="overview" aria-labelledby="tab-overview">
+                    Hello World!
+                </div>
             </div>
         </div>
     </div>
 </div>
+<script>
+    /* Tabs */
+    const tabs = document.querySelectorAll('.tab__item');
+    const panels = document.querySelectorAll('.content__panel');
+
+    function switchTab(targetId) {
+        if (targetId !== 'overview') {
+            history.replaceState(null, null, `#${targetId}`);
+        } else {
+            history.replaceState(null, null, window.location.pathname);
+        }
+
+        tabs.forEach(tab => {
+            tab.classList.toggle('tab__item--active', tab.getAttribute('target') === targetId);
+        });
+
+        panels.forEach(panel => {
+            panel.style.display = panel.id === targetId ? 'block' : 'none';
+        });
+    }
+
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => switchTab(tab.getAttribute('target')));
+    });
+
+    const handleHashChange = () => switchTab(window.location.hash.slice(1) || 'overview');
+    window.addEventListener('hashchange', handleHashChange);
+    handleHashChange();
+</script>
 {% endblock %}

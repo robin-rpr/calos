@@ -2,13 +2,5 @@
     <div class="header__container">
         <!-- Search -->
         {% include "components/searchbar.html" %}
-
-        <!-- Actions -->
-        <div class="container__actions">
-            <!-- Actions Buttons -->
-            <a class="actions__button" href="{% if profile is none %}/login{% else %}/account{% endif %}">
-                <i class="fa-sharp fa-light fa-user"></i>
-            </a>
-        </div>
     </div>
 </header>
