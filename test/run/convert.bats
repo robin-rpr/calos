@@ -45,7 +45,7 @@ load ../common
 # builders. Thus, we (a) run only for builder image but (b)
 # pedantic-require Docker to also be installed.
 setup () {
-    skip 'omitted for now (see test/gitlab.com/README)'
+    skip 'omitted for now (see test/ci/README)'
     scope standard
     [[ $CLEARLY_TEST_BUILDER = image ]] || skip 'image only'
     [[ $CLEARLY_TEST_PACK_FMT = *-unpack ]] || skip 'needs directory images'

@@ -25,16 +25,16 @@ sudo chmod 1777 /clearly
 ./autogen.sh
 
 # Build and install from Git WD.
-test/gitlab.com/install.bash . /clearly/from-git
+test/ci/install.bash . /clearly/from-git
 
 # Build and install from tarball.
 mkdir /clearly/src-tar
 tar -C /clearly/src-tar --strip=1 -xf charliecloud-*.tar.gz
-test/gitlab.com/install.bash /clearly/src-tar /clearly/from-tar
+test/ci/install.bash /clearly/src-tar /clearly/from-tar
 
 # Run test suite in various directories. Note these all use the same storage
 # directory, including build cache.
-test/gitlab.com/test.bash .             # source dir, Git
-test/gitlab.com/test.bash /clearly/from-git  # installed from Git
-test/gitlab.com/test.bash /clearly/src-tar   # source dir, tarball
-test/gitlab.com/test.bash /clearly/from-tar  # installed from tarball
+test/ci/test.bash .             # source dir, Git
+test/ci/test.bash /clearly/from-git  # installed from Git
+test/ci/test.bash /clearly/src-tar   # source dir, tarball
+test/ci/test.bash /clearly/from-tar  # installed from tarball

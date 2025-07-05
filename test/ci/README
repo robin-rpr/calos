@@ -34,7 +34,7 @@ To run the test suite interactively in such an environment:
   3. Run something pretty close the “test” job:
 
        > cd /builds/charliecloud/main
-       > test/gitlab.com/testjob.sh
+       > test/ci/testjob.sh
 
   4. Or, because you have an interactive shell, you can test whatever. The
      script above (and the one it calls) has steps to consider. The container

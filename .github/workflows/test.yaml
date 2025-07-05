@@ -1,0 +1,82 @@
+
+name: Test
+
+on:
+  push:
+    branches-ignore:
+      - '**' # This is a way to prevent direct pushes from running, similar to the GitLab rule.
+  pull_request:
+
+env:
+  RUNNER_DEBUG: true # Provides more detailed logs
+
+jobs:
+  bootstrap:
+    name: Build Test Images
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        ci_distro: [debian]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./test/ci/Dockerfile.${{ matrix.ci_distro }}
+          push: true
+          tags: ghcr.io/${{ github.repository }}/ci_${{ matrix.ci_distro }}:${{ github.ref_name }}
+
+  test:
+    name: Run Tests
+    needs: bootstrap
+    runs-on: ubuntu-latest
+    if: github.event.inputs.pipeline_mode == 'ci' || github.event_name == 'pull_request'
+    strategy:
+      matrix:
+        CLEARLY_TEST_PACK_FMT: [squash-mount, squash-unpack, tar-unpack]
+        ci_arch: [amd64]
+        ci_distro: [debian]
+        ci_sudo: [sudo_yes]
+    container:
+      image: ghcr.io/${{ github.repository }}/ci_${{ matrix.ci_distro }}:${{ github.ref_name }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set environment variables
+        run: |
+          echo "LC_ALL=C" >> $GITHUB_ENV
+
+      - name: Run test job
+        run: |
+          set -x
+          # Set up a tmpfs to hold the storage directory
+          sudo mount -t tmpfs tmpfs /mnt
+          # Run the tests
+          ./test/ci/testjob.bash
+          # Move target directory into Git WD so it’s included in the artifact
+          sudo mv /clearly .
+        env:
+          CLEARLY_TEST_BUILDER: image
+          CLEARLY_IMAGE_CACHE: enabled
+          CLEARLY_TEST_PACK_FMT: ${{ matrix.CLEARLY_TEST_PACK_FMT }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-results-${{ matrix.ci_distro }}-${{ matrix.CLEARLY_TEST_PACK_FMT }}
+          path: ./clearly
+          retention-days: 7

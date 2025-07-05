@@ -20,7 +20,6 @@ FROM debian:stable-slim
 # See: #1933
 RUN apt-get update \
  && apt-get install -y bash-completion \
-                       cloc \
                        sudo \
                        wget \
  && apt-get install -y attr \
