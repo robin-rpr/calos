@@ -38,7 +38,7 @@
                         margin-bottom: -2px;
                         border-radius: 5px;
                         color: #8f8f8f;
-                        background: #f6f6f6;
+                        border-width: 1px;
                     }
                 }
 
@@ -132,7 +132,28 @@
                 row-gap: 1rem;
 
                 .content__panel {
-                    // TODO: Add content
+                    .panel__title {
+                        font-size: 1.125rem;
+                        font-weight: 200;
+                        line-height: 1;
+                        color: #8f8f8f;
+                    }
+
+                    .panel__list {
+                        .list__item {
+                            display: flex;
+                            align-items: center;
+                            column-gap: 0.75rem;
+
+                            .item__icon {}
+                            .item__name {}
+                            .item__ip-address {}
+                            .item__status {}
+                            .item__tags {}
+                            .item__actions {}
+                            .item__more {}
+                        }
+                    }
                 }
             }
         }
