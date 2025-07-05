@@ -6,9 +6,8 @@
 
         <title>{% block title %}Clearly{% endblock %}</title>
         <link rel="icon" href="/static/images/favicon.svg" sizes="any" type="image/svg+xml">
-        <link rel="icon" href="/static/images/favicon-64x64.png" type="image/png" sizes="64x64" />
+        <link rel="icon" href="/static/images/favicon-256x256.png" type="image/png" sizes="256x256" />
         <link rel="icon" href="/static/images/favicon-32x32.png" type="image/png" sizes="32x32" />
-        <link rel="icon" href="/static/images/favicon-16x16.png" type="image/png" sizes="16x16" />
 
         <!-- FontAwesome -->
         <script src="https://kit.fontawesome.com/a69c8c907b.js" crossorigin="anonymous"></script>
@@ -22,14 +21,14 @@
     <body>
         {% block inject %}{% endblock %}
         <main id="app">
-            {% include "layout/header.html" %}
             {% include "layout/navigation.html" %}
             <div id="content">
+                {% include "layout/header.html" %}
                 {% block content %}
                 <!-- Content Here -->
                 {% endblock %}
+                {% include "layout/footer.html" %}
             </div>
-            {% include "layout/footer.html" %}
         </main>
     </body>
 </html>

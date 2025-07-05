@@ -1,7 +1,10 @@
 #header {
     border-bottom: 1px solid #e0e0e0;
+    position: sticky;
     height: 4rem;
     width: 100%;
+    z-index: var(--z-index-sticky);
+    top: 0;
 
     .header__container {
         max-width: 99rem;

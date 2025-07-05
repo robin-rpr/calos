@@ -125,7 +125,7 @@ class HTTPHandler(BaseHTTPRequestHandler):
 
     def serve_scss(self):
         """Compiles SCSS to CSS."""
-        styles = sass.compile(filename=os.path.join(PKGDATADIR, 'styles', 'main.scss'))
+        styles = sass.compile(filename=os.path.join(STATIC_DIR, 'styles', 'main.scss'))
         
         self.send_response(200)
         self.send_header('Content-type', 'text/css')
