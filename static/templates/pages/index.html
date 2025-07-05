@@ -11,10 +11,10 @@ Clearly
             <img class="header__image" src="/static/images/shape-1.svg">
             <div class="header__content">
                 <h1 class="content__title">
-                    BGPDATA
+                    Stratum<span class="title__default">Default</span>
                 </h1>
                 <div class="content__description">
-                    BGPDATA is a platform for managing your prefixes.
+                    Machine learning / AI / Data processing / Update your project details under Settings
                 </div>
             </div>
         </div>
@@ -22,20 +22,14 @@ Clearly
     <div class="index__tabs">
         <div class="tabs__container">
             <div class="container__tabs" id="tabs">
-                <div class="tab__item tab__item--active" target="overview">
-                    Overview
-                </div>
-                <div class="tab__item" target="prefixes">
-                    All Prefixes
-                </div>
-                <div class="tab__item" target="connectivity">
-                    Connectivity
+                <div class="tab__item tab__item--active" target="resources">
+                    Resources
                 </div>
                 <div class="tab__item" target="activity">
                     Activity
                 </div>
-                <div class="tab__item" target="whois">
-                    Whois
+                <div class="tab__item" target="settings">
+                    Settings
                 </div>
             </div>
         </div>
@@ -43,7 +37,7 @@ Clearly
     <div class="index__content">
         <div class="content__container">
             <div class="container__content">
-                <div class="content__panel" id="overview" aria-labelledby="tab-overview">
+                <div class="content__panel" id="resources" aria-labelledby="tab-resources">
                     Hello World!
                 </div>
             </div>
@@ -56,7 +50,7 @@ Clearly
     const panels = document.querySelectorAll('.content__panel');
 
     function switchTab(targetId) {
-        if (targetId !== 'overview') {
+        if (targetId !== 'resources') {
             history.replaceState(null, null, `#${targetId}`);
         } else {
             history.replaceState(null, null, window.location.pathname);
@@ -75,7 +69,7 @@ Clearly
         tab.addEventListener('click', () => switchTab(tab.getAttribute('target')));
     });
 
-    const handleHashChange = () => switchTab(window.location.hash.slice(1) || 'overview');
+    const handleHashChange = () => switchTab(window.location.hash.slice(1) || 'resources');
     window.addEventListener('hashchange', handleHashChange);
     handleHashChange();
 </script>
