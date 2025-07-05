@@ -34,7 +34,6 @@ install-exec-hook:
 		chmod 644 /var/log/clearly.log; \
 		systemctl daemon-reload; \
 		systemctl enable clearly.service; \
-		systemctl start clearly.service; \
 	fi
 
 uninstall-hook:
