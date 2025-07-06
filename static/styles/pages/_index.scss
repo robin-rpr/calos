@@ -179,6 +179,7 @@
                             .item__icon {
                                 font-size: 1.125rem;
                                 color: #b5bac1;
+                                width: 20.5px;
                             }
                             .item__name {
                                 font-weight: 350;
@@ -190,9 +191,18 @@
                                 color: #8f8f8f;
                             }
                             .item__ports {
-                                text-decoration: none;
-                                font-weight: 250;
-                                color: #2675e8;
+                                display: flex;
+                                column-gap: 0.25rem;
+
+                                .ports__item {
+                                    text-decoration: none;
+                                    font-weight: 250;
+                                    color: #307ef7;
+
+                                    i {
+                                        font-size: 0.875rem;
+                                    }
+                                }
                             }
                             .item__image {
                                 font-weight: 250;
