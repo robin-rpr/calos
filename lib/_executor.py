@@ -139,6 +139,7 @@ class Executor:
                     container_list.append({
                         "id": id,
                         "status": info["status"],
+                        "publish": info["publish"],
                         "pid": info["pid"],
                         "start_time": info["start_time"],
                         "image": info["image"]

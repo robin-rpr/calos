@@ -39,6 +39,7 @@
                         border-radius: 8px;
                         color: #5d5d5d;
                         border-width: 1px;
+                        border-color: #e5e5e5;
                     }
                 }
 
@@ -141,6 +142,7 @@
                             align-items: center;
                             column-gap: 15px;
                             padding: 0.5rem 1.125rem;
+                            margin-bottom: 0.75rem;
                             height: 54px;
                             border-width: 1px;
                             border-color: #eaeaea;
@@ -183,6 +185,7 @@
                             }
                             .item__name {
                                 font-weight: 350;
+                                width: 11rem;
                             }
                             .item__ip-address {
                                 flex-grow: 1;
