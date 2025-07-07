@@ -40,7 +40,11 @@ Clearly
         <div class="content__container">
             <div class="container__content">
                 <div class="content__panel" id="resources" aria-labelledby="tab-resources">
-                    <div class="panel__title">Containers (<span id="containers-count">1</span>)</div>
+                    <!-- Studios -->
+                    <div class="panel__title">Studios (<span id="studios-count">0</span>)</div>
+                    <div class="panel__list" id="studios-list"></div>
+                    <!-- Containers -->
+                    <div class="panel__title">Containers (<span id="containers-count">0</span>)</div>
                     <div class="panel__list" id="containers-list"></div>
                 </div>
             </div>
@@ -75,6 +79,31 @@ Clearly
     const handleHashChange = () => switchTab(window.location.hash.slice(1) || 'resources');
     window.addEventListener('hashchange', handleHashChange);
     handleHashChange();
+</script>
+<script>
+    // Studios
+    Promise.all([
+        fetch(`/api/studios`).then(r => r.json())
+    ]).then(([studios]) => {
+        if (!studios.success) {
+            console.error(studios.error);
+            return;
+        }
+
+        document.getElementById('studios-count').innerHTML = studios.studios.length;
+        document.getElementById('studios-list').innerHTML = studios.studios.map(studio => `
+            <div class="list__item">
+                <div class="item__status item__status--${studio.status}"></div>
+                <div class="item__icon">
+                    <i class="fa-kit fa-studio"></i>
+                </div>
+                <div class="item__name">${studio.id}</div>
+                <button class="item__more">
+                    <i class="fa-sharp fa-light fa-ellipsis"></i>
+                </button>
+            </div>
+        `).join('');
+    });
 </script>
 <script>
     // Containers

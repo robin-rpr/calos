@@ -9,7 +9,7 @@ class Executor:
     
     def __init__(self):
         # id -> container_info
-        self.containers = {} 
+        self.containers = {}
         self.lock = threading.Lock()
         self.logger = logging.getLogger(__name__)
         self.temp_dir = "/tmp/clearly"
@@ -18,8 +18,9 @@ class Executor:
     def start_container(self, id, image, command=[], publish={}, environment={}):
         """Start a container"""
         try:
-            print(f"Starting container {id} with image {image} and command {command} and environment {environment}")
             with self.lock:
+                if id is None:
+                    return {"error": "Container ID is required"}
                 if id in self.containers:
                     return {"error": "Container already exists"}
                 
@@ -174,3 +175,128 @@ class Executor:
                     
         except Exception as e:
             self.logger.error(f"Error collecting logs for container {id}: {e}")
+
+class StudioExecutor(Executor):
+    """StudioExecutor"""
+
+    def __init__(self):
+        super().__init__()
+        # id -> studio_info
+        self.studios = {}
+
+    def start_studio(self, id, containers=[]):
+        """Start a studio, which is a group of containers"""
+        if id is None:
+            return {"error": "Studio ID is required"}
+        if id in self.studios:
+            return {"error": "Studio already exists"}
+        
+        ids = []
+
+        for container in containers:
+            result = self.start_container(
+                f"{id}-{container['id']}",
+                container['image'],
+                container['command'],
+                container['publish'],
+                container['environment']
+            )
+            if "error" in result:
+                return result
+            
+            ids.append(result["id"])
+
+        studio_info = {
+            "id": id,
+            "status": "running",
+            "containers": ids
+        }
+
+        self.studios[id] = studio_info
+        return {"success": True, "id": id}
+
+    def get_studio(self, id):
+        """Get a studio"""
+        try:
+            with self.lock:
+                return {"success": True, "studio": self.studios[id]}
+        except Exception as e:
+            self.logger.error(f"Failed to get studio {id}: {e}")
+            return {"error": str(e)}
+
+    def list_studios(self):
+        """List all studios"""
+        try:
+            with self.lock:
+                studio_list = []
+                for id, info in self.studios.items():
+                    studio_list.append({
+                        "id": id,
+                        "status": info["status"],
+                        "containers": info["containers"]
+                    })
+                return {"success": True, "studios": studio_list}
+                
+        except Exception as e:
+            self.logger.error(f"Failed to list studios: {e}")
+            return {"error": str(e)}
+
+    def get_studio_logs(self, id):
+        """Get logs from a studio"""
+        try:
+            with self.lock:
+                if id not in self.studios:
+                    return {"error": "Studio not found"}
+
+                studio_info = self.studios[id]
+                container_ids = studio_info["containers"].copy()
+
+            # Release lock before calling get_container_logs to avoid deadlock
+            logs = {}
+            for container_id in container_ids:
+                container_logs = self.get_container_logs(container_id)
+                if "error" not in container_logs:
+                    logs[container_id] = {
+                        "stdout": container_logs["stdout"],
+                        "stderr": container_logs["stderr"],
+                        "status": container_logs["status"]
+                    }
+
+            return {
+                "success": True,
+                "id": id,
+                "logs": logs
+            }
+                
+        except Exception as e:
+            self.logger.error(f"Failed to get logs for studio {id}: {e}")
+            return {"error": str(e)}
+
+    def stop_studio(self, id):
+        """Stop a studio and all its containers"""
+        try:
+            with self.lock:
+                if id not in self.studios:
+                    return {"error": "Studio not found"}
+                
+                studio_info = self.studios[id]
+                container_ids = studio_info["containers"].copy()  # Copy to avoid holding lock
+                
+                # Mark studio as stopping
+                studio_info["status"] = "stopping"
+
+            # Stop all containers in the studio
+            for container_id in container_ids:
+                self.stop_container(container_id)
+            
+            # Mark studio as stopped
+            with self.lock:
+                if id in self.studios:
+                    self.studios[id]["status"] = "stopped"
+                
+            self.logger.info(f"Stopped studio {id}")
+            return {"success": True, "id": id}
+                
+        except Exception as e:
+            self.logger.error(f"Failed to stop studio {id}: {e}")
+            return {"error": str(e)}

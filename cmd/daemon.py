@@ -37,8 +37,9 @@ except NameError:
 # Caching
 CACHE_MAX_AGE = 86400 # 24 hours
 
-# Executor
+# Executors
 executor = _executor.Executor()
+studio_executor = _executor.StudioExecutor()
 
 # Jinja2 Environment
 jinja_env = Environment(loader=FileSystemLoader(TEMPLATE_DIR), autoescape=True)
@@ -146,6 +147,14 @@ class HTTPHandler(BaseHTTPRequestHandler):
                 id = self.path.split('/')[-2]
                 print(id)
                 return self.send_json(executor.get_container_logs(id))
+            elif self.path == '/api/studios':
+                return self.send_json(studio_executor.list_studios())
+            elif re.fullmatch(r'/api/studios/[^/]+', self.path):
+                id = self.path.split('/')[-1]
+                return self.send_json(studio_executor.get_studio(id))
+            elif re.fullmatch(r'/api/studios/[^/]+/logs', self.path):
+                id = self.path.split('/')[-2]
+                return self.send_json(studio_executor.get_studio_logs(id))
         elif method == 'POST':
             # POST
             if self.path == '/api/containers':
@@ -156,6 +165,21 @@ class HTTPHandler(BaseHTTPRequestHandler):
                 environment = payload.get('environment', {})
 
                 return self.send_json(executor.start_container(id, image, command, publish, environment))
+            elif self.path == '/api/studios':
+                id = payload.get('id', None)
+                logger.info(f"Starting studio {id}")
+                containers = [
+                    {
+                        "id": "vscode",
+                        "image": "codercom/code-server:4.101.2-39",
+                        "command": ["/usr/bin/entrypoint.sh", "--bind-addr", "0.0.0.0:8080", ".", "--auth", "none"],
+                        "publish": { "9191": 8080 },
+                        "environment": {
+                            "ENTRYPOINTD": "/entrypoint.d"
+                        }
+                    }
+                ]
+                return self.send_json(studio_executor.start_studio(id, containers))
         elif method == 'DELETE':
             # DELETE
             if re.fullmatch(r'/api/containers/[^/]+', self.path):
@@ -205,9 +229,26 @@ class HTTPHandler(BaseHTTPRequestHandler):
 def signal_handler(signum, frame):
     """Handle Signals"""
     logger.info(f"SIGNAL: {signum}, Shutting down...")
+    
+    # Collect container and studio IDs for graceful shutdown
+    # Release locks before stopping to prevent deadlocks
+    container_ids = []
+    studio_ids = []
+    
     with executor.lock:
-        for id in list(executor.containers.keys()):
-            executor.stop_container(id)
+        container_ids = list(executor.containers.keys())
+    
+    with studio_executor.lock:
+        studio_ids = list(studio_executor.studios.keys())
+    
+    # Stop all containers
+    for id in container_ids:
+        executor.stop_container(id)
+    
+    # Stop all studios
+    for id in studio_ids:
+        studio_executor.stop_studio(id)
+    
     if 'server' in globals():
         server.server_close()
     sys.exit(0)
