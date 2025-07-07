@@ -162,20 +162,14 @@
                                     background: #1ecf8c;
                                 }
 
-                                &--stopped {
-                                    background: #bd3229;
-                                }
-
                                 &--unhealthy {
                                     background: #d6b822;
                                 }
 
-                                &--completed {
-                                    background: #070707;
-                                }
-
+                                &--completed,
+                                &--stopped,
                                 &--pending {
-                                    background: #9fa1a3;
+                                    background: #b5bac1;
                                 }
                             }
                             .item__icon {
