@@ -3,8 +3,10 @@
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from jinja2 import Environment, FileSystemLoader
 import mimetypes
+import threading
 import logging
 import signal
+import time
 import json
 import sass
 import sys
@@ -167,16 +169,13 @@ class HTTPHandler(BaseHTTPRequestHandler):
                 return self.send_json(executor.start_container(id, image, command, publish, environment))
             elif self.path == '/api/studios':
                 id = payload.get('id', None)
-                logger.info(f"Starting studio {id}")
                 containers = [
                     {
                         "id": "vscode",
                         "image": "codercom/code-server:4.101.2-39",
                         "command": ["/usr/bin/entrypoint.sh", "--bind-addr", "0.0.0.0:8080", ".", "--auth", "none"],
-                        "publish": { "9191": 8080 },
-                        "environment": {
-                            "ENTRYPOINTD": "/entrypoint.d"
-                        }
+                        "environment": { "ENTRYPOINTD": "/entrypoint.d" },
+                        "proxy": { "0": "8080" } # Extra.
                     }
                 ]
                 return self.send_json(studio_executor.start_studio(id, containers))
@@ -217,7 +216,7 @@ class HTTPHandler(BaseHTTPRequestHandler):
 
     def send_json(self, data):
         """Send JSON response"""
-        response = json.dumps(data, indent=2)
+        response = json.dumps(data, indent=2, default=str)
         self.send_response(200)
         self.send_header('Content-Type', 'application/json')
         self.send_header('Content-Length', str(len(response)))

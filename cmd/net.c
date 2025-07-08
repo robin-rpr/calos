@@ -1290,7 +1290,7 @@ void flush_nft_filter(const struct in_addr *ip_to_flush) {
    This function will create a DNAT (Destination NAT) forward rule.
 
    1. Create the 'nat' table.
-   2. Create the 'prerouting' chain.
+   2. Create a 'prerouting' or 'output' chain.
    3. Create a 'rule' to match the protocol and port.
    4. Create a 'rule' to match the guest IP and port.
    5. Create a 'rule' to perform the DNAT.
@@ -1300,7 +1300,7 @@ void flush_nft_filter(const struct in_addr *ip_to_flush) {
    The assumption is that the forward rule doesn't already exist.
    If it does, this function will create a duplicate.
 */
-void create_nft_forward(const struct in_addr *guest_ip, int host_port, int container_port, const char *protocol) {
+void create_nft_forward(const struct in_addr *guest_ip, int host_port, int guest_port, const char *protocol) {
     struct mnl_socket *sock = mnl_socket_open(NETLINK_NETFILTER);
     Tf(sock != NULL, "failed to allocate netlink socket");
     Zf(mnl_socket_bind(sock, 0, MNL_SOCKET_AUTOPID) < 0, "failed to bind socket");
@@ -1397,7 +1397,7 @@ void create_nft_forward(const struct in_addr *guest_ip, int host_port, int conta
     struct nftnl_expr *imm_port_expr = nftnl_expr_alloc("immediate");
     Tf(imm_port_expr != NULL, "failed to allocate 'immediate' expression");
     nftnl_expr_set_u32(imm_port_expr, NFTNL_EXPR_IMM_DREG, NFT_REG_2);
-    uint16_t port_net = htons(container_port);
+    uint16_t port_net = htons(guest_port);
     nftnl_expr_set_data(imm_port_expr, NFTNL_EXPR_IMM_DATA, &port_net, sizeof(port_net));
     nftnl_rule_add_expr(rule, imm_port_expr);
 
@@ -1436,7 +1436,7 @@ void create_nft_forward(const struct in_addr *guest_ip, int host_port, int conta
 
     // Close the socket.
     VERBOSE("added %s port forwarding from host %d to container %s:%d",
-            protocol, host_port, inet_ntoa(*guest_ip), container_port);
+            protocol, host_port, inet_ntoa(*guest_ip), guest_port);
     mnl_socket_close(sock);
 }
 

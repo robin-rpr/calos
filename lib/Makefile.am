@@ -11,7 +11,7 @@ mylibdir = $(pkglibdir)
 # shared objects for faster execution.
 
 cython_modules = \
-  _build _build_cache _clearly _filesystem _misc _pull _push \
+  _build _build_cache _clearly _filesystem _misc _proxy _pull _push \
   _reference _executor _registry _image _irtree _tree _force _grammar
 
 cython_c_files = $(cython_modules:%=%.c)

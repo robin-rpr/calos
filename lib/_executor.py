@@ -4,6 +4,10 @@ import logging
 import time
 import os
 
+import _proxy as _proxy
+
+## Classes ##
+
 class Executor:
     """Executor"""
     
@@ -196,15 +200,23 @@ class StudioExecutor(Executor):
         for container in containers:
             result = self.start_container(
                 f"{id}-{container['id']}",
-                container['image'],
-                container['command'],
-                container['publish'],
-                container['environment']
+                image=container.get('image', None),
+                command=container.get('command', []),
+                environment=container.get('environment', {})
             )
             if "error" in result:
                 return result
-            
-            ids.append(result["id"])
+
+            result_proxy = {}
+            for host, guest in container.get('proxy', {}).items():
+                proxy = _proxy.Proxy("10.0.0.2", int(guest), "0.0.0.0", int(host))
+                result_proxy[guest] = proxy
+                proxy.start()
+                
+            ids.append({
+                "id": result["id"],
+                "proxy": result_proxy
+            })
 
         studio_info = {
             "id": id,
@@ -215,30 +227,35 @@ class StudioExecutor(Executor):
         self.studios[id] = studio_info
         return {"success": True, "id": id}
 
-    def get_studio(self, id):
-        """Get a studio"""
+    def stop_studio(self, id):
+        """Stop a studio and all its containers"""
         try:
             with self.lock:
-                return {"success": True, "studio": self.studios[id]}
-        except Exception as e:
-            self.logger.error(f"Failed to get studio {id}: {e}")
-            return {"error": str(e)}
+                if id not in self.studios:
+                    return {"error": "Studio not found"}
+                
+                studio_info = self.studios[id]
+                containers = studio_info["containers"].copy() # Avoid holding lock.
 
-    def list_studios(self):
-        """List all studios"""
-        try:
+                # Mark studio as stopping
+                studio_info["status"] = "stopping"
+
+            # Stop all containers in the studio
+            for container in containers:
+                self.stop_container(container["id"])
+                for _, proxy in container["proxy"].items():
+                    proxy.stop()
+            
+            # Mark studio as stopped
             with self.lock:
-                studio_list = []
-                for id, info in self.studios.items():
-                    studio_list.append({
-                        "id": id,
-                        "status": info["status"],
-                        "containers": info["containers"]
-                    })
-                return {"success": True, "studios": studio_list}
+                if id in self.studios:
+                    self.studios[id]["status"] = "stopped"
+                
+            self.logger.info(f"Stopped studio {id}")
+            return {"success": True, "id": id}
                 
         except Exception as e:
-            self.logger.error(f"Failed to list studios: {e}")
+            self.logger.error(f"Failed to stop studio {id}: {e}")
             return {"error": str(e)}
 
     def get_studio_logs(self, id):
@@ -272,31 +289,19 @@ class StudioExecutor(Executor):
             self.logger.error(f"Failed to get logs for studio {id}: {e}")
             return {"error": str(e)}
 
-    def stop_studio(self, id):
-        """Stop a studio and all its containers"""
+    def list_studios(self):
+        """List all studios"""
         try:
             with self.lock:
-                if id not in self.studios:
-                    return {"error": "Studio not found"}
-                
-                studio_info = self.studios[id]
-                container_ids = studio_info["containers"].copy()  # Copy to avoid holding lock
-                
-                # Mark studio as stopping
-                studio_info["status"] = "stopping"
-
-            # Stop all containers in the studio
-            for container_id in container_ids:
-                self.stop_container(container_id)
-            
-            # Mark studio as stopped
-            with self.lock:
-                if id in self.studios:
-                    self.studios[id]["status"] = "stopped"
-                
-            self.logger.info(f"Stopped studio {id}")
-            return {"success": True, "id": id}
+                studio_list = []
+                for id, info in self.studios.items():
+                    studio_list.append({
+                        "id": id,
+                        "status": info["status"],
+                        "containers": info["containers"]
+                    })
+                return {"success": True, "studios": studio_list}
                 
         except Exception as e:
-            self.logger.error(f"Failed to stop studio {id}: {e}")
+            self.logger.error(f"Failed to list studios: {e}")
             return {"error": str(e)}

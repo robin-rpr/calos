@@ -365,10 +365,10 @@ void containerize(struct container *c) {
         flush_nft_forward(&guest_ip, "udp");
 
         for (int i = 0; c->publish_map_strs[i] != NULL; i++) {
-            int host_port, container_port;
-            parse_publish_map(c->publish_map_strs[i], &host_port, &container_port);
-            create_nft_forward(&guest_ip, host_port, container_port, "tcp");
-            create_nft_forward(&guest_ip, host_port, container_port, "udp");
+            int host_port, guest_port;
+            parse_publish_map(c->publish_map_strs[i], &host_port, &guest_port);
+            create_nft_forward(&guest_ip, host_port, guest_port, "tcp");
+            create_nft_forward(&guest_ip, host_port, guest_port, "udp");
         }
 
         // Ensure IP forwarding (best-effort).

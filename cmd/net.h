@@ -41,7 +41,7 @@ void set_nft_filter_allow(const struct in_addr *src_ip, const struct in_addr *ds
 void flush_nft_filter(const struct in_addr *ip_to_flush);
 
 /* NFT (Netfilter Table) Forward */
-void create_nft_forward(const struct in_addr *guest_ip, int host_port, int container_port, const char *protocol);
+void create_nft_forward(const struct in_addr *guest_ip, int host_port, int guest_port, const char *protocol);
 void flush_nft_forward(const struct in_addr *guest_ip, const char *protocol);
 
 /* VXLAN (Virtual Extensible LAN) */
