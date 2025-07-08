@@ -4,6 +4,14 @@
 Clearly
 {% endblock %}
 
+{% block sidebar %}
+<!-- Empty -->
+{% endblock %}
+
+{% block header %}
+<!-- Empty -->
+{% endblock %}
+
 {% block content %}
 <div class="content__index">
     <div class="index__header">
@@ -92,7 +100,7 @@ Clearly
 
         document.getElementById('studios-count').innerHTML = studios.studios.length;
         document.getElementById('studios-list').innerHTML = studios.studios.map(studio => `
-            <div class="list__item">
+            <a class="list__item" href="/studio/${studio.id}">
                 <div class="item__status item__status--${studio.status}"></div>
                 <div class="item__icon">
                     <i class="fa-kit fa-studio"></i>
@@ -101,7 +109,7 @@ Clearly
                 <button class="item__more">
                     <i class="fa-sharp fa-light fa-ellipsis"></i>
                 </button>
-            </div>
+            </a>
         `).join('');
     });
 </script>
@@ -117,7 +125,7 @@ Clearly
 
         document.getElementById('containers-count').innerHTML = containers.containers.length;
         document.getElementById('containers-list').innerHTML = containers.containers.map(container => `
-            <div class="list__item">
+            <a class="list__item" href="/container/${container.id}">
                 <div class="item__status item__status--${container.status}"></div>
                 <div class="item__icon item__icon--enlarged">
                     <i class="fa-kit fa-container"></i>
@@ -126,17 +134,17 @@ Clearly
                 <div class="item__ip-address">10.20.12.1</div>
                 <div class="item__ports">
                     ${Object.entries(container.publish).map(([host, container]) => `
-                    <a class="ports__item" href="${window.location.protocol}//${window.location.hostname}:${host}" target="_blank">
+                    <button class="ports__item" onclick="event.preventDefault(); window.open('${window.location.protocol}//${window.location.hostname}:${host}', '_blank')">
                         <i class="fa-kit fa-arrow-up-right-from-square"></i>
                         ${host}:${container}
-                    </a>
+                    </button>
                     `).join('')}
                 </div>
                 <div class="item__image">${container.image}</div>
                 <button class="item__more">
                     <i class="fa-sharp fa-light fa-ellipsis"></i>
                 </button>
-            </div>
+            </a>
         `).join('');
     });
 </script>

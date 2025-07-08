@@ -1,15 +1,16 @@
-.searchbar {
-    flex-grow: 1;
-    height: 100%;
+#searchbar {
+    border-bottom-width: 1px;
+    position: sticky;
+    height: 3rem;
     width: 100%;
-    position: relative;
-    overflow: hidden;
+    z-index: var(--z-index-sticky);
+    top: 0;
 
     & > i {
         pointer-events: none;
         fill: #525252;
         position: absolute;
-        left: 10px;
+        left: 1rem;
         top: 50%;
         width: 20px;
         font-size: 1.125rem;
@@ -30,7 +31,7 @@
         font-size: 0.875rem;
         font-weight: 300;
         background: none;
-        padding-left: 2.75rem;
+        padding-left: 3rem;
         appearance: none;
         outline: none;
 

@@ -258,6 +258,17 @@ class StudioExecutor(Executor):
             self.logger.error(f"Failed to stop studio {id}: {e}")
             return {"error": str(e)}
 
+    def get_studio(self, id):
+        """Get a studio"""
+        try:
+            with self.lock:
+                if id not in self.studios:
+                    return {"error": "Studio not found"}
+                return {"success": True, "id": id, **self.studios[id]}
+        except Exception as e:
+            self.logger.error(f"Failed to get studio {id}: {e}")
+            return {"error": str(e)}
+    
     def get_studio_logs(self, id):
         """Get logs from a studio"""
         try:

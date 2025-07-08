@@ -1,0 +1,12 @@
+#sidebar {
+    flex-shrink: 0;
+    max-height: 100%;
+    background: #ffffff;
+    border-color: #eaeaea;
+    box-shadow: -2px 2px 4px rgba(0, 0, 0, 0.03);
+    border-radius: 10px;
+    border-width: 1px;
+    overflow: auto;
+    width: 3.75rem;
+    height: 100%;
+}

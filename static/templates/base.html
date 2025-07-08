@@ -3,8 +3,12 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
         <title>{% block title %}Clearly{% endblock %}</title>
+
+        <!-- Headers -->
+        {% block headers %}{% endblock %}
+
+        <!-- Favicons -->
         <link rel="icon" href="/static/images/favicon.svg" sizes="any" type="image/svg+xml">
         <link rel="icon" href="/static/images/favicon-256x256.png" type="image/png" sizes="256x256" />
         <link rel="icon" href="/static/images/favicon-32x32.png" type="image/png" sizes="32x32" />
@@ -13,22 +17,27 @@
         <script src="https://kit.fontawesome.com/a69c8c907b.js" crossorigin="anonymous"></script>
 
         <!-- Styles -->
-        <link rel="stylesheet" href="main.css" type="text/css" />
-
-        <!-- Additional Headers -->
-        {% block headers %}{% endblock %}
+        <link rel="stylesheet" href="/main.css" type="text/css" />
     </head>
     <body>
-        {% block inject %}{% endblock %}
-        <main id="app">
-            {% include "layout/navigation.html" %}
+        {% block header %}
+            {% include "layout/header.html" %}
+        {% endblock %}
+        <main id="main">
+            {% block navigation %}
+                {% include "layout/navigation.html" %}
+            {% endblock %}
             <div id="content">
-                {% include "layout/header.html" %}
+                {% block searchbar %}
+                    {% include "layout/searchbar.html" %}
+                {% endblock %}
                 {% block content %}
                 <!-- Content Here -->
                 {% endblock %}
-                <!-- {% include "layout/footer.html" %} -->
             </div>
+            {% block sidebar %}
+                {% include "layout/sidebar.html" %}
+            {% endblock %}
         </main>
     </body>
 </html>

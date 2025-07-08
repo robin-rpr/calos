@@ -1,17 +1,22 @@
 #header {
-    border-bottom-width: 1px;
-    position: sticky;
-    background: #ffffff;
-    height: 3rem;
-    width: 100%;
-    z-index: var(--z-index-sticky);
-    top: 0;
+    height: 2.5rem;
+    padding: 0.75rem 0.75rem 0.25rem;
+    display: flex;
+    align-items: center;
+    column-gap: 1rem;
 
-    .header__container {
-        height: 100%;
-        padding: 0.5rem;
-        display: flex;
-        align-items: center;
-        column-gap: 1rem;
+    & ~ #main {
+        padding-top: unset;
+    }
+
+    .header__breadcrumbs {
+        font-size: 0.938rem;
+
+        .breadcrumbs__item {
+            text-decoration: none;
+            font-weight: 300;
+            color: inherit;
+        }
+
     }
 }

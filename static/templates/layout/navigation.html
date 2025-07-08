@@ -1,62 +1,60 @@
 <nav id="navigation" aria-label="Navigation">
-    <div class="navigation__container">
-        <a class="container__logo" href="/">
-            <img src="/static/images/favicon.svg" draggable="false" width="29" height="29">
+    <a class="navigation__logo" href="/">
+        <img src="/static/images/favicon.svg" draggable="false" width="29" height="29">
+    </a>
+    <div class="navigation__list">
+        <!-- Menu items -->
+        <div class="list__title">Projects</div>
+        <a class="list__link list__link--active" href="/project/stratum">
+            <svg draggable="false">
+                <use xlink:href="/static/images/sprite.svg#shape-1"></use>
+            </svg>
+            Stratum
         </a>
-        <div class="container__list">
-            <!-- Menu items -->
-            <div class="list__title">Projects</div>
-            <a class="list__link list__link--active" href="/project/stratum">
-                <svg draggable="false">
-                    <use xlink:href="/static/images/sprite.svg#shape-1"></use>
-                </svg>
-                Stratum
-            </a>
-            <a class="list__link" href="/project/crystalline">
-                <svg draggable="false">
-                    <use xlink:href="/static/images/sprite.svg#shape-3"></use>
-                </svg>
-                Crystalline
-            </a>
-            <button class="list__button">
-                <i class="fa-sharp fa-light fa-plus"></i>
-                <span>New Project</span>
-            </button>
-            <hr class="list__divider">
-            <div class="list__title">Manage</div>
-            <a class="list__link" href="/studios">
-                Studios
-            </a>
-            <a class="list__link" href="/images">
-                Images
-            </a>
-            <a class="list__link" href="/containers">
-                Containers
-            </a>
-            <a class="list__link" href="/volumes">
-                Volumes
-            </a>
-            <a class="list__link" href="/databases">
-                Databases
-            </a>
-            <a class="list__link" href="/registries">
-                Registries
-            </a>
-            <a class="list__link" href="/machines">
-                Machines
-            </a>
-            <hr class="list__divider">
-            <a class="list__link" href="/support">
-                Support
-            </a>
-            <a class="list__link" href="/settings">
-                Settings
-            </a>
-            <hr class="list__divider list__divider--grow">
-            <a class="list__link" href="/documentation">
-                <i style="color: #8f8f8f" class="fa-kit fa-arrow-up-right-from-square"></i>
-                Product Docs
-            </a>
-        </ul>
-    </div>
+        <a class="list__link" href="/project/crystalline">
+            <svg draggable="false">
+                <use xlink:href="/static/images/sprite.svg#shape-3"></use>
+            </svg>
+            Crystalline
+        </a>
+        <button class="list__button">
+            <i class="fa-sharp fa-light fa-plus"></i>
+            <span>New Project</span>
+        </button>
+        <hr class="list__divider">
+        <div class="list__title">Manage</div>
+        <a class="list__link" href="/studios">
+            Studios
+        </a>
+        <a class="list__link" href="/images">
+            Images
+        </a>
+        <a class="list__link" href="/containers">
+            Containers
+        </a>
+        <a class="list__link" href="/volumes">
+            Volumes
+        </a>
+        <a class="list__link" href="/databases">
+            Databases
+        </a>
+        <a class="list__link" href="/registries">
+            Registries
+        </a>
+        <a class="list__link" href="/machines">
+            Machines
+        </a>
+        <hr class="list__divider">
+        <a class="list__link" href="/support">
+            Support
+        </a>
+        <a class="list__link" href="/settings">
+            Settings
+        </a>
+        <hr class="list__divider list__divider--grow">
+        <a class="list__link" href="/documentation">
+            <i style="color: #8f8f8f" class="fa-kit fa-arrow-up-right-from-square"></i>
+            Product Docs
+        </a>
+    </ul>
 </nav>

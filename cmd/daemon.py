@@ -66,16 +66,14 @@ class HTTPHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         """Handle GET requests."""
         try:
-            if self.path == '/':
-                self.serve_index()
-            elif self.path == '/main.css':
+            if self.path == '/main.css':
                 self.serve_scss()
             elif self.path.startswith('/api/'):
                 self.serve_api('GET')
             elif self.path.startswith('/static/'):
-                self.serve_file()
+                self.serve_static()
             else:
-                self.send_error(404, "File Not Found")
+                self.serve_page()
         except Exception as e:
             logger.error(f"Error handling request for {self.path}: {e}", exc_info=True)
             self.send_error(500, "Internal Server Error")
@@ -114,18 +112,6 @@ class HTTPHandler(BaseHTTPRequestHandler):
             logger.error(f"Error handling request for {self.path}: {e}", exc_info=True)
             self.send_error(500, "Internal Server Error")
 
-    def serve_index(self):
-        """Serves the index.html page."""
-        template = jinja_env.get_template('pages/index.html')
-        example = "Example5"
-        html_content = template.render(example=example)
-        
-        self.send_response(200)
-        self.send_header('Content-type', 'text/html; charset=utf-8')
-        self.send_header('Cache-Control', f'public, max-age={CACHE_MAX_AGE}')
-        self.end_headers()
-        self.wfile.write(html_content.encode('utf-8'))
-
     def serve_scss(self):
         """Compiles SCSS to CSS."""
         styles = sass.compile(filename=os.path.join(STATIC_DIR, 'styles', 'main.scss'))
@@ -147,7 +133,6 @@ class HTTPHandler(BaseHTTPRequestHandler):
                 return self.send_json(executor.get_container(id))
             elif re.fullmatch(r'/api/containers/[^/]+/logs', self.path):
                 id = self.path.split('/')[-2]
-                print(id)
                 return self.send_json(executor.get_container_logs(id))
             elif self.path == '/api/studios':
                 return self.send_json(studio_executor.list_studios())
@@ -187,7 +172,7 @@ class HTTPHandler(BaseHTTPRequestHandler):
         
         return self.send_error(404, "Not Found")
 
-    def serve_file(self):
+    def serve_static(self):
         """Serves static files securely."""
         rel_path = self.path.removeprefix("/static/").replace("\\", "/") # Normalization.
         full_path = os.path.abspath(os.path.join(STATIC_DIR, rel_path))
@@ -210,6 +195,25 @@ class HTTPHandler(BaseHTTPRequestHandler):
         else:
             self.send_error(404, "Static file not found")
     
+    def serve_page(self):
+        """Serves a page."""
+        if self.path == '/':
+            template = jinja_env.get_template('pages/index.html')
+            html = template.render()
+        elif re.fullmatch(r'/studio/[^/]+', self.path):
+            id = self.path.split('/')[-1]
+            template = jinja_env.get_template('pages/studio.html')
+            html = template.render(id=id)
+        else:
+            self.send_error(404, "File Not Found")
+            return
+        
+        self.send_response(200)
+        self.send_header('Content-type', 'text/html; charset=utf-8')
+        self.send_header('Cache-Control', f'public, max-age={CACHE_MAX_AGE}')
+        self.end_headers()
+        self.wfile.write(html.encode('utf-8'))
+
     def log_message(self, format, *args):
         """Redirect server logging to the main logger."""
         logger.info(f"{self.address_string()} - {args[0]} {args[1]}")
