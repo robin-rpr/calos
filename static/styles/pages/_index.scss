@@ -173,9 +173,12 @@
                                 }
                             }
                             .item__icon {
-                                font-size: 1.125rem;
                                 color: #b5bac1;
                                 width: 20.5px;
+
+                                &--enlarged {
+                                    font-size: 1.125rem;
+                                }
                             }
                             .item__name {
                                 font-weight: 350;
@@ -207,6 +210,7 @@
                             .item__more {
                                 font-size: 1.125rem;
                                 background: none;
+                                margin-left: auto;
                             }
                         }
                     }
