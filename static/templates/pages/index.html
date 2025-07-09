@@ -21,10 +21,10 @@ Clearly
             </svg>
             <div class="header__content">
                 <h1 class="content__title">
-                    Stratum<span class="title__default">Default</span>
+                    Stratum
                 </h1>
                 <div class="content__description">
-                    Machine learning / AI / Data processing / Update your project details under Settings
+                    Machine learning / AI / Data processing / Change in Settings
                 </div>
             </div>
         </div>
@@ -49,10 +49,10 @@ Clearly
             <div class="container__content">
                 <div class="content__panel" id="resources" aria-labelledby="tab-resources">
                     <!-- Studios -->
-                    <div class="panel__title">Studios (<span id="studios-count">0</span>)</div>
+                    <div class="panel__title">Studios</div>
                     <div class="panel__list" id="studios-list"></div>
                     <!-- Containers -->
-                    <div class="panel__title">Containers (<span id="containers-count">0</span>)</div>
+                    <div class="panel__title">Containers</div>
                     <div class="panel__list" id="containers-list"></div>
                 </div>
             </div>
@@ -98,7 +98,6 @@ Clearly
             return;
         }
 
-        document.getElementById('studios-count').innerHTML = studios.studios.length;
         document.getElementById('studios-list').innerHTML = studios.studios.map(studio => `
             <a class="list__item" href="/studio/${studio.id}">
                 <div class="item__status item__status--${studio.status}"></div>
@@ -123,7 +122,6 @@ Clearly
             return;
         }
 
-        document.getElementById('containers-count').innerHTML = containers.containers.length;
         document.getElementById('containers-list').innerHTML = containers.containers.map(container => `
             <a class="list__item" href="/container/${container.id}">
                 <div class="item__status item__status--${container.status}"></div>
