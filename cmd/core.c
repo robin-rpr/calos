@@ -229,7 +229,9 @@ void setup_namespaces(const struct container *c, uid_t uid_out, uid_t uid_in,
                       gid_t gid_out, gid_t gid_in);
 void tmpfs_mount(const char *dst, const char *newroot, const char *data);
 bool pull_image(const char *ref, const char *storage_dir);
-static void cgroup_cleanup(void);
+void cgroup_init(const struct container *c);
+void cgroup_cleanup(void);
+
 
 /** Global variables (private) **/
 static char *cgroup_path = NULL;
@@ -294,26 +296,70 @@ void containerize(struct container *c) {
     const char *veth_peer_prefix = "if";
     const char *veth_guest_name = "eth0";
 
-    const int cidr = 10;
+    const int cidr = 8;
     char network_cidr[18];
 
     struct in_addr subnet_ip = { .s_addr = inet_addr("10.0.0.0") };
     struct in_addr bridge_ip = { .s_addr = inet_addr("10.0.0.1") };
-
+    
     snprintf(network_cidr, sizeof(network_cidr), "%s/%d", inet_ntoa(subnet_ip), cidr);
 
-    // Get an available IP address.
+    // Get an IP Address.
+    char hostname[256];
+    struct in_addr candidate = { .s_addr = 0 };
     struct in_addr guest_ip = { .s_addr = 0 };
-    uint32_t start_ip = ntohl(bridge_ip.s_addr) + 1;
-    uint32_t end_ip = ntohl(subnet_ip.s_addr) + (1 << (32 - cidr)) - 1;
-    for (uint32_t ip = start_ip; ip < end_ip; ip++) {
-      if (ip == ntohl(bridge_ip.s_addr)) continue;
-      struct in_addr candidate = { htonl(ip) };
-      if (send_arp(&candidate, bridge_name, &bridge_ip) == 0) {
-         guest_ip = candidate;
-         break;
-      }
-   }
+    while (1) {
+         // Get hostname.
+         if (gethostname(hostname, sizeof(hostname)) != 0) {
+            strncpy(hostname, "unknown", sizeof(hostname));
+         }
+         
+         // Create a hash from hostname.
+         uint32_t host_hash = 0;
+         for (char *p = hostname; *p; p++) {
+            host_hash = host_hash * 31 + *p;
+         }
+         
+         // Get process ID
+         pid_t pid = getpid();
+         
+         // Calculate IP within 10.0.0.0/8 range
+         // Format: 10.H.P.X where:
+         // H = host_hash byte
+         // P = pid byte
+         // X = (host_hash + pid) byte
+         uint32_t h = (host_hash & 0xFF);
+         uint32_t p = (pid & 0xFF);
+         uint32_t x = ((host_hash + pid) & 0xFF);
+         
+         // Ensure we don't use 0 or 255 for any octet
+         h = (h == 0 || h == 255) ? 1 : h;
+         p = (p == 0 || p == 255) ? 1 : p;
+         x = (x == 0 || x == 255) ? 1 : x;
+         
+         // Combine into final IP: 10.H.P.X
+         uint32_t ip = (10 << 24) | (h << 16) | (p << 8) | x;
+         
+         // Avoid bridge IP (usually 10.0.0.1)
+         if (ip == ntohl(bridge_ip.s_addr)) {
+            ip++;
+         }
+         
+         // Convert to network byte order.
+         candidate.s_addr = htonl(ip);
+
+         // Send ARP Request.
+         if (send_arp(&candidate, bridge_name, &bridge_ip) == 0) {
+            // IP Address is available, use it.
+            guest_ip = candidate;
+            break;
+        } else {
+            // Not available, try the next one.
+            uint32_t ip = ntohl(candidate.s_addr);
+            ip = ((ip + 1) & 0x00FFFFFF) | 0x0A000000;
+            candidate.s_addr = htonl(ip);
+        }
+    }
 
     // Use a pipe to synchronize parent and child. The child will write to the
     // pipe only after it has entered its new namespaces.
@@ -1163,6 +1209,14 @@ bool pull_image(const char *ref, const char *storage_dir) {
       return false;
    }
 }
+/* Build the cgroup path and set the cgroup limits.
+
+   cgroup_path: /sys/fs/cgroup/clearly/<pid>
+   cgroup_pids_max: /sys/fs/cgroup/clearly/<pid>/pids.max
+   cgroup_cpu_weight: /sys/fs/cgroup/clearly/<pid>/cpu.weight
+   cgroup_memory_max: /sys/fs/cgroup/clearly/<pid>/memory.max
+   cgroup_cpu_max: /sys/fs/cgroup/clearly/<pid>/cpu.max
+*/
 void cgroup_init(const struct container *c)
 {
    int fd;
@@ -1207,7 +1261,9 @@ void cgroup_init(const struct container *c)
    Z_ (close(fd));
    free(procs_path);
 }
-static void cgroup_cleanup(void)
+
+/* Remove the cgroup path. */
+void cgroup_cleanup(void)
 {
    if (cgroup_path) {
       rmdir(cgroup_path);
