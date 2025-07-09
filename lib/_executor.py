@@ -3,6 +3,7 @@ import threading
 import logging
 import time
 import os
+import re
 
 import _proxy as _proxy
 
@@ -43,7 +44,7 @@ class Executor:
                     cmd.extend(["--"] + command)
                 else:
                     cmd.extend(["--", "/bin/bash", "-c", "sleep infinity"])
-                
+
                 # Start container process
                 process = subprocess.Popen(
                     cmd,
@@ -64,7 +65,8 @@ class Executor:
                     "start_time": time.time(),
                     "status": "running",
                     "stdout_log": [],
-                    "stderr_log": []
+                    "stderr_log": [],
+                    "stdraw_log": {}
                 }
                 
                 self.containers[id] = container_info
@@ -128,6 +130,7 @@ class Executor:
                     "id": id,
                     "stdout": container_info["stdout_log"],
                     "stderr": container_info["stderr_log"],
+                    "stdraw": container_info["stdraw_log"],
                     "status": container_info["status"]
                 }
                 
@@ -146,8 +149,9 @@ class Executor:
                         "status": info["status"],
                         "publish": info["publish"],
                         "pid": info["pid"],
+                        "ip": info["stdraw_log"].get("ip", None),
                         "start_time": info["start_time"],
-                        "image": info["image"]
+                        "image": info["image"],
                     })
                 return {"success": True, "containers": container_list}
                 
@@ -161,21 +165,56 @@ class Executor:
             container_info = self.containers[id]
             process = container_info["process"]
             
-            # Read stdout
-            for line in iter(process.stdout.readline, ''):
-                if line:
-                    container_info["stdout_log"].append({
-                        "timestamp": time.time(),
-                        "line": line.strip()
-                    })
+            def read_stdout():
+                """Read stdout in a separate thread"""
+                try:
+                    for line in iter(process.stdout.readline, ''):
+                        if line:
+                            line = line.strip()
+                            with self.lock:
+                                container_info["stdout_log"].append({
+                                    "timestamp": time.time(),
+                                    "line": line
+                                })
+                                # Read stdraw from line
+                                read_stdraw(line)
+                except Exception as e:
+                    self.logger.error(f"Error reading stdout for container {id}: {e}")
             
-            # Read stderr
-            for line in iter(process.stderr.readline, ''):
-                if line:
-                    container_info["stderr_log"].append({
-                        "timestamp": time.time(),
-                        "line": line.strip()
-                    })
+            def read_stderr():
+                """Read stderr in a separate thread"""
+                try:
+                    for line in iter(process.stderr.readline, ''):
+                        if line:
+                            line = line.strip()
+                            with self.lock:
+                                container_info["stderr_log"].append({
+                                    "timestamp": time.time(),
+                                    "line": line
+                                })
+                                # Read stdraw from line
+                                read_stdraw(line)
+                except Exception as e:
+                    self.logger.error(f"Error reading stderr for container {id}: {e}")
+
+            def read_stdraw(line):
+                """Read stdraw from line"""
+                # Check for raw log pattern: run[<pid>]: raw:<key>:<value> (file:line)
+                raw_match = re.search(r'run\[\d+\]: raw:([^:]+):([^\s]+)(?:\s+\([^)]+\))?', line)
+                if raw_match:
+                    key, value = raw_match.groups()
+                    container_info["stdraw_log"][key] = value
+
+            # Start separate threads for reading stdout and stderr
+            stdout_thread = threading.Thread(target=read_stdout, daemon=True)
+            stderr_thread = threading.Thread(target=read_stderr, daemon=True)
+            
+            stdout_thread.start()
+            stderr_thread.start()
+            
+            # Wait for both threads to complete (when process ends)
+            stdout_thread.join()
+            stderr_thread.join()
                     
         except Exception as e:
             self.logger.error(f"Error collecting logs for container {id}: {e}")
@@ -207,9 +246,18 @@ class StudioExecutor(Executor):
             if "error" in result:
                 return result
 
+            # Wait for container IP address to be available
+            while True:
+                with self.lock:
+                    if self.containers[result["id"]]["stdraw_log"].get("ip"):
+                        ip_address = self.containers[result["id"]]["stdraw_log"]["ip"]
+                        break
+                time.sleep(0.1)
+
             result_proxy = {}
             for host, guest in container.get('proxy', {}).items():
-                proxy = _proxy.Proxy("10.0.0.2", int(guest), "0.0.0.0", int(host))
+                self.logger.info(f"Starting proxy for {result['id']} on {ip_address}:{guest} -> 0.0.0.0:{host}")
+                proxy = _proxy.Proxy(ip_address, int(guest), "0.0.0.0", int(host))
                 result_proxy[guest] = proxy
                 proxy.start()
                 
@@ -287,6 +335,7 @@ class StudioExecutor(Executor):
                     logs[container_info["id"]] = {
                         "stdout": container_logs["stdout"],
                         "stderr": container_logs["stderr"],
+                        "stdraw": container_logs["stdraw"],
                         "status": container_logs["status"]
                     }
 

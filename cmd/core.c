@@ -204,6 +204,9 @@ struct {
 /* Bind mounts done so far; canonical host paths. If null, there are none. */
 char **bind_mount_paths = NULL;
 
+/* Path to the cgroup. */
+char *cgroup_path = NULL;
+
 
 /** Function prototypes (private) **/
 
@@ -231,10 +234,6 @@ void tmpfs_mount(const char *dst, const char *newroot, const char *data);
 bool pull_image(const char *ref, const char *storage_dir);
 void cgroup_init(const struct container *c);
 void cgroup_cleanup(void);
-
-
-/** Global variables (private) **/
-static char *cgroup_path = NULL;
 
 
 /** Functions **/
@@ -298,69 +297,73 @@ void containerize(struct container *c) {
 
     const int cidr = 8;
     char network_cidr[18];
+    char hostname[256];
 
     struct in_addr subnet_ip = { .s_addr = inet_addr("10.0.0.0") };
     struct in_addr bridge_ip = { .s_addr = inet_addr("10.0.0.1") };
+    struct in_addr guest_ip  = { .s_addr = 0 };
     
+    // Get network cidr.
     snprintf(network_cidr, sizeof(network_cidr), "%s/%d", inet_ntoa(subnet_ip), cidr);
 
-    // Get an IP Address.
-    char hostname[256];
-    struct in_addr candidate = { .s_addr = 0 };
-    struct in_addr guest_ip = { .s_addr = 0 };
-    while (1) {
-         // Get hostname.
-         if (gethostname(hostname, sizeof(hostname)) != 0) {
-            strncpy(hostname, "unknown", sizeof(hostname));
-         }
-         
-         // Create a hash from hostname.
-         uint32_t host_hash = 0;
-         for (char *p = hostname; *p; p++) {
-            host_hash = host_hash * 31 + *p;
-         }
-         
-         // Get process ID
-         pid_t pid = getpid();
-         
-         // Calculate IP within 10.0.0.0/8 range
-         // Format: 10.H.P.X where:
-         // H = host_hash byte
-         // P = pid byte
-         // X = (host_hash + pid) byte
-         uint32_t h = (host_hash & 0xFF);
-         uint32_t p = (pid & 0xFF);
-         uint32_t x = ((host_hash + pid) & 0xFF);
-         
-         // Ensure we don't use 0 or 255 for any octet
-         h = (h == 0 || h == 255) ? 1 : h;
-         p = (p == 0 || p == 255) ? 1 : p;
-         x = (x == 0 || x == 255) ? 1 : x;
-         
-         // Combine into final IP: 10.H.P.X
-         uint32_t ip = (10 << 24) | (h << 16) | (p << 8) | x;
-         
-         // Avoid bridge IP (usually 10.0.0.1)
-         if (ip == ntohl(bridge_ip.s_addr)) {
-            ip++;
-         }
-         
-         // Convert to network byte order.
-         candidate.s_addr = htonl(ip);
+    // Get hostname.
+    if (gethostname(hostname, sizeof(hostname)) != 0) {
+      strncpy(hostname, "unknown", sizeof(hostname));
+   }
 
-         // Send ARP Request.
-         if (send_arp(&candidate, bridge_name, &bridge_ip) == 0) {
-            // IP Address is available, use it.
-            guest_ip = candidate;
-            RAW("ipaddress:%s", inet_ntoa(guest_ip));
-            break;
-        } else {
-            // Not available, try the next one.
-            uint32_t ip = ntohl(candidate.s_addr);
-            ip = ((ip + 1) & 0x00FFFFFF) | 0x0A000000;
-            candidate.s_addr = htonl(ip);
-        }
-    }
+   // Ensure bridge exists.
+   if (!is_bridge_exists(bridge_name)) {
+      create_bridge(bridge_name, &bridge_ip, cidr);
+   }
+
+   // Ensure ip address.
+   while (1) {         
+      // Create a hash from hostname.
+      uint32_t host_hash = 0;
+      for (char *p = hostname; *p; p++) {
+         host_hash = host_hash * 31 + *p;
+      }
+      
+      // Get process ID
+      pid_t pid = getpid();
+      
+      // Calculate IP within 10.0.0.0/8 range
+      // Format: 10.H.P.X where:
+      // H = host_hash byte
+      // P = pid byte
+      // X = (host_hash + pid) byte
+      uint32_t h = (host_hash & 0xFF);
+      uint32_t p = (pid & 0xFF);
+      uint32_t x = ((host_hash + pid) & 0xFF);
+      
+      // Ensure we don't use 0 or 255 for any octet
+      h = (h == 0 || h == 255) ? 1 : h;
+      p = (p == 0 || p == 255) ? 1 : p;
+      x = (x == 0 || x == 255) ? 1 : x;
+      
+      // Combine into final IP: 10.H.P.X
+      uint32_t ip = (10 << 24) | (h << 16) | (p << 8) | x;
+      
+      // Avoid bridge IP (usually 10.0.0.1)
+      if (ip == ntohl(bridge_ip.s_addr)) {
+         ip++;
+      }
+      
+      // Convert to network byte order.
+      guest_ip.s_addr = htonl(ip);
+
+      // Send ARP Request.
+      if (send_arp(&guest_ip, bridge_name, &bridge_ip) == 0) {
+         // IP Address is available, use it.
+         RAW("ip:%s", inet_ntoa(guest_ip));
+         break;
+      } else {
+         // Not available, try the next one.
+         uint32_t ip = ntohl(guest_ip.s_addr);
+         ip = ((ip + 1) & 0x00FFFFFF) | 0x0A000000;
+         guest_ip.s_addr = htonl(ip);
+      }
+   }
 
     // Use a pipe to synchronize parent and child. The child will write to the
     // pipe only after it has entered its new namespaces.
@@ -372,11 +375,6 @@ void containerize(struct container *c) {
     if (child_pid > 0) {
         /* Parent process */
         close(sync_pipe[1]);
-        
-        // Ensure bridge exists.
-        if (!is_bridge_exists(bridge_name)) {
-            create_bridge(bridge_name, &bridge_ip, cidr);
-        }
 
         // Ensure veth link pair.
         char veth_host_name[IFNAMSIZ]; // Host-side veth name.

@@ -129,7 +129,7 @@ Clearly
                     <i class="fa-kit fa-container"></i>
                 </div>
                 <div class="item__name">${container.id}</div>
-                <div class="item__ip-address">10.20.12.1</div>
+                <div class="item__ip-address">${container.ip}</div>
                 <div class="item__ports">
                     ${Object.entries(container.publish).map(([host, container]) => `
                     <button class="ports__item" onclick="event.preventDefault(); window.open('${window.location.protocol}//${window.location.hostname}:${host}', '_blank')">
