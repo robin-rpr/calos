@@ -229,6 +229,10 @@ void setup_namespaces(const struct container *c, uid_t uid_out, uid_t uid_in,
                       gid_t gid_out, gid_t gid_in);
 void tmpfs_mount(const char *dst, const char *newroot, const char *data);
 bool pull_image(const char *ref, const char *storage_dir);
+static void cgroup_cleanup(void);
+
+/** Global variables (private) **/
+static char *cgroup_path = NULL;
 
 
 /** Functions **/
@@ -310,8 +314,6 @@ void containerize(struct container *c) {
          break;
       }
    }
-
-    
 
     // Use a pipe to synchronize parent and child. The child will write to the
     // pipe only after it has entered its new namespaces.
@@ -406,6 +408,8 @@ void containerize(struct container *c) {
 
     } else {
         /* Child process */
+        cgroup_init(c);
+        Z_ (atexit(cgroup_cleanup));
         close(sync_pipe[0]);
 
         if (c->join_pid) {
@@ -1157,5 +1161,56 @@ bool pull_image(const char *ref, const char *storage_dir) {
       return true;
    } else {
       return false;
+   }
+}
+void cgroup_init(const struct container *c)
+{
+   int fd;
+   pid_t pid = getpid();
+   T_ (1 <= asprintf(&cgroup_path, "/sys/fs/cgroup/clearly/%d", pid));
+   Zf(mkdir(cgroup_path, 0755), "can't create cgroup directory: %s", cgroup_path);
+   if (c->cgroup_pids_max > 0) {
+      char *pids_max_path = cat(cgroup_path, "/pids.max");
+      T_ (-1 != (fd = open(pids_max_path, O_WRONLY)));
+      T_ (1 <= dprintf(fd, "%ld", c->cgroup_pids_max));
+      Z_ (close(fd));
+      free(pids_max_path);
+   }
+   if (c->cgroup_cpu_weight) {
+      char *cpu_weight_path = cat(cgroup_path, "/cpu.weight");
+      T_ (-1 != (fd = open(cpu_weight_path, O_WRONLY)));
+      T_ (1 <= dprintf(fd, "%s", c->cgroup_cpu_weight));
+      Z_ (close(fd));
+      free(cpu_weight_path);
+   }
+   if (c->cgroup_memory_max) {
+      char *memory_max_path = cat(cgroup_path, "/memory.max");
+      T_ (-1 != (fd = open(memory_max_path, O_WRONLY)));
+      T_ (1 <= dprintf(fd, "%s", c->cgroup_memory_max));
+      Z_ (close(fd));
+      free(memory_max_path);
+   }
+   if (c->cgroup_cpu_max) {
+      char *cpu_max_path = cat(cgroup_path, "/cpu.max");
+      char *end;
+      float cpus = strtof(c->cgroup_cpu_max, &end);
+      Tf(end != c->cgroup_cpu_max, "invalid --cpus value");
+      long quota = (long)(cpus * 100000);
+      T_ (-1 != (fd = open(cpu_max_path, O_WRONLY)));
+      T_ (1 <= dprintf(fd, "%ld 100000", quota));
+      Z_ (close(fd));
+      free(cpu_max_path);
+   }
+   char *procs_path = cat(cgroup_path, "/cgroup.procs");
+   T_ (-1 != (fd = open(procs_path, O_WRONLY)));
+   T_ (1 <= dprintf(fd, "%d", pid));
+   Z_ (close(fd));
+   free(procs_path);
+}
+static void cgroup_cleanup(void)
+{
+   if (cgroup_path) {
+      rmdir(cgroup_path);
+      free(cgroup_path);
    }
 }

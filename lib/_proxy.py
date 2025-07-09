@@ -50,9 +50,12 @@ class Proxy:
 
     def _pipe(self, src, dst):
         try:
-            while (data := src.recv(4096)):
+            while True:
+                data = src.recv(4096)
+                if not data:
+                    break
                 dst.sendall(data)
-        except: 
+        except:
             pass
         finally:
             src.close(); dst.close()

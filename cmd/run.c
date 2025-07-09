@@ -68,6 +68,10 @@ const struct argp_option options[] = {
                            "overlay read-write tmpfs size on top of image" },
    { "publish",       'p', "[NET:]SRC:DST", 0,
                            "forward host port [NET:]SRC to container port DST" },
+   { "pids-max",      -14, "N",             0, "maximum number of PIDs" },
+   { "cpu-weight",    -15, "WEIGHT",        0, "CPU weight" },
+   { "memory-max",    -16, "BYTES",         0, "memory limit" },
+   { "cpus",          -17, "N",             0, "number of CPUs" },
    { "private-tmp",   't', 0,               0, "use container-private /tmp" },
    { "quiet",         'q', 0,               0, "print less output (can be repeated)" },
    { "env",           'e', "ARG",           0,
@@ -133,6 +137,9 @@ int main(int argc, char *argv[])
    privs_verify_invoking();
    username_set();
 
+   if (mkdir("/sys/fs/cgroup/clearly", 0755) && errno != EEXIST)
+      Zf(1, "can't create cgroup parent directory");
+
    Z_ (atexit(warnings_reprint));
 
 #ifdef ENABLE_SYSLOG
@@ -142,7 +149,11 @@ int main(int argc, char *argv[])
 
    verbose = LL_INFO;  // in misc.c
    args = (struct args){
-      .c = (struct container){ .allow_map_strs = list_new(sizeof(char *), 0),
+      .c = (struct container){ .cgroup_pids_max = 0,
+                               .cgroup_cpu_weight = NULL,
+                               .cgroup_memory_max = NULL,
+                               .cgroup_cpu_max = NULL,
+                               .allow_map_strs = list_new(sizeof(char *), 0),
                                .binds = list_new(sizeof(struct bind), 0),
                                .container_gid = getegid(),
                                .container_uid = geteuid(),
@@ -477,6 +488,18 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state)
          test_logging(true);
       else
          FATAL(0, "invalid --test argument: %s; see source code", arg);
+      break;
+   case -14: // --pids-max
+      args->c.cgroup_pids_max = parse_int(arg, false, "--pids-max");
+      break;
+   case -15: // --cpu-weight
+      args->c.cgroup_cpu_weight = arg;
+      break;
+   case -16: // --memory-max
+      args->c.cgroup_memory_max = arg;
+      break;
+   case -17: // --cpus
+      args->c.cgroup_cpu_max = arg;
       break;
    case 'a': // --allow
       Ze(arg[0] == '\0', "allow mapping can't be empty string");

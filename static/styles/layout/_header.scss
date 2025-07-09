@@ -1,6 +1,5 @@
 #header {
-    height: 2.5rem;
-    padding: 0.75rem 0.75rem 0.25rem;
+    padding: 0.75rem 0.875rem;
     display: flex;
     align-items: center;
     column-gap: 1rem;
@@ -11,12 +10,25 @@
 
     .header__breadcrumbs {
         font-size: 0.938rem;
+        background: #fff;
+        box-shadow: rgba(0, 0, 0, 0.1) 0px 1px 3px 0px, rgba(0, 0, 0, 0.1) 0px 1px 2px -1px;
+        padding: 3px 13px;
+        border-radius: 8px;
+        font-weight: 300;
+        display: flex;
+        align-items: center;
+        column-gap: 0.5rem;
 
         .breadcrumbs__item {
             text-decoration: none;
-            font-weight: 300;
             color: inherit;
         }
 
+        .breadcrumbs__separator {
+            background: #8f8f8f;
+            width: 1px;
+            height: 12px;
+            transform: rotate(10deg);
+        }
     }
 }

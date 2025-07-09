@@ -28,6 +28,10 @@ enum img_type {
 };
 
 struct container {
+   long cgroup_pids_max;
+   char *cgroup_cpu_weight;
+   char *cgroup_memory_max;
+   char *cgroup_cpu_max;
    char **allow_map_strs; // egress traffic to allow
    struct bind *binds;    // mount paths to container
    gid_t container_gid;   // GID to use in container
@@ -58,6 +62,7 @@ void containerize(struct container *c);
 enum img_type image_type(const char *ref, const char *images_dir);
 char *img_name2path(const char *name, const char *storage_dir);
 void run_user_command(char *argv[], const char *initial_dir);
+void cgroup_init(const struct container *c);
 #ifdef HAVE_SECCOMP
 void seccomp_install(void);
 #endif
