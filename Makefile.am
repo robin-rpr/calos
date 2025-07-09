@@ -45,4 +45,5 @@ uninstall-hook:
 		systemctl daemon-reload; \
 		rm -f /var/log/clearly.log; \
 		rm -rf /tmp/clearly; \
+		rm -rf /run/clearly; \
 	fi

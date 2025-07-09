@@ -97,10 +97,9 @@ clean-local:
 install-data-hook:
 	$(MKDIR_P) $(DESTDIR)$(testdir)/fixtures
 	ln -fTs /tmp $(DESTDIR)$(testdir)/fixtures/symlink-to-tmp
-uninstall-hook:
+uninstall-local:
 	rm -f $(DESTDIR)$(testdir)/fixtures/symlink-to-tmp
 	rmdir $(DESTDIR)$(testdir)/fixtures || true
-	rmdir $$(find $(pkgdatadir) -type d | sort -r)
 endif
 EXTRA_DIST = $(testfiles) \
              $(testfiles_exec) \
