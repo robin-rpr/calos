@@ -560,7 +560,7 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state)
    case 'q':  // --quiet
       Te(verbose <= 0, "--quiet incompatible with --verbose");
       verbose--;
-      Te(verbose >= -3, "--quiet can be specified at most thrice");
+      Te(verbose >= -4, "--quiet can be specified at most four times");
       break;
    case 't':  // --private-tmp
       args->c.private_tmp = true;
@@ -573,7 +573,7 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state)
    case 'v':  // --verbose
       Te(verbose >= 0, "--verbose incompatible with --quiet");
       verbose++;
-      Te(verbose <= 3, "--verbose can be specified at most thrice");
+      Te(verbose <= 4, "--verbose can be specified at most four times");
       break;
    case 'w':  // --write
       args->c.writable = true;

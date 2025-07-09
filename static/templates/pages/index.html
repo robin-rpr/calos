@@ -101,7 +101,7 @@ Clearly
         document.getElementById('studios-list').innerHTML = studios.studios.map(studio => `
             <a class="list__item" href="/studio/${studio.id}">
                 <div class="item__status item__status--${studio.status}"></div>
-                <div class="item__icon">
+                <div class="item__icon item__icon--enlarged">
                     <i class="fa-kit fa-studio"></i>
                 </div>
                 <div class="item__name">${studio.id}</div>
@@ -125,7 +125,7 @@ Clearly
         document.getElementById('containers-list').innerHTML = containers.containers.map(container => `
             <a class="list__item" href="/container/${container.id}">
                 <div class="item__status item__status--${container.status}"></div>
-                <div class="item__icon item__icon--enlarged">
+                <div class="item__icon">
                     <i class="fa-kit fa-container"></i>
                 </div>
                 <div class="item__name">${container.id}</div>

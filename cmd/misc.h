@@ -78,6 +78,7 @@
 #define VERBOSE(...)  msg(LL_VERBOSE, __FILE__, __LINE__, 0, __VA_ARGS__);
 #define DEBUG(...)    msg(LL_DEBUG,   __FILE__, __LINE__, 0, __VA_ARGS__);
 #define TRACE(...)    msg(LL_TRACE,   __FILE__, __LINE__, 0, __VA_ARGS__);
+#define RAW(...)      msg(LL_RAW,     __FILE__, __LINE__, 0, __VA_ARGS__);
 
 
 /** Types **/
@@ -107,7 +108,8 @@ enum log_level { LL_FATAL =   -3,
                  LL_INFO =     0,  // minimum number of -v to print the msg
                  LL_VERBOSE =  1,
                  LL_DEBUG =    2,
-                 LL_TRACE =    3 };
+                 LL_TRACE =    3,
+                 LL_RAW =      4 };
 
 
 /** External variables **/

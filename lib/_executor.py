@@ -29,7 +29,7 @@ class Executor:
                     return {"error": "Container already exists"}
                 
                 # Prepare command
-                cmd = ["clearly", "run", image]
+                cmd = ["clearly", "run", image, "-vvvv"]
 
                 if publish:
                     for key, value in publish.items():
@@ -281,10 +281,10 @@ class StudioExecutor(Executor):
 
             # Release lock before calling get_container_logs to avoid deadlock
             logs = {}
-            for container_id in container_ids:
-                container_logs = self.get_container_logs(container_id)
+            for container_info in container_ids:
+                container_logs = self.get_container_logs(container_info["id"])
                 if "error" not in container_logs:
-                    logs[container_id] = {
+                    logs[container_info["id"]] = {
                         "stdout": container_logs["stdout"],
                         "stderr": container_logs["stderr"],
                         "status": container_logs["status"]

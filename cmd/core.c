@@ -352,6 +352,7 @@ void containerize(struct container *c) {
          if (send_arp(&candidate, bridge_name, &bridge_ip) == 0) {
             // IP Address is available, use it.
             guest_ip = candidate;
+            RAW("ipaddress:%s", inet_ntoa(guest_ip));
             break;
         } else {
             // Not available, try the next one.
@@ -418,13 +419,6 @@ void containerize(struct container *c) {
             create_nft_forward(&guest_ip, host_port, guest_port, "tcp");
             create_nft_forward(&guest_ip, host_port, guest_port, "udp");
         }
-
-        // Ensure IP forwarding (best-effort).
-        //FILE *f = fopen("/proc/sys/net/ipv4/ip_forward", "w");
-        //Zf(f == NULL, "failed to open ip_forward");
-        //Zf(fprintf(f, "1\n") < 0, "failed to write to ip_forward");
-        //VERBOSE("IP forwarding enabled");
-        //fclose(f);
         
         // The child will write to the pipe only after it has entered its new
         // namespaces. The parent will read from the pipe to wait for the child
