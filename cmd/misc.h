@@ -78,7 +78,6 @@
 #define VERBOSE(...)  msg(LL_VERBOSE, __FILE__, __LINE__, 0, __VA_ARGS__);
 #define DEBUG(...)    msg(LL_DEBUG,   __FILE__, __LINE__, 0, __VA_ARGS__);
 #define TRACE(...)    msg(LL_TRACE,   __FILE__, __LINE__, 0, __VA_ARGS__);
-#define RAW(...)      msg(LL_RAW,     __FILE__, __LINE__, 0, __VA_ARGS__);
 
 
 /** Types **/

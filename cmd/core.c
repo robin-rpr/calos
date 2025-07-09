@@ -378,22 +378,34 @@ void containerize(struct container *c) {
       // Combine into final IP: 10.H.P.X
       uint32_t ip = (10 << 24) | (h << 16) | (p << 8) | x;
       
-      // Avoid bridge IP (usually 10.0.0.1)
-      if (ip == ntohl(bridge_ip.s_addr)) {
-         ip++;
-      }
-      
       // Convert to network byte order.
       guest_ip.s_addr = htonl(ip);
 
       // Send ARP Request.
       if (send_arp(&guest_ip, bridge_name, &bridge_ip) == 0) {
-         // IP Address is available, use it.
-         RAW("ip:%s", inet_ntoa(guest_ip));
+         /* IP Address is available, use it. */
+         char path[64];
+         int fd;
+
+         snprintf(path, sizeof(path), "/run/clearly/net/%d", pid);
+
+         // Ensure /run/clearly and its subdirectories exist.
+         Zf(mkdir("/run/clearly", 0755) == -1 && errno != EEXIST,
+            "Failed to create /run/clearly directory");
+         Zf(mkdir("/run/clearly/net", 0755) == -1 && errno != EEXIST,
+            "Failed to create /run/clearly/net directory");
+
+         // Write PID-to-IP mapping to file.
+         T_ (-1 != (fd = open(path, O_WRONLY | O_CREAT | O_TRUNC, 0644)));
+         T_ (1 <= dprintf(fd, "%s\n", inet_ntoa(guest_ip)));
+         Z_ (close(fd));
+
          break;
       } else {
-         // Not available, try the next one.
+         /* Not available, try the next one. */
          uint32_t ip = ntohl(guest_ip.s_addr);
+
+         // Try the next IP address.
          ip = ((ip + 1) & 0x00FFFFFF) | 0x0A000000;
          guest_ip.s_addr = htonl(ip);
       }

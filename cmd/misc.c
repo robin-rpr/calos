@@ -649,9 +649,6 @@ void msgv(enum log_level level, const char *file, int line, int errno_,
    case LL_WARNING:
       message = cat(message, "warning: ");
       break;
-   case LL_RAW:
-      message = cat(message, "raw:\0");
-      break;
    default:
       break;
    }

@@ -30,7 +30,7 @@ class Executor:
                     return {"error": "Container already exists"}
                 
                 # Prepare command
-                cmd = ["clearly", "run", image, "-vvvv"]
+                cmd = ["clearly", "run", image]
 
                 if publish:
                     for key, value in publish.items():
@@ -61,12 +61,15 @@ class Executor:
                     "publish": publish,
                     "environment": environment,
                     "pid": process.pid,
+                    "ip": (lambda pid=process.pid: (
+                        open(f"/run/clearly/net/{pid}").read().strip()
+                        if os.path.exists(f"/run/clearly/net/{pid}") else None
+                    )),
                     "process": process,
                     "start_time": time.time(),
                     "status": "running",
                     "stdout_log": [],
                     "stderr_log": [],
-                    "stdraw_log": {}
                 }
                 
                 self.containers[id] = container_info
@@ -130,7 +133,6 @@ class Executor:
                     "id": id,
                     "stdout": container_info["stdout_log"],
                     "stderr": container_info["stderr_log"],
-                    "stdraw": container_info["stdraw_log"],
                     "status": container_info["status"]
                 }
                 
@@ -149,7 +151,7 @@ class Executor:
                         "status": info["status"],
                         "publish": info["publish"],
                         "pid": info["pid"],
-                        "ip": info["stdraw_log"].get("ip", None),
+                        "ip": info["ip"](),
                         "start_time": info["start_time"],
                         "image": info["image"],
                     })
@@ -176,8 +178,6 @@ class Executor:
                                     "timestamp": time.time(),
                                     "line": line
                                 })
-                                # Read stdraw from line
-                                read_stdraw(line)
                 except Exception as e:
                     self.logger.error(f"Error reading stdout for container {id}: {e}")
             
@@ -192,18 +192,8 @@ class Executor:
                                     "timestamp": time.time(),
                                     "line": line
                                 })
-                                # Read stdraw from line
-                                read_stdraw(line)
                 except Exception as e:
                     self.logger.error(f"Error reading stderr for container {id}: {e}")
-
-            def read_stdraw(line):
-                """Read stdraw from line"""
-                # Check for raw log pattern: run[<pid>]: raw:<key>:<value> (file:line)
-                raw_match = re.search(r'run\[\d+\]: raw:([^:]+):([^\s]+)(?:\s+\([^)]+\))?', line)
-                if raw_match:
-                    key, value = raw_match.groups()
-                    container_info["stdraw_log"][key] = value
 
             # Start separate threads for reading stdout and stderr
             stdout_thread = threading.Thread(target=read_stdout, daemon=True)
@@ -246,17 +236,15 @@ class StudioExecutor(Executor):
             if "error" in result:
                 return result
 
-            # Wait for container IP address to be available
             while True:
-                with self.lock:
-                    if self.containers[result["id"]]["stdraw_log"].get("ip"):
-                        ip_address = self.containers[result["id"]]["stdraw_log"]["ip"]
-                        break
+                ip_address = self.containers[result["id"]]["ip"]()
+                if ip_address:
+                    break
+                # Wait for container.
                 time.sleep(0.1)
 
             result_proxy = {}
             for host, guest in container.get('proxy', {}).items():
-                self.logger.info(f"Starting proxy for {result['id']} on {ip_address}:{guest} -> 0.0.0.0:{host}")
                 proxy = _proxy.Proxy(ip_address, int(guest), "0.0.0.0", int(host))
                 result_proxy[guest] = proxy
                 proxy.start()
@@ -335,7 +323,6 @@ class StudioExecutor(Executor):
                     logs[container_info["id"]] = {
                         "stdout": container_logs["stdout"],
                         "stderr": container_logs["stderr"],
-                        "stdraw": container_logs["stdraw"],
                         "status": container_logs["status"]
                     }
 
