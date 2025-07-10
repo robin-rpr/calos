@@ -283,8 +283,7 @@ void bind_mounts(const struct bind *binds, const char *newroot,
                  newroot, flags, scratch);
 }
 
-/*
- * Set up new namespaces or join existing ones.
+/* Set up new namespaces or join existing ones.
  *
  * This function orchestrates the creation of a new container environment by
  * forking the current process. The parent and child then cooperate to
