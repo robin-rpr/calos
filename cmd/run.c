@@ -11,6 +11,7 @@
 #include <syslog.h>
 #include <sys/mman.h>
 #include <unistd.h>
+#include <json-c/json.h>
 
 #include "config.h"
 #include "core.h"
@@ -91,6 +92,7 @@ const struct argp_option options[] = {
 
 struct args {
    struct container c;
+   struct json_object *pulled_config;
    struct env_delta *env_deltas;
    char *initial_dir;
    char *storage_dir;
@@ -105,9 +107,12 @@ bool get_first_env(char **array, char **name, char **value);
 void img_directory_verify(const char *img_path, const struct args *args);
 int join_ct(int cli_ct);
 char *join_tag(char *cli_tag);
+int container_uid(struct json_object *config);
+char **container_cmd(struct json_object *config);
 int parse_int(char *s, bool extra_ok, char *error_tag);
 static error_t parse_opt(int key, char *arg, struct argp_state *state);
 void parse_set_env(struct args *args, char *arg, int delim);
+struct json_object *parse_config(const char *image_path);
 void privs_verify_invoking();
 char *storage_default(void);
 extern void warnings_reprint(void);
@@ -157,6 +162,7 @@ int main(int argc, char *argv[])
                                .binds = list_new(sizeof(struct bind), 0),
                                .container_gid = getegid(),
                                .container_uid = geteuid(),
+                               .container_cmd = NULL,
                                .env_expand = true,
                                .host_home = NULL,
                                .host_map_strs = list_new(sizeof(char *), 0),
@@ -172,6 +178,7 @@ int main(int argc, char *argv[])
                                .private_tmp = false,
                                .type = IMG_NONE,
                                .writable = false },
+      .pulled_config = json_object_new_object(),
       .env_deltas = list_new(sizeof(struct env_delta), 0),
       .initial_dir = NULL,
       .storage_dir = storage_default(),
@@ -189,9 +196,9 @@ int main(int argc, char *argv[])
    if (!argp_help_fmt_set)
       Z_ (unsetenv("ARGP_HELP_FMT"));
 
-   if (arg_next >= argc - 1) {
+   if (arg_next >= argc) {
       printf("Usage: run [OPTION...] IMAGE -- COMMAND [ARG...]\n");
-      FATAL(0, "IMAGE and/or COMMAND not specified");
+      FATAL(0, "IMAGE not specified");
    }
    args.c.img_ref = argv[arg_next++];
    args.c.newroot = realpath_(args.c.newroot, true);
@@ -220,6 +227,14 @@ int main(int argc, char *argv[])
       break;
    }
 
+   args.pulled_config = parse_config(args.c.newroot);
+   args.c.container_cmd = container_cmd(args.pulled_config);
+
+   if (args.pulled_config) {
+      args.c.container_uid = container_uid(args.pulled_config);
+      args.c.container_gid = args.c.container_uid;
+   }
+
    if (args.c.join) {
       args.c.join_ct = join_ct(args.c.join_ct);
       args.c.join_tag = join_tag(args.c.join_tag);
@@ -230,9 +245,17 @@ int main(int argc, char *argv[])
    else
       host_tmp = "/tmp";
 
-   c_argv = list_new(sizeof(char *), argc - arg_next);
-   for (int i = 0; i < argc - arg_next; i++)
-      c_argv[i] = argv[i + arg_next];
+   if (arg_next >= argc) {
+      // Use default command from image metadata
+      char **default_cmd = args.c.container_cmd;
+      Zf(default_cmd == NULL, "no command specified");
+      c_argv = default_cmd;
+   } else {
+      // Use command from command line
+      c_argv = list_new(sizeof(char *), argc - arg_next);
+      for (int i = 0; i < argc - arg_next; i++)
+         c_argv[i] = argv[i + arg_next];
+   }
 
    VERBOSE("verbosity: %d", verbose);
    VERBOSE("image: %s", args.c.img_ref);
@@ -240,6 +263,7 @@ int main(int argc, char *argv[])
    VERBOSE("newroot: %s", args.c.newroot);
    VERBOSE("container uid: %u", args.c.container_uid);
    VERBOSE("container gid: %u", args.c.container_gid);
+   VERBOSE("container cmd: %s", args.c.container_cmd);
    VERBOSE("join: %d %d %s %d", args.c.join, args.c.join_ct, args.c.join_tag,
            args.c.join_pid);
    VERBOSE("private /tmp: %d", args.c.private_tmp);
@@ -250,7 +274,7 @@ int main(int argc, char *argv[])
 #ifdef HAVE_SECCOMP
    seccomp_install();
 #endif
-   run_user_command(c_argv, args.initial_dir); // should never return
+   run_user_command(c_argv, args.initial_dir);
    exit(EXIT_FAILURE);
 }
 
@@ -383,6 +407,37 @@ char *join_tag(char *cli_tag)
 end:
    Te(tag[0] != '\0', "join: peer group tag cannot be empty string");
    return tag;
+}
+
+/* Get the container UID */
+int container_uid(struct json_object *config)
+{
+   struct json_object *user = NULL;
+   json_object_object_get_ex(config, "User", &user);
+   return json_object_get_int(user);
+}
+
+/* Get the container command */
+char **container_cmd(struct json_object *config)
+{
+    struct json_object *ep = NULL, *cmd = NULL;
+    json_object_object_get_ex(config, "Entrypoint", &ep);
+    json_object_object_get_ex(config, "Cmd", &cmd);
+
+    VERBOSE("entrypoint: %s", ep);
+    VERBOSE("command: %s", cmd);
+
+    size_t n = ep ? json_object_array_length(ep) : 0;
+    size_t m = cmd ? json_object_array_length(cmd) : 0;
+
+    char **result = list_new(sizeof(char *), n + m + 1);
+    for (size_t i = 0; i < n; i++)
+        result[i] = strdup(json_object_get_string(json_object_array_get_idx(ep, i)));
+    for (size_t i = 0; i < m; i++)
+        result[n + i] = strdup(json_object_get_string(json_object_array_get_idx(cmd, i)));
+
+    result[n + m] = NULL;
+    return result;
 }
 
 /* Parse an integer string arg and return the result. If an error occurs,
@@ -616,6 +671,49 @@ void parse_set_env(struct args *args, char *arg, int delim)
       }
    }
    list_append((void **)&(args->env_deltas), &ed, sizeof(ed));
+}
+
+struct json_object *parse_config(const char *image_path)
+{
+    char *config_path = NULL;
+    FILE *fp;
+    long len;
+    char *json_buf = NULL;
+    struct json_object *root = NULL;
+    struct json_object *config = NULL;
+
+    if (asprintf(&config_path, "%s/clearly/config.pulled.json", image_path) < 0)
+        return NULL;
+    fp = fopen(config_path, "r");
+    free(config_path);    
+    if (!fp) return NULL;
+
+    fseek(fp, 0, SEEK_END);
+    len = ftell(fp);
+    fseek(fp, 0, SEEK_SET);
+    json_buf = malloc(len + 1);
+    if (!json_buf) {
+        fclose(fp);
+        return NULL;
+    }
+    fread(json_buf, 1, len, fp);
+    json_buf[len] = '\0';
+    fclose(fp);
+
+    root = json_tokener_parse(json_buf);
+    free(json_buf);
+
+    VERBOSE("full config: %s", json_object_to_json_string_ext(root, JSON_C_TO_STRING_PRETTY));
+
+    if (!root)
+        return NULL;
+
+    json_object_object_get_ex(root, "config", &config);
+
+    if (!config)
+        return NULL;
+
+    return config;
 }
 
 

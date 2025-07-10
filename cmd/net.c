@@ -1216,7 +1216,7 @@ void flush_nft_filter(const struct in_addr *ip_to_flush) {
         VERBOSE("flushed %d filter allow rule(s) involving guest %s",
                 delete_count, inet_ntoa(*ip_to_flush));
     } else {
-        VERBOSE("no matching filter allow rules found for guest %s to flush",
+        VERBOSE("no filter allow rules found for guest %s to flush",
                 inet_ntoa(*ip_to_flush));
     }
 
@@ -1374,7 +1374,7 @@ void create_nft_forward(const struct in_addr *guest_ip, int host_port, int guest
     nftnl_table_free(table);
 
     // Close the socket.
-    VERBOSE("added %s port forwarding from host %d to container %s:%d",
+    VERBOSE("enabled port %s %d forwarding to container %s:%d",
             protocol, host_port, inet_ntoa(*guest_ip), guest_port);
     mnl_socket_close(sock);
 }
@@ -1515,7 +1515,7 @@ void flush_nft_forward(const struct in_addr *guest_ip, const char *protocol) {
         VERBOSE("flushed %d %s publish rule(s) for guest %s",
                 delete_count, protocol, inet_ntoa(*guest_ip));
     } else {
-        VERBOSE("no matching %s publish rules found for guest %s to flush",
+        VERBOSE("no %s publish rules found for guest %s to flush",
                 protocol, inet_ntoa(*guest_ip));
     }
 

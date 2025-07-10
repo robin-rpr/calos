@@ -1266,6 +1266,7 @@ bool pull_image(const char *ref, const char *storage_dir) {
       return false;
    }
 }
+
 /* Build the cgroup path and set the cgroup limits.
 
    cgroup_path: /sys/fs/cgroup/clearly/<pid>

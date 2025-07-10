@@ -36,8 +36,9 @@ struct container {
    struct bind *binds;    // mount paths to container
    gid_t container_gid;   // GID to use in container
    uid_t container_uid;   // UID to use in container
+   char **container_cmd;  // command to run in container
    bool env_expand;       // expand variables in --env
-   char **argv;           // command to run in container
+   char **argv;           // override command to run in container
    char *host_home;       // if --home, host path to user homedir, else NULL
    char **host_map_strs;  // e.g. "google.com:127.0.0.1"
    char *img_ref;         // image description from command line

@@ -11,8 +11,8 @@ run_SOURCES = run.c core.h core.c net.h net.c misc.h misc.c
 if HAVE_LIBSQUASHFUSE
 run_SOURCES += fuse.h fuse.c
 endif
-run_CFLAGS = $(PTHREAD_CFLAGS) -DLIBEXECDIR="\"$(pkglibexecdir)\"" @LIBNL_CFLAGS@
-run_LDADD = $(CLEARLY_RUN_LIBS) @LIBMNL_LIBS@ @LIBNFTNL_LIBS@ @LIBNL_LIBS@
+run_CFLAGS = $(PTHREAD_CFLAGS) -DLIBEXECDIR="\"$(pkglibexecdir)\"" @LIBNL_CFLAGS@ @JSONC_CFLAGS@
+run_LDADD = $(CLEARLY_RUN_LIBS) @LIBMNL_LIBS@ @LIBNFTNL_LIBS@ @LIBNL_LIBS@ @JSONC_LIBS@
 
 check_SOURCES = check.c misc.h misc.c
 

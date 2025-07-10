@@ -67,6 +67,7 @@ After enabling the CRB repository, install the following packages:
     capabilities management capabilities
   * :code:`fuse3-devel`: Development files for FUSE 3, the filesystem in
     userspace interface
+  * :code:`json-c-devel`: Development files for json-c, providing JSON parsing.
   * :code:`python3-lark-parser`: Python 3 Lark parser library, used for parsing
     and processing Dockerfile as well as docker-compose.yml files.
   * :code:`python3-libsass`: Python 3 LibSass library, used for CSS preprocessing.
@@ -76,6 +77,7 @@ After enabling the CRB repository, install the following packages:
   * :code:`python3-cython`: Python 3 Cython library, used for building Python packages.
   * :code:`python3-devel`: Python 3 development headers and libraries.
   * :code:`python3`: Python 3 interpreter, used for building Python packages.
+  * :code:`json-c` is a JSON parsing library, used for parsing .json files.
   * :code:`git`: Version control system for creating a runtime build cache,
     during the image(1) build command process.
 
