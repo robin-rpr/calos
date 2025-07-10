@@ -159,8 +159,20 @@ class HTTPHandler(BaseHTTPRequestHandler):
                         "id": "vscode",
                         "image": "codercom/code-server:4.101.2-39",
                         "command": ["/usr/bin/entrypoint.sh", "--bind-addr", "0.0.0.0:8080", ".", "--auth", "none"],
-                        "environment": { "ENTRYPOINTD": "/entrypoint.d" },
-                        "proxy": { "0": "8080" } # Extra.
+                        "proxy": { "0": "8080" }
+                    },
+                    {
+                        "id": "jupyter",
+                        "image": "jupyter/minimal-notebook:python-3.9.13",
+                        "command": [
+                            "tini", "-g", "--", "start-notebook.sh",
+                            "--ServerApp.token=",
+                            "--ServerApp.password=",
+                            "--ServerApp.allow_origin=*",
+                            "--ServerApp.disable_check_xsrf=True",
+                            "--ServerApp.tornado_settings={\"headers\":{\"Content-Security-Policy\":\"frame-ancestors *\"}}"
+                        ],
+                        "proxy": { "0": "8888" }
                     }
                 ]
                 return self.send_json(studio_executor.start_studio(id, containers))

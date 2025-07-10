@@ -445,9 +445,6 @@ char **command(struct json_object *config)
     json_object_object_get_ex(config, "Entrypoint", &ep);
     json_object_object_get_ex(config, "Cmd", &cmd);
 
-    VERBOSE("entrypoint: %s", ep);
-    VERBOSE("command: %s", cmd);
-
     size_t n = ep ? json_object_array_length(ep) : 0;
     size_t m = cmd ? json_object_array_length(cmd) : 0;
 
