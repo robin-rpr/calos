@@ -516,7 +516,7 @@ void containerize(struct container *c) {
                 sq_fork(c);
 #endif
             // Remap to the final container user and group IDs.
-            setup_namespaces(c, 0, c->container_uid, 0, c->container_gid);
+            setup_namespaces(c, 0, c->uid, 0, c->gid);
             enter_udss(c);
         } else {
             // This is a loser in a --join race.
@@ -1145,22 +1145,22 @@ void setup_passwd(const struct container *c) {
    // /etc/passwd
    T_ (path = cat(host_tmp, "/run_passwd.XXXXXX"));
    T_ (-1 != (fd = mkstemp(path))); // mkstemp(3) writes path
-   if (c->container_uid != 0)
+   if (c->uid != 0)
       T_ (1 <= dprintf(fd, "root:x:0:0:root:/root:/bin/sh\n"));
-   if (c->container_uid != 65534)
+   if (c->uid != 65534)
       T_ (1 <= dprintf(fd, "nobody:x:65534:65534:nobody:/:/bin/false\n"));
    errno = 0;
-   p = getpwuid(c->container_uid);
+   p = getpwuid(c->uid);
    if (p) {
       T_ (1 <= dprintf(fd, "%s:x:%u:%u:%s:/:/bin/sh\n", p->pw_name,
-                       c->container_uid, c->container_gid, p->pw_gecos));
+                       c->uid, c->gid, p->pw_gecos));
    } else {
       if (errno) {
          Tf (0, "getpwuid(3) failed");
       } else {
-         VERBOSE("UID %d not found; using dummy info", c->container_uid);
+         VERBOSE("UID %d not found; using dummy info", c->uid);
          T_ (1 <= dprintf(fd, "%s:x:%u:%u:%s:/:/bin/sh\n", "clearly",
-                          c->container_uid, c->container_gid, "Clearly"));
+                          c->uid, c->gid, "Clearly"));
       }
    }
    Z_ (close(fd));
@@ -1170,20 +1170,20 @@ void setup_passwd(const struct container *c) {
    // /etc/group
    T_ (path = cat(host_tmp, "/run_group.XXXXXX"));
       T_ (-1 != (fd = mkstemp(path)));
-   if (c->container_gid != 0)
+   if (c->gid != 0)
       T_ (1 <= dprintf(fd, "root:x:0:\n"));
-   if (c->container_gid != 65534)
+   if (c->gid != 65534)
       T_ (1 <= dprintf(fd, "nogroup:x:65534:\n"));
    errno = 0;
-   g = getgrgid(c->container_gid);
+   g = getgrgid(c->gid);
    if (g) {
-      T_ (1 <= dprintf(fd, "%s:x:%u:\n", g->gr_name, c->container_gid));
+      T_ (1 <= dprintf(fd, "%s:x:%u:\n", g->gr_name, c->gid));
    } else {
       if (errno) {
          Tf (0, "getgrgid(3) failed");
       } else {
-         VERBOSE("GID %d not found; using dummy info", c->container_gid);
-         T_ (1 <= dprintf(fd, "%s:x:%u:\n", "clearlygroup", c->container_gid));
+         VERBOSE("GID %d not found; using dummy info", c->gid);
+         T_ (1 <= dprintf(fd, "%s:x:%u:\n", "clearlygroup", c->gid));
       }
    }
       Z_ (close(fd));

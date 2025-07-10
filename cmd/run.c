@@ -94,6 +94,7 @@ struct args {
    struct container c;
    struct json_object *pulled_config;
    struct env_delta *env_deltas;
+   struct env_var *env_vars;
    char *initial_dir;
    char *storage_dir;
    bool unsafe;
@@ -107,8 +108,10 @@ bool get_first_env(char **array, char **name, char **value);
 void img_directory_verify(const char *img_path, const struct args *args);
 int join_ct(int cli_ct);
 char *join_tag(char *cli_tag);
-int container_uid(struct json_object *config);
-char **container_cmd(struct json_object *config);
+int uid(struct json_object *config);
+char **command(struct json_object *config);
+char *initial_dir(struct json_object *config);
+struct env_var *env_vars(struct json_object *config);
 int parse_int(char *s, bool extra_ok, char *error_tag);
 static error_t parse_opt(int key, char *arg, struct argp_state *state);
 void parse_set_env(struct args *args, char *arg, int delim);
@@ -160,9 +163,9 @@ int main(int argc, char *argv[])
                                .cgroup_cpu_max = NULL,
                                .allow_map_strs = list_new(sizeof(char *), 0),
                                .binds = list_new(sizeof(struct bind), 0),
-                               .container_gid = getegid(),
-                               .container_uid = geteuid(),
-                               .container_cmd = NULL,
+                               .gid = getegid(),
+                               .uid = geteuid(),
+                               .command = NULL,
                                .env_expand = true,
                                .host_home = NULL,
                                .host_map_strs = list_new(sizeof(char *), 0),
@@ -180,6 +183,7 @@ int main(int argc, char *argv[])
                                .writable = false },
       .pulled_config = json_object_new_object(),
       .env_deltas = list_new(sizeof(struct env_delta), 0),
+      .env_vars = NULL,
       .initial_dir = NULL,
       .storage_dir = storage_default(),
       .unsafe = false };
@@ -227,12 +231,22 @@ int main(int argc, char *argv[])
       break;
    }
 
+   // Parse the config file from the image.
    args.pulled_config = parse_config(args.c.newroot);
-   args.c.container_cmd = container_cmd(args.pulled_config);
 
    if (args.pulled_config) {
-      args.c.container_uid = container_uid(args.pulled_config);
-      args.c.container_gid = args.c.container_uid;
+      // Set the container UID and GID.
+      args.c.uid = uid(args.pulled_config);
+      args.c.gid = args.c.uid;
+
+      // Set the container command.
+      args.c.command = command(args.pulled_config);
+
+      // Set the container workdir.
+      args.initial_dir = initial_dir(args.pulled_config);
+
+      // Set the container environment variables.
+      args.env_vars = env_vars(args.pulled_config);
    }
 
    if (args.c.join) {
@@ -247,7 +261,7 @@ int main(int argc, char *argv[])
 
    if (arg_next >= argc) {
       // Use default command from image metadata
-      char **default_cmd = args.c.container_cmd;
+      char **default_cmd = args.c.command;
       Zf(default_cmd == NULL, "no command specified");
       c_argv = default_cmd;
    } else {
@@ -261,9 +275,8 @@ int main(int argc, char *argv[])
    VERBOSE("image: %s", args.c.img_ref);
    VERBOSE("storage: %s", args.storage_dir);
    VERBOSE("newroot: %s", args.c.newroot);
-   VERBOSE("container uid: %u", args.c.container_uid);
-   VERBOSE("container gid: %u", args.c.container_gid);
-   VERBOSE("container cmd: %s", args.c.container_cmd);
+   VERBOSE("container uid: %u", args.c.uid);
+   VERBOSE("container gid: %u", args.c.gid);
    VERBOSE("join: %d %d %s %d", args.c.join, args.c.join_ct, args.c.join_tag,
            args.c.join_pid);
    VERBOSE("private /tmp: %d", args.c.private_tmp);
@@ -308,6 +321,14 @@ void fix_environment(struct args *args)
 
    // $TMPDIR: Unset.
    Z_ (unsetenv("TMPDIR"));
+
+   // Environment variables from config.
+   if (args->env_vars) {
+      for (size_t i = 0; args->env_vars[i].name != NULL; i++) {
+         env_set(args->env_vars[i].name, args->env_vars[i].value,
+                 args->c.env_expand);
+      }
+   }
 
    // --env and --unset-env.
    for (size_t i = 0; args->env_deltas[i].action != ENV_END; i++) {
@@ -410,7 +431,7 @@ end:
 }
 
 /* Get the container UID */
-int container_uid(struct json_object *config)
+int uid(struct json_object *config)
 {
    struct json_object *user = NULL;
    json_object_object_get_ex(config, "User", &user);
@@ -418,7 +439,7 @@ int container_uid(struct json_object *config)
 }
 
 /* Get the container command */
-char **container_cmd(struct json_object *config)
+char **command(struct json_object *config)
 {
     struct json_object *ep = NULL, *cmd = NULL;
     json_object_object_get_ex(config, "Entrypoint", &ep);
@@ -437,6 +458,41 @@ char **container_cmd(struct json_object *config)
         result[n + i] = strdup(json_object_get_string(json_object_array_get_idx(cmd, i)));
 
     result[n + m] = NULL;
+    return result;
+}
+
+/* Get the container workdir */
+char *initial_dir(struct json_object *config)
+{
+    struct json_object *wd = NULL;
+    json_object_object_get_ex(config, "WorkingDir", &wd);
+    return (char *)json_object_get_string(wd);
+}
+
+/* Get environment variables from config */
+struct env_var *env_vars(struct json_object *config)
+{
+    struct json_object *env = NULL;
+    if (!json_object_object_get_ex(config, "Env", &env) || !env) {
+        return NULL;
+    }
+
+    size_t env_count = json_object_array_length(env);
+    struct env_var *result = list_new(sizeof(struct env_var), env_count + 1);
+
+    for (size_t i = 0; i < env_count; i++) {
+        const char *env_str = json_object_get_string(json_object_array_get_idx(env, i));
+        char *name = NULL, *value = NULL;
+
+        if (env_str && strchr(env_str, '=')) {
+            split(&name, &value, (char *)env_str, '=');
+        }
+
+        result[i].name = name ? strdup(name) : NULL;
+        result[i].value = value ? strdup(value) : NULL;
+    }
+
+    result[env_count].name = NULL;
     return result;
 }
 
@@ -594,7 +650,7 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state)
    case 'g':  // --gid
       i = parse_int(arg, false, "--gid");
       Te (i >= 0, "--gid: must be non-negative");
-      args->c.container_gid = (gid_t) i;
+      args->c.gid = (gid_t) i;
       break;
    case 'h':  // --host
       Ze(arg[0] == '\0', "host mapping can't be empty string");
@@ -623,7 +679,7 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state)
    case 'u':  // --uid
       i = parse_int(arg, false, "--uid");
       Te (i >= 0, "--uid: must be non-negative");
-      args->c.container_uid = (uid_t) i;
+      args->c.uid = (uid_t) i;
       break;
    case 'v':  // --verbose
       Te(verbose >= 0, "--verbose incompatible with --quiet");
@@ -702,8 +758,6 @@ struct json_object *parse_config(const char *image_path)
 
     root = json_tokener_parse(json_buf);
     free(json_buf);
-
-    VERBOSE("full config: %s", json_object_to_json_string_ext(root, JSON_C_TO_STRING_PRETTY));
 
     if (!root)
         return NULL;

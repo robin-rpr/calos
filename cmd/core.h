@@ -32,28 +32,28 @@ struct container {
    char *cgroup_cpu_weight;
    char *cgroup_memory_max;
    char *cgroup_cpu_max;
-   char **allow_map_strs; // egress traffic to allow
-   struct bind *binds;    // mount paths to container
-   gid_t container_gid;   // GID to use in container
-   uid_t container_uid;   // UID to use in container
-   char **container_cmd;  // command to run in container
-   bool env_expand;       // expand variables in --env
-   char **argv;           // override command to run in container
-   char *host_home;       // if --home, host path to user homedir, else NULL
-   char **host_map_strs;  // e.g. "google.com:127.0.0.1"
-   char *img_ref;         // image description from command line
-   char *initial_dir;     // initial working directory in container
-   char *newroot;         // path to new root directory
-   bool join;             // is this a synchronized join?
-   int join_ct;           // number of peers in a synchronized join
-   pid_t join_pid;        // process in existing namespace to join
-   char *join_tag;        // identifier for synchronized join
-   char *overlay_size;    // size of overlaid tmpfs (NULL for no overlay)
-   char **publish_map_strs;  // e.g. "8080:80"
-   bool public_passwd;   // don't bind custom /etc/{passwd,group}
-   bool private_tmp;      // don't bind host's /tmp
-   enum img_type type;    // directory, SquashFS, etc.
-   bool writable;         // re-mount image read-write
+   char **allow_map_strs;   // egress traffic to allow
+   struct bind *binds;      // mount paths to container
+   gid_t gid;               // GID to use in container
+   uid_t uid;               // UID to use in container
+   char **command;          // command to run in container
+   bool env_expand;         // expand variables in --env
+   char **argv;             // override command to run in container
+   char *host_home;         // if --home, host path to user homedir, else NULL
+   char **host_map_strs;    // e.g. "google.com:127.0.0.1"
+   char *img_ref;           // image description from command line
+   char *initial_dir;       // initial working directory in container
+   char *newroot;           // path to new root directory
+   bool join;               // is this a synchronized join?
+   int join_ct;             // number of peers in a synchronized join
+   pid_t join_pid;          // process in existing namespace to join
+   char *join_tag;          // identifier for synchronized join
+   char *overlay_size;      // size of overlaid tmpfs (NULL for no overlay)
+   char **publish_map_strs; // e.g. "8080:80"
+   bool public_passwd;      // don't bind custom /etc/{passwd,group}
+   bool private_tmp;        // don't bind host's /tmp
+   enum img_type type;      // directory, SquashFS, etc.
+   bool writable;           // re-mount image read-write
 };
 
 
