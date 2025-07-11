@@ -5,7 +5,7 @@
 ## C programs
 
 cmddir = $(pkglibexecdir)
-cmd_PROGRAMS = check run link
+cmd_PROGRAMS = check run link list logs stop
 
 run_SOURCES = run.c core.h core.c net.h net.c misc.h misc.c
 if HAVE_LIBSQUASHFUSE
@@ -25,7 +25,7 @@ link_LDADD = @LIBMNL_LIBS@ @LIBNFTNL_LIBS@ @LIBNL_LIBS@
 cmd_SCRIPTS = convert fromhost test version
 
 # Python modules to compile via Cython
-cython_modules = image daemon
+cython_modules = image daemon deploy
 
 # Generated file lists
 cython_c_files = $(cython_modules:%=%.c)
@@ -36,6 +36,7 @@ cmd_PROGRAMS += $(cython_modules)
 # Set sources for all Cython programs
 image_SOURCES = image.c
 daemon_SOURCES = daemon.c
+deploy_SOURCES = deploy.c
 
 # Cython compilation rules
 SUFFIXES = .py .c
@@ -61,5 +62,6 @@ version: ../configure
 # Link with Python libraries
 image_LDADD = $(PYTHON_LIB)
 daemon_LDADD = $(PYTHON_LIB)
+deploy_LDADD = $(PYTHON_LIB)
 
 CLEANFILES = $(cython_c_files)

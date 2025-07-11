@@ -11,6 +11,8 @@
 #include <syslog.h>
 #include <sys/mman.h>
 #include <unistd.h>
+#include <fcntl.h>
+#include <sys/stat.h>
 #include <json-c/json.h>
 
 #include "config.h"
@@ -53,6 +55,7 @@ const struct argp_option options[] = {
    { "allow",         'a', "DST",           0, "allow egress traffic to peer container DST" },
    { "bind",          'b', "SRC[:DST]",     0, "mount SRC at guest DST (default: same as SRC)" },
    { "cd",            'c', "DIR",           0, "initial working directory in container" },
+   { "detach",        'd', 0,               0, "detach the container into the background" },
    { "env-no-expand", -8,  0,               0, "don't expand $ in --env input" },
    { "feature",       -9, "FEAT",           0, "exit successfully if FEAT is enabled" },
    { "gid",           'g', "GID",           0, "run as GID within container" },
@@ -64,6 +67,7 @@ const struct argp_option options[] = {
    { "join-tag",       -4, "TAG",           0, "label for peer group (implies --join)" },
    { "test",          -13, "TEST",          0, "do 'clearly test' TEST" },
    { "mount",         'm', "DIR",           0, "SquashFS mount point" },
+   { "name",          -18, "NAME",          0, "assign a name to the container" },
    { "passwd",         -7, 0,               0, "bind-mount /etc/{passwd,group}" },
    { "overlay-size",  'o', "SIZE", OPTION_ARG_OPTIONAL,
                            "overlay read-write tmpfs size on top of image" },
@@ -77,6 +81,7 @@ const struct argp_option options[] = {
    { "quiet",         'q', 0,               0, "print less output (can be repeated)" },
    { "env",           'e', "ARG",           0,
                            "set env. variables per ARG (newline-delimited)" },
+   { "runtime",       'r', "DIR",           0, "set DIR as runtime directory" },
    { "storage",       's', "DIR",           0, "set DIR as storage directory" },
    { "uid",           'u', "UID",           0, "run as UID within container" },
    { "unsafe",        -11, 0,               0, "do unsafe things (internal use only)" },
@@ -96,6 +101,7 @@ struct args {
    struct env_delta *env_deltas;
    struct env_var *env_vars;
    char *initial_dir;
+   char *runtime_dir;
    char *storage_dir;
    bool unsafe;
 };
@@ -117,6 +123,7 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state);
 void parse_set_env(struct args *args, char *arg, int delim);
 struct json_object *parse_config(const char *image_path);
 void privs_verify_invoking();
+char *runtime_default(void);
 char *storage_default(void);
 extern void warnings_reprint(void);
 
@@ -166,6 +173,8 @@ int main(int argc, char *argv[])
                                .gid = getegid(),
                                .uid = geteuid(),
                                .command = NULL,
+                               .detached = false,
+                               .name = NULL,
                                .env_expand = true,
                                .host_home = NULL,
                                .host_map_strs = list_new(sizeof(char *), 0),
@@ -185,6 +194,7 @@ int main(int argc, char *argv[])
       .env_deltas = list_new(sizeof(struct env_delta), 0),
       .env_vars = NULL,
       .initial_dir = NULL,
+      .runtime_dir = runtime_default(),
       .storage_dir = storage_default(),
       .unsafe = false };
 
@@ -200,6 +210,16 @@ int main(int argc, char *argv[])
    if (!argp_help_fmt_set)
       Z_ (unsetenv("ARGP_HELP_FMT"));
 
+   if (args.c.detached) {
+      Tf(args.c.name, "--detach requires --name to be set");
+      char *state_dir_path;
+      T_ (1 <= asprintf(&state_dir_path, "/var/lib/clearly/containers/%s", args.c.name));
+      if (path_exists(state_dir_path, NULL, false)) {
+         FATAL(0, "container with name '%s' already exists", args.c.name);
+      }
+      free(state_dir_path);
+   }
+
    if (arg_next >= argc) {
       printf("Usage: run [OPTION...] IMAGE -- COMMAND [ARG...]\n");
       FATAL(0, "IMAGE not specified");
@@ -207,6 +227,7 @@ int main(int argc, char *argv[])
    args.c.img_ref = argv[arg_next++];
    args.c.newroot = realpath_(args.c.newroot, true);
    args.storage_dir = realpath_(args.storage_dir, true);
+   args.runtime_dir = realpath_(args.runtime_dir, true);
    args.c.type = image_type(args.c.img_ref, args.storage_dir);
 
    switch (args.c.type) {
@@ -274,6 +295,7 @@ int main(int argc, char *argv[])
    VERBOSE("verbosity: %d", verbose);
    VERBOSE("image: %s", args.c.img_ref);
    VERBOSE("storage: %s", args.storage_dir);
+   VERBOSE("runtime: %s", args.runtime_dir);
    VERBOSE("newroot: %s", args.c.newroot);
    VERBOSE("container uid: %u", args.c.uid);
    VERBOSE("container gid: %u", args.c.gid);
@@ -282,20 +304,18 @@ int main(int argc, char *argv[])
    VERBOSE("private /tmp: %d", args.c.private_tmp);
    VERBOSE("unsafe: %d", args.unsafe);
 
-   containerize(&args.c);
+   containerize(&args.c, args.runtime_dir);
    fix_environment(&args);
 #ifdef HAVE_SECCOMP
    seccomp_install();
 #endif
-   run_user_command(c_argv, args.initial_dir);
+   run_command(c_argv, args.initial_dir);
    exit(EXIT_FAILURE);
 }
 
 
 /** Supporting functions **/
 
-/* Adjust environment variables. Call once containerized, i.e., already
-   pivoted into new root. */
 void fix_environment(struct args *args)
 {
    char *old_value, *new_value;
@@ -609,6 +629,9 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state)
    case -17: // --cpus
       args->c.cgroup_cpu_max = arg;
       break;
+   case -18: // --name
+      args->c.name = arg;
+      break;
    case 'a': // --allow
       Ze(arg[0] == '\0', "allow mapping can't be empty string");
       list_append((void **)&(args->c.allow_map_strs), &arg, sizeof(char *));
@@ -637,6 +660,9 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state)
    case 'c':  // --cd
       args->initial_dir = arg;
       break;
+   case 'd': // --detach
+      args->c.detached = true;
+      break;
    case 'e': // --env
       if (arg == NULL && state->next < state->argc && 
           strchr(state->argv[state->next], '=') != NULL) {
@@ -659,6 +685,11 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state)
    case 'm':  // --mount
       Ze ((arg[0] == '\0'), "mount point can't be empty string");
       args->c.newroot = arg;
+      break;
+   case 'r':  // --runtime
+      args->runtime_dir = arg;
+      if (!path_exists(arg, NULL, false))
+         WARNING("runtime directory not found: %s", arg);
       break;
    case 's':  // --storage
       args->storage_dir = arg;
@@ -794,6 +825,17 @@ void privs_verify_invoking()
    // No UID privilege allowed either.
    T_ (euid != 0);                           // no privilege
    T_ (euid == ruid && euid == suid);        // no setuid or funny business
+}
+
+/* Return path to the runtime directory, if -r is not specified. */
+char *runtime_default(void)
+{
+   char *runtime = getenv("CLEARLY_RUNTIME_STORAGE");
+
+   if (runtime == NULL)
+      T_ (1 <= asprintf(&runtime, "/run/%s.clearly", username));
+
+   return runtime;
 }
 
 /* Return path to the storage directory, if -s is not specified. */

@@ -307,10 +307,23 @@ void bind_mounts(const struct bind *binds, const char *newroot,
  * /etc/hosts. Execution then returns to main(), which will run the user's
  * command inside the fully-formed container.
  */
-void containerize(struct container *c) {
+void containerize(
+   struct container *c,
+   const char *runtime_dir
+) {
     uid_t host_uid = geteuid();
     gid_t host_gid = getegid();
     int sync_pipe[2];
+
+    if (c->detached) {
+        pid_t pid = fork();
+        Zf(pid == -1, "failed to fork for detached mode");
+        if (pid > 0) {
+            // Parent exits, leaving child to daemonize.
+            exit(0);
+        }
+        Zf(setsid() == -1, "failed to create new session");
+    }
 
     // Network configuration.
     const char *bridge_name = "clearly0";
@@ -382,29 +395,11 @@ void containerize(struct container *c) {
 
       // Send ARP Request.
       if (send_arp(&guest_ip, bridge_name, &bridge_ip) == 0) {
-         /* IP Address is available, use it. */
-         char path[64];
-         int fd;
-
-         snprintf(path, sizeof(path), "/run/clearly/net/%d", pid);
-
-         // Ensure /run/clearly and its subdirectories exist.
-         Zf(mkdir("/run/clearly", 0755) == -1 && errno != EEXIST,
-            "Failed to create /run/clearly directory");
-         Zf(mkdir("/run/clearly/net", 0755) == -1 && errno != EEXIST,
-            "Failed to create /run/clearly/net directory");
-
-         // Write PID-to-IP mapping to file.
-         T_ (-1 != (fd = open(path, O_WRONLY | O_CREAT | O_TRUNC, 0644)));
-         T_ (1 <= dprintf(fd, "%s\n", inet_ntoa(guest_ip)));
-         Z_ (close(fd));
-
+         /* IP Address is available, break. */
          break;
       } else {
          /* Not available, try the next one. */
          uint32_t ip = ntohl(guest_ip.s_addr);
-
-         // Try the next IP address.
          ip = ((ip + 1) & 0x00FFFFFF) | 0x0A000000;
          guest_ip.s_addr = htonl(ip);
       }
@@ -479,6 +474,50 @@ void containerize(struct container *c) {
         Zf(write(sync_pipe[0], "R", 1) != 1, "failed to signal child");
         close(sync_pipe[0]);
 
+        if (c->detached) {
+            if (c->name) {
+                char *container_dir;
+                char *pid_file_path;
+                char *ip_file_path;
+                char *log_file_path;
+                int fd;
+
+                if (!path_exists(runtime_dir, NULL, false)) {
+                    Zf(mkdir(runtime_dir, 0755) == -1 && errno != EEXIST,
+                       "failed to create runtime directory: %s", runtime_dir);
+                }
+
+                T_ (1 <= asprintf(&container_dir, "%s/%s", runtime_dir, c->name));
+                if (path_exists(container_dir, NULL, false))
+                   FATAL(0, "container name is already in use: %s", c->name);
+                Zf(mkdir(container_dir, 0755) == -1 && errno != EEXIST,
+                   "failed to create container directory: %s", container_dir);
+
+                // Write pid file
+                T_ (1 <= asprintf(&pid_file_path, "%s/pid", container_dir));
+                T_ (-1 != (fd = open(pid_file_path, O_WRONLY | O_CREAT | O_TRUNC, 0644)));
+                T_ (1 <= dprintf(fd, "%d\n", child_pid));
+                Z_ (close(fd));
+                free(pid_file_path);
+
+                // Write ip file
+                T_ (1 <= asprintf(&ip_file_path, "%s/ip", container_dir));
+                T_ (-1 != (fd = open(ip_file_path, O_WRONLY | O_CREAT | O_TRUNC, 0644)));
+                T_ (1 <= dprintf(fd, "%s\n", inet_ntoa(guest_ip)));
+                Z_ (close(fd));
+                free(ip_file_path);
+
+                // Write log file
+                T_ (1 <= asprintf(&log_file_path, "%s/log", container_dir));
+                T_ (-1 != (fd = open(log_file_path, O_WRONLY | O_CREAT | O_TRUNC, 0644)));
+                Z_ (close(fd));
+                free(log_file_path);
+
+                free(container_dir);
+            }
+            VERBOSE("detaching from container");
+            exit(0);
+        }
         // Lastly we wait for the child process to exit.
         // This can be abrupt or worst-case scenario never.
         // Therefore cleanup requiring tasks should be avoided.
@@ -902,7 +941,7 @@ void join_namespaces(pid_t pid) {
 }
 
 /* Replace the current process with user command and arguments. */
-void run_user_command(char *argv[], const char *initial_dir) {
+void run_command(char *argv[], const char *initial_dir) {
    LOG_IDS;
 
    if (initial_dir != NULL)

@@ -12,6 +12,8 @@ import sass
 import sys
 import os
 import re
+import subprocess
+import uuid
 
 try:
     # Cython provides PKGLIBDIR.
@@ -40,6 +42,8 @@ except NameError:
 CACHE_MAX_AGE = 86400 # 24 hours
 
 # Executors
+# The C-based executor is being phased out for container operations
+# in favor of calling the clearly CLI.
 executor = _executor.Executor()
 studio_executor = _executor.StudioExecutor()
 
@@ -127,13 +131,44 @@ class HTTPHandler(BaseHTTPRequestHandler):
         if method == 'GET':
             # GET
             if self.path == '/api/containers':
-                return self.send_json(executor.list_containers())
+                try:
+                    result = subprocess.run(['clearly', 'ps', '--json'], capture_output=True, text=True, check=True)
+                    self.send_response(200)
+                    self.send_header('Content-type', 'application/json')
+                    self.end_headers()
+                    self.wfile.write(result.stdout.encode('utf-8'))
+                except subprocess.CalledProcessError as e:
+                    logger.error(f"Failed to list containers: {e.stderr}")
+                    self.send_error(500, f"Error listing containers: {e.stderr}")
+                return
             elif re.fullmatch(r'/api/containers/[^/]+', self.path):
                 id = self.path.split('/')[-1]
-                return self.send_json(executor.get_container(id))
+                # In the future, this could be a `clearly inspect <id>` call
+                # For now, we filter the output of `ps`.
+                try:
+                    result = subprocess.run(['clearly', 'ps', '--json'], capture_output=True, text=True, check=True)
+                    containers = json.loads(result.stdout)
+                    container = next((c for c in containers if c.get('id') == id), None)
+                    if container:
+                        self.send_json(container)
+                    else:
+                        self.send_error(404, "Container not found")
+                except (subprocess.CalledProcessError, json.JSONDecodeError) as e:
+                    logger.error(f"Failed to get container {id}: {e}")
+                    self.send_error(500, f"Error getting container {id}")
+                return
             elif re.fullmatch(r'/api/containers/[^/]+/logs', self.path):
                 id = self.path.split('/')[-2]
-                return self.send_json(executor.get_container_logs(id))
+                try:
+                    result = subprocess.run(['clearly', 'logs', id], capture_output=True, text=True, check=True)
+                    self.send_response(200)
+                    self.send_header('Content-type', 'text/plain')
+                    self.end_headers()
+                    self.wfile.write(result.stdout.encode('utf-8'))
+                except subprocess.CalledProcessError as e:
+                    logger.error(f"Failed to get logs for container {id}: {e.stderr}")
+                    self.send_error(500, f"Error getting logs: {e.stderr}")
+                return
             elif self.path == '/api/studios':
                 return self.send_json(studio_executor.list_studios())
             elif re.fullmatch(r'/api/studios/[^/]+', self.path):
@@ -145,13 +180,31 @@ class HTTPHandler(BaseHTTPRequestHandler):
         elif method == 'POST':
             # POST
             if self.path == '/api/containers':
-                id = payload.get('id', None)
+                container_id = payload.get('id', str(uuid.uuid4())[:8])
                 image = payload.get('image', 'ubuntu:latest')
                 command = payload.get('command', [])
                 publish = payload.get('publish', {})
                 environment = payload.get('environment', {})
 
-                return self.send_json(executor.start_container(id, image, command, publish, environment))
+                run_cmd = ['clearly', 'run', '--detach', '--name', container_id]
+                for host_port, container_port in publish.items():
+                    run_cmd.extend(['--publish', f'{host_port}:{container_port}'])
+                for key, value in environment.items():
+                    run_cmd.extend(['--env', f'{key}={value}'])
+                
+                run_cmd.append(image)
+                if command:
+                    run_cmd.append('--')
+                    run_cmd.extend(command)
+                
+                try:
+                    result = subprocess.run(run_cmd, capture_output=True, text=True, check=True)
+                    return self.send_json({'status': 'started', 'id': result.stdout.strip()})
+                except subprocess.CalledProcessError as e:
+                    logger.error(f"Failed to start container: {e.stderr}")
+                    self.send_json({'status': 'error', 'message': e.stderr}, status_code=500)
+                return
+
             elif self.path == '/api/studios':
                 id = payload.get('id', None)
                 containers = [
@@ -180,7 +233,13 @@ class HTTPHandler(BaseHTTPRequestHandler):
             # DELETE
             if re.fullmatch(r'/api/containers/[^/]+', self.path):
                 id = self.path.split('/')[-1]
-                return self.send_json(executor.stop_container(id))
+                try:
+                    subprocess.run(['clearly', 'stop', id], capture_output=True, text=True, check=True)
+                    return self.send_json({'status': 'stopped', 'id': id})
+                except subprocess.CalledProcessError as e:
+                    logger.error(f"Failed to stop container {id}: {e.stderr}")
+                    self.send_error(500, f"Error stopping container: {e.stderr}")
+                return
         
         return self.send_error(404, "Not Found")
 
@@ -230,10 +289,10 @@ class HTTPHandler(BaseHTTPRequestHandler):
         """Redirect server logging to the main logger."""
         logger.info(f"{self.address_string()} - {args[0]} {args[1]}")
 
-    def send_json(self, data):
+    def send_json(self, data, status_code=200):
         """Send JSON response"""
         response = json.dumps(data, indent=2, default=str)
-        self.send_response(200)
+        self.send_response(status_code)
         self.send_header('Content-Type', 'application/json')
         self.send_header('Content-Length', str(len(response)))
         self.end_headers()
@@ -250,15 +309,12 @@ def signal_handler(signum, frame):
     container_ids = []
     studio_ids = []
     
-    with executor.lock:
-        container_ids = list(executor.containers.keys())
+    # The daemon no longer directly manages container processes,
+    # so we don't need to stop them on shutdown here.
+    # They will continue to run as detached processes.
     
     with studio_executor.lock:
         studio_ids = list(studio_executor.studios.keys())
-    
-    # Stop all containers
-    for id in container_ids:
-        executor.stop_container(id)
     
     # Stop all studios
     for id in studio_ids:

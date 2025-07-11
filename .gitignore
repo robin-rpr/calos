@@ -5,11 +5,16 @@ a.out
 /cmd/check
 /cmd/run
 /cmd/link
+/cmd/list
+/cmd/logs
+/cmd/stop
 /cmd/image
 /cmd/daemon
+/cmd/deploy
 /cmd/version
 /cmd/image.c
 /cmd/daemon.c
+/cmd/deploy.c
 /lib/*.c
 /lib/*.so
 /examples/copy/dirCa/symlink-to-dirCb

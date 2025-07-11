@@ -37,12 +37,13 @@ struct container {
    gid_t gid;               // GID to use in container
    uid_t uid;               // UID to use in container
    char **command;          // command to run in container
+   bool detached;           // detach container to background
+   char *name;              // name of container in daemon
    bool env_expand;         // expand variables in --env
    char **argv;             // override command to run in container
    char *host_home;         // if --home, host path to user homedir, else NULL
    char **host_map_strs;    // e.g. "google.com:127.0.0.1"
    char *img_ref;           // image description from command line
-   char *initial_dir;       // initial working directory in container
    char *newroot;           // path to new root directory
    bool join;               // is this a synchronized join?
    int join_ct;             // number of peers in a synchronized join
@@ -59,11 +60,10 @@ struct container {
 
 /** Function prototypes **/
 
-void containerize(struct container *c);
+void containerize(struct container *c, const char *runtime_dir);
 enum img_type image_type(const char *ref, const char *images_dir);
 char *img_name2path(const char *name, const char *storage_dir);
-void run_user_command(char *argv[], const char *initial_dir);
-void cgroup_init(const struct container *c);
+void run_command(char *argv[], const char *initial_dir);
 #ifdef HAVE_SECCOMP
 void seccomp_install(void);
 #endif
