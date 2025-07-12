@@ -10,14 +10,39 @@
 #include <limits.h>
 #include <stdbool.h>
 
-#define CONTAINERS_DIR "/var/lib/clearly/containers"
+#include "misc.h"
+
+
+/** Function prototypes (private) **/
+
+char *runtime_default(void);
+
+
+/** Functions **/
+
+/* Return path to the runtime directory. */
+char *runtime_default(void)
+{
+   char *runtime = getenv("CLEARLY_RUNTIME_STORAGE");
+
+   if (runtime == NULL)
+      T_ (1 <= asprintf(&runtime, "/run/%s.clearly", username));
+
+   return runtime;
+}
+
+
+/** Main **/
 
 int main(int argc, char *argv[]) {
     DIR *d;
     struct dirent *dir;
     bool json_output = (argc == 2 && strcmp(argv[1], "--json") == 0);
 
-    d = opendir(CONTAINERS_DIR);
+    username_set();
+    char *runtime = runtime_default();
+
+    d = opendir(runtime);
     if (!d) {
         if (errno == ENOENT) {
             if (json_output) {
@@ -34,24 +59,35 @@ int main(int argc, char *argv[]) {
     if (json_output) {
         printf("[\n");
     } else {
-        printf("%-20s\t%s\n", "CONTAINER ID", "STATUS");
+        printf("%-20s\t%-15s\t%s\n", "CONTAINER ID", "IP ADDRESS", "STATUS");
     }
 
     bool first_item = true;
     while ((dir = readdir(d)) != NULL) {
         if (dir->d_type == DT_DIR && strcmp(dir->d_name, ".") != 0 && strcmp(dir->d_name, "..") != 0) {
-            char *container_name = dir->d_name;
+            char path[PATH_MAX];
             char pid_path[PATH_MAX];
-            
-            int ret = snprintf(pid_path, sizeof(pid_path), "%s/%s/pid", CONTAINERS_DIR, container_name);
-            if (ret >= sizeof(pid_path) || ret < 0) {
-                fprintf(stderr, "Error: path too long for container %s\n", container_name);
-                continue;
-            }
+            char net_path[PATH_MAX];
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-truncation"
+            snprintf(path, sizeof(path), "%s/%s", runtime, dir->d_name);
+            snprintf(pid_path, sizeof(pid_path), "%s/pid", path);
+            snprintf(net_path, sizeof(net_path), "%s/net", path);
+#pragma GCC diagnostic pop
 
             FILE *f = fopen(pid_path, "r");
             if (!f) {
                 continue;
+            }
+
+            char ip_addr[16] = "N/A";
+            FILE *net_f = fopen(net_path, "r");
+            if (net_f) {
+                if (fgets(ip_addr, sizeof(ip_addr), net_f) != NULL) {
+                    ip_addr[strcspn(ip_addr, "\n")] = '\0';
+                }
+                fclose(net_f);
             }
 
             pid_t pid;
@@ -69,10 +105,10 @@ int main(int argc, char *argv[]) {
                     if (!first_item) {
                         printf(",\n");
                     }
-                    printf("  {\"id\": \"%s\", \"status\": \"%s\"}", container_name, status_str);
+                    printf("  {\"id\": \"%s\", \"ip_address\": \"%s\", \"status\": \"%s\"}", dir->d_name, ip_addr, status_str);
                     first_item = false;
                 } else {
-                    printf("%-20s\t%s\n", container_name, status_str);
+                    printf("%-20s\t%-15s\t%s\n", dir->d_name, ip_addr, status_str);
                 }
             }
             fclose(f);

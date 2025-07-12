@@ -20,6 +20,8 @@ link_SOURCES = link.c net.h net.c misc.h misc.c
 link_CFLAGS = @LIBNL_CFLAGS@
 link_LDADD = @LIBMNL_LIBS@ @LIBNFTNL_LIBS@ @LIBNL_LIBS@
 
+list_SOURCES = list.c misc.h misc.c
+
 ## Shell scripts - distributed as-is
 
 cmd_SCRIPTS = convert fromhost test version

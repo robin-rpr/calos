@@ -436,8 +436,6 @@ void containerize(
             create_nft_filter(&subnet_ip, cidr);
         }
 
-        flush_nft_filter(&guest_ip);
-
         for (int i = 0; c->allow_map_strs[i] != NULL; i++) {
             struct in_addr ip_addr;
             parse_allow_map(c->allow_map_strs[i], &ip_addr);
@@ -446,9 +444,6 @@ void containerize(
         }
 
         // Ensure DNAT (Destination NAT) Forward.
-        flush_nft_forward(&guest_ip, "tcp");
-        flush_nft_forward(&guest_ip, "udp");
-
         for (int i = 0; c->publish_map_strs[i] != NULL; i++) {
             int host_port, guest_port;
             parse_publish_map(c->publish_map_strs[i], &host_port, &guest_port);
@@ -487,7 +482,26 @@ void containerize(
            Without this, the system will be left in a dirty state where the
            child process is still thought to exist and the parent process has
            lingering registered resources. */
-        VERBOSE("performing cleanup");
+
+        // Cleanup DNAT (Destination NAT) Filter.
+        flush_nft_filter(&guest_ip);
+
+        // Cleanup DNAT (Destination NAT) Forward.
+        flush_nft_forward(&guest_ip, "tcp");
+        flush_nft_forward(&guest_ip, "udp");
+
+        // Cleanup detachment if -d was specified.
+        if (c->detached) {
+            char path[PATH_CHARS];
+         
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-truncation"
+            snprintf(path, sizeof(path), "%s/%s", runtime_dir, c->name);
+#pragma GCC diagnostic pop
+
+            // Delete the directory.
+            rmdir(path);
+        }
 
         // Exit.
         exit(WIFEXITED(status) ? WEXITSTATUS(status) : 1);
@@ -504,13 +518,13 @@ void containerize(
             
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-truncation"
-            snprintf(path, sizeof(path), "/run/clearly/%s", c->name);
+            snprintf(path, sizeof(path), "%s/%s", runtime_dir, c->name);
             snprintf(log_path, sizeof(log_path), "%s/log", path);
             snprintf(net_path, sizeof(net_path), "%s/net", path);
             snprintf(pid_path, sizeof(pid_path), "%s/pid", path);
 #pragma GCC diagnostic pop
             
-            mkdirs("/run", cat("/clearly/", c->name), NULL, NULL);
+            mkdirs(NULL, path, NULL, NULL);
 
             // Redirect stdout and stderr to the log file.
             T_ (1 <= dup2(open(log_path, O_WRONLY | O_CREAT | O_TRUNC, 0644), STDOUT_FILENO));
@@ -588,8 +602,6 @@ void containerize(
 
         // Configure default route.
         set_veth_route(veth_guest_name, &bridge_ip, "0.0.0.0/0");
-
-        VERBOSE("child network configured");
 
         /* Step 7: Drop elevated capabilities.
            The CAP_NET_ADMIN capability was required to configure the network
