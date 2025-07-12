@@ -33,6 +33,7 @@
 #ifdef HAVE_LIBCAP
 #include <sys/capability.h>
 #endif
+#include <signal.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -292,7 +293,7 @@ void bind_mounts(const struct bind *binds, const char *newroot,
  * The high-level process is as follows:
  * 1. A socket pair is created to serve as a synchronization channel between
  * the parent and the forthcoming child process.
- * 2. The process forks.
+ * 2. The process forks (double-fork if detached).
  * 3. The parent process is responsible for configuring the host-side
  * networking. This includes creating a virtual Ethernet (veth) pair,
  * attaching one end to a shared bridge, and setting up network address
@@ -315,14 +316,13 @@ void containerize(
     gid_t host_gid = getegid();
     int sync_pipe[2];
 
+    // Detach from terminal.
     if (c->detached) {
         pid_t pid = fork();
-        Zf(pid == -1, "failed to fork for detached mode");
         if (pid > 0) {
-            // Parent exits, leaving child to daemonize.
             exit(0);
         }
-        Zf(setsid() == -1, "failed to create new session");
+        setsid();
     }
 
     // Network configuration.
@@ -462,10 +462,10 @@ void containerize(
            namespace and signal 'R' (ready) to allow the child to proceed. */
         char buf;
         Zf(read(sync_pipe[0], &buf, 1) != 1 || buf != 'S', "failed to sync with child");
-        
-        // Now, move veth peer into child's network namespace.
+
+        // Move veth peer into child's network namespace.
+        // This is the last step before the child can proceed.
         set_veth_ns_pid(veth_peer_name, child_pid);
-        VERBOSE("parent network configured");
 
         /* Step 4: Signal child to proceed.
            The parent writes 'R' (ready) to the pipe to notify the child that
@@ -474,55 +474,20 @@ void containerize(
         Zf(write(sync_pipe[0], "R", 1) != 1, "failed to signal child");
         close(sync_pipe[0]);
 
-        if (c->detached) {
-            if (c->name) {
-                char *container_dir;
-                char *pid_file_path;
-                char *ip_file_path;
-                char *log_file_path;
-                int fd;
+        // Ignore SIGHUP.
+        signal(SIGHUP, SIG_IGN);
 
-                if (!path_exists(runtime_dir, NULL, false)) {
-                    Zf(mkdir(runtime_dir, 0755) == -1 && errno != EEXIST,
-                       "failed to create runtime directory: %s", runtime_dir);
-                }
-
-                T_ (1 <= asprintf(&container_dir, "%s/%s", runtime_dir, c->name));
-                if (path_exists(container_dir, NULL, false))
-                   FATAL(0, "container name is already in use: %s", c->name);
-                Zf(mkdir(container_dir, 0755) == -1 && errno != EEXIST,
-                   "failed to create container directory: %s", container_dir);
-
-                // Write pid file
-                T_ (1 <= asprintf(&pid_file_path, "%s/pid", container_dir));
-                T_ (-1 != (fd = open(pid_file_path, O_WRONLY | O_CREAT | O_TRUNC, 0644)));
-                T_ (1 <= dprintf(fd, "%d\n", child_pid));
-                Z_ (close(fd));
-                free(pid_file_path);
-
-                // Write ip file
-                T_ (1 <= asprintf(&ip_file_path, "%s/ip", container_dir));
-                T_ (-1 != (fd = open(ip_file_path, O_WRONLY | O_CREAT | O_TRUNC, 0644)));
-                T_ (1 <= dprintf(fd, "%s\n", inet_ntoa(guest_ip)));
-                Z_ (close(fd));
-                free(ip_file_path);
-
-                // Write log file
-                T_ (1 <= asprintf(&log_file_path, "%s/log", container_dir));
-                T_ (-1 != (fd = open(log_file_path, O_WRONLY | O_CREAT | O_TRUNC, 0644)));
-                Z_ (close(fd));
-                free(log_file_path);
-
-                free(container_dir);
-            }
-            VERBOSE("detaching from container");
-            exit(0);
-        }
-        // Lastly we wait for the child process to exit.
-        // This can be abrupt or worst-case scenario never.
-        // Therefore cleanup requiring tasks should be avoided.
+        /* Step 10: Wait for child to exit.
+           We wait for the child to exit so we can perform cleanup. */
         int status;
         waitpid(child_pid, &status, 0);
+
+        /* Step 11: Cleanup.
+           Various cleanup tasks to leave the system in a clean state.
+           Without this, the system will be left in a dirty state where the
+           child process is still thought to exist and the parent process has
+           lingering registered resources. */
+        VERBOSE("performing cleanup");
 
         // Exit.
         exit(WIFEXITED(status) ? WEXITSTATUS(status) : 1);
@@ -530,6 +495,33 @@ void containerize(
     } else {
         /* Child process */
         close(sync_pipe[0]);
+
+        if (c->detached) {
+            char path[PATH_CHARS];
+            char log_path[PATH_CHARS];
+            char net_path[PATH_CHARS];
+            char pid_path[PATH_CHARS];
+            
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-truncation"
+            snprintf(path, sizeof(path), "/run/clearly/%s", c->name);
+            snprintf(log_path, sizeof(log_path), "%s/log", path);
+            snprintf(net_path, sizeof(net_path), "%s/net", path);
+            snprintf(pid_path, sizeof(pid_path), "%s/pid", path);
+#pragma GCC diagnostic pop
+            
+            mkdirs("/run", cat("/clearly/", c->name), NULL, NULL);
+
+            // Redirect stdout and stderr to the log file.
+            T_ (1 <= dup2(open(log_path, O_WRONLY | O_CREAT | O_TRUNC, 0644), STDOUT_FILENO));
+            T_ (1 <= dup2(open(log_path, O_WRONLY | O_CREAT | O_TRUNC, 0644), STDERR_FILENO));
+
+            // Write IP to file.
+            T_ (1 <= dprintf(open(net_path, O_WRONLY | O_CREAT | O_TRUNC, 0644), "%s", inet_ntoa(guest_ip)));
+
+            // Write PID to file.
+            T_ (1 <= dprintf(open(pid_path, O_WRONLY | O_CREAT | O_TRUNC, 0644), "%d", getpid()));
+        }
 
         // Initialize cgroup.
         cgroup_init(c);
