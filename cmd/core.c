@@ -363,45 +363,23 @@ void containerize(
        and X is a combination. We then send an ARP request to ensure the
        address is not currently in use on the local network segment. If it is,
        we linearly probe for the next available address. */
-   while (1) {         
-      // Create a hash from hostname.
-      uint32_t host_hash = 0;
-      for (char *p = hostname; *p; p++) {
-         host_hash = host_hash * 31 + *p;
+   while (1) {
+      // Seed the random number generator.
+      srand(time(NULL) ^ getpid());
+
+      // Generate a random IP address.
+      uint32_t ip = (10U << 24) | (rand() % 0x1000000U);
+      if (ip == ((10U << 24) | 1U)) {
+          ip++; // skip 10.0.0.1
       }
-      
-      // Get process ID
-      pid_t pid = getpid();
-      
-      // Calculate IP within 10.0.0.0/8 range
-      // Format: 10.H.P.X where:
-      // H = host_hash byte
-      // P = pid byte
-      // X = (host_hash + pid) byte
-      uint32_t h = (host_hash & 0xFF);
-      uint32_t p = (pid & 0xFF);
-      uint32_t x = ((host_hash + pid) & 0xFF);
-      
-      // Ensure we don't use 0 or 255 for any octet
-      h = (h == 0 || h == 255) ? 1 : h;
-      p = (p == 0 || p == 255) ? 1 : p;
-      x = (x == 0 || x == 255) ? 1 : x;
-      
-      // Combine into final IP: 10.H.P.X
-      uint32_t ip = (10 << 24) | (h << 16) | (p << 8) | x;
-      
-      // Convert to network byte order.
+
+      // Convert the IP address to network byte order.
       guest_ip.s_addr = htonl(ip);
 
       // Send ARP Request.
       if (send_arp(&guest_ip, bridge_name, &bridge_ip) == 0) {
-         /* IP Address is available, break. */
+         /* Address not in use, break. */
          break;
-      } else {
-         /* Not available, try the next one. */
-         uint32_t ip = ntohl(guest_ip.s_addr);
-         ip = ((ip + 1) & 0x00FFFFFF) | 0x0A000000;
-         guest_ip.s_addr = htonl(ip);
       }
    }
 
@@ -511,31 +489,40 @@ void containerize(
         close(sync_pipe[0]);
 
         if (c->detached) {
-            char path[PATH_CHARS];
-            char log_path[PATH_CHARS];
-            char net_path[PATH_CHARS];
-            char pid_path[PATH_CHARS];
-            
+         char container_path[PATH_CHARS];
+         char relative_path[PATH_CHARS];
+         char log_path[PATH_CHARS];
+         char net_path[PATH_CHARS];
+         char pid_path[PATH_CHARS];
+     
+         // The 'path' argument to mkdirs must begin with a '/', representing the path
+         // to be created *within* the base directory (runtime_dir).
+     #pragma GCC diagnostic push
+     #pragma GCC diagnostic ignored "-Wformat-truncation"
+         snprintf(relative_path, sizeof(relative_path), "/%s", c->name);
+         snprintf(container_path, sizeof(container_path), "%s/%s", runtime_dir, c->name);
+     #pragma GCC diagnostic pop
+     
+         // Create the directory structure.
+         mkdirs(runtime_dir, relative_path, NULL, NULL);
+     
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-truncation"
-            snprintf(path, sizeof(path), "%s/%s", runtime_dir, c->name);
-            snprintf(log_path, sizeof(log_path), "%s/log", path);
-            snprintf(net_path, sizeof(net_path), "%s/net", path);
-            snprintf(pid_path, sizeof(pid_path), "%s/pid", path);
+         snprintf(log_path, sizeof(log_path), "%s/log", container_path);
+         snprintf(net_path, sizeof(net_path), "%s/net", container_path);
+         snprintf(pid_path, sizeof(pid_path), "%s/pid", container_path);
 #pragma GCC diagnostic pop
-            
-            mkdirs(NULL, path, NULL, NULL);
-
-            // Redirect stdout and stderr to the log file.
-            T_ (1 <= dup2(open(log_path, O_WRONLY | O_CREAT | O_TRUNC, 0644), STDOUT_FILENO));
-            T_ (1 <= dup2(open(log_path, O_WRONLY | O_CREAT | O_TRUNC, 0644), STDERR_FILENO));
-
-            // Write IP to file.
-            T_ (1 <= dprintf(open(net_path, O_WRONLY | O_CREAT | O_TRUNC, 0644), "%s", inet_ntoa(guest_ip)));
-
-            // Write PID to file.
-            T_ (1 <= dprintf(open(pid_path, O_WRONLY | O_CREAT | O_TRUNC, 0644), "%d", getpid()));
-        }
+     
+         // Redirect stdout and stderr to the log file.
+         T_ (1 <= dup2(open(log_path, O_WRONLY | O_CREAT | O_TRUNC, 0644), STDOUT_FILENO));
+         T_ (1 <= dup2(open(log_path, O_WRONLY | O_CREAT | O_TRUNC, 0644), STDERR_FILENO));
+     
+         // Write IP to file.
+         T_ (1 <= dprintf(open(net_path, O_WRONLY | O_CREAT | O_TRUNC, 0644), "%s", inet_ntoa(guest_ip)));
+     
+         // Write PID to file.
+         T_ (1 <= dprintf(open(pid_path, O_WRONLY | O_CREAT | O_TRUNC, 0644), "%d", getpid()));
+     }
 
         // Initialize cgroup.
         cgroup_init(c);
