@@ -1,42 +1,38 @@
 <nav id="navigation" aria-label="Navigation">
     <a class="navigation__logo" href="/">
-        <img src="/static/images/favicon.svg" draggable="false" width="29" height="29">
+        <img src="/static/images/favicon.svg" draggable="false" width="32" height="32">
     </a>
     <div class="navigation__list">
         <!-- Menu items -->
+        <div class="list__title">Home</div>
+        <a class="list__link list__link--active" href="/">
+            <i style="font-size: 0.813rem;" class="fa-kit fa-dashboard"></i> Dashboard
+        </a>
         <div class="list__title">Manage</div>
-        <a class="list__link" href="/studios">
-            Studios
+        <a class="list__link list__link" href="/studios">
+            <i style="font-size: 0.813rem;" class="fa-kit fa-studio"></i> Studios
         </a>
         <a class="list__link" href="/images">
-            Images
+            <i style="font-size: 0.938rem;" class="fa-kit fa-image"></i> Images
         </a>
         <a class="list__link" href="/containers">
-            Containers
+            <i style="font-size: 0.938rem;" class="fa-kit fa-container"></i> Containers
         </a>
         <a class="list__link" href="/volumes">
-            Volumes
+            <i style="font-size: 0.938rem;" class="fa-sharp fa-solid fa-hard-drive"></i> Volumes
         </a>
         <a class="list__link" href="/databases">
-            Databases
+            <i style="font-size: 1.25rem;" class="fa-kit fa-database"></i> Databases
         </a>
         <a class="list__link" href="/registries">
-            Registries
+            <i style="font-size: 1rem;" class="fa-kit fa-docker"></i> Registries
         </a>
         <a class="list__link" href="/machines">
-            Machines
-        </a>
-        <hr class="list__divider">
-        <a class="list__link" href="/support">
-            Support
-        </a>
-        <a class="list__link" href="/settings">
-            Settings
+            <i style="font-size: 0.938rem;" class="fa-sharp fa-solid fa-server"></i> Machines
         </a>
         <hr class="list__divider list__divider--grow">
         <a class="list__link" href="/documentation">
-            <i style="color: #8f8f8f" class="fa-kit fa-arrow-up-right-from-square"></i>
-            Product Docs
+            <i style="font-size: 0.938rem;" class="fa-kit fa-book"></i> Product Docs
         </a>
     </ul>
 </nav>

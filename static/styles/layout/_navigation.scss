@@ -7,11 +7,11 @@
     display: flex;
     flex-direction: column;
     background: #f0f4f8;
-    padding: 1.25rem 0;
+    padding: 1.5rem 0;
 
     .navigation__logo {
-        margin: 0 1.25rem 1.25rem;
-        height: 29px;
+        margin: 0 1.5rem 1.5rem;
+        height: 32px;
         width: fit-content;
         display: block;
     }
@@ -25,8 +25,9 @@
         flex-direction: column;
 
         .list__title {
-            padding: 0.25rem 0.75rem 0.5rem;
-            color: #8f8f8f;
+            padding: 0.5rem 0.75rem 0.75rem;
+            font-weight: 400;
+            color: #727676;
         }
 
         .list__divider {
@@ -41,14 +42,16 @@
         .list__button {
             color: inherit;
             font-size: inherit;
-            font-weight: inherit;
             line-height: inherit;
+            font-weight: 350;
             padding: 0.5rem 0.75rem;
+            height: 2.5rem;
             border-radius: 2rem;
             text-decoration: none;
             border: none;
             background: none;
             width: 100%;
+            color: #657380;
             cursor: pointer;
             display: flex;
             flex-wrap: nowrap;
@@ -59,23 +62,21 @@
             &:active {
                 background: #d3e3fd;
                 color: #0842a0;
+                font-weight: 400;
             }
 
             &:hover {
                 background: #e4e8ec;
             }
 
-            i {
-                font-size: 1.125rem;
-                width: 20px;
+            &:not(:last-child) {
+                margin-bottom: 0.25rem;
             }
 
-            svg {
-                width: 20px;
-                height: 20px;
-                border-radius: 5px;
-                outline: 1px solid rgba(0, 0, 0, 0.12);
-                outline-offset: -1px;
+            i {
+                font-size: 1.25rem;
+                text-align: center;
+                width: 2rem;              
             }
         }
     }
