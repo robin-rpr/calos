@@ -356,13 +356,9 @@ void containerize(
 
    /* Step 2: Generate a unique IP for the container.
        To minimize network conflicts, especially in multi-tenant systems, we
-       generate a pseudo-random but deterministic IP address. The address is
-       derived from a hash of the host's name combined with the process ID.
-       This distributes containers across the 10.0.0.0/8 address space. The
-       format is 10.H.P.X, where H is from the host hash, P is from the PID,
-       and X is a combination. We then send an ARP request to ensure the
-       address is not currently in use on the local network segment. If it is,
-       we linearly probe for the next available address. */
+       generate a pseudo-random IP address. We then send an ARP request to
+       ensure the address is not currently in use on the local network segment.
+       If it is, we linearly probe for the next available address. */
    while (1) {
       // Seed the random number generator.
       srand(time(NULL) ^ getpid());

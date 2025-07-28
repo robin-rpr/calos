@@ -18,11 +18,11 @@ import sys
 import time
 
 CLEARLY_BASE = os.path.abspath(os.path.dirname(__file__) + "/../..")
-PACKAGES = ["charliecloud",
-            "charliecloud-builder",
-            "charliecloud-debuginfo",
-            "charliecloud-doc",
-            "charliecloud-test"]
+PACKAGES = ["clearly",
+            "clearly-builder",
+            "clearly-debuginfo",
+            "clearly-doc",
+            "clearly-test"]
 ARCH = platform.machine()
 
 def main():
@@ -86,11 +86,11 @@ rpmbuild root:      %(rpmbuild)s
 
    # FIXME: el8 doesn’t have bats; skip for now.
    if (rpms_dist == 'el8'):
-        PACKAGES.remove('charliecloud-test')
+        PACKAGES.remove('clearly-test')
 
    # Get a clean Git checkout of the desired version. We do this by making a
    # temporary clone so as not to mess up the WD.
-   git_tmp = rpm_sources + '/charliecloud'
+   git_tmp = rpm_sources + '/clearly'
    print("# cloning into %s and checking out commit %s" % (git_tmp, commit))
    cmd("git", "clone", '.', git_tmp)
    cmd("git", "checkout", commit, cwd=git_tmp)
@@ -121,8 +121,6 @@ rpmbuild root:      %(rpmbuild)s
    # FIXME: Put version into destination sometime?
    shutil.copy("%s/packaging/fedora/clearly.rpmlintrc" % CLEARLY_BASE,
                "%s/clearly.rpmlintrc" % rpm_specs)
-   shutil.copy("%s/packaging/fedora/el7-pkgdir.patch" % CLEARLY_BASE,
-               "%s/el7-pkgdir.patch" % rpm_sources)
 
    # Remove temporary Git directory.
    print("# rm -rf %s" % git_tmp)
@@ -133,10 +131,10 @@ rpmbuild root:      %(rpmbuild)s
    # Fedora requires no version in spec file. Add a version for pre-release
    # specs to make it hard to upload one to Fedora by mistake.
    if ("~pre" not in clearly_version):
-      spec = "charliecloud.spec"
+      spec = "clearly.spec"
    else:
-      spec = "charliecloud-%s.spec" % rpm_vr
-   with open("%s/packaging/fedora/charliecloud.spec" % CLEARLY_BASE, "rt") as in_, \
+      spec = "clearly-%s.spec" % rpm_vr
+   with open("%s/packaging/fedora/clearly.spec" % CLEARLY_BASE, "rt") as in_, \
         open("%s/%s" % (rpm_specs, spec), "wt") as out:
       print("# writing %s" % out.name)
       t = in_.read()
@@ -173,15 +171,15 @@ rpmbuild root:      %(rpmbuild)s
    rpms_src       = "/usr/local/src/RPMS"
    rpms_arch      = "%s/%s" % (rpms_src, ARCH)
    rpms_noarch    = "%s/noarch" % rpms_src
-   rpms = {'charliecloud':           [rpms_arch,   '%s.%s.rpm'     % (rpms_dist, ARCH)],
-           'charliecloud-builder':   [rpms_noarch, '%s.noarch.rpm' % rpms_dist],
-           'charliecloud-debuginfo': [rpms_arch,   '%s.%s.rpm'     % (rpms_dist, ARCH)],
-           'charliecloud-doc':       [rpms_noarch, '%s.noarch.rpm' % rpms_dist],
-           'charliecloud-test':      [rpms_arch,   '%s.%s.rpm'     % (rpms_dist, ARCH)]}
+   rpms = {'clearly':           [rpms_arch,   '%s.%s.rpm'     % (rpms_dist, ARCH)],
+           'clearly-builder':   [rpms_noarch, '%s.noarch.rpm' % rpms_dist],
+           'clearly-debuginfo': [rpms_arch,   '%s.%s.rpm'     % (rpms_dist, ARCH)],
+           'clearly-doc':       [rpms_noarch, '%s.noarch.rpm' % rpms_dist],
+           'clearly-test':      [rpms_arch,   '%s.%s.rpm'     % (rpms_dist, ARCH)]}
    rpm_specs      = "/usr/local/src/SPECS"
    rpm_sources    = "/usr/local/src/SOURCES"
    rpmbuild_args += ["--define", "_topdir /usr/local/src"]
-   rpmlint_args  += ["--file", "%s/charliecloud.rpmlintrc" % rpm_specs]
+   rpmlint_args  += ["--file", "%s/clearly.rpmlintrc" % rpm_specs]
    container     += [CLEARLY_BASE + "/cmd/run", "-w",
                      "-b", "%s:/usr/local/src" % args.rpmbuild,
                      args.image, "--"]
@@ -202,7 +200,7 @@ rpmbuild root:      %(rpmbuild)s
          rpm_ext  = rpms[p][-1]
          file = '%s/%s-%s.%s' % (rpm_path, p, rpm_vr, rpm_ext)
          cmd(container, "rpm", "--install", file)
-      cmd(container, "rpm", "-qa", "charliecloud*")
+      cmd(container, "rpm", "-qa", "clearly*")
 
    # Lint RPMs and spec file. Last so problems that don’t result in program
    # returning error are more obvious.

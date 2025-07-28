@@ -1,24 +1,50 @@
 # Clearly fedora package spec file
 #
 # Contributors:
-#    Dave Love           @loveshack
-#    Michael Jennings    @mej
-#    Jordan Ogas         @jogas
-#    Reid Priedhorksy    @reidpr
+#    Robin Röper         @robinrpr
 
 # Don't try to compile python3 files with /usr/bin/python.
 %{?el7:%global __python %__python3}
 
-Name:          charliecloud
+Name:          clearly
 Version:       @VERSION@
 Release:       @RELEASE@%{?dist}
-Summary:       Lightweight user-defined software stacks for high-performance computing
-License:       ASL 2.0
-URL:           https://hpc.github.io/%{name}/
-Source0:       https://github.com/hpc/%{name}/releases/downloads/v%{version}/%{name}-%{version}.tar.gz
+Summary:       Platform to build, train, and deploy AI apps at scale.
+License:       Proprietary
+URL:           https://clearly.run
+Source0:       https://clearly.run/releases/downloads/v%{version}/%{name}-%{version}.tar.gz
 BuildRequires: gcc rsync bash
+BuildRequires: libseccomp-devel
+BuildRequires: squashfuse-devel
+BuildRequires: libmnl-devel
+BuildRequires: libnftnl-devel
+BuildRequires: libnl3-devel
+BuildRequires: libcap-devel
+BuildRequires: fuse3-devel
+BuildRequires: json-c-devel
+BuildRequires: python3-devel
+BuildRequires: python%{python3_pkgversion}-lark-parser
+BuildRequires: python%{python3_pkgversion}-requests
+BuildRequires: python%{python3_pkgversion}-jinja2
+BuildRequires: python%{python3_pkgversion}-wheel
+BuildRequires: python%{python3_pkgversion}-cython
+BuildRequires: git
+
 Requires:      squashfuse squashfs-tools
-Patch1:        el7-pkgdir.patch
+Requires:      libseccomp
+Requires:      libmnl
+Requires:      libnftnl
+Requires:      libnl3
+Requires:      libcap
+Requires:      fuse3
+Requires:      json-c
+Requires:      python3
+Requires:      python%{python3_pkgversion}-lark-parser
+Requires:      python%{python3_pkgversion}-requests
+Requires:      python%{python3_pkgversion}-jinja2
+Requires:      python%{python3_pkgversion}-wheel
+Requires:      python%{python3_pkgversion}-cython
+Requires:      git 
 
 %description
 Clearly uses Linux user namespaces to run containers with no privileged
@@ -29,28 +55,11 @@ the performance and functionality already on offer.
 Container images can be built using Docker or anything else that can generate
 a standard Linux filesystem tree.
 
-For more information: https://hpc.github.io/charliecloud
-
-%package builder
-Summary:       Clearly container image building tools
-License:       ASL 2.0 and MIT
-BuildArch:     noarch
-BuildRequires: python3-devel
-BuildRequires: python%{python3_pkgversion}-lark-parser
-BuildRequires: python%{python3_pkgversion}-requests
-Requires:      %{name}
-Requires:      python3
-Requires:      python%{python3_pkgversion}-lark-parser
-Requires:      python%{python3_pkgversion}-requests
-Provides:      bundled(python%{python3_pkgversion}-lark-parser) = 1.1.9
-
-%description builder
-This package provides clearly image, Clearly's completely unprivileged container
-image manipulation tool.
+For more information: https://clearly.run
 
 %package       doc
 Summary:       Clearly html documentation
-License:       BSD and ASL 2.0
+License:       Proprietary
 BuildArch:     noarch
 Obsoletes:     %{name}-doc < %{version}-%{release}
 BuildRequires: python%{python3_pkgversion}-sphinx
@@ -62,8 +71,8 @@ Html and man page documentation for %{name}.
 
 %package   test
 Summary:   Clearly test suite
-License:   ASL 2.0
-Requires:  %{name} %{name}-builder /usr/bin/bats
+License:   Proprietary
+Requires:  %{name} /usr/bin/bats
 Obsoletes: %{name}-test < %{version}-%{release}
 
 %description test
@@ -104,7 +113,7 @@ Note for versions below RHEL7.6, you will also need to enable user namespaces:
   grubby --args=namespace.unpriv_enable=1 --update-kernel=ALL
   reboot
 
-Please visit https://hpc.github.io/charliecloud/ for more information.
+Please visit https://clearly.run for more information.
 EOF
 
 # Remove bundled sphinx bits.
@@ -127,30 +136,40 @@ ln -s "${sphinxdir}/js"    %{buildroot}%{_pkgdocdir}/html/_static/js
 %doc README.rst %{?el7:README.EL7}
 %{_libexecdir}/check
 %{_libexecdir}/convert
+%{_libexecdir}/daemon
 %{_libexecdir}/fromhost
+%{_libexecdir}/stop
+%{_libexecdir}/list
+%{_libexecdir}/logs
 %{_libexecdir}/run
+%{_libexecdir}/use
+%{_libexecdir}/image
 %{_mandir}/man1/check.1*
 %{_mandir}/man1/convert.1*
 %{_mandir}/man1/fromhost.1*
 %{_mandir}/man1/run.1*
+%{_mandir}/man1/image.1*
 %{_mandir}/man7/clearly.7*
 %{_prefix}/lib/%{name}/_base.sh
 
-%files builder
-%{_libexecdir}/image
-%{_mandir}/man1/image.1*
-%{_prefix}/lib/%{name}/_build.*.py
-%{_prefix}/lib/%{name}/_build_cache.*.py
-%{_prefix}/lib/%{name}/_clearly.*.py
-%{_prefix}/lib/%{name}/_filesystem.*.py
-%{_prefix}/lib/%{name}/_force.*.py
-%{_prefix}/lib/%{name}/_image.*.py
-%{_prefix}/lib/%{name}/_misc.*.py
-%{_prefix}/lib/%{name}/_modify.*.py
-%{_prefix}/lib/%{name}/_pull.*.py
-%{_prefix}/lib/%{name}/_push.*.py
-%{_prefix}/lib/%{name}/_registry.*.py
-%{_prefix}/lib/%{name}/_version.*.py
+%{_prefix}/lib/%{name}/_build_cache.*.so
+%{_prefix}/lib/%{name}/_build.*.so
+%{_prefix}/lib/%{name}/_clearly.*.so
+%{_prefix}/lib/%{name}/_executor.*.so
+%{_prefix}/lib/%{name}/_filesystem.*.so
+%{_prefix}/lib/%{name}/_force.*.so
+%{_prefix}/lib/%{name}/_grammar.*.so
+%{_prefix}/lib/%{name}/_http.*.so
+%{_prefix}/lib/%{name}/_image.*.so
+%{_prefix}/lib/%{name}/_irtree.*.so
+%{_prefix}/lib/%{name}/_misc.*.so
+%{_prefix}/lib/%{name}/_proxy.*.so
+%{_prefix}/lib/%{name}/_pull.*.so
+%{_prefix}/lib/%{name}/_push.*.so
+%{_prefix}/lib/%{name}/_reference.*.so
+%{_prefix}/lib/%{name}/_registry.*.so
+%{_prefix}/lib/%{name}/_tree.*.so
+%{_prefix}/lib/%{name}/_zeroconf.*.so
 %{?el7:%{_prefix}/lib/%{name}/__pycache__}
 
 %files doc
@@ -158,7 +177,6 @@ ln -s "${sphinxdir}/js"    %{buildroot}%{_pkgdocdir}/html/_static/js
 %{_pkgdocdir}/examples
 %{_pkgdocdir}/html
 %{?el7:%exclude %{_pkgdocdir}/examples/*/__pycache__}
-
 
 %files test
 %{_libexecdir}/test

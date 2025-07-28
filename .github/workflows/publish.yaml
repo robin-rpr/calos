@@ -1,0 +1,89 @@
+name: Publish
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build and Publish
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Fedora container
+        run: |
+          docker run -d --name fedora-builder fedora:39 bash -c "tail -f /dev/null"
+          docker exec fedora-builder dnf install -y \
+            rpm-build \
+            gcc \
+            rsync \
+            bash \
+            libseccomp-devel \
+            squashfuse-devel \
+            libmnl-devel \
+            libnftnl-devel \
+            libnl3-devel \
+            libcap-devel \
+            fuse3-devel \
+            json-c-devel \
+            python3-devel \
+            python3-lark-parser \
+            python3-requests \
+            python3-jinja2 \
+            python3-wheel \
+            python3-cython \
+            git
+
+      - name: Build RPM
+        run: |
+          # Copy source to container
+          docker cp . fedora-builder:/tmp/clearly
+          
+          # Get version from tag or use HEAD
+          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            VERSION=${GITHUB_REF#refs/tags/v}
+            RELEASE=1
+          else
+            VERSION=HEAD
+            RELEASE=0
+          fi
+          
+          # Build RPM inside container
+          docker exec fedora-builder bash -c "
+            cd /tmp/clearly
+            ./autogen.sh
+            ./configure
+            make dist
+            
+            # Create spec file with version
+            sed 's/@VERSION@/$VERSION/g; s/@RELEASE@/$RELEASE/g' packaging/fedora/clearly.spec > clearly.spec
+            
+            # Build RPM
+            rpmbuild -ba clearly.spec
+          "
+          
+          # Copy RPMs back
+          docker cp fedora-builder:/tmp/clearly/rpmbuild/RPMS ./rpms
+          docker cp fedora-builder:/tmp/clearly/rpmbuild/SRPMS ./srpms
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: clearly-rpms
+          path: |
+            ./rpms/**/*.rpm
+            ./srpms/*.rpm
+          retention-days: 30
+
+      - name: Publish to Gemfury
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          for rpm in ./rpms/**/*.rpm; do
+            echo "Uploading $rpm to Gemfury..."
+            curl -F package=@$rpm https://${{ secrets.GEMFURY_TOKEN }}@push.fury.io/clearly/
+          done 
