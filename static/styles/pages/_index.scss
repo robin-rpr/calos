@@ -47,13 +47,9 @@
                     position: relative;
                     font-weight: 350;
                     cursor: pointer;
-
-                    &:active {
-                        background: #0000000f;
-                    }
     
                     &:hover {
-                        background: #0000000a;
+                        background: #f0f4f8;
                     }
 
                     &:after {
