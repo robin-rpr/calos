@@ -2,17 +2,12 @@
     flex-shrink: 0;
     max-height: 100%;
     overflow: auto;
-    width: 13.5rem;
+    width: 17rem;
     height: 100%;
     display: flex;
     flex-direction: column;
-    padding: 0.5rem 0;
-
-    & ~ #content {
-        border-top-left-radius: 1rem;
-        border-left-width: 1px;
-        border-top-width: 1px;
-    }
+    background: #f0f4f8;
+    padding: 1.25rem 0;
 
     .navigation__logo {
         margin: 0 1.25rem 1.25rem;
@@ -22,7 +17,7 @@
     }
 
     .navigation__list {
-        padding: 0 0.5rem;
+        padding: 0 0.75rem;
         font-size: 0.875rem;
         font-weight: 300;
         height: 100%;
@@ -49,7 +44,7 @@
             font-weight: inherit;
             line-height: inherit;
             padding: 0.5rem 0.75rem;
-            border-radius: 10px;
+            border-radius: 2rem;
             text-decoration: none;
             border: none;
             background: none;
@@ -62,11 +57,12 @@
 
             &--active,
             &:active {
-                background: #0000000f;
+                background: #d3e3fd;
+                color: #0842a0;
             }
 
             &:hover {
-                background: #0000000a;
+                background: #e4e8ec;
             }
 
             i {

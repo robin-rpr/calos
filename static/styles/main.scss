@@ -7,7 +7,6 @@
 /* Layout */
 @import "./layout/_header";
 @import "./layout/_sidebar";
-@import "./layout/_searchbar";
 @import "./layout/_navigation";
 
 /* Pages */
@@ -36,7 +35,6 @@ html {
 body {
     display: flex;
     flex-direction: column;
-    background: #f8f8f8;
     font-size: 16px;
     color: #0d0d0d;
     height: 100vh;
@@ -47,7 +45,6 @@ body {
         height: 100%;
         display: flex;
         flex-direction: row;
-        padding-top: 0.5rem;
         flex-wrap: nowrap;
     
         #content {
