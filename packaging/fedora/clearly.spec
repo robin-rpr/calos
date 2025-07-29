@@ -39,6 +39,7 @@ Requires:      libcap
 Requires:      fuse3
 Requires:      json-c
 Requires:      python3
+Requires:      syncthing
 Requires:      python%{python3_pkgversion}-lark-parser
 Requires:      python%{python3_pkgversion}-requests
 Requires:      python%{python3_pkgversion}-jinja2

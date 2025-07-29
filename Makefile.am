@@ -26,10 +26,7 @@ install-exec-hook:
 	done
 	@echo '### installing systemd service ###'
 	@if [ -z "$(DESTDIR)" ]; then \
-		sed 's|@bindir@|$(bindir)|g' clearly.service > /tmp/clearly.service.tmp; \
-		cp /tmp/clearly.service.tmp /etc/systemd/system/clearly.service; \
-		rm /tmp/clearly.service.tmp; \
-		mkdir -p /tmp/clearly; \
+		cp clearly.service /etc/systemd/system/clearly.service; \
 		touch /var/log/clearly.log; \
 		chmod 644 /var/log/clearly.log; \
 		systemctl daemon-reload; \
@@ -44,6 +41,5 @@ uninstall-hook:
 		rm -f /etc/systemd/system/clearly.service; \
 		systemctl daemon-reload; \
 		rm -f /var/log/clearly.log; \
-		rm -rf /tmp/clearly; \
 		rm -rf /run/clearly; \
 	fi

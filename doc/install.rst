@@ -78,9 +78,11 @@ After enabling the CRB repository, install the following packages:
   * :code:`python3-devel`: Python 3 development headers and libraries.
   * :code:`python3`: Python 3 interpreter, used for building Python packages.
   * :code:`json-c` is a JSON parsing library, used for parsing .json files.
+  * :code:`syncthing`: Continuous File Synchronization, used for Peer-to-Peer
+    file and volume synchronization.
   * :code:`git`: Version control system for creating a runtime build cache,
     during the image(1) build command process.
-
+  
 Optional dependencies
 ~~~~~~~~~~~~~~~~~~~~
 

@@ -7,7 +7,6 @@ nobase_images_DATA = \
   images/favicon-256x256.png \
   images/favicon.svg \
   images/jupyter.svg \
-  images/sprite.svg \
   images/tensorflow.svg \
   images/vscode.svg
 
@@ -16,7 +15,6 @@ nobase_styles_DATA = \
   styles/base/_variables.scss \
   styles/layout/_header.scss \
   styles/layout/_navigation.scss \
-  styles/layout/_searchbar.scss \
   styles/layout/_sidebar.scss \
   styles/pages/_index.scss \
   styles/pages/_studio.scss \
@@ -25,7 +23,6 @@ nobase_styles_DATA = \
 nobase_templates_DATA = \
   templates/layout/header.html \
   templates/layout/navigation.html \
-  templates/layout/searchbar.html \
   templates/layout/sidebar.html \
   templates/pages/index.html \
   templates/pages/studio.html \

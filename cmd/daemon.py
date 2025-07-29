@@ -5,7 +5,11 @@ import os
 import logging
 import subprocess
 import uuid
+import socket
+import threading
 from time import sleep
+from pathlib import Path
+import xml.etree.ElementTree as ET
 
 try:
     # Cython provides PKGLIBDIR.
@@ -16,6 +20,7 @@ except NameError:
     # in the project's top-level 'lib' directory.
     sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../lib'))
 
+import _syncthing as _syncthing
 import _executor as _executor
 import _zeroconf as _zeroconf
 from _http import WebServer
@@ -40,8 +45,16 @@ studio_executor = _executor.StudioExecutor()
 
 # Zeroconf
 zeroconf = _zeroconf.Zeroconf()
+listener = ServiceListener()
 
-# Server
+# Syncthing
+syncthing = _syncthing.Syncthing(
+    config_dir=Path.home() / ".config/clearly",
+    folder_dir="/srv/clearly",
+    ip_address=get_interface_address('clearly0')
+)
+
+# Webserver
 server = WebServer(
     host='0.0.0.0',
     port=8080,
@@ -59,7 +72,6 @@ logging.basicConfig(
     ]
 )
 logger = logging.getLogger(__name__)
-
 
 ## Routes ##
 
@@ -125,6 +137,11 @@ def stop_studio(studio_id, payload=None):
     """Stop a studio by ID."""
     return studio_executor.stop_studio(studio_id)
 
+@server.get('/api/machines')
+def list_machines(payload=None):
+    """List all discovered Clearly machines."""
+    return listener.get_services()
+
 
 ## Pages ##
 
@@ -143,12 +160,120 @@ def serve_studio(studio_id, payload=None):
     return {'type': 'text/html', 'content': html}
 
 
+## Helpers ##
+
+def get_interface_address(ifname='eth0'):
+    """Get the IP address of an interface"""
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    return socket.inet_ntoa(fcntl.ioctl(
+        s.fileno(),
+        0x8915, # SIOCGIFADDR
+        struct.pack('256s', ifname.encode('utf-8')[:15])
+    )[20:24])
+
+
+## Classes ##
+
+class ServiceListener(object):
+    """A ServiceListener is used by this module to listen on the multicast
+    group to which DNS messages are sent, allowing the implementation to cache information
+    as it arrives as well as dynamically add and remove services from Syncthing.
+
+    It requires registration with an Engine object in order to have
+    the read() method called when a socket is availble for reading."""
+
+    def __init__(self):
+        self.services = {} # Discovered services
+        self.lock = threading.Lock()
+    
+    def addService(self, zeroconf, service_type, name):
+        """Called when a new service is discovered."""
+        try:
+            # Get service info
+            info = zeroconf.getServiceInfo(service_type, name, timeout=3000)
+            if info:
+                with self.lock:
+                    self.services[name] = {
+                        'name': name,
+                        'address': socket.inet_ntoa(info.getAddress()) if info.getAddress() else None,
+                        'port': info.getPort(),
+                        'properties': info.getProperties(),
+                        'server': info.getServer()
+                    }
+
+                # Add the service to Syncthing
+                syncthing.add_peer(info.getProperties()['device_id'], info.getAddress())
+
+                # Restart Syncthing to pick up the new peer
+                syncthing.stop()
+                syncthing.start()
+
+                # Log the discovery
+                logger.info(f"Discovered service: {name} at {socket.inet_ntoa(info.getAddress())}:{info.getPort()}")
+        except Exception as e:
+            logger.error(f"Error getting service info for {name}: {e}")
+    
+    def removeService(self, zeroconf, service_type, name):
+        """Called when a service is removed."""
+        with self.lock:
+            if name in self.services:
+                removed_service = self.services.pop(name)
+
+                # Remove the service from Syncthing
+                syncthing.remove_peer(removed_service.get('properties')['device_id'])
+
+                # Restart Syncthing to pick up the peer removal
+                syncthing.stop()
+                syncthing.start()
+
+                # Log the removal
+                logger.info(f"Service removed: {name} at {removed_service.get('address')}:{removed_service.get('port')}")
+    
+    def get_services(self):
+        """Get a copy of the current services map."""
+        with self.lock:
+            return self.services.copy()
+
+
 ## Main ##
 
 def main():
     try:
-        logger.info(f"Listening on http://{server.host}:{server.port}")
+        # Create a mDNS service
+        service_address = get_interface_address('clearly0')
+        service_name = f"clearly-{service_address}._clearly._tcp.local."
+        service_info = _zeroconf.ServiceInfo(
+            "_clearly._tcp.local.",
+            service_name,
+            service_address,
+            12345,
+            0, 0,
+            {
+                'version': '1.0',
+                'device_id': syncthing.device_id,
+                'service': 'clearly'
+            }
+        )
+
+        # Register the service
+        zeroconf.registerService(service_info)
+        
+        # Register a listener for other services
+        zeroconf.addServiceListener("_clearly._tcp.local.", listener)
+
+        # Start the web server
         server.start()
+        
+        # Keep the main thread alive
+        try:
+            while True:
+                sleep(1)
+        except KeyboardInterrupt:
+            logger.info("Shutting down...")
+        finally:
+            # Unregister the service
+            zeroconf.unregisterService(service_info)
+            zeroconf.close()
 
     except Exception as e:
         logger.error(f"Fatal error: {e}", exc_info=True)

@@ -189,15 +189,6 @@ def currentTimeMillis():
     """Current system time in milliseconds"""
     return time.time() * 1000
 
-def getInterfaceAddress(ifname='eth0'):
-    """Get the IP address of an interface"""
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    return socket.inet_ntoa(fcntl.ioctl(
-        s.fileno(),
-        0x8915, # SIOCGIFADDR
-        struct.pack('256s', ifname.encode('utf-8')[:15])
-    )[20:24])
-
 # Exceptions
 
 class NonLocalNameException(Exception):
