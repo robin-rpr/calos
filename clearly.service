@@ -23,7 +23,7 @@ SyslogIdentifier=clearly
 # Security settings
 # ProtectSystem=strict
 # ProtectHome=true
-# ReadWritePaths=/var/log /run/clearly
+# ReadWritePaths=/var/log
 # ProtectKernelTunables=true
 # ProtectKernelModules=true
 # ProtectControlGroups=true

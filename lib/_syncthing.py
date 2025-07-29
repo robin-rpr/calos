@@ -10,7 +10,12 @@ import time
 ## Classes ##
 
 class Syncthing:
-    def __init__(self, config_dir=Path.home() / ".config/clearly", folder_dir="/srv/clearly", ip_address=None):
+    def __init__(
+        self,
+        config_dir=Path.home() / ".config/clearly",
+        folder_dir=Path("/srv/clearly"),
+        ip_address=None
+    ):
         self.folder_dir = folder_dir
         self.config_dir = config_dir
         self.config_file = self.config_dir / "config.xml"
@@ -20,6 +25,9 @@ class Syncthing:
 
         # Create config directory if it doesn't exist
         self.config_dir.mkdir(parents=True, exist_ok=True)
+
+        # Create folder directory if it doesn't exist
+        self.folder_dir.mkdir(parents=True, exist_ok=True)
 
         # Ensure config file exists
         self.start()
@@ -33,7 +41,7 @@ class Syncthing:
             # Retrieve the default folder
             folder = root.find("./folder[@id='default']")
             if folder is not None:
-                
+
                 # Update the folder path
                 old_path = folder.get("path")
                 folder.set("path", self.folder_dir)

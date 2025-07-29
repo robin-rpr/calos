@@ -50,7 +50,7 @@ listener = ServiceListener()
 # Syncthing
 syncthing = _syncthing.Syncthing(
     config_dir=Path.home() / ".config/clearly",
-    folder_dir="/srv/clearly",
+    folder_dir=Path(f"/srv/{os.getlogin()}.clearly"),
     ip_address=get_interface_address('clearly0')
 )
 
@@ -209,9 +209,9 @@ class ServiceListener(object):
                 syncthing.start()
 
                 # Log the discovery
-                logger.info(f"Discovered service: {name} at {socket.inet_ntoa(info.getAddress())}:{info.getPort()}")
+                logger.info(f"Discovered: {name} at {socket.inet_ntoa(info.getAddress())}:{info.getPort()}")
         except Exception as e:
-            logger.error(f"Error getting service info for {name}: {e}")
+            logger.error(f"Discovery retrieval failed for {name}: {e}")
     
     def removeService(self, zeroconf, service_type, name):
         """Called when a service is removed."""
@@ -227,7 +227,7 @@ class ServiceListener(object):
                 syncthing.start()
 
                 # Log the removal
-                logger.info(f"Service removed: {name} at {removed_service.get('address')}:{removed_service.get('port')}")
+                logger.info(f"Lost: {name} at {removed_service.get('address')}:{removed_service.get('port')}")
     
     def get_services(self):
         """Get a copy of the current services map."""
