@@ -42,7 +42,7 @@ class Syncthing:
 
                 # Update the folder path
                 old_path = folder.get("path")
-                folder.set("path", self.folder_dir)
+                folder.set("path", str(self.folder_dir))
 
                 # Unlink the old folder if it is empty
                 if old_path and old_path != str(self.folder_dir):

@@ -7,6 +7,8 @@ import subprocess
 import uuid
 import socket
 import threading
+import fcntl
+import struct
 from time import sleep
 from pathlib import Path
 import xml.etree.ElementTree as ET
@@ -243,18 +245,21 @@ def main():
 
         # Create a mDNS service
         service_address = get_interface_address('clearly0')
+        logger.info(f"Service address: {service_address}")
+        logger.info(f"Syncthing device ID: {syncthing.device_id}")
         service_name = f"clearly-{service_address}._clearly._tcp.local."
         service_info = _zeroconf.ServiceInfo(
-            "_clearly._tcp.local.",
-            service_name,
-            service_address,
-            12345,
-            0, 0,
-            {
+            type="_clearly._tcp.local.",
+            name=service_name,
+            address=service_address,
+            port=12345,
+            weight=0,
+            priority=0,
+            properties={
                 'version': '1.0',
-                'device_id': syncthing.device_id,
+                'device_id': f'{syncthing.device_id}',
                 'service': 'clearly'
-            }
+            },
         )
 
         # Register the service
