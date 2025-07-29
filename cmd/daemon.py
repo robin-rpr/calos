@@ -45,17 +45,16 @@ studio_executor = _executor.StudioExecutor()
 
 # Zeroconf
 zeroconf = _zeroconf.Zeroconf()
-listener = ServiceListener()
+listener = None # Will be set in main()
 
 # Syncthing
 syncthing = _syncthing.Syncthing(
     config_dir=Path.home() / ".config/clearly",
     folder_dir=Path(f"/srv/{os.getlogin()}.clearly"),
-    ip_address=get_interface_address('clearly0')
 )
 
 # Webserver
-server = WebServer(
+webserver = WebServer(
     host='0.0.0.0',
     port=8080,
     static_dir=STATIC_DIR,
@@ -75,22 +74,22 @@ logger = logging.getLogger(__name__)
 
 ## Routes ##
 
-@server.get('/api/containers')
+@webserver.get('/api/containers')
 def list_containers(payload=None):
     """List all containers."""
     return executor.list_containers()
 
-@server.get('/api/containers/<container_id>')
+@webserver.get('/api/containers/<container_id>')
 def get_container(container_id, payload=None):
     """Get container details by ID."""
     return executor.get_container(container_id)
 
-@server.get('/api/containers/<container_id>/logs')
+@webserver.get('/api/containers/<container_id>/logs')
 def get_container_logs(container_id, payload=None):
     """Get container logs by ID."""
     return executor.get_container_logs(container_id)
 
-@server.post('/api/containers')
+@webserver.post('/api/containers')
 def start_container(payload):
     """Start a new container."""
     return executor.start_container(
@@ -101,7 +100,7 @@ def start_container(payload):
         payload.get('environment', {})
     )
 
-@server.delete('/api/containers/<container_id>')
+@webserver.delete('/api/containers/<container_id>')
 def stop_container(container_id, payload=None):
     """Stop a container by ID."""
     try:
@@ -111,33 +110,33 @@ def stop_container(container_id, payload=None):
         logger.error(f"Failed to stop container {container_id}: {e.stderr}")
         raise Exception(f"Error stopping container: {e.stderr}")
 
-@server.get('/api/studios')
+@webserver.get('/api/studios')
 def list_studios(payload=None):
     """List all studios."""
     return studio_executor.list_studios()
 
-@server.get('/api/studios/<studio_id>')
+@webserver.get('/api/studios/<studio_id>')
 def get_studio(studio_id, payload=None):
     """Get studio details by ID."""
     return studio_executor.get_studio(studio_id)
 
-@server.get('/api/studios/<studio_id>/logs')
+@webserver.get('/api/studios/<studio_id>/logs')
 def get_studio_logs(studio_id, payload=None):
     """Get studio logs by ID."""
     return studio_executor.get_studio_logs(studio_id)
 
-@server.post('/api/studios')
+@webserver.post('/api/studios')
 def start_studio(payload):
     """Start a new studio."""
     name = payload.get('name', str(uuid.uuid4())[:8])
     return studio_executor.start_studio(name)
 
-@server.delete('/api/studios/<studio_id>')
+@webserver.delete('/api/studios/<studio_id>')
 def stop_studio(studio_id, payload=None):
     """Stop a studio by ID."""
     return studio_executor.stop_studio(studio_id)
 
-@server.get('/api/machines')
+@webserver.get('/api/machines')
 def list_machines(payload=None):
     """List all discovered Clearly machines."""
     return listener.get_services()
@@ -145,17 +144,17 @@ def list_machines(payload=None):
 
 ## Pages ##
 
-@server.get('/')
+@webserver.get('/')
 def serve_index(payload=None):
     """Serve the main index page."""
-    template = server.jinja_env.get_template('pages/index.html')
+    template = webserver.jinja_env.get_template('pages/index.html')
     html = template.render()
     return {'type': 'text/html', 'content': html}
 
-@server.get('/studio/<studio_id>')
+@webserver.get('/studio/<studio_id>')
 def serve_studio(studio_id, payload=None):
     """Serve a studio page by ID."""
-    template = server.jinja_env.get_template('pages/studio.html')
+    template = webserver.jinja_env.get_template('pages/studio.html')
     html = template.render(id=studio_id)
     return {'type': 'text/html', 'content': html}
 
@@ -239,6 +238,9 @@ class ServiceListener(object):
 
 def main():
     try:
+        # Create a service listener
+        listener = ServiceListener()
+
         # Create a mDNS service
         service_address = get_interface_address('clearly0')
         service_name = f"clearly-{service_address}._clearly._tcp.local."
@@ -257,12 +259,18 @@ def main():
 
         # Register the service
         zeroconf.registerService(service_info)
+
+        # Set the Syncthing IP address
+        syncthing.set_ip_address(service_address)
         
         # Register a listener for other services
         zeroconf.addServiceListener("_clearly._tcp.local.", listener)
 
-        # Start the web server
-        server.start()
+        # Start Syncthing
+        syncthing.start()
+
+        # Start Webserver
+        webserver.start()
         
         # Keep the main thread alive
         try:

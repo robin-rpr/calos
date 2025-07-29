@@ -14,12 +14,10 @@ class Syncthing:
         self,
         config_dir=Path.home() / ".config/clearly",
         folder_dir=Path("/srv/clearly"),
-        ip_address=None
     ):
         self.folder_dir = folder_dir
         self.config_dir = config_dir
         self.config_file = self.config_dir / "config.xml"
-        self.ip_address = ip_address
         self.device_id = None
         self.process = None
 
@@ -62,6 +60,21 @@ class Syncthing:
 
                 # Write the configuration
                 tree.write(self.config_file, encoding="utf-8", xml_declaration=True)
+
+    def set_ip_address(self, ip):
+        tree = ET.parse(self.config_file)
+        root = tree.getroot()
+
+        # Find the device that matches our device_id
+        device = root.find(f"./device[@id='{self.device_id}']")
+        if device is not None:
+            # Update the IP address
+            address_elem = device.find("./address")
+            if address_elem is not None:
+                address_elem.text = f"tcp://{ip}:22000"
+        
+        # Write the changes back to the config file
+        tree.write(self.config_file, encoding="utf-8", xml_declaration=True)
         
     def add_peer(self, device_id, ip):
         tree = ET.parse(self.config_dir / "config.xml")
