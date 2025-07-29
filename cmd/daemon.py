@@ -57,7 +57,7 @@ syncthing = _syncthing.Syncthing(
 
 # Webserver
 webserver = WebServer(
-    host='0.0.0.0',
+    host='127.0.0.1',
     port=8080,
     static_dir=STATIC_DIR,
     template_dir=TEMPLATE_DIR,
@@ -184,7 +184,9 @@ class ServiceListener(object):
     the read() method called when a socket is availble for reading."""
 
     def __init__(self):
-        self.services = {} # Discovered services
+        self.services = {
+            
+        } # Discovered services
         self.lock = threading.Lock()
     
     def addService(self, zeroconf, service_type, name):
@@ -240,35 +242,47 @@ class ServiceListener(object):
 
 def main():
     try:
-        # Create a service listener
+        # mDNS Listener
+        global listener
         listener = ServiceListener()
 
-        # Create a mDNS service
+        # Create a mDNS Service
         service_address = get_interface_address('clearly0')
-        logger.info(f"Service address: {service_address}")
-        logger.info(f"Syncthing device ID: {syncthing.device_id}")
         service_name = f"clearly-{service_address}._clearly._tcp.local."
         service_info = _zeroconf.ServiceInfo(
             type="_clearly._tcp.local.",
             name=service_name,
             address=service_address,
-            port=12345,
+            port=0,
             weight=0,
             priority=0,
             properties={
                 'version': '1.0',
-                'device_id': f'{syncthing.device_id}',
+                'device_id': syncthing.device_id,
                 'service': 'clearly'
             },
         )
 
-        # Register the service
+        # Define our own mDNS Service
+        listener.services[service_name] = {
+            'name': service_name,
+            'address': service_address,
+            'port': 0,
+            'properties': {
+                'version': '1.0',
+                'device_id': syncthing.device_id,
+                'service': 'clearly'
+            },
+            'server': service_name,
+        }
+
+        # Register the mDNS Service
         zeroconf.registerService(service_info)
 
         # Set the Syncthing IP address
         syncthing.set_ip_address(service_address)
-        
-        # Register a listener for other services
+
+        # Register a listener for other mDNS Services
         zeroconf.addServiceListener("_clearly._tcp.local.", listener)
 
         # Start Syncthing

@@ -278,6 +278,38 @@ bool is_bridge_exists(const char *bridge_name) {
     }
 }
 
+/* Attach a physical link to a bridge. */
+void set_bridge_attach(const char *bridge_name, const char *link_name) {
+    struct nl_sock *sock = nl_socket_alloc();
+    Tf(sock != NULL, "failed to allocate netlink socket");
+    Zf(nl_connect(sock, NETLINK_ROUTE) < 0, "failed to connect to netlink route socket");
+
+    // Get the link and bridge.
+    struct rtnl_link *link, *bridge;
+    Zf(rtnl_link_get_kernel(sock, 0, link_name, &link) < 0, "failed to get link '%s'", link_name);
+    Zf(rtnl_link_get_kernel(sock, 0, bridge_name, &bridge) < 0, "failed to get bridge '%s'", bridge_name);
+
+    // Clone the link so we can modify it.
+    struct rtnl_link *link_change = rtnl_link_alloc();
+    Zf(link_change == NULL, "failed to allocate link");
+
+    // Set the ifindex and master (bridge's ifindex).
+    rtnl_link_set_ifindex(link_change, rtnl_link_get_ifindex(link));
+    rtnl_link_set_master(link_change, rtnl_link_get_ifindex(bridge));
+
+    // Send the link change to the kernel.
+    Zf(rtnl_link_change(sock, link, link_change, 0) < 0,
+       "failed to attach '%s' to bridge '%s'", link_name, bridge_name);
+
+    rtnl_link_put(link_change);
+    rtnl_link_put(link);
+    rtnl_link_put(bridge);
+
+    // Free the socket.
+    VERBOSE("link '%s' attached to bridge '%s'", link_name, bridge_name);
+    nl_socket_free(sock);
+}
+
 /* Create a new veth pair.
 
    This function will create a veth pair, and configure it with

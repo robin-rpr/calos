@@ -1,17 +1,15 @@
-/* This program creates a VXLAN (Virtual Extensible LAN) connection to a remote node.
-   It takes a remote IP address as an argument and establishes a virtual network link
-   between the local system and the specified remote node.
+/* This program sets the network interface for private traffic between machines.
+   It takes a network interface name as an argument and attaches it to the "clearly0"
+   bridge interface to enable private network communication.
    
    The program performs the following steps:
-   1. Parses the remote IP address from command line arguments
-   2. Finds an unused VXLAN interface name, to avoid link name collisions
-   3. Checks if a VXLAN interface already exists for the given remote IP
-   4. If no VXLAN exists, creates a new VXLAN interface
-   5. Bridges the VXLAN to the "clearly0" bridge interface
-   6. Reports success with "ok" message
+   1. Parses the network interface name from command line arguments
+   2. Ensures the "clearly0" bridge interface exists (creates it if needed)
+   3. Attaches the specified network interface to the bridge
+   4. Reports success with "ok" message
    
    This is part of the Clearly container networking system, allowing nodes
-   to establish virtual network connections for container communication. */
+   to configure network interfaces for container communication. */
 
 #define _GNU_SOURCE
 #include <stdio.h>
@@ -25,13 +23,12 @@
 
 
 const char usage[] = "\
-Usage: link REMOTE VNI\n\
+Usage: use INTERFACE\n\
 \n\
-Link with VXLAN using VNI (Virtual Network Identifier) to remote node.\n\
+Set the network interface for private traffic between machines.\n\
 \n\
 Example:\n\
-\n\
-  $ clearly link 172.20.0.10 1234\n\
+  $ clearly use eth1\n\
   ok\n";
 
 #define TRY(x) if (x) fatal_(__FILE__, __LINE__, errno, #x)
@@ -55,67 +52,26 @@ int main(int argc, char *argv[])
       return 1;
    }
 
-   /* Parse remote IP. */
-   struct in_addr remote_ip;
-   if (argc >= 2) {
-      remote_ip.s_addr = inet_addr(argv[1]);
-   } else {
-      fprintf(stderr, usage);
-      fprintf(stderr, "link: error: the following arguments are required: REMOTE");
-      return 1;
-   }
+   /* Parse interface name. */
+   const char *interface_name = argv[1];
 
-   /* Parse VNI. */
-   uint32_t vni;
-   if (argc >= 3) {
-      vni = strtoul(argv[2], NULL, 10);
-   } else {
-      fprintf(stderr, usage);
-      fprintf(stderr, "link: error: the following arguments are required: VNI");
-      return 1;
+   /* Ensure the network bridge exists. */
+   if (!is_bridge_exists("clearly0")) {
+      create_bridge("clearly0", "172.20.0.1", 16);
    }
-
-   /* Find an unused VXLAN interface name.
+´
+   /* Attach physical interface to bridge.
    
-      We need to create a unique VXLAN interface name since multiple VXLAN
-      connections may exist simultaneously. We iterate through names like
-      "vxlan1", "vxlan2", etc. until we find one that doesn't already exist.
+      This section handles the enrolment of the physical interface to the bridge.
       
-      This prevents conflicts when establishing multiple network links to
-      different remote nodes, as each VXLAN interface must have a unique
-      identifier in the system. */
-   char vxlan_name[IFNAMSIZ];
-   int vxlan_index = 1;
-   for (;;) {
-      TRY(snprintf(vxlan_name, sizeof(vxlan_name), "vxlan%d", vxlan_index) < 0);
-      if (!is_link_exists(vxlan_name))
-         break;
-      if (vxlan_index >= INT_MAX) {
-         Zf(1, "VXLAN name index overflow");
-      }
-      vxlan_index++;
-   }
-
-   /* Provision VXLAN interface and attach to bridge.
-   
-      This section handles the creation and configuration of a VXLAN (Virtual
-      Extensible LAN) interface with VNI 4242 to establish a network tunnel to
-      the remote node. The process involves:
+      1. Checking if the bridge already has a interface attached.
+      2. If so, release the existing interface attachment.
+      3. Attach the physical interface to the bridge.
       
-      1. Checking if a VXLAN interface already exists for the target remote IP
-      2. If not, creating a new VXLAN interface with the generated unique name
-      3. Attaching the VXLAN interface to the "clearly0" bridge to enable
-         Layer 2 connectivity between the local and remote networks
-      
-      The VXLAN interface acts as a virtual network link that encapsulates
-      Ethernet frames in UDP packets, allowing transparent communication
-      across the underlying network infrastructure. */
-   if (!is_vxlan_exists(vni, "*", &remote_ip)) {
-      create_vxlan(vxlan_name, vni, &remote_ip);
-      INFO("Created VXLAN interface %s", vxlan_name);
-      set_vxlan_bridge(vxlan_name, "clearly0");
-      INFO("Attached VXLAN interface %s to bridge clearly0", vxlan_name);
-   }   
+      The physical interface will loose all its configuration and will cease
+      to exist as a standalone interface and become a member of the bridge.
+      At this point the bridge will be the 'master' of the interface. */
+   set_bridge_attach("clearly0", interface_name); // TODO: Check if the interface is already attached.
 
    /* Report success. */
    printf("ok\n");

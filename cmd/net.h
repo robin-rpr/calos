@@ -19,6 +19,7 @@ bool is_link_exists(const char *link_name);
 /* NL (Netlink) Bridge (Layer 2 switch) */
 void create_bridge(const char *bridge_name, const struct in_addr *ip, int cidr);
 bool is_bridge_exists(const char *bridge_name);
+void set_bridge_attach(const char *bridge_name, const char *link_name);
 
 /* NL (Netlink) Veth (Virtual Ethernet) */
 void create_veth_pair(const char *host_name, const char *peer_name);
