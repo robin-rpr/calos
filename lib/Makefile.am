@@ -17,7 +17,7 @@ cython_modules = \
 cython_c_files = $(cython_modules:%=%.c)
 cython_so_files = $(cython_modules:%=%@PYEXT_SUFFIX@)
 
-dist_mylib_DATA = _base.sh
+dist_mylib_DATA = _base.sh $(cython_so_files)
 
 # SUFFIXES is required by Automake to define custom build rules. Without this
 # declaration, Automake will not recognize our .py -> .c -> @PYEXT_SUFFIX@

@@ -14,6 +14,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Fedora container
         run: |
@@ -52,12 +54,16 @@ jobs:
           # Copy source to container
           docker cp . fedora-builder:/root/clearly
           
-          # Get version from tag or use HEAD
+          # Get version from tag or git describe
           if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
             VERSION=${GITHUB_REF#refs/tags/v}
             RELEASE=1
           else
-            VERSION=HEAD
+            # For non-tag builds, create a dev version from git describe.
+            # checkout action needs `fetch-depth: 0` for this to work properly.
+            git fetch --tags --force
+            GIT_DESCRIBE=$(git describe --tags --always --dirty)
+            VERSION=$(echo "$GIT_DESCRIBE" | sed -e 's/^v//' -e 's/-/~/; s/-/.g/')
             RELEASE=0
           fi
           
@@ -90,6 +96,9 @@ jobs:
             
             # Rename the directory to match the version.
             mv \"\$ORIGINAL_DIR\" \"clearly-$VERSION\"
+            
+            # Create a VERSION file in the source so it is remembered.
+            echo \"$VERSION\" > \"clearly-$VERSION/VERSION\"
             
             # Repack the tarball with the correct internal directory name.
             tar -czf \"clearly-$VERSION.tar.gz\" \"clearly-$VERSION\"
