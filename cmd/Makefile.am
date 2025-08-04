@@ -14,11 +14,11 @@ endif
 run_CFLAGS = $(PTHREAD_CFLAGS) -DLIBEXECDIR="\"$(pkglibexecdir)\"" @LIBNL_CFLAGS@ @JSONC_CFLAGS@
 run_LDADD = $(CLEARLY_RUN_LIBS) @LIBMNL_LIBS@ @LIBNFTNL_LIBS@ @LIBNL_LIBS@ @JSONC_LIBS@
 
-check_SOURCES = check.c misc.h misc.c
+check_SOURCES = check.c misc.h misc.
 
-link_SOURCES = use.c net.h net.c misc.h misc.c
-link_CFLAGS = @LIBNL_CFLAGS@
-link_LDADD = @LIBMNL_LIBS@ @LIBNFTNL_LIBS@ @LIBNL_LIBS@
+use_SOURCES = use.c net.h net.c misc.h misc.c
+use_CFLAGS = @LIBNL_CFLAGS@
+use_LDADD = @LIBMNL_LIBS@ @LIBNFTNL_LIBS@ @LIBNL_LIBS@
 
 list_SOURCES = list.c misc.h misc.c
 
@@ -63,6 +63,5 @@ version: ../configure
 # Link with Python libraries
 image_LDADD = $(PYTHON_LIB)
 daemon_LDADD = $(PYTHON_LIB)
-deploy_LDADD = $(PYTHON_LIB)
 
 CLEANFILES = $(cython_c_files)
