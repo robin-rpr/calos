@@ -19,6 +19,9 @@ jobs:
         run: |
           docker run -d --name fedora-builder fedora:39 bash -c "tail -f /dev/null"
           docker exec fedora-builder dnf install -y \
+            autoconf \
+            automake \
+            libtool \
             rpm-build \
             gcc \
             rsync \
