@@ -187,9 +187,9 @@ Third-party software compiled from source
 
 Under this method, one uses :code:`RUN` commands to fetch the desired software
 using :code:`curl` or :code:`wget`, compile it, and install. Our example
-(:code:`examples/Dockerfile.almalinux_8ch`) does this with ImageMagick:
+(:code:`examples/Dockerfile.almalinux_8clearly`) does this with ImageMagick:
 
-.. literalinclude:: ../examples/Dockerfile.almalinux_8ch
+.. literalinclude:: ../examples/Dockerfile.almalinux_8clearly
    :language: docker
    :lines: 2-
 

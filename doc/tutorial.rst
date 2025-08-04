@@ -455,7 +455,7 @@ don’t need to specify :code:`-t`.
 ::
 
   $ clearly image build \
-       -f /usr/local/share/doc/charliecloud/examples/Dockerfile.almalinux_8ch \
+       -f /usr/local/share/doc/charliecloud/examples/Dockerfile.almalinux_8clearly \
        /usr/local/share/doc/charliecloud/examples
   $ clearly image build \
        -f /usr/local/share/doc/charliecloud/examples/Dockerfile.openmpi \
@@ -517,7 +517,7 @@ Now build. The default Dockerfile is :code:`./Dockerfile`, so we can omit
    $ clearly image build -t mpihello
    $ clearly image list
    almalinux:8
-   almalinux_8ch
+   almalinux_8clearly
    mpihello
    openmpi
 

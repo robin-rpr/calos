@@ -1,7 +1,7 @@
 # test-scope: full
 # test-arch-exclude: aarch64  # no obspy Conda package
 # test-arch-exclude: ppc64le  # no obspy Conda package?
-FROM almalinux_8ch
+FROM almalinux_8clearly
 
 RUN dnf install -y --setopt=install_weak_deps=false \
                 zlib-devel \

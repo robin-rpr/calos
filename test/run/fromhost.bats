@@ -54,8 +54,8 @@ glibc_version_ok () {
 
 @test 'clearly fromhost (CentOS)' {
     scope standard
-    prerequisites_ok almalinux_8ch
-    img=${clearly_imgdir}/almalinux_8ch
+    prerequisites_ok almalinux_8clearly
+    img=${clearly_imgdir}/almalinux_8clearly
 
     # check glibc version compatibility.
     glibc_version_ok "$img"
@@ -163,8 +163,8 @@ glibc_version_ok () {
 
 @test 'clearly fromhost errors' {
     scope standard
-    prerequisites_ok almalinux_8ch
-    img=${clearly_imgdir}/almalinux_8ch
+    prerequisites_ok almalinux_8clearly
+    img=${clearly_imgdir}/almalinux_8clearly
 
     # no image
     run clearly fromhost --path sotest/sotest.c

@@ -637,7 +637,7 @@ Dependencies
   * Python 3.6+
   * either:
 
-    * the provided example :code:`centos_7ch` or :code:`almalinux_8ch` images,
+    * the provided example :code:`centos_7clearly` or :code:`almalinux_8clearly` images,
       or
     * a RHEL/CentOS 7 or newer container image with (note there are different
       python version names for the listed packages in RHEL 8 and derivatives):
@@ -682,15 +682,15 @@ with the test suite, on any system, and leave the results in
 :code:`~/rpmbuild/RPMS` (note the test suite would also build the
 necessary image directory)::
 
-  $ cmd/image build -f ./examples/Dockerfile.centos_7ch ./examples
-  $ cmd/convert centos_7ch $CLEARLY_TEST_IMGDIR/centos_7ch
-  $ packaging/fedora/build $CLEARLY_TEST_IMGDIR/centos_7ch 0.9.7-1
+  $ cmd/image build -f ./examples/Dockerfile.centos_7clearly ./examples
+  $ cmd/convert centos_7clearly $CLEARLY_TEST_IMGDIR/centos_7clearly
+  $ packaging/fedora/build $CLEARLY_TEST_IMGDIR/centos_7clearly 0.9.7-1
 
 To build a pre-release RPM of Git HEAD using the CentOS 7 image::
 
-  $ cmd/image build -f ./examples/Dockerfile.centos_7ch ./examples
-  $ cmd/convert centos_7ch $CLEARLY_TEST_IMGDIR/centos_7ch
-  $ packaging/fedora/build ${CLEARLY_TEST_IMGDIR}/centos_7ch HEAD
+  $ cmd/image build -f ./examples/Dockerfile.centos_7clearly ./examples
+  $ cmd/convert centos_7clearly $CLEARLY_TEST_IMGDIR/centos_7clearly
+  $ packaging/fedora/build ${CLEARLY_TEST_IMGDIR}/centos_7clearly HEAD
 
 Gotchas and quirks
 ------------------

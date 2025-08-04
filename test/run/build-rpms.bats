@@ -11,8 +11,8 @@ setup () {
 
 @test 'build/install el7 RPMs' {
     scope full
-    prerequisites_ok centos_7ch
-    img=${clearly_imgdir}/centos_7ch
+    prerequisites_ok centos_7clearly
+    img=${clearly_imgdir}/centos_7clearly
     image_ok "$img"
     rm -rf --one-file-system "${BATS_TMPDIR}/rpmbuild"
 
@@ -23,8 +23,8 @@ setup () {
 
 @test 'check el7 RPM files' {
     scope full
-    prerequisites_ok centos_7ch
-    img=${clearly_imgdir}/centos_7ch
+    prerequisites_ok centos_7clearly
+    img=${clearly_imgdir}/centos_7clearly
     # Do installed RPMs look sane?
     run clearly run "$img" -- rpm -qa "clearly*"
     echo "$output"
@@ -64,8 +64,8 @@ setup () {
 
 @test 'remove el7 RPMs' {
     scope full
-    prerequisites_ok centos_7ch
-    img=${clearly_imgdir}/centos_7ch
+    prerequisites_ok centos_7clearly
+    img=${clearly_imgdir}/centos_7clearly
     # Uninstall to avoid interfering with the rest of the test suite.
     run clearly run -w "$img" -- rpm -v --erase clearly-test \
                                            clearly-debuginfo \
@@ -88,8 +88,8 @@ setup () {
 
 @test 'build/install el8 RPMS' {
     scope standard
-    prerequisites_ok almalinux_8ch
-    img=${clearly_imgdir}/almalinux_8ch
+    prerequisites_ok almalinux_8clearly
+    img=${clearly_imgdir}/almalinux_8clearly
     image_ok "$img"
     rm -Rf --one-file-system "${BATS_TMPDIR}/rpmbuild"
 
@@ -100,8 +100,8 @@ setup () {
 
 @test 'check el8 RPM files' {
     scope standard
-    prerequisites_ok almalinux_8ch
-    img=${clearly_imgdir}/almalinux_8ch
+    prerequisites_ok almalinux_8clearly
+    img=${clearly_imgdir}/almalinux_8clearly
     # Do installed RPMs look sane?
     run clearly run "$img" -- rpm -qa "clearly*"
     echo "$output"
@@ -133,8 +133,8 @@ setup () {
 
 @test 'remove el8 RPMs' {
     scope standard
-    prerequisites_ok almalinux_8ch
-    img=${clearly_imgdir}/almalinux_8ch
+    prerequisites_ok almalinux_8clearly
+    img=${clearly_imgdir}/almalinux_8clearly
     # Uninstall to avoid interfering with the rest of the test suite.
     run clearly run -w "$img" -- rpm -v --erase clearly-debuginfo \
                                            clearly-doc \

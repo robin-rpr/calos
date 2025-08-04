@@ -1,5 +1,5 @@
 # test-scope: full
-FROM almalinux_8ch
+FROM almalinux_8clearly
 
 # A key goal of this Dockerfile is to demonstrate best practices for building
 # OpenMPI and MPICH for use inside a container.

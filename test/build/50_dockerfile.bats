@@ -418,7 +418,7 @@ EOF
 EOF
 )
     run build_ --no-cache -t tmpimg -f - . <<'EOF'
-FROM almalinux_8ch
+FROM almalinux_8clearly
 
 # FIXME: make this more comprehensive, e.g. space-separate vs.
 # equals-separated for everything.
@@ -494,7 +494,7 @@ EOF
 EOF
 )
     run build_ --no-cache -t tmpimg -f - . <<'EOF'
-FROM almalinux_8ch
+FROM almalinux_8clearly
 
 # Value has internal space.
 LABEL chsl_0a value 0a
@@ -570,7 +570,7 @@ EOF
 
    # test that it works with python3
    run build_ -t tmpimg -f - . <<'EOF'
-FROM almalinux_8ch
+FROM almalinux_8clearly
 SHELL ["/usr/bin/python3", "-c"]
 RUN print ("hello")
 EOF
