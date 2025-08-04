@@ -148,8 +148,8 @@ internal storage, then run it::
    > pwd
    /
    > ls
-   bin  clearly  dev  etc  home  lib  lib64  media  mnt  opt  proc  root  run
-   sbin  srv  sys  tmp  usr  var
+   bin  clearly  dev  etc  home  lib  lib64  media  mnt
+   opt  proc  root  run  sbin  srv  sys  tmp  usr  var
    > cat /etc/redhat-release
    AlmaLinux release 8.7 (Stone Smilodon)
    > exit
@@ -202,7 +202,7 @@ directory to avoid making a mess::
   bin  etc   lib    mnt  proc  run   srv  tmp  var
   dev  home  media  opt  root  sbin  sys  usr
   $ du -sh
-  5.6M	.
+  5.6M  .
   $ cd ..
 
 Now, run a shell in the container! (Note that base Alpine does not have Bash,
@@ -704,8 +704,8 @@ target::
 
    $ stat -L /proc/self/ns/user
      File: /proc/self/ns/user
-     Size: 0         	Blocks: 0          IO Block: 4096   regular empty file
-   Device: 4h/4d	Inode: 4026531837  Links: 1
+     Size: 0          Blocks: 0          IO Block: 4096   regular empty file
+   Device: 4h/4d  Inode: 4026531837  Links: 1
    Access: (0444/-r--r--r--)  Uid: (    0/    root)   Gid: (    0/    root)
    Access: 2022-12-16 10:56:54.916459868 -0700
    Modify: 2022-12-16 10:56:54.916459868 -0700
@@ -713,8 +713,8 @@ target::
     Birth: -
    $ unshare --user --mount -- stat -L /proc/self/ns/user
      File: /proc/self/ns/user
-     Size: 0         	Blocks: 0          IO Block: 4096   regular empty file
-   Device: 4h/4d	Inode: 4026532565  Links: 1
+     Size: 0          Blocks: 0          IO Block: 4096   regular empty file
+   Device: 4h/4d  Inode: 4026532565  Links: 1
    Access: (0444/-r--r--r--)  Uid: (65534/  nobody)   Gid: (65534/ nogroup)
    Access: 2022-12-16 10:57:07.136561077 -0700
    Modify: 2022-12-16 10:57:07.136561077 -0700
@@ -745,7 +745,7 @@ to 0 (:code:`root`)::
   uid=0(root) gid=0(root) groups=0(root),65534(nogroup)
 
 This shows that our UID inside the container is 0, our GID is 0, and all
-supplementary groups have collapsed into 65534:code:`nogroup`, because they
+supplementary groups have collapsed into 65534 :code:`nogroup`, because they
 are unmapped inside the namespace. (If :code:`id` complains about not finding
 names for IDs, just ignore it.)
 

@@ -54,19 +54,19 @@ Required system dependencies
 After enabling the CRB repository, install the following packages:
 
   * :code:`libseccomp-devel`: Development files for the seccomp library,
-    which Charliecloud uses for system call filtering and security
+    which Charliecloud uses for system call filtering and security.
   * :code:`squashfuse-devel`: Development files for SquashFUSE, enabling
-    mounting of SquashFS archives without root privileges
+    mounting of SquashFS archives without root privileges.
   * :code:`libmnl-devel`: Development files for the libmnl library,
-    providing netlink socket management capabilities
+    providing netlink socket management capabilities.
   * :code:`libnftnl-devel`: Development files for the libnftnl library,
-    providing netfilter tables and rules management capabilities
+    providing netfilter tables and rules management capabilities.
   * :code:`libnl3-devel`: Development files for libnl3, providing network
-    configuration and management capabilities
-  * :code:`libcap-devel`: Development files for libcap, providing system 
-    capabilities management capabilities
+    configuration and management capabilities.
+  * :code:`libcap-devel`: Development files for libcap, providing system
+    capabilities management capabilities.
   * :code:`fuse3-devel`: Development files for FUSE 3, the filesystem in
-    userspace interface
+    userspace interface.
   * :code:`json-c-devel`: Development files for json-c, providing JSON parsing.
   * :code:`python3-lark-parser`: Python 3 Lark parser library, used for parsing
     and processing Dockerfile as well as docker-compose.yml files.
@@ -84,7 +84,7 @@ After enabling the CRB repository, install the following packages:
     file and volume synchronization.
   * :code:`git`: Version control system for creating a runtime build cache,
     during the image(1) build command process.
-  
+
 Optional dependencies
 ~~~~~~~~~~~~~~~~~~~~
 

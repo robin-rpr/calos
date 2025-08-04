@@ -30,7 +30,7 @@ necessary to access host specific resources; usually GPU or proprietary
 interconnects. **It is not a general copy-to-image tool**; see further
 discussion on use cases below.
 
-It should be run after:code:`clearly convert` and before :code:`clearly run`. After
+It should be run after :code:`clearly convert` and before :code:`clearly run`. After
 invocation, the image is no longer portable to other hosts.
 
 Injection is not atomic; if an error occurs partway through injection, the
@@ -166,7 +166,7 @@ Additional arguments
 
 
 When to use :code:`clearly fromhost`
-===============================
+====================================
 
 This command does a lot of heuristic magic; while it *can* copy arbitrary
 files into an image, this usage is discouraged and prone to error. Here are
