@@ -34,8 +34,8 @@ SUFFIXES = .py .c @PYEXT_SUFFIX@
 
 .c@PYEXT_SUFFIX@:
 	$(CC) -shared -fPIC \
-	  -I"$(shell python3 -c 'import sysconfig; print(sysconfig.get_path("include"))')" \
-	  $< -o $@ $(shell python3-config --ldflags)
+	  -I"$(shell $(PYTHON) -c 'import sysconfig; print(sysconfig.get_path("include"))')" \
+	  $< -o $@ $(shell $(PYTHON)-config --ldflags)
 
 all-local: $(cython_so_files)
 mylib_DATA = $(cython_so_files)

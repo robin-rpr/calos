@@ -14,6 +14,7 @@ License:       Proprietary
 URL:           https://clearly.run
 Source0:       https://clearly.run/releases/downloads/v%{version}/%{name}-%{version}.tar.gz
 BuildRequires: gcc rsync bash
+BuildRequires: autoconf automake libtool
 BuildRequires: libseccomp-devel
 BuildRequires: squashfuse-devel
 BuildRequires: libmnl-devel
@@ -23,11 +24,11 @@ BuildRequires: libcap-devel
 BuildRequires: fuse3-devel
 BuildRequires: json-c-devel
 BuildRequires: python3-devel
-BuildRequires: python%{python3_pkgversion}-lark-parser
-BuildRequires: python%{python3_pkgversion}-requests
-BuildRequires: python%{python3_pkgversion}-jinja2
-BuildRequires: python%{python3_pkgversion}-wheel
-BuildRequires: python%{python3_pkgversion}-cython
+BuildRequires: python3-lark-parser
+BuildRequires: python3-requests
+BuildRequires: python3-jinja2
+BuildRequires: python3-wheel
+BuildRequires: python3-cython
 BuildRequires: git
 
 Requires:      squashfuse squashfs-tools
@@ -40,11 +41,11 @@ Requires:      fuse3
 Requires:      json-c
 Requires:      python3
 Requires:      syncthing
-Requires:      python%{python3_pkgversion}-lark-parser
-Requires:      python%{python3_pkgversion}-requests
-Requires:      python%{python3_pkgversion}-jinja2
-Requires:      python%{python3_pkgversion}-wheel
-Requires:      python%{python3_pkgversion}-cython
+Requires:      python3-lark-parser
+Requires:      python3-requests
+Requires:      python3-jinja2
+Requires:      python3-wheel
+Requires:      python3-cython
 Requires:      git 
 
 %description
@@ -63,9 +64,9 @@ Summary:       Clearly html documentation
 License:       Proprietary
 BuildArch:     noarch
 Obsoletes:     %{name}-doc < %{version}-%{release}
-BuildRequires: python%{python3_pkgversion}-sphinx
-BuildRequires: python%{python3_pkgversion}-sphinx_rtd_theme
-Requires:      python%{python3_pkgversion}-sphinx_rtd_theme
+BuildRequires: python3-sphinx
+BuildRequires: python3-sphinx_rtd_theme
+Requires:      python3-sphinx_rtd_theme
 
 %description doc
 Html and man page documentation for %{name}.
@@ -92,7 +93,6 @@ Test fixtures for %{name}.
 CFLAGS=${CFLAGS:-%optflags -fgnu89-inline}; export CFLAGS
 %configure --docdir=%{_pkgdocdir} \
            --libdir=%{_prefix}/lib \
-           --with-python=/usr/bin/python3 \
 %if 0%{?el7}
            --with-sphinx-build=%{_bindir}/sphinx-build-3.6
 %else

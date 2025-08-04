@@ -66,6 +66,8 @@ jobs:
             set -x
             set -e
 
+            export PYTHON=python3
+
             # Set up the git repository.
             git config --global --add safe.directory /root/clearly
             cd /root/clearly
@@ -74,8 +76,7 @@ jobs:
             ./autogen.sh
 
             # Configure the build system.
-            # We must use PYTHON=python3 as python3 is not the default.
-            PYTHON=python3 ./configure
+            ./configure
             make dist
             
             # Find the generated tarball.
