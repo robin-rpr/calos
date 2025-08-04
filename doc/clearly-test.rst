@@ -1,5 +1,5 @@
 :code:`clearly test`
-+++++++++++++++
+++++++++++++++++++++
 
 .. only:: not man
 

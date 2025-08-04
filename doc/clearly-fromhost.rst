@@ -1,5 +1,5 @@
 :code:`clearly fromhost`
-+++++++++++++++++++
+++++++++++++++++++++++++
 
 .. only:: not man
 

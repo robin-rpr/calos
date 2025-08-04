@@ -1,5 +1,5 @@
 :code:`clearly convert`
-++++++++++++++++++
++++++++++++++++++++++++
 
 .. only:: not man
 

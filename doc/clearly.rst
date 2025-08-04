@@ -1,7 +1,7 @@
 :orphan:
 
-charliecloud man page
-+++++++++++++++++++++
+clearly man page
+++++++++++++++++
 
 .. include:: ../README.rst
 .. include:: ./bugs.rst
@@ -14,14 +14,18 @@ clearly-check(1),
 clearly-convert(1),
 clearly-fromhost(1),
 clearly-image(1),
+clearly-list(1),
+clearly-logs(1),
 clearly-run(1),
+clearly-stop(1),
 clearly-test(1),
+clearly-version(1),
 
-Full documentation at: https://hpc.github.io/charliecloud
+Full documentation at: https://clearly.run/docs
 
 
 Note
 ----
 
-These man pages are for Charliecloud version |release| (Git commit |version|).
+These man pages are for Clearly version |release| (Git commit |version|).
 
