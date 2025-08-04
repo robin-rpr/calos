@@ -9,7 +9,7 @@
 Name:          clearly
 Version:       @VERSION@
 Release:       @RELEASE@%{?dist}
-Summary:       Platform for building and deploying apps at scale.
+Summary:       One-stop platform for building and deploying apps at scale.
 License:       Proprietary
 URL:           https://clearly.run
 Source0:       https://clearly.run/releases/downloads/v%{version}/%{name}-%{version}.tar.gz
@@ -146,11 +146,11 @@ ln -s "${sphinxdir}/js"    %{buildroot}%{_pkgdocdir}/html/_static/js
 %{_libexecdir}/run
 %{_libexecdir}/use
 %{_libexecdir}/image
-%{_mandir}/man1/check.1*
-%{_mandir}/man1/convert.1*
-%{_mandir}/man1/fromhost.1*
-%{_mandir}/man1/run.1*
-%{_mandir}/man1/image.1*
+%{_mandir}/man1/clearly-check.1*
+%{_mandir}/man1/clearly-convert.1*
+%{_mandir}/man1/clearly-fromhost.1*
+%{_mandir}/man1/clearly-run.1*
+%{_mandir}/man1/clearly-image.1*
 %{_mandir}/man7/clearly.7*
 %{_prefix}/lib/%{name}/_base.sh
 
@@ -183,7 +183,7 @@ ln -s "${sphinxdir}/js"    %{buildroot}%{_pkgdocdir}/html/_static/js
 %files test
 %{_libexecdir}/test
 %{_libexecdir}/%{name}
-%{_mandir}/man1/test.1*
+%{_mandir}/man1/clearly-test.1*
 
 %changelog
 * Thu Apr 16 2020 <jogas@lanl.gov> - @VERSION@-@RELEASE@

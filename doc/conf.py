@@ -12,6 +12,7 @@
 # serve to show the default.
 
 import sys, os
+import datetime
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -64,8 +65,10 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'Charliecloud'
-copyright = u'Charliecloud a Series of LF Projects, LLC and others (web content and website). For web site terms of use, trademark policy and other project policies please see: https://lfprojects.org'
+project = u'Clearly'
+
+year = datetime.datetime.now().year
+copyright = u'Copyright {year} Robin Röper'.format(year=year)
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -222,7 +225,7 @@ html_show_sphinx = False
 #html_file_suffix = None
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'charliedoc'
+htmlhelp_basename = 'clearlydoc'
 
 
 # -- Options for LaTeX output --------------------------------------------------
@@ -241,8 +244,8 @@ latex_elements = {
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-  ('index', 'charlie.tex', u'Charliecloud Documentation',
-   u'Reid Priedhorsky, Tim Randles, and others', 'manual'),
+  ('index', 'clearly.tex', u'Clearly Documentation',
+   u'Robin Röper', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -276,24 +279,24 @@ man_make_section_directory = False
 # (source start file, name, description, authors, manual section).
 man_pages = [
    ("clearly", "clearly",
-    "Lightweight user-defined software stacks for high-performance computing",
+    "One-stop platform for building and deploying apps at scale.",
     [], 7),
-   ("clearly-check", "check",
+   ("clearly-check", "clearly-check",
     'Check "clearly run" prerequisites, e.g., namespaces and "pivot_root(2)"',
     [], 1),
-   ("clearly-convert", "convert",
+   ("clearly-convert", "clearly-convert",
     'Convert an image from one format to another',
     [], 1),
-   ("clearly-fromhost", "fromhost",
+   ("clearly-fromhost", "clearly-fromhost",
     "Inject files from the host into an image directory, with various magic",
     [], 1),
-   ("clearly-image", "image",
+   ("clearly-image", "clearly-image",
     "Build and manage images; completely unprivileged",
     [], 1),
-   ("clearly-run", "run",
+   ("clearly-run", "clearly-run",
     "Run a command in a Clearly container",
     [], 1),
-   ("clearly-test", "test",
+   ("clearly-test", "clearly-test",
     "Run some or all of the Charliecloud test suite",
     [], 1),
 ]
@@ -309,7 +312,7 @@ man_pages = [
 #  dir menu entry, description, category)
 texinfo_documents = [
   ('index', 'Clearly', u'Clearly Documentation',
-   u'Robin Röper', 'Clearly', 'Platform for building and deploying apps at scale.',
+   u'Robin Röper', 'Clearly', 'One-stop platform for building and deploying apps at scale.',
    'Miscellaneous'),
 ]
 
