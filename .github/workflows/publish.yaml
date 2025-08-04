@@ -69,7 +69,7 @@ jobs:
             cd /root/clearly
             ./autogen.sh
             # We must run configure to be able to make a dist tarball
-            ./configure
+            PYTHON=python3 ./configure
             make dist
             
             # Find the generated tarball.
@@ -90,14 +90,6 @@ jobs:
             # Place the new, corrected tarball where rpmbuild can find it.
             mkdir -p /root/rpmbuild/SOURCES
             mv \"clearly-$VERSION.tar.gz\" /root/rpmbuild/SOURCES/
-            
-            # Create spec file with correct version and add the crucial Python fix.
-            # We prepend 'PYTHON=%{__python3}' to the %configure line to ensure
-            # the build system finds the correct Python interpreter for Cython.
-            sed -e 's/@VERSION@/$VERSION/g' \
-                -e 's/@RELEASE@/$RELEASE/g' \
-                -e 's/^%configure/PYTHON=%{__python3} %configure/' \
-                packaging/fedora/clearly.spec > clearly.spec
             
             # Build the binary and source RPMs.
             rpmbuild -ba clearly.spec
