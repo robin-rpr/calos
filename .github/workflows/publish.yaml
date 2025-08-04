@@ -70,6 +70,21 @@ jobs:
             ./configure
             make dist
             
+            # Find the generated tarball
+            ORIGINAL_TARBALL=\$(ls clearly-*.tar.gz)
+            
+            # Unpack it
+            tar -xzf \$ORIGINAL_TARBALL
+            
+            # Find the unpacked directory name
+            ORIGINAL_DIR=\$(ls -d clearly-*/)
+            
+            # Rename the directory to match the version we will use in the .spec file
+            mv \"\$ORIGINAL_DIR\" \"clearly-\$VERSION\"
+            
+            # Repack the tarball with the correct internal directory structure
+            tar -czf \"clearly-\$VERSION.tar.gz\" \"clearly-\$VERSION\"
+            
             # Place the tarball where rpmbuild can find it
             mkdir -p /root/rpmbuild/SOURCES
             mv clearly-*.tar.gz /root/rpmbuild/SOURCES/clearly-$VERSION.tar.gz
