@@ -16,6 +16,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <limits.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 
 #include "config.h"
 #include "misc.h"
@@ -57,9 +60,10 @@ int main(int argc, char *argv[])
 
    /* Ensure the network bridge exists. */
    if (!is_bridge_exists("clearly0")) {
-      create_bridge("clearly0", "172.20.0.1", 16);
+      struct in_addr bridge_ip = { .s_addr = inet_addr("10.0.0.1") };
+      create_bridge("clearly0", &bridge_ip, 8);
    }
-´
+
    /* Attach physical interface to bridge.
    
       This section handles the enrolment of the physical interface to the bridge.
