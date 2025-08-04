@@ -68,39 +68,44 @@ jobs:
             git config --global --add safe.directory /root/clearly
             cd /root/clearly
             ./autogen.sh
+            # We must run configure to be able to make a dist tarball
             ./configure
             make dist
             
-            # Find the generated tarball. Use \$() so this command runs inside the container.
+            # Find the generated tarball.
             ORIGINAL_TARBALL=\$(ls clearly-*.tar.gz)
             
-            # Unpack it. Use \"\$VAR\" to refer to the variable set inside the container.
+            # Unpack it to rename the internal directory.
             tar -xzf \"\$ORIGINAL_TARBALL\"
             
             # Find the unpacked directory name.
             ORIGINAL_DIR=\$(ls -d clearly-*/)
             
-            # Rename the directory. Use \"\$VAR\" for the container variable and \"$VAR\" for the
-            # runner's variable. $VERSION is correctly expanded by the outer shell now.
+            # Rename the directory to match the version.
             mv \"\$ORIGINAL_DIR\" \"clearly-$VERSION\"
             
-            # Repack the tarball with the correct internal directory.
+            # Repack the tarball with the correct internal directory name.
             tar -czf \"clearly-$VERSION.tar.gz\" \"clearly-$VERSION\"
 
             # Place the new, corrected tarball where rpmbuild can find it.
             mkdir -p /root/rpmbuild/SOURCES
             mv \"clearly-$VERSION.tar.gz\" /root/rpmbuild/SOURCES/
             
-            # Create spec file with version. $VERSION and $RELEASE are expanded by the outer shell.
-            sed 's/@VERSION@/$VERSION/g; s/@RELEASE@/$RELEASE/g' packaging/fedora/clearly.spec > clearly.spec
+            # Create spec file with correct version and add the crucial Python fix.
+            # We prepend 'PYTHON=%{__python3}' to the %configure line to ensure
+            # the build system finds the correct Python interpreter for Cython.
+            sed -e 's/@VERSION@/$VERSION/g' \
+                -e 's/@RELEASE@/$RELEASE/g' \
+                -e 's/^%configure/PYTHON=%{__python3} %configure/' \
+                packaging/fedora/clearly.spec > clearly.spec
             
-            # Build RPM
+            # Build the binary and source RPMs.
             rpmbuild -ba clearly.spec
           "
           
-          # Copy RPMs back
-          docker cp fedora-builder:/root/clearly/rpmbuild/RPMS ./rpms
-          docker cp fedora-builder:/root/clearly/rpmbuild/SRPMS ./srpms
+          # Copy RPMs back to the runner
+          docker cp fedora-builder:/root/rpmbuild/RPMS ./rpms
+          docker cp fedora-builder:/root/rpmbuild/SRPMS ./srpms
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
