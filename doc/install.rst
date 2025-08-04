@@ -49,7 +49,7 @@ On RHEL 8 systems, it was called "CodeReady Builder" and can be enabled with
 :code:`sudo dnf config-manager --set-enabled codeready-builder-for-rhel-8-*-rpms`.
 
 Required system dependencies
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 After enabling the CRB repository, install the following packages:
 
