@@ -62,6 +62,8 @@ jobs:
           
           # Build RPM inside container
           docker exec fedora-builder bash -c "
+            set -x # print commands
+            set -e # exit on error
             cd /tmp/clearly
             ./autogen.sh
             ./configure
