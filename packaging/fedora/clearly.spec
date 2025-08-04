@@ -6,6 +6,9 @@
 # Don't try to compile python3 files with /usr/bin/python.
 %{?el7:%global __python %__python3}
 
+# Do not generate a debug package.
+%global debug_package %{nil}
+
 Name:          clearly
 Version:       @VERSION@
 Release:       @RELEASE@%{?dist}
@@ -46,7 +49,7 @@ Requires:      python3-requests
 Requires:      python3-jinja2
 Requires:      python3-wheel
 Requires:      python3-cython
-Requires:      git 
+Requires:      git
 
 %description
 Clearly uses Linux user namespaces to run containers with no privileged
@@ -59,23 +62,23 @@ a standard Linux filesystem tree.
 
 For more information: https://clearly.run
 
-%package       doc
-Summary:       Clearly html documentation
-License:       Proprietary
-BuildArch:     noarch
-Obsoletes:     %{name}-doc < %{version}-%{release}
-BuildRequires: python3-sphinx
-BuildRequires: python3-sphinx_rtd_theme
-Requires:      python3-sphinx_rtd_theme
+%package        doc
+Summary:        Clearly html documentation
+License:        Proprietary
+BuildArch:      noarch
+Obsoletes:      %{name}-doc < %{version}-%{release}
+BuildRequires:  python3-sphinx
+BuildRequires:  python3-sphinx_rtd_theme
+Requires:       python3-sphinx_rtd_theme
 
 %description doc
 Html and man page documentation for %{name}.
 
-%package   test
-Summary:   Clearly test suite
-License:   Proprietary
-Requires:  %{name} /usr/bin/bats
-Obsoletes: %{name}-test < %{version}-%{release}
+%package    test
+Summary:    Clearly test suite
+License:    Proprietary
+Requires:   %{name} bats-core
+Obsoletes:  %{name}-test < %{version}-%{release}
 
 %description test
 Test fixtures for %{name}.
@@ -94,7 +97,6 @@ CFLAGS=${CFLAGS:-%optflags -fgnu89-inline}; export CFLAGS
 LDFLAGS="$(python3-config --ldflags --embed)"; export LDFLAGS
 %configure --docdir=%{_pkgdocdir} \
            --libdir=%{_prefix}/lib \
-           --libexecdir=%{_libexecdir}/%{name} \
 %if 0%{?el7}
            --with-sphinx-build=%{_bindir}/sphinx-build-3.6
 %else
@@ -119,17 +121,6 @@ Note for versions below RHEL7.6, you will also need to enable user namespaces:
 Please visit https://clearly.run for more information.
 EOF
 
-# Remove bundled sphinx bits.
-%{__rm} -rf %{buildroot}%{_pkgdocdir}/html/_static/css
-%{__rm} -rf %{buildroot}%{_pkgdocdir}/html/_static/fonts
-%{__rm} -rf %{buildroot}%{_pkgdocdir}/html/_static/js
-
-# Use Fedora package sphinx bits.
-sphinxdir=%{python3_sitelib}/sphinx_rtd_theme/static
-ln -s "${sphinxdir}/css"   %{buildroot}%{_pkgdocdir}/html/_static/css
-ln -s "${sphinxdir}/fonts" %{buildroot}%{_pkgdocdir}/html/_static/fonts
-ln -s "${sphinxdir}/js"    %{buildroot}%{_pkgdocdir}/html/_static/js
-
 # Remove bundled license and readme (prefer license and doc macros).
 %{__rm} -f %{buildroot}%{_pkgdocdir}/LICENSE
 %{__rm} -f %{buildroot}%{_pkgdocdir}/README.rst
@@ -137,6 +128,7 @@ ln -s "${sphinxdir}/js"    %{buildroot}%{_pkgdocdir}/html/_static/js
 %files
 %license LICENSE
 %doc README.rst %{?el7:README.EL7}
+%{_bindir}/clearly
 %{_libexecdir}/%{name}/check
 %{_libexecdir}/%{name}/convert
 %{_libexecdir}/%{name}/daemon
@@ -147,14 +139,44 @@ ln -s "${sphinxdir}/js"    %{buildroot}%{_pkgdocdir}/html/_static/js
 %{_libexecdir}/%{name}/run
 %{_libexecdir}/%{name}/use
 %{_libexecdir}/%{name}/image
+%{_libexecdir}/%{name}/version
+
 %{_mandir}/man1/clearly-check.1*
 %{_mandir}/man1/clearly-convert.1*
 %{_mandir}/man1/clearly-fromhost.1*
 %{_mandir}/man1/clearly-run.1*
 %{_mandir}/man1/clearly-image.1*
 %{_mandir}/man7/clearly.7*
-%{_prefix}/lib/%{name}/_base.sh
 
+%{_datadir}/%{name}/templates/
+%{_datadir}/%{name}/styles/
+%{_datadir}/%{name}/images/
+
+%{_datadir}/%{name}/bucache/
+%{_datadir}/%{name}/build/
+%{_datadir}/%{name}/fixtures/
+%{_datadir}/%{name}/make-auto.d/
+%{_datadir}/%{name}/run/
+%{_datadir}/%{name}/sotest/
+%{_datadir}/%{name}/.dockerignore
+%{_datadir}/%{name}/Build.centos7xz
+%{_datadir}/%{name}/Build.docker_pull
+%{_datadir}/%{name}/Build.missing
+%{_datadir}/%{name}/Dockerfile.argenv
+%{_datadir}/%{name}/Dockerfile.quick
+%{_datadir}/%{name}/approved-trailing-whitespace
+%{_datadir}/%{name}/common.bash
+%{_datadir}/%{name}/docs-sane
+%{_datadir}/%{name}/doctest
+%{_datadir}/%{name}/doctest-auto
+%{_datadir}/%{name}/force-auto
+%{_datadir}/%{name}/force-auto.bats
+%{_datadir}/%{name}/make-perms-test
+%{_datadir}/%{name}/order-py
+%{_datadir}/%{name}/registry-config.yml
+%{_datadir}/%{name}/run_first.bats
+
+%{_prefix}/lib/%{name}/_base.sh
 %{_prefix}/lib/%{name}/_build_cache.*.so
 %{_prefix}/lib/%{name}/_build.*.so
 %{_prefix}/lib/%{name}/_clearly.*.so
@@ -183,9 +205,8 @@ ln -s "${sphinxdir}/js"    %{buildroot}%{_pkgdocdir}/html/_static/js
 
 %files test
 %{_libexecdir}/%{name}/test
-%{_libexecdir}/%{name}/clearly
 %{_mandir}/man1/clearly-test.1*
 
 %changelog
-* Thu Apr 16 2020 <jogas@lanl.gov> - @VERSION@-@RELEASE@
-- Add new charliecloud package.
+* Tue Aug 5 2025 <rr@linux.com> - 0.0.0-0
+- Add new clearly package.
