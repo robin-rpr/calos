@@ -597,7 +597,7 @@ CLEARLY_CHECK_VERSION([PYTHON], [$vmin_python],
 vmin_lark=1.1.9  # CentOS 7; FIXME: haven’t actually tested this
 AS_IF([test -n "$PYTHON"], [
   AC_MSG_CHECKING([for lark module])
-  cat <<EOF | #!/usr/bin/env python3
+  cat <<EOF | $PYTHON
 import sys
 try:
    import lark
@@ -605,10 +605,10 @@ except Exception:
    sys.exit(1)
 EOF
   AS_IF([test $? -eq 0],
-    [REQUESTS=$PYTHON; have_lark=yes],
-    [REQUESTS=;         have_lark=no])
+    [LARK=$PYTHON; have_lark=yes],
+    [LARK=;         have_lark=no])
   AC_MSG_RESULT($have_lark)
-  CLEARLY_CHECK_VERSION([REQUESTS], [$vmin_lark],
+  CLEARLY_CHECK_VERSION([LARK], [$vmin_lark],
     [-c 'import lark; print(lark.__version__)'])
 ])
 
@@ -616,7 +616,7 @@ EOF
 vmin_requests=2.6.0  # CentOS 7; FIXME: haven’t actually tested this
 AS_IF([test -n "$PYTHON"], [
   AC_MSG_CHECKING([for requests module])
-  cat <<EOF | #!/usr/bin/env python3
+  cat <<EOF | $PYTHON
 import sys
 try:
    import requests
@@ -647,7 +647,7 @@ EOF
     [CYTHON=;         have_cython=no])
   AC_MSG_RESULT($have_cython)
   CLEARLY_CHECK_VERSION([CYTHON], [$vmin_cython],
-    [-c 'import cython; print(Cython.__version__)'])
+    [-c 'import cython; print(cython.__version__)'])
 ])
 
 # Check for C compiler (needed for Cython compilation)
@@ -887,6 +887,7 @@ AS_IF([   test $have_userns = yes],
 AS_IF([   test $enable_image = yes \
        && test -n "$PYTHON" \
        && test -n "$REQUESTS" \
+       && test -n "$LARK" \
        && test -n "$CYTHON" \
        && test $have_run = yes],
       [have_image=yes],

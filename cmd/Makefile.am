@@ -52,7 +52,7 @@ SUFFIXES = .py .c
 		-3 \
 		-o $@ \
 		--module-name $(subst -,_,$(basename $<))
-	chmod +rx,-w $@  # respects umask
+	chmod +rx,-w $@ # respects umask
 
 # Version script
 version: ../configure
