@@ -70,6 +70,10 @@ jobs:
             ./configure
             make dist
             
+            # Place the tarball where rpmbuild can find it
+            mkdir -p /root/rpmbuild/SOURCES
+            mv clearly-*.tar.gz /root/rpmbuild/SOURCES/clearly-$VERSION.tar.gz
+            
             # Create spec file with version
             sed 's/@VERSION@/$VERSION/g; s/@RELEASE@/$RELEASE/g' packaging/fedora/clearly.spec > clearly.spec
             
