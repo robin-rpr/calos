@@ -92,7 +92,7 @@ jobs:
             mv \"clearly-$VERSION.tar.gz\" /root/rpmbuild/SOURCES/
             
             # Build the binary and source RPMs.
-            rpmbuild -ba clearly.spec
+            rpmbuild -ba packaging/fedora/clearly.spec
           "
           
           # Copy RPMs back to the runner
