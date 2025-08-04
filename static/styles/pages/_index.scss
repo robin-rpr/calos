@@ -37,11 +37,11 @@
                 column-gap: 0.25rem;
                 align-items: center;
                 position: relative;
-                margin-left: -0.75rem;
+                margin-left: -1rem;
 
                 .tab__item {
-                    padding: 0.425rem 0.75rem;
-                    border-radius: 10px;
+                    padding: 0.5rem 1rem;
+                    border-radius: 2rem;
                     display: flex;
                     color: #657380;
                     position: relative;
@@ -49,19 +49,19 @@
                     cursor: pointer;
     
                     &:hover {
-                        background: #f0f4f8;
+                        background: #f2f6f9;
                     }
 
                     &:after {
                         content: '';
                         display: block;
                         height: 2px;
-                        width: calc(100% - 2 * 0.75rem);
+                        width: calc(100% - 2 * 1rem);
                         background: transparent;
                         border-radius: 4px;
                         position: absolute;
                         bottom: -10px;
-                        left: 0.75rem;
+                        left: 1rem;
                     }
 
                     &--active {

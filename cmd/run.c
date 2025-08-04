@@ -780,7 +780,11 @@ struct json_object *parse_config(const char *image_path)
         fclose(fp);
         return NULL;
     }
-    fread(json_buf, 1, len, fp);
+    if (fread(json_buf, 1, (size_t)len, fp) != (size_t)len) {
+        fclose(fp);
+        free(json_buf);
+        return NULL;
+    }
     json_buf[len] = '\0';
     fclose(fp);
 
