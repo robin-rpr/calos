@@ -86,7 +86,7 @@ After enabling the CRB repository, install the following packages:
     during the image(1) build command process.
 
 Optional dependencies
-~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
 
 The following packages are optional but recommended for a complete build
 experience::
@@ -342,20 +342,6 @@ with `glibc <https://www.gnu.org/software/libc/>`_ and `musl
 (Please report these bugs!) Non-glibc libc’s will currently need a `standalone
 libargp <https://github.com/ericonr/argp-standalone>`_ (see issue `#1260
 <https://github.com/hpc/charliecloud/issues/1260>`_).
-
-Details by feature
-------------------
-
-This section is a comprehensive listing of the specific dependencies and
-versions by feature group. It is auto-generated from the definitive source,
-:code:`configure.ac`.
-
-Listed versions are minimums, with the caveats above. Everything needs a POSIX
-shell and utilities.
-
-The next section contains notes about some of the dependencies.
-
-.. include:: _deps.rst
 
 Notes on specific dependencies
 ------------------------------

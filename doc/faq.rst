@@ -24,17 +24,12 @@ How do you spell Charliecloud?
 We try to be consistent with *Charliecloud* — one word, no camel case. That
 is, *Charlie Cloud* and *CharlieCloud* are both incorrect.
 
-How large is Charliecloud?
---------------------------
-
-.. include:: _loc.rst
-
 
 Errors
 ======
 
 How do I read the :code:`clearly run` error messages?
-------------------------------------------------
+-----------------------------------------------------
 
 :code:`clearly run` error messages look like this::
 
@@ -81,7 +76,7 @@ There is a lot of information here, and it comes in this order:
 to be machine-readable.
 
 :code:`clearly run` fails with “can’t re-mount image read-only”
-----------------------------------------------------------
+---------------------------------------------------------------
 
 Normally, :code:`clearly run` re-mounts the image directory read-only within the
 container. This fails if the image resides on certain filesystems, such as NFS
@@ -100,7 +95,7 @@ two solutions:
    writing).
 
 :code:`clearly image` fails with "certificate verify failed"
--------------------------------------------------------
+------------------------------------------------------------
 
 When :code:`clearly image` interacts with a remote registry (e.g., via :code:`push`
 or :code:`pull` subcommands), it will verify the registry’s HTTPS certificate.
@@ -196,7 +191,7 @@ See the man page for :code:`clearly run` for more on environment variable
 handling.
 
 :code:`clearly run` fails with “can’t execve(2): permission denied”
---------------------------------------------------------------
+-------------------------------------------------------------------
 
 For example::
 
@@ -473,7 +468,7 @@ the call is mapped to :code:`chown("/dev/pts/0", 1000, 1001)` and MATLAB is
 happy.
 
 :code:`clearly convert` from Docker incorrect image sizes
-----------------------------------------------------
+---------------------------------------------------------
 
 When converting from Docker, :code:`clearly convert` often finishes before the
 progress bar is complete. For example::
@@ -545,7 +540,8 @@ Note the non-preserved bits may *sometimes* be retained, but this is undefined
 behavior. The specified behavior is that they may be zeroed at any time.
 
 Why is my wildcard in :code:`clearly run` not working?
--------------------------------------------------
+------------------------------------------------------
+
 Be aware that wildcards in the :code:`clearly run` command are interpreted by the
 host, not the container, unless protected. One workaround is to use a
 sub-shell. For example::
@@ -870,7 +866,7 @@ Alpine 3.9 image pulled from Docker hub::
   3.9.5
 
 How do I authenticate with SSH during :code:`clearly image` build?
--------------------------------------------------------------
+------------------------------------------------------------------
 
 The simplest approach is to run the `SSH agent
 <https://man.openbsd.org/ssh-agent>`_ on the host. :code:`clearly image` then
@@ -915,7 +911,7 @@ e.g. with :code:`scp(1)` or :code:`git(1)`. See the next entry for a more
 realistic example.
 
 SSH stops :code:`clearly image` build with interactive queries
----------------------------------------------------------
+--------------------------------------------------------------
 
 This often occurs during an SSH-based Git clone. For example:
 
