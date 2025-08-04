@@ -94,6 +94,7 @@ CFLAGS=${CFLAGS:-%optflags -fgnu89-inline}; export CFLAGS
 LDFLAGS="$(python3-config --ldflags --embed)"; export LDFLAGS
 %configure --docdir=%{_pkgdocdir} \
            --libdir=%{_prefix}/lib \
+           --libexecdir=%{_libexecdir}/%{name} \
 %if 0%{?el7}
            --with-sphinx-build=%{_bindir}/sphinx-build-3.6
 %else
@@ -136,16 +137,16 @@ ln -s "${sphinxdir}/js"    %{buildroot}%{_pkgdocdir}/html/_static/js
 %files
 %license LICENSE
 %doc README.rst %{?el7:README.EL7}
-%{_libexecdir}/check
-%{_libexecdir}/convert
-%{_libexecdir}/daemon
-%{_libexecdir}/fromhost
-%{_libexecdir}/stop
-%{_libexecdir}/list
-%{_libexecdir}/logs
-%{_libexecdir}/run
-%{_libexecdir}/use
-%{_libexecdir}/image
+%{_libexecdir}/%{name}/check
+%{_libexecdir}/%{name}/convert
+%{_libexecdir}/%{name}/daemon
+%{_libexecdir}/%{name}/fromhost
+%{_libexecdir}/%{name}/stop
+%{_libexecdir}/%{name}/list
+%{_libexecdir}/%{name}/logs
+%{_libexecdir}/%{name}/run
+%{_libexecdir}/%{name}/use
+%{_libexecdir}/%{name}/image
 %{_mandir}/man1/clearly-check.1*
 %{_mandir}/man1/clearly-convert.1*
 %{_mandir}/man1/clearly-fromhost.1*
@@ -181,8 +182,8 @@ ln -s "${sphinxdir}/js"    %{buildroot}%{_pkgdocdir}/html/_static/js
 %{?el7:%exclude %{_pkgdocdir}/examples/*/__pycache__}
 
 %files test
-%{_libexecdir}/test
-%{_libexecdir}/%{name}
+%{_libexecdir}/%{name}/test
+%{_libexecdir}/%{name}/clearly
 %{_mandir}/man1/clearly-test.1*
 
 %changelog
