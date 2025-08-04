@@ -652,7 +652,7 @@ So what can you do? There are a few options:
 
 * We recommend simply using the :code:`--join` family of arguments to
   :code:`clearly run`. This puts a group of :code:`clearly run` peers in the same
-  namespaces; then, the system calls work. See the :doc:`clearly run` man page for
+  namespaces; then, the system calls work. See the :code:`clearly run` man page for
   details.
 
 * You can also sometimes turn off single-copy. For example, for :code:`vader`,
