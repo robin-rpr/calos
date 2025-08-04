@@ -35,7 +35,6 @@ favicon.ico \
 index.rst \
 install.rst \
 logo-sidebar.png \
-make-deps-overview \
 man/README \
 py_env.rst \
 rd100-winner.png \
@@ -44,7 +43,7 @@ tutorial.rst
 
 if ENABLE_MAN
 man_MANS = \
-man/charliecloud.7 \
+man/clearly.7 \
 man/clearly-check.1 \
 man/clearly-convert.1 \
 man/clearly-fromhost.1 \
@@ -77,7 +76,7 @@ endif
 # NOTE: ./html might be a Git checkout to support "make web", so make sure not
 # to delete it.
 CLEANFILES = $(man_MANS) $(nobase_html_DATA) \
-             _deps.rst html/.buildinfo html/.nojekyll
+             html/.buildinfo html/.nojekyll
 if ENABLE_HTML
 # Automake can't remove directories.
 clean-local:
@@ -117,9 +116,6 @@ BUILDDIR      = .
 # Internal variables.
 ALLSPHINXOPTS   = -d $(BUILDDIR)/doctrees $(SPHINXOPTS) .
 
-_deps.rst: ../config.log make-deps-overview
-	cat $< | ./make-deps-overview > $@
-
 # Since we're not doing anything in parallel anyway, just put the HTML and the
 # man pages in the same target, with conditionals. Gotchas:
 #
@@ -131,7 +127,7 @@ _deps.rst: ../config.log make-deps-overview
 #      does seem to get run only once.
 #
 # [1]: https://www.gnu.org/software/make/manual/html_node/Multiple-Targets.html
-$(nobase_html_DATA) $(man_MANS): ../lib/_version.txt ../README.rst _deps.rst $(EXTRA_DIST)
+$(nobase_html_DATA) $(man_MANS): ../README.rst $(EXTRA_DIST)
 if ENABLE_HTML
 #       Create dummy file in case the redirect is disabled for EPEL.
 	mkdir -p html
@@ -142,10 +138,8 @@ if ENABLE_HTML
 #       we need all the HTML output files, not just the one picked in $@.
 	touch --no-create $(nobase_html_DATA)
 #       remove unused files that Sphinx made
-	rm -f $(BUILDDIR)/html/_deps.html \
-	      $(BUILDDIR)/html/charliecloud.html \
+	rm -f $(BUILDDIR)/html/clearly.html \
 	      $(BUILDDIR)/html/bugs.html \
-	      $(BUILDDIR)/html/_loc.html \
 	      $(BUILDDIR)/html/objects.inv \
 	      $(BUILDDIR)/html/see_also.html
 endif
