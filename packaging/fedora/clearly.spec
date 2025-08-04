@@ -9,7 +9,7 @@
 Name:          clearly
 Version:       @VERSION@
 Release:       @RELEASE@%{?dist}
-Summary:       Platform to build, train, and deploy AI apps at scale.
+Summary:       Platform for building and deploying apps at scale.
 License:       Proprietary
 URL:           https://clearly.run
 Source0:       https://clearly.run/releases/downloads/v%{version}/%{name}-%{version}.tar.gz

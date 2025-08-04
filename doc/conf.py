@@ -275,7 +275,7 @@ man_make_section_directory = False
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-   ("charliecloud", "charliecloud",
+   ("clearly", "clearly",
     "Lightweight user-defined software stacks for high-performance computing",
     [], 7),
    ("clearly-check", "clearly check",
@@ -308,8 +308,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-  ('index', 'Charliecloud', u'Charliecloud Documentation',
-   u'Reid Priedhorsky, Tim Randles, and others', 'Charliecloud', 'One line description of project.',
+  ('index', 'Clearly', u'Clearly Documentation',
+   u'Robin Röper', 'Clearly', 'Platform for building and deploying apps at scale.',
    'Miscellaneous'),
 ]
 
