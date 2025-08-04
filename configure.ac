@@ -632,7 +632,7 @@ EOF
 ])
 
 # Python module “cython”
-vmin_cython=3.1.0  # FIXME: haven't actually tested this
+vmin_cython=0.29.32
 AS_IF([test -n "$PYTHON"], [
   AC_MSG_CHECKING([for Cython module])
   cat <<EOF | $PYTHON
