@@ -459,7 +459,7 @@ prepends each line with the elapsed time since the previous line::
 Note: a skipped test isn’t free; I see ~0.15 seconds to do a skip.
 
 :code:`clearly test` complains about inconsistent versions
------------------------------------------------------
+----------------------------------------------------------
 
 There are multiple ways to ask Charliecloud for its version number. These
 should all give the same result. If they don’t, :code:`clearly test` will fail.
@@ -633,7 +633,7 @@ abstracted away.
 Dependencies
 ------------
 
-  * Charliecloud
+  * Clearly
   * Python 3.6+
   * either:
 
@@ -1084,7 +1084,7 @@ Note that the disassembly is not perfect; e.g. if an architecture is not in
 your kernel headers, the system call name is wrong.
 
 clearly image
---------
+-------------
 
 pull
 ~~~~

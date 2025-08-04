@@ -193,7 +193,7 @@ some use cases and the recommended approach:
 
 
 Libfabric usage and quirks
-==============================
+==========================
 
 The implementation of libfabric provider injection and replacement is
 experimental and has a couple quirks.

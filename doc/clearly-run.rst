@@ -435,7 +435,7 @@ By default, :code:`clearly run` makes the following environment variable changes
   given.
 
 Setting variables with :code:`--env` or :code:`--env0`
---------------------------------------------------------------
+------------------------------------------------------
 
 The purpose of these two options is to set environment variables within the
 container. Values given replace any already in the environment (i.e.,

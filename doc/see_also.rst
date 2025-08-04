@@ -3,6 +3,6 @@
    See also
    ========
 
-   charliecloud(7)
+   clearly(7)
 
-   Full documentation at: <https://hpc.github.io/charliecloud>
+   Full documentation at: <https://clearly.run/docs>
