@@ -19,10 +19,9 @@
 .NOTPARALLEL:
 
 EXTRA_DIST = \
-_loc.rst \
 best_practices.rst \
 bugs.rst \
-charliecloud.rst \
+clearly.rst \
 check.rst \
 convert.rst \
 fromhost.rst \
