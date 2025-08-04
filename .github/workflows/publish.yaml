@@ -63,12 +63,18 @@ jobs:
           
           # Build RPM inside container
           docker exec fedora-builder bash -c "
-            set -x # print commands
-            set -e # exit on error
+            set -x
+            set -e
+
+            # Set up the git repository.
             git config --global --add safe.directory /root/clearly
             cd /root/clearly
+
+            # Create the build system.
             ./autogen.sh
-            # We must run configure to be able to make a dist tarball
+
+            # Configure the build system.
+            # We must use PYTHON=python3 as python3 is not the default.
             PYTHON=python3 ./configure
             make dist
             
@@ -90,9 +96,12 @@ jobs:
             # Place the new, corrected tarball where rpmbuild can find it.
             mkdir -p /root/rpmbuild/SOURCES
             mv \"clearly-$VERSION.tar.gz\" /root/rpmbuild/SOURCES/
+
+            # Create spec file with version and release.
+            sed 's/@VERSION@/$VERSION/g; s/@RELEASE@/$RELEASE/g' packaging/fedora/clearly.spec > clearly.spec
             
             # Build the binary and source RPMs.
-            rpmbuild -ba packaging/fedora/clearly.spec
+            rpmbuild -ba clearly.spec
           "
           
           # Copy RPMs back to the runner
