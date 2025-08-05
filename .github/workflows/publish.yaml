@@ -210,7 +210,7 @@ jobs:
             ./autogen.sh
 
             # Configure the build system.
-            ./configure
+            ./configure --enable-html
 
             # Build documentation.
             make -C doc html
