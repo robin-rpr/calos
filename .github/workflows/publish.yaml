@@ -97,6 +97,9 @@ jobs:
             # Build the distribution tarball.
             make dist
             
+            # Build the documentation.
+            make doc
+            
             # Find the generated tarball.
             ORIGINAL_TARBALL=\$(ls clearly-*.tar.gz)
             
@@ -124,25 +127,19 @@ jobs:
             
             # Build the binary and source RPMs.
             rpmbuild -ba clearly.spec
-
-            ls -la /root/rpmbuild/BUILD
           "
           
           docker cp fedora-builder:/root/rpmbuild/RPMS ./rpms
           docker cp fedora-builder:/root/rpmbuild/SRPMS ./srpms
-          docker cp fedora-builder:/root/rpmbuild/BUILD ./build
+          docker cp fedora-builder:/root/clearly/doc/html ./html
 
-          ls -la ./build
-
-          tree ./build
-
-          # Create a symlink of install.sh in the distilled html directory.
-          ln -s ./build/clearly-*/doc/html/_static/install.sh ./build/clearly-*/doc/html/install.sh
+          # Create a symlink of install.sh in the html directory.
+          ln -s ./html/_static/install.sh ./html/install.sh
 
       - name: Upload Pages Artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./build/clearly-*/doc/html
+          path: ./html
 
       - name: Publish to Gemfury
         if: startsWith(github.ref, 'refs/tags/')
