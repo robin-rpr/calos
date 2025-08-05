@@ -98,7 +98,7 @@ jobs:
             make dist
             
             # Build the documentation.
-            make doc
+            make -C doc html
             
             # Find the generated tarball.
             ORIGINAL_TARBALL=\$(ls clearly-*.tar.gz)
