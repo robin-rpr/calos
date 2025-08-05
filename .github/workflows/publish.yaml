@@ -83,6 +83,8 @@ jobs:
 
             # Configure the build system.
             ./configure
+
+            # Build the distribution tarball.
             make dist
             
             # Find the generated tarball.
@@ -180,9 +182,18 @@ jobs:
             set -x
             set -e
             
+            export PYTHON=python3
+
+            # Change to source directory.
             cd /root/clearly
+
+            # Create the build system.
             ./autogen.sh
+
+            # Configure the build system.
             ./configure
+
+            # Build documentation.
             make -C doc html
           "
           
