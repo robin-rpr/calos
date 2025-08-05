@@ -130,6 +130,10 @@ jobs:
           docker cp fedora-builder:/root/rpmbuild/SRPMS ./srpms
           docker cp fedora-builder:/root/rpmbuild/BUILD ./build
 
+          ls -la ./build
+
+          tree ./build
+
           # Create a symlink of install.sh in the distilled html directory.
           ln -s ./build/clearly-*/doc/html/_static/install.sh ./build/clearly-*/doc/html/install.sh
 
