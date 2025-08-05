@@ -144,6 +144,11 @@ jobs:
     permissions:
         pages: write
         id-token: write
+        contents: read
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     
     steps:
       - name: Checkout code
