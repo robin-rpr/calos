@@ -97,8 +97,8 @@ jobs:
             # Build the distribution tarball.
             make dist
             
-            # Build the documentation.
-            make -C doc html
+            # Build all the targets.
+            make
             
             # Find the generated tarball.
             ORIGINAL_TARBALL=\$(ls clearly-*.tar.gz)
