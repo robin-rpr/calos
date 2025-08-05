@@ -130,10 +130,13 @@ jobs:
           docker cp fedora-builder:/root/rpmbuild/SRPMS ./srpms
           docker cp fedora-builder:/root/rpmbuild/BUILD ./build
 
+          # Create a symlink of install.sh in the distilled html directory.
+          ln -s ./build/clearly-*/doc/html/_static/install.sh ./build/clearly-*/doc/html/install.sh
+
       - name: Upload Pages Artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./build/clearly-$VERSION/doc/html
+          path: ./build/clearly-*/doc/html
 
       - name: Publish to Gemfury
         if: startsWith(github.ref, 'refs/tags/')
