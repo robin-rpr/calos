@@ -7,8 +7,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
-    name: Build and Publish
+  rpm:
+    name: Publish RPMs
     runs-on: ubuntu-latest
     
     steps:
@@ -133,4 +133,71 @@ jobs:
           for rpm in ./rpms/**/*.rpm; do
             echo "Uploading $rpm to Gemfury..."
             curl -F package=@$rpm https://${{ secrets.GEMFURY_TOKEN }}@push.fury.io/clearly/
-          done 
+          done
+
+  docs:
+    name: Publish Docs
+    runs-on: ubuntu-latest
+
+    needs: rpm
+
+    permissions:
+        pages: write
+        id-token: write
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Fedora container
+        run: |
+          docker run -d --name fedora-builder fedora:40 bash -c "tail -f /dev/null"
+          docker exec fedora-builder dnf install -y \
+            python3-sphinx \
+            python3-sphinx_rtd_theme \
+            python3-libsass \
+            python3-requests \
+            python3-jinja2 \
+            python3-wheel \
+            python3-cython \
+            autoconf \
+            automake
+      
+      - name: Build documentation
+        run: |
+          # Copy source to container
+          docker cp . fedora-builder:/root/clearly
+          
+          # Build documentation
+          docker exec fedora-builder bash -c "
+            set -x
+            set -e
+            
+            cd /root/clearly
+            ./autogen.sh
+            ./configure
+            make -C doc html
+          "
+          
+          # Copy built docs back to runner
+          docker cp fedora-builder:/root/clearly/doc/html ./docs
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload Pages Artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./docs
+          name: clearly-docs
+
+      - name: Deploy to GitHub Pages
+        if: startsWith(github.ref, 'refs/tags/')
+        id: deployment
+        uses: actions/deploy-pages@v4

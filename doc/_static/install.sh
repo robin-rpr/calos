@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # Ensure IP forwarding (best-effort).
 if [ -w /proc/sys/net/ipv4/ip_forward ]; then
