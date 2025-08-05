@@ -125,7 +125,7 @@ jobs:
             # Build the binary and source RPMs.
             rpmbuild -ba clearly.spec
 
-            ls -la /root/rpmbuild/
+            ls -la /root/rpmbuild/BUILD
           "
           
           docker cp fedora-builder:/root/rpmbuild/RPMS ./rpms
