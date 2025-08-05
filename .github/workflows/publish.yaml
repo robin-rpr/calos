@@ -10,6 +10,15 @@ jobs:
   rpm:
     name: Publish RPMs
     runs-on: ubuntu-latest
+
+    permissions:
+        pages: write
+        id-token: write
+        contents: read
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     
     steps:
       - name: Checkout code
@@ -119,15 +128,12 @@ jobs:
           
           docker cp fedora-builder:/root/rpmbuild/RPMS ./rpms
           docker cp fedora-builder:/root/rpmbuild/SRPMS ./srpms
+          docker cp fedora-builder:/root/rpmbuild/BUILD ./build
 
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+      - name: Upload Pages Artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          name: clearly-rpms
-          path: |
-            ./rpms/**/*.rpm
-            ./srpms/*.rpm
-          retention-days: 30
+          path: ./build/clearly-$VERSION/doc/html
 
       - name: Publish to Gemfury
         if: startsWith(github.ref, 'refs/tags/')
@@ -136,3 +142,8 @@ jobs:
             echo "Uploading $rpm to Gemfury..."
             curl -F package=@$rpm https://${{ secrets.GEMFURY_TOKEN }}@push.fury.io/clearly/
           done
+
+      - name: Publish to GitHub Pages
+        if: startsWith(github.ref, 'refs/tags/')
+        id: deployment
+        uses: actions/deploy-pages@v4
