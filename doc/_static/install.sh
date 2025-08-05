@@ -1,11 +1,129 @@
 #!/bin/bash
+#
+# This script detects the current RPM-based Linux distribution and
+# installs the 'clearly' package from the Gemfury repository.
+# It is located at https://clearly.run/install.sh
 
-# Ensure IP forwarding (best-effort).
-if [ -w /proc/sys/net/ipv4/ip_forward ]; then
-    echo 1 > /proc/sys/net/ipv4/ip_forward
-    echo "IP forwarding enabled"
-else
-    echo "Warning: Unable to enable IP forwarding automatically (insufficient permissions)." >&2
-    echo "To enable IP forwarding manually, run the following command as root:" >&2
-    echo "    echo 1 > /proc/sys/net/ipv4/ip_forward" >&2
-fi
+# Exit immediately if a command fails (-e) or if an unset variable is used (-u).
+set -eu
+
+# All code is wrapped in a main() function to prevent a partial download
+# from executing incomplete commands.
+main() {
+	#
+	# Step 1: Detect OS and package manager
+	#
+	# We use /etc/os-release to identify the distribution and determine whether
+	# to use 'dnf' (modern) or 'yum' (legacy).
+	#
+	OS=""
+	PACKAGEMANAGER=""
+
+	if [ -f /etc/os-release ]; then
+		# Source the os-release file to get variables like ID and VERSION_ID
+		. /etc/os-release
+		case "$ID" in
+			rhel|centos|fedora|rocky|almalinux|amzn|ol)
+				# Use PRETTY_NAME for user-friendly output
+				OS="$PRETTY_NAME"
+				# Use 'yum' for older systems like CentOS 7 and Amazon Linux 2
+				if ([ "$ID" = "centos" ] && [ "${VERSION_ID%%.*}" = "7" ]) || [ "$ID" = "amzn" ]; then
+					PACKAGEMANAGER="yum"
+				else
+					PACKAGEMANAGER="dnf"
+				fi
+				;;
+		esac
+	fi
+
+	# If we couldn't identify the OS as a supported RPM-based system, exit.
+	if [ -z "$PACKAGEMANAGER" ]; then
+		echo "This installation script is for RPM-based systems (like Fedora, CentOS, RHEL)."
+		echo
+		if [ -n "${ID:-}" ]; then
+			echo "Your OS ($ID) is not supported by this script."
+		else
+			echo "Could not determine your operating system."
+		fi
+		echo
+		echo "Please install 'clearly' manually for your system."
+		exit 1
+	fi
+
+	#
+	# Step 2: Check for necessary privileges
+	#
+	SUDO=""
+	if [ "$(id -u)" -ne 0 ]; then
+		# If not running as root, check for 'sudo' or 'doas'.
+		if command -v sudo >/dev/null; then
+			SUDO="sudo"
+		elif command -v doas >/dev/null; then
+			SUDO="doas"
+		else
+			echo "This script needs to run as root."
+			echo "Please re-run with 'sudo' or 'doas'."
+			exit 1
+		fi
+	fi
+
+	#
+	# Step 3: Apply system configuration (from your original script)
+	#
+	# Best-effort attempt to enable IP forwarding, as required by 'clearly'.
+	echo "Attempting to enable IP forwarding..."
+	set +e # Temporarily disable exit-on-error for this check
+	echo "1" | $SUDO tee /proc/sys/net/ipv4/ip_forward > /dev/null
+	RC=$?
+	set -e # Re-enable exit-on-error
+	if [ $RC -eq 0 ]; then
+		echo "IP forwarding enabled."
+	else
+		echo "Warning: Could not enable IP forwarding automatically." >&2
+		echo "You may need to run the following command as root:" >&2
+		echo "  echo 1 > /proc/sys/net/ipv4/ip_forward" >&2
+	fi
+
+	#
+	# Step 4: Install the 'clearly' package
+	#
+	echo
+	echo "Installing 'clearly' for $OS using '$PACKAGEMANAGER'..."
+
+	# The URL of your Gemfury RPM repository.
+	REPO_URL="https://repo.clearly.run/rpm"
+
+	# The configuration for the .repo file.
+	# It's safer to create this file than to use a config-manager command,
+	# as it avoids installing extra dependencies ('yum-utils' or 'dnf-plugins-core').
+	# NOTE: This assumes your GPG key is at '$REPO_URL/RPM-GPG-KEY-clearly'.
+	# Update gpgkey URL if needed. gpgcheck=1 is a critical security measure.
+	REPO_CONFIG="[clearly]
+name=Clearly Repository
+baseurl=$REPO_URL
+enabled=1
+gpgcheck=1
+gpgkey=$REPO_URL/RPM-GPG-KEY-clearly"
+
+	# Use 'set -x' to print the commands being executed for transparency.
+	set -x
+
+	# Add the 'clearly' repository configuration to the system.
+	echo "$REPO_CONFIG" | $SUDO tee /etc/yum.repos.d/clearly.repo > /dev/null
+
+	# Import the repository's GPG key to establish trust.
+	$SUDO rpm --import "$REPO_URL/RPM-GPG-KEY-clearly"
+
+	# Install the package using the detected package manager.
+	# The '-y' flag automatically answers 'yes' to any prompts.
+	$SUDO $PACKAGEMANAGER install -y clearly
+
+	# Stop printing executed commands.
+	set +x
+
+	echo
+	echo "Installation complete."
+}
+
+# This final line executes the main function defined above.
+main
