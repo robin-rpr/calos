@@ -133,8 +133,8 @@ jobs:
           docker cp fedora-builder:/root/rpmbuild/SRPMS ./srpms
           docker cp fedora-builder:/root/clearly/doc/html ./html
 
-          # Create a symlink of install.sh in the html directory.
-          ln -s ./html/_static/install.sh ./html/install.sh
+          # Move install.sh to the distilled root html directory.
+          mv ./html/_static/install.sh ./html/install.sh
 
       - name: Upload Pages Artifact
         uses: actions/upload-pages-artifact@v3
