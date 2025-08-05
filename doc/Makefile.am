@@ -19,6 +19,7 @@
 .NOTPARALLEL:
 
 EXTRA_DIST = \
+_static/install.sh \
 best_practices.rst \
 bugs.rst \
 clearly.rst \
