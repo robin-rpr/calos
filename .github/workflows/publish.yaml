@@ -72,6 +72,7 @@ jobs:
             set -x
             set -e
 
+            # Set python to python3.
             export PYTHON=python3
 
             # Set up the git repository.
@@ -116,7 +117,6 @@ jobs:
             rpmbuild -ba clearly.spec
           "
           
-          # Copy RPMs back to the runner
           docker cp fedora-builder:/root/rpmbuild/RPMS ./rpms
           docker cp fedora-builder:/root/rpmbuild/SRPMS ./srpms
 
@@ -165,16 +165,30 @@ jobs:
             autoconf \
             automake \
             libtool \
-            pkgconfig \
+            rpm-build \
             gcc \
+            rsync \
+            bash \
+            libseccomp-devel \
+            squashfuse-devel \
+            libmnl-devel \
+            libnftnl-devel \
+            libnl3-devel \
+            libcap-devel \
+            fuse3-devel \
+            json-c-devel \
             python3 \
+            python3-devel \
+            python3-setuptools \
+            python3-lark-parser \
             python3-sphinx \
             python3-sphinx_rtd_theme \
             python3-libsass \
             python3-requests \
             python3-jinja2 \
             python3-wheel \
-            python3-cython
+            python3-cython \
+            git
       
       - name: Build documentation
         run: |
@@ -186,6 +200,7 @@ jobs:
             set -x
             set -e
             
+            # Set python to python3.
             export PYTHON=python3
 
             # Change to source directory.
@@ -201,7 +216,6 @@ jobs:
             make -C doc html
           "
           
-          # Copy built docs back to runner
           docker cp fedora-builder:/root/clearly/doc/html ./docs
 
       - name: Setup Pages
