@@ -162,15 +162,18 @@ jobs:
         run: |
           docker run -d --name fedora-builder fedora:40 bash -c "tail -f /dev/null"
           docker exec fedora-builder dnf install -y \
+            autoconf \
+            automake \
+            libtool \
+            pkgconfig \
+            gcc \
             python3-sphinx \
             python3-sphinx_rtd_theme \
             python3-libsass \
             python3-requests \
             python3-jinja2 \
             python3-wheel \
-            python3-cython \
-            autoconf \
-            automake
+            python3-cython
       
       - name: Build documentation
         run: |
