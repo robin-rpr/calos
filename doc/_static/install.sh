@@ -91,7 +91,7 @@ main() {
 	echo "Installing 'clearly' for $OS using '$PACKAGEMANAGER'..."
 
 	# The URL of your Gemfury RPM repository.
-	REPO_URL="https://repo.clearly.run/rpm"
+	REPO_URL="https://repo.clearly.run/yum"
 
 	# The configuration for the .repo file.
 	# It's safer to create this file than to use a config-manager command,
@@ -102,17 +102,13 @@ main() {
 name=Clearly Repository
 baseurl=$REPO_URL
 enabled=1
-gpgcheck=1
-gpgkey=$REPO_URL/RPM-GPG-KEY-clearly"
+gpgcheck=0"
 
 	# Use 'set -x' to print the commands being executed for transparency.
 	set -x
 
 	# Add the 'clearly' repository configuration to the system.
 	echo "$REPO_CONFIG" | $SUDO tee /etc/yum.repos.d/clearly.repo > /dev/null
-
-	# Import the repository's GPG key to establish trust.
-	$SUDO rpm --import "$REPO_URL/RPM-GPG-KEY-clearly"
 
 	# Install the package using the detected package manager.
 	# The '-y' flag automatically answers 'yes' to any prompts.
