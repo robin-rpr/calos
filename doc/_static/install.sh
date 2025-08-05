@@ -96,8 +96,6 @@ main() {
 	# The configuration for the .repo file.
 	# It's safer to create this file than to use a config-manager command,
 	# as it avoids installing extra dependencies ('yum-utils' or 'dnf-plugins-core').
-	# NOTE: This assumes your GPG key is at '$REPO_URL/RPM-GPG-KEY-clearly'.
-	# Update gpgkey URL if needed. gpgcheck=1 is a critical security measure.
 	REPO_CONFIG="[clearly]
 name=Clearly Repository
 baseurl=$REPO_URL
