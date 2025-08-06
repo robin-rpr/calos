@@ -359,10 +359,11 @@ void containerize(
        generate a pseudo-random IP address. We then send an ARP request to
        ensure the address is not currently in use on the local network segment.
        If it is, we linearly probe for the next available address. */
-   while (1) {
-      // Seed the random number generator.
-      srand(time(NULL) ^ getpid());
 
+   // Seed the random number generator.
+   srand(time(NULL) ^ getpid());
+
+   while (1) {
       // Generate a random IP address.
       uint32_t ip = (10U << 24) | (rand() % 0x1000000U);
       if (ip == ((10U << 24) | 1U)) {
@@ -371,11 +372,19 @@ void containerize(
 
       // Convert the IP address to network byte order.
       guest_ip.s_addr = htonl(ip);
+      int available = send_arp(&guest_ip, bridge_name, &bridge_ip);
 
       // Send ARP Request.
-      if (send_arp(&guest_ip, bridge_name, &bridge_ip) == 0) {
+      if (available == 0) {
          /* Address not in use, break. */
          break;
+      } else if (available == -1) {
+         /* Error occurred. */
+         FATAL(0, "ARP request failed.");
+      } else {
+         /* Address in use, try next. */
+         VERBOSE("ARP request failed for %s, trying next.", inet_ntoa(guest_ip));
+         continue;
       }
    }
 
