@@ -46,8 +46,8 @@ executor = _executor.Executor()
 studio_executor = _executor.StudioExecutor()
 
 # Zeroconf
-zeroconf = _zeroconf.Zeroconf()
-listener = None # Will be set in main()
+zeroconf = None
+listener = None
 
 # Syncthing
 syncthing = _syncthing.Syncthing(
@@ -241,12 +241,15 @@ class ServiceListener(object):
 
 def main():
     try:
-        # mDNS Listener
+        # Zeroconf
         global listener
-        listener = ServiceListener()
+        global zeroconf
 
-        # Create a mDNS Service
+        listener = ServiceListener()
         service_address = get_interface_address('clearly0')
+        zeroconf = _zeroconf.Zeroconf(bindaddress=service_address)
+
+        # Create a Zeroconf service
         service_name = f"clearly-{service_address}._clearly._tcp.local."
         service_info = _zeroconf.ServiceInfo(
             type="_clearly._tcp.local.",
@@ -262,7 +265,7 @@ def main():
             },
         )
 
-        # Define our own mDNS Service
+        # Define our own Zeroconf service
         listener.services[service_name] = {
             'name': service_name,
             'address': service_address,
@@ -275,13 +278,13 @@ def main():
             'server': service_name,
         }
 
-        # Register the mDNS Service
+        # Register the Zeroconf service
         zeroconf.registerService(service_info)
 
         # Set the Syncthing IP address
         syncthing.set_ip_address(service_address)
 
-        # Register a listener for other mDNS Services
+        # Register a listener for other Zeroconf services
         zeroconf.addServiceListener("_clearly._tcp.local.", listener)
 
         # Start Syncthing
@@ -297,7 +300,7 @@ def main():
         except KeyboardInterrupt:
             logger.info("Shutting down...")
         finally:
-            # Unregister the service
+            # Unregister the Zeroconf service
             zeroconf.unregisterService(service_info)
             zeroconf.close()
 

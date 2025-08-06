@@ -130,8 +130,7 @@ After=network.target
 Wants=network.target
 
 [Service]
-Type=notify
-ExecStartPre=/bin/mkdir -p /var/log
+Type=simple
 ExecStart=%{_libexecdir}/%{name}/daemon
 Restart=on-failure
 RestartSec=5
@@ -144,7 +143,7 @@ SyslogIdentifier=clearly
 # Security settings
 # ProtectSystem=strict
 # ProtectHome=true
-# ReadWritePaths=/var/log
+# ReadWritePaths=/var/tmp/clearly.clearly /srv/clearly.clearly /run/clearly.clearly /var/lib/clearly
 # ProtectKernelTunables=true
 # ProtectKernelModules=true
 # ProtectControlGroups=true
