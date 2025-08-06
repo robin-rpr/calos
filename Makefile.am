@@ -1,6 +1,6 @@
 SUBDIRS = lib bin cmd doc examples misc packaging test static
 
-EXTRA_DIST = LICENSE README.rst VERSION autogen.sh clearly.service
+EXTRA_DIST = LICENSE README.rst VERSION autogen.sh
 
 # Embedded paths are in the source code suitable for running from the source
 # directory (i.e., without install). When installing, those paths are often
@@ -24,22 +24,3 @@ install-exec-hook:
                 $$i; \
 	  fi \
 	done
-	@echo '### installing systemd service ###'
-	@if [ -z "$(DESTDIR)" ]; then \
-		cp clearly.service /etc/systemd/system/clearly.service; \
-		touch /var/log/clearly.log; \
-		chmod 644 /var/log/clearly.log; \
-		systemctl daemon-reload; \
-		systemctl enable clearly.service; \
-	fi
-
-uninstall-hook:
-	@echo '### uninstalling systemd service ###'
-	@if [ -z "$(DESTDIR)" ]; then \
-		systemctl stop clearly.service || true; \
-		systemctl disable clearly.service || true; \
-		rm -f /etc/systemd/system/clearly.service; \
-		systemctl daemon-reload; \
-		rm -f /var/log/clearly.log; \
-		rm -rf /run/clearly; \
-	fi
