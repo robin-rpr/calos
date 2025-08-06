@@ -143,7 +143,7 @@ jobs:
       - name: Upload RPM Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: rpms-${{ matrix.os }}
+          name: rpms-${{ matrix.os.replace(':', '-') }}
           path: ./rpms
 
       - name: Upload HTML Artifact
@@ -170,7 +170,7 @@ jobs:
       - name: Download RPM Artifact
         uses: actions/download-artifact@v4
         with:
-          name: rpms-${{ matrix.os }}
+          name: rpms-${{ matrix.os.replace(':', '-') }}
           path: ./rpms
 
       - name: Upload to Gemfury
