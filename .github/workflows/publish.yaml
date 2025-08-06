@@ -152,7 +152,7 @@ jobs:
 
       - name: Upload HTML Artifact
         uses: actions/upload-artifact@v4
-        if: matrix.os == matrix.os[0]
+        if: matrix.os == 'fedora:40'
         with:
           name: html
           path: ./html
