@@ -31,7 +31,7 @@ BuildRequires: python3-lark-parser
 BuildRequires: python3-requests
 BuildRequires: python3-jinja2
 BuildRequires: python3-wheel
-BuildRequires: python3-cython
+BuildRequires: python3-Cython
 BuildRequires: git
 
 Requires:      squashfuse squashfs-tools
@@ -48,7 +48,7 @@ Requires:      python3-lark-parser
 Requires:      python3-requests
 Requires:      python3-jinja2
 Requires:      python3-wheel
-Requires:      python3-cython
+Requires:      python3-Cython
 Requires:      git
 
 %description
