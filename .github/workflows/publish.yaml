@@ -14,11 +14,8 @@ jobs:
       matrix:
         include:
           #- os: rockylinux:8
-          #  tag: .el8
           - os: rockylinux:9
-            tag: .el9
           - os: fedora:40
-            tag: .fc40
     
     steps:
       - run: echo "MATRIX_OS=${VALUE//:/-}" >> $GITHUB_ENV
@@ -90,9 +87,6 @@ jobs:
             VERSION=$(echo "$GIT_DESCRIBE" | sed -e 's/^v//' -e 's/-/~/; s/-/.g/')
           fi
 
-          # Set dist tag (e.g., .el9, .fc40)
-          DISTRIBUTION="${{ matrix.tag }}"
-
           # Bump release depending on distro to prevent collisions
           case "${{ matrix.os }}" in
             rockylinux:8) RELEASE=1 ;;
@@ -152,7 +146,7 @@ jobs:
             sed 's/@VERSION@/$VERSION/g; s/@RELEASE@/$RELEASE/g' packaging/fedora/clearly.spec > clearly.spec
             
             # Build the binary and source RPMs.
-            rpmbuild --define \"dist $DISTRIBUTION\" -ba clearly.spec
+            rpmbuild -ba clearly.spec
           "
           
           docker cp builder:/root/rpmbuild/RPMS ./rpms
