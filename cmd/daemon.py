@@ -52,7 +52,7 @@ listener = None # Will be set in main()
 # Syncthing
 syncthing = _syncthing.Syncthing(
     config_dir=Path.home() / ".config/clearly",
-    folder_dir=Path(f"/srv/{os.getlogin()}.clearly"),
+    folder_dir=Path(f"/srv/{os.environ.get('USER', 'root')}.clearly"),
 )
 
 # Webserver
