@@ -372,10 +372,10 @@ void containerize(
           ip++; // skip 10.0.0.1
       }
 
-      VERBOSE("Generated IP: %s", inet_ntoa(ip));
-
       // Convert the IP address to network byte order.
       guest_ip.s_addr = htonl(ip);
+
+      VERBOSE("Generated IP: %s", inet_ntoa(guest_ip));
 
       VERBOSE("Sending ARP Request for IP: %s", inet_ntoa(guest_ip));
 
