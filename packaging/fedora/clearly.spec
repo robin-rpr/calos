@@ -255,6 +255,7 @@ getent passwd clearly >/dev/null 2>&1 || useradd -r -g clearly -d /var/lib/clear
 %{_prefix}/lib/%{name}/_push.*.so
 %{_prefix}/lib/%{name}/_reference.*.so
 %{_prefix}/lib/%{name}/_registry.*.so
+%{_prefix}/lib/%{name}/_syncthing.*.so
 %{_prefix}/lib/%{name}/_tree.*.so
 %{_prefix}/lib/%{name}/_zeroconf.*.so
 %{?el7:%{_prefix}/lib/%{name}/__pycache__}
