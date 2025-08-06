@@ -122,7 +122,7 @@ int send_arp(const struct in_addr *target_ip, const char *bridge_name, struct in
 
     // ARP Payload
     memcpy(arp_data->sender_mac, ifr.ifr_hwaddr.sa_data, ETH_ALEN);
-    memcpy(&arp_data->sender_ip, &bridge_ip, sizeof(bridge_ip));
+    memcpy(&arp_data->sender_ip, bridge_ip, sizeof(*bridge_ip));
     memset(arp_data->target_mac, 0x00, ETH_ALEN); // Target MAC unknown (0s for request)
     memcpy(&arp_data->target_ip, target_ip, sizeof(*target_ip));
 
