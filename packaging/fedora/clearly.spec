@@ -178,6 +178,11 @@ EOF
 getent group clearly >/dev/null 2>&1 || groupadd -r clearly
 getent passwd clearly >/dev/null 2>&1 || useradd -r -g clearly -d /var/lib/clearly -s /sbin/nologin clearly
 
+# Create the home directory with proper permissions
+mkdir -p /var/lib/clearly
+chown clearly:clearly /var/lib/clearly
+chmod 755 /var/lib/clearly
+
 %post
 %systemd_post clearly.service
 
