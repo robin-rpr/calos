@@ -7,14 +7,12 @@ on:
   workflow_dispatch:
 
 jobs:
-  publish:
-    name: Publish
+  build:
+    name: Build
     runs-on: ubuntu-latest
-
-    permissions:
-        pages: write
-        id-token: write
-        contents: read
+    strategy:
+      matrix:
+        os: [fedora:40, rockylinux:9]
     
     steps:
       - name: Checkout code
@@ -22,10 +20,12 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Fedora container
+      - name: Set up ${{ matrix.os }} container
         run: |
-          docker run -d --name fedora-builder fedora:40 bash -c "tail -f /dev/null"
-          docker exec fedora-builder dnf install -y \
+          docker run -d --name builder ${{ matrix.os }} bash -c "tail -f /dev/null"
+          docker exec builder dnf install -y 'dnf-command(config-manager)'
+          docker exec builder dnf install -y epel-release
+          docker exec builder dnf install -y \
             autoconf \
             automake \
             libtool \
@@ -54,10 +54,10 @@ jobs:
             python3-cython \
             git
 
-      - name: Build RPM
+      - name: Build RPM for ${{ matrix.os }}
         run: |
           # Copy source to container
-          docker cp . fedora-builder:/root/clearly
+          docker cp . builder:/root/clearly
           
           # Get version from tag or git describe
           if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
@@ -73,7 +73,7 @@ jobs:
           fi
           
           # Build RPM inside container
-          docker exec fedora-builder bash -c "
+          docker exec builder bash -c "
             set -x
             set -e
 
@@ -125,25 +125,77 @@ jobs:
             rpmbuild -ba clearly.spec
           "
           
-          docker cp fedora-builder:/root/rpmbuild/RPMS ./rpms
-          docker cp fedora-builder:/root/rpmbuild/SRPMS ./srpms
-          docker cp fedora-builder:/root/clearly/doc/html ./html
+          docker cp builder:/root/rpmbuild/RPMS ./rpms
+          docker cp builder:/root/clearly/doc/html ./html
 
           # Move install.sh to the distilled root html directory.
           mv ./html/_static/install.sh ./html/install.sh
 
-      - name: Upload Pages Artifact
-        uses: actions/upload-pages-artifact@v3
+
+      - name: Upload RPM Artifact
+        uses: actions/upload-artifact@v4
         with:
+          name: rpms-${{ matrix.os }}
+          path: ./rpms
+
+      - name: Upload HTML Artifact
+        uses: actions/upload-artifact@v4
+        if: matrix.os == matrix.os[0]
+        with:
+          name: html
           path: ./html
 
-      - name: Publish to Gemfury
-        if: startsWith(github.ref, 'refs/tags/')
+  gemfury:
+    name: Gemfury
+    needs: build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [fedora:40, rockylinux:9]
+
+    permissions:
+        pages: write
+        id-token: write
+        contents: read
+
+    steps:
+      - name: Download RPM Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: rpms-${{ matrix.os }}
+          path: ./rpms
+
+      - name: Upload to Gemfury
+        if: startsWith(github.ref, 'refs/tags/') 
         run: |
           for rpm in ./rpms/**/*.rpm; do
             echo "Uploading $rpm to Gemfury..."
             curl -F package=@$rpm https://${{ secrets.GEMFURY_TOKEN }}@push.fury.io/clearly/
           done
+
+  pages:
+    name: Pages
+    needs: gemfury
+    runs-on: ubuntu-latest
+
+    permissions:
+        pages: write
+        id-token: write
+        contents: read
+
+    steps:
+      - name: Download HTML Artifact
+        uses: actions/download-artifact@v4
+        if: matrix.os == matrix.os[0]
+        with:
+          name: html
+          path: ./html
+
+      - name: Upload Pages Artifact
+        uses: actions/upload-pages-artifact@v3
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          path: ./html
 
       - name: Publish to GitHub Pages
         if: startsWith(github.ref, 'refs/tags/')
