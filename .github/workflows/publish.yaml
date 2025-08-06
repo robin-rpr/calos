@@ -14,11 +14,11 @@ jobs:
       matrix:
         include:
           #- os: rockylinux:8
-          #  dist: .el8
+          #  tag: .el8
           - os: rockylinux:9
-            dist: .el9
+            tag: .el9
           - os: fedora:40
-            dist: .fc40
+            tag: .fc40
     
     steps:
       - run: echo "MATRIX_OS=${VALUE//:/-}" >> $GITHUB_ENV
@@ -91,7 +91,7 @@ jobs:
           fi
 
           # Set dist tag (e.g., .el9, .fc40)
-          DISTRIBUTION="${{ matrix.dist }}"
+          DISTRIBUTION="${{ matrix.tag }}"
 
           # Bump release depending on distro to prevent collisions
           case "${{ matrix.os }}" in
@@ -183,11 +183,8 @@ jobs:
       matrix:
         include:
           #- os: rockylinux:8
-          #  dist: .el8
           - os: rockylinux:9
-            dist: .el9
           - os: fedora:40
-            dist: .fc40
 
     permissions:
         pages: write
