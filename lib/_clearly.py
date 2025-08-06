@@ -729,6 +729,8 @@ def init(cli):
                            message=(  "^The default behavior of tarfile"
                                     + " extraction has been changed to disallow"
                                     + " common exploits"))
+   # Red Hat Requests emits RequestsDependencyWarning about urllib3/chardet version mismatches
+   warnings.filterwarnings("ignore", category=_registry.requests.packages.urllib3.exceptions.DependencyWarning)
    # misc
    global password_many, profiling
    password_many = cli.password_many

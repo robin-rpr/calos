@@ -24,7 +24,6 @@
 #include <libnl3/netlink/route/link/veth.h>
 #include <libnl3/netlink/route/link/vxlan.h>
 #include <libnl3/netlink/route/link/bridge.h>
-#include <libnl3/netlink/route/link/bridge_info.h>
 
 #include "misc.h"
 #include "link.h"

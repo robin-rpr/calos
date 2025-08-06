@@ -594,7 +594,7 @@ CLEARLY_CHECK_VERSION([PYTHON], [$vmin_python],
                  [--version | head -1 | cut -d' ' -f2])
 
 # Python module “lark”
-vmin_lark=1.1.9  # CentOS 7; FIXME: haven’t actually tested this
+vmin_lark=0.9.0
 AS_IF([test -n "$PYTHON"], [
   AC_MSG_CHECKING([for lark module])
   cat <<EOF | $PYTHON
@@ -613,7 +613,7 @@ EOF
 ])
 
 # Python module “requests”
-vmin_requests=2.6.0  # CentOS 7; FIXME: haven’t actually tested this
+vmin_requests=2.6.0
 AS_IF([test -n "$PYTHON"], [
   AC_MSG_CHECKING([for requests module])
   cat <<EOF | $PYTHON
