@@ -36,6 +36,7 @@ BuildRequires: json-c-devel
 BuildRequires: python3-devel
 BuildRequires: python3-lark-parser
 BuildRequires: python3-requests
+BuildRequires: python3-libsass
 BuildRequires: python3-jinja2
 BuildRequires: python3-wheel
 BuildRequires: python3-Cython
@@ -53,9 +54,9 @@ Requires:      python3
 Requires:      syncthing
 Requires:      python3-lark-parser
 Requires:      python3-requests
+Requires:      python3-libsass
 Requires:      python3-jinja2
 Requires:      python3-wheel
-Requires:      python3-Cython
 Requires:      git
 
 %description
