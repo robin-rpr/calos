@@ -181,7 +181,13 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        os: [rockylinux:8, rockylinux:9, fedora:40]
+        include:
+          #- os: rockylinux:8
+          #  dist: .el8
+          - os: rockylinux:9
+            dist: .el9
+          - os: fedora:40
+            dist: .fc40
 
     permissions:
         pages: write
