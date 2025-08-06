@@ -12,8 +12,13 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        os: [rockylinux:8, rockylinux:9, fedora:40]
-        dist: [.el8, .el9, .fc40]
+        include:
+          - os: rockylinux:8
+            dist: .el8
+          - os: rockylinux:9
+            dist: .el9
+          - os: fedora:40
+            dist: .fc40
     
     steps:
       - run: echo "MATRIX_OS=${VALUE//:/-}" >> $GITHUB_ENV
