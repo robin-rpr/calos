@@ -13,6 +13,8 @@ jobs:
     strategy:
       matrix:
         include:
+          #- os: rockylinux:8
+          #  dist: .el8
           - os: rockylinux:9
             dist: .el9
           - os: fedora:40
