@@ -176,35 +176,44 @@ int send_arp(const struct in_addr *target_ip, const char *bridge_name, struct in
             VERBOSE("Checkpoint 14");
             if (errno == EWOULDBLOCK || errno == EAGAIN) { 
                 // Timeout, IP is likely available.
-                VERBOSE("Checkpoint 14");
+                VERBOSE("Checkpoint 15");
                 close(sockfd);
                 return 0;
             } 
-            VERBOSE("Checkpoint 15");
+            VERBOSE("Checkpoint 16");
             perror("recvfrom"); close(sockfd); return -1;
         }
-        VERBOSE("Checkpoint 16");
+
+        VERBOSE("Checkpoint 17");
+
         if (bytes_received < (ssize_t)(sizeof(struct ethhdr) + sizeof(struct arphdr) + sizeof(struct arp_payload))) {
             // Received packet is too small to be a complete ARP reply.
-            VERBOSE("Checkpoint 17");
+            VERBOSE("Checkpoint 18");
             continue;
         }
 
-        VERBOSE("Checkpoint 18");
+        VERBOSE("Checkpoint 19");
 
         struct ethhdr *rcv_eth_hdr = (struct ethhdr *)buffer;
         struct arphdr *rcv_arp_hdr = (struct arphdr *)(buffer + sizeof(struct ethhdr));
         struct arp_payload *reply_payload = (struct arp_payload *)(buffer + sizeof(struct ethhdr) + sizeof(struct arphdr));
 
-        VERBOSE("Checkpoint 19");
+        VERBOSE("Checkpoint 20");
+        // Ignore packets sent from our own MAC address (loopback)
+        if (memcmp(rcv_eth_hdr->h_source, ifr.ifr_hwaddr.sa_data, ETH_ALEN) == 0) {
+            VERBOSE("Checkpoint 21");
+            continue;
+        }
+
+        VERBOSE("Checkpoint 22");
 
         if (ntohs(rcv_eth_hdr->h_proto) == ETH_P_ARP && ntohs(rcv_arp_hdr->ar_op) == ARPOP_REPLY) {
             struct in_addr reply_ip;
-            VERBOSE("Checkpoint 20");
+            VERBOSE("Checkpoint 23");
             memcpy(&reply_ip, &reply_payload->sender_ip, sizeof(reply_ip));
             if (reply_ip.s_addr == target_ip->s_addr) {
                 // IP is alredy taken.
-                VERBOSE("Checkpoint 21");
+                VERBOSE("Checkpoint 24");
                 close(sockfd);
                 return 1;
             }
