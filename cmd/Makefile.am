@@ -51,8 +51,7 @@ SUFFIXES = .py .c
 		-E PKGDATADIR="$(pkgdatadir)" \
 		--embed \
 		-3 \
-		-o $@ \
-		--module-name $(subst -,_,$(basename $<))
+		-o $@
 	chmod +rx,-w $@ # respects umask
 
 # Version script
