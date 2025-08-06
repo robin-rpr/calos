@@ -46,7 +46,7 @@ jobs:
             python3-requests \
             python3-jinja2 \
             python3-wheel \
-            python3-cython \
+            python3-Cython \
             git
 
       - name: Build RPM in Container
