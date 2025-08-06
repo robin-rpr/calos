@@ -15,6 +15,10 @@ jobs:
         os: [fedora:40, rockylinux:9]
     
     steps:
+        run: echo "MATRIX_OS=${VALUE//:/-}" >> $GITHUB_ENV
+        env:
+          VALUE: ${{ matrix.os }}
+
       - name: Checkout code
         uses: actions/checkout@v4
         with:
@@ -143,7 +147,7 @@ jobs:
       - name: Upload RPM Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: rpms-${{ matrix.os.replace(':', '-') }}
+          name: rpms-${{ env.MATRIX_OS }}
           path: ./rpms
 
       - name: Upload HTML Artifact
@@ -170,7 +174,7 @@ jobs:
       - name: Download RPM Artifact
         uses: actions/download-artifact@v4
         with:
-          name: rpms-${{ matrix.os.replace(':', '-') }}
+          name: rpms-${{ env.MATRIX_OS }}
           path: ./rpms
 
       - name: Upload to Gemfury
