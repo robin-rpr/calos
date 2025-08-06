@@ -5,6 +5,7 @@
 #include <linux/if_packet.h>
 #include <linux/if_bridge.h>
 #include <linux/if_arp.h>
+#include <linux/filter.h>
 #include <time.h>
 #include <netdb.h>
 #include <arpa/inet.h>
@@ -86,6 +87,35 @@ int send_arp(const struct in_addr *target_ip, const char *bridge_name, struct in
 
     int sockfd = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ARP));
     if (sockfd == -1) { perror("socket"); return -1; }
+
+    /*
+     * BPF filter to only accept ARP replies.
+     * This prevents the socket from receiving its own outgoing ARP requests
+     * and other irrelevant traffic.
+    */
+    struct sock_filter arp_reply_filter[] = {
+        // Must be an ARP packet
+        { 0x28, 0, 0, 0x0000000c }, // ldh [12]
+        { 0x15, 0, 1, 0x00000806 }, // jne #0x806, drop
+        // Must be an ARP reply (opcode 2)
+        { 0x30, 0, 0, 0x00000014 }, // ldb [20]
+        { 0x15, 0, 1, 0x00000002 }, // jne #0x2, drop
+        // It's an ARP reply, accept it
+        { 0x6, 0, 0, 0x00040000 },  // ret #262144
+        // Not an ARP reply, drop it
+        { 0x6, 0, 0, 0x00000000 }   // ret #0
+    };
+
+    struct sock_fprog bpf = {
+        .len = sizeof(arp_reply_filter) / sizeof(struct sock_filter),
+        .filter = arp_reply_filter,
+    };
+
+    if (setsockopt(sockfd, SOL_SOCKET, SO_ATTACH_FILTER, &bpf, sizeof(bpf)) == -1) {
+        perror("setsockopt BPF");
+        close(sockfd);
+        return -1;
+    }
 
     VERBOSE("Checkpoint 1");
 
@@ -199,21 +229,14 @@ int send_arp(const struct in_addr *target_ip, const char *bridge_name, struct in
         struct arp_payload *reply_payload = (struct arp_payload *)(buffer + sizeof(struct ethhdr) + sizeof(struct arphdr));
 
         VERBOSE("Checkpoint 20");
-        // Ignore packets sent from our own MAC address (loopback)
-        if (memcmp(rcv_eth_hdr->h_source, ifr.ifr_hwaddr.sa_data, ETH_ALEN) == 0) {
-            VERBOSE("Checkpoint 21");
-            continue;
-        }
-
-        VERBOSE("Checkpoint 22");
 
         if (ntohs(rcv_eth_hdr->h_proto) == ETH_P_ARP && ntohs(rcv_arp_hdr->ar_op) == ARPOP_REPLY) {
             struct in_addr reply_ip;
-            VERBOSE("Checkpoint 23");
+            VERBOSE("Checkpoint 21");
             memcpy(&reply_ip, &reply_payload->sender_ip, sizeof(reply_ip));
             if (reply_ip.s_addr == target_ip->s_addr) {
                 // IP is alredy taken.
-                VERBOSE("Checkpoint 24");
+                VERBOSE("Checkpoint 22");
                 close(sockfd);
                 return 1;
             }
