@@ -114,7 +114,6 @@ LDFLAGS="$(python3-config --ldflags --embed)"; export LDFLAGS
 %make_install
 
 # Create systemd service file
-%{?systemd_requires}
 mkdir -p %{buildroot}%{_unitdir}
 cat > %{buildroot}%{_unitdir}/clearly.service <<EOF
 [Unit]
