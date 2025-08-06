@@ -38,7 +38,11 @@ jobs:
         if: startsWith(matrix.os, 'rockylinux')
         run: |
           docker exec builder dnf install -y 'dnf-command(config-manager)'
-          docker exec builder dnf config-manager --set-enabled crb
+          if [[ "${{ matrix.os }}" == "rockylinux:8" ]]; then
+            docker exec builder dnf config-manager --set-enabled powertools
+          else
+            docker exec builder dnf config-manager --set-enabled crb
+          fi
           docker exec builder dnf install -y epel-release
 
       - name: Install Dependencies
