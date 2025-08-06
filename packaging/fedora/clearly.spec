@@ -114,6 +114,12 @@ LDFLAGS="$(python3-config --ldflags --embed)"; export LDFLAGS
 %install
 %make_install
 
+# Create required directories
+mkdir -p %{buildroot}/var/tmp/clearly.clearly
+mkdir -p %{buildroot}/srv/clearly.clearly
+mkdir -p %{buildroot}/run/clearly.clearly
+mkdir -p %{buildroot}/var/lib/clearly
+
 # Create systemd service file
 mkdir -p %{buildroot}%{_unitdir}
 cat > %{buildroot}%{_unitdir}/clearly.service <<EOF
