@@ -363,8 +363,6 @@ void containerize(
    // Seed the random number generator.
    srand(time(NULL) ^ getpid());
 
-   VERBOSE("Generating a unique IP for the container.");
-
    while (1) {
       // Generate a random IP address.
       uint32_t ip = (10U << 24) | (rand() % 0x1000000U);
@@ -375,17 +373,11 @@ void containerize(
       // Convert the IP address to network byte order.
       guest_ip.s_addr = htonl(ip);
 
-      VERBOSE("Generated IP: %s", inet_ntoa(guest_ip));
-
-      VERBOSE("Sending ARP Request for IP: %s", inet_ntoa(guest_ip));
-
       // Send ARP Request.
       int status = send_arp(&guest_ip, bridge_name, &bridge_ip);
       if (status == -1) FATAL(0, "ARP request failed");
       if (status == 0) break; // IP is available.
    }
-
-   VERBOSE("IP is available: %s", inet_ntoa(guest_ip));
 
     // Use a pipe to synchronize parent and child. The child will write to the
     // pipe only after it has entered its new namespaces.
