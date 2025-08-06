@@ -80,7 +80,7 @@ jobs:
             ./autogen.sh
 
             # Configure the build system.
-            ./configure
+            ./configure --prefix=/usr
 
             # Write version to a file.
             echo \"$VERSION\" > /root/clearly/VERSION
