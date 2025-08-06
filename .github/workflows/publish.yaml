@@ -12,7 +12,8 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        os: [fedora:40, rockylinux:9]
+        os: [rockylinux:8, rockylinux:9, fedora:40]
+        dist: [.el8, .el9, .fc40]
     
     steps:
       - run: echo "MATRIX_OS=${VALUE//:/-}" >> $GITHUB_ENV
@@ -29,7 +30,7 @@ jobs:
           docker run -d --name builder ${{ matrix.os }} bash -c "tail -f /dev/null"
 
       - name: Enable CRB Repository
-        if: matrix.os == 'rockylinux:9'
+        if: startsWith(matrix.os, 'rockylinux')
         run: |
           docker exec builder dnf install -y 'dnf-command(config-manager)'
           docker exec builder dnf config-manager --set-enabled crb
@@ -71,23 +72,28 @@ jobs:
           # Copy source to container
           docker cp . builder:/root/clearly
           
-          # Get version from tag or git describe
+          # Determine version and release
           if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
             VERSION=${GITHUB_REF#refs/tags/v}
-            RELEASE=1
           else
-            # For non-tag builds, create a dev version from git describe.
-            # checkout action needs `fetch-depth: 0` for this to work properly.
             git fetch --tags --force
             GIT_DESCRIBE=$(git describe --tags --always --dirty)
             VERSION=$(echo "$GIT_DESCRIBE" | sed -e 's/^v//' -e 's/-/~/; s/-/.g/')
-            RELEASE=0
           fi
+
+          # Set dist tag (e.g., .el9, .fc40)
+          DISTRIBUTION="${{ matrix.dist }}"
+
+          # Bump release depending on distro to prevent collisions
+          case "${{ matrix.os }}" in
+            rockylinux:8) RELEASE=1 ;;
+            rockylinux:9) RELEASE=2 ;;
+            fedora:40)    RELEASE=3 ;;
+          esac
           
           # Build RPM inside container
           docker exec builder bash -c "
-            set -x
-            set -e
+            set -xe
 
             # Set python to python3.
             export PYTHON=python3
@@ -137,7 +143,7 @@ jobs:
             sed 's/@VERSION@/$VERSION/g; s/@RELEASE@/$RELEASE/g' packaging/fedora/clearly.spec > clearly.spec
             
             # Build the binary and source RPMs.
-            rpmbuild -ba clearly.spec
+            rpmbuild --define \"dist $DISTRIBUTION\" -ba clearly.spec
           "
           
           docker cp builder:/root/rpmbuild/RPMS ./rpms
@@ -166,7 +172,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        os: [fedora:40, rockylinux:9]
+        os: [rockylinux:8, rockylinux:9, fedora:40]
 
     permissions:
         pages: write
