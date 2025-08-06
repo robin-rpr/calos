@@ -10,40 +10,16 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        include:
-          #- os: rockylinux:8
-          - os: rockylinux:9
-          - os: fedora:40
     
     steps:
-      - run: echo "MATRIX_OS=${VALUE//:/-}" >> $GITHUB_ENV
-        env:
-          VALUE: ${{ matrix.os }}
-
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Create Container
+      - name: Setup Dependencies
         run: |
-          docker run -d --name builder ${{ matrix.os }} bash -c "tail -f /dev/null"
-
-      - name: Enable CRB Repository
-        if: startsWith(matrix.os, 'rockylinux')
-        run: |
-          docker exec builder dnf install -y 'dnf-command(config-manager)'
-          if [[ "${{ matrix.os }}" == "rockylinux:8" ]]; then
-            docker exec builder dnf config-manager --set-enabled powertools
-          else
-            docker exec builder dnf config-manager --set-enabled crb
-          fi
-          docker exec builder dnf install -y epel-release
-
-      - name: Install Dependencies
-        run: |
+          docker run -d --name builder fedora:34 bash -c "tail -f /dev/null"
           docker exec builder dnf install -y \
             autoconf \
             automake \
@@ -73,7 +49,7 @@ jobs:
             python3-cython \
             git
 
-      - name: Build RPM for ${{ matrix.os }}
+      - name: Build RPM in Container
         run: |
           # Copy source to container
           docker cp . builder:/root/clearly
@@ -81,19 +57,14 @@ jobs:
           # Determine version and release
           if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
             VERSION=${GITHUB_REF#refs/tags/v}
+            RELEASE=0
           else
             git fetch --tags --force
             GIT_DESCRIBE=$(git describe --tags --always --dirty)
             VERSION=$(echo "$GIT_DESCRIBE" | sed -e 's/^v//' -e 's/-/~/; s/-/.g/')
+            RELEASE=1
           fi
 
-          # Bump release depending on distro to prevent collisions
-          case "${{ matrix.os }}" in
-            rockylinux:8) RELEASE=1 ;;
-            rockylinux:9) RELEASE=2 ;;
-            fedora:40)    RELEASE=3 ;;
-          esac
-          
           # Build RPM inside container
           docker exec builder bash -c "
             set -xe
@@ -155,16 +126,14 @@ jobs:
           # Move install.sh to the distilled root html directory.
           mv ./html/_static/install.sh ./html/install.sh
 
-
       - name: Upload RPM Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: rpms-${{ env.MATRIX_OS }}
+          name: rpms
           path: ./rpms
 
       - name: Upload HTML Artifact
         uses: actions/upload-artifact@v4
-        if: matrix.os == 'fedora:40'
         with:
           name: html
           path: ./html
@@ -173,12 +142,6 @@ jobs:
     name: Gemfury
     needs: build
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        include:
-          #- os: rockylinux:8
-          - os: rockylinux:9
-          - os: fedora:40
 
     permissions:
         pages: write
@@ -186,14 +149,10 @@ jobs:
         contents: read
 
     steps:
-      - run: echo "MATRIX_OS=${VALUE//:/-}" >> $GITHUB_ENV
-        env:
-          VALUE: ${{ matrix.os }}
-
       - name: Download RPM Artifact
         uses: actions/download-artifact@v4
         with:
-          name: rpms-${{ env.MATRIX_OS }}
+          name: rpms
           path: ./rpms
 
       - name: Upload to Gemfury
@@ -217,7 +176,6 @@ jobs:
     steps:
       - name: Download HTML Artifact
         uses: actions/download-artifact@v4
-        if: matrix.os == matrix.os[0]
         with:
           name: html
           path: ./html
