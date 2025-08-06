@@ -9,6 +9,10 @@
 # Do not generate a debug package.
 %global debug_package %{nil}
 
+# Systemd macros
+%{?systemd_requires}
+%{?systemd_user_requires}
+
 Name:          clearly
 Version:       @VERSION@
 Release:       @RELEASE@%{?dist}
@@ -106,6 +110,45 @@ LDFLAGS="$(python3-config --ldflags --embed)"; export LDFLAGS
 %install
 %make_install
 
+# Create systemd service file
+cat > %{buildroot}%{_unitdir}/clearly.service <<EOF
+[Unit]
+Description=Clearly Daemon
+Documentation=https://clearly.run/docs
+After=network.target
+Wants=network.target
+
+[Service]
+Type=notify
+ExecStartPre=/bin/mkdir -p /var/log
+ExecStart=%{_libexecdir}/%{name}/daemon
+Restart=on-failure
+RestartSec=5
+User=clearly
+Group=clearly
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=clearly
+
+# Security settings
+# ProtectSystem=strict
+# ProtectHome=true
+# ReadWritePaths=/var/log
+# ProtectKernelTunables=true
+# ProtectKernelModules=true
+# ProtectControlGroups=true
+# RestrictRealtime=true
+# RestrictSUIDSGID=true
+# NoNewPrivileges=true
+
+# Resource limits
+LimitNOFILE=65536
+LimitNPROC=4096
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
 cat > README.EL7 <<EOF
 For RHEL7 you must increase the number of available user namespaces to a non-
 zero number (note the number below is taken from the default for RHEL8):
@@ -125,10 +168,25 @@ EOF
 %{__rm} -f %{buildroot}%{_pkgdocdir}/LICENSE
 %{__rm} -f %{buildroot}%{_pkgdocdir}/README.rst
 
+%pre
+# Make 'clearly' user and group if they don't exist.
+getent group clearly >/dev/null 2>&1 || groupadd -r clearly
+getent passwd clearly >/dev/null 2>&1 || useradd -r -g clearly -d /var/lib/clearly -s /sbin/nologin clearly
+
+%post
+%systemd_post clearly.service
+
+%preun
+%systemd_preun clearly.service
+
+%postun
+%systemd_postun clearly.service
+
 %files
 %license LICENSE
 %doc README.rst %{?el7:README.EL7}
 %{_bindir}/clearly
+%{_unitdir}/clearly.service
 %{_libexecdir}/%{name}/check
 %{_libexecdir}/%{name}/convert
 %{_libexecdir}/%{name}/daemon
