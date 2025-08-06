@@ -259,7 +259,7 @@ PKG_CHECK_MODULES([LIBMNL], [libmnl >= 1.0.4],,
       [AC_MSG_ERROR([libmnl-devel is required. Please install it.])])
 
 # Check for libnftnl
-PKG_CHECK_MODULES([LIBNFTNL], [libnftnl >= 1.2.6],,
+PKG_CHECK_MODULES([LIBNFTNL], [libnftnl >= 1.1.9],,
   [AC_MSG_ERROR([libnftnl-devel is required. Please install it.])])
 
 # Check for json-c
