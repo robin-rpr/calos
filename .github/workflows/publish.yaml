@@ -20,17 +20,19 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Enable CRB repository
+      - name: Create Container
+        run: |
+          docker run -d --name builder ${{ matrix.os }} bash -c "tail -f /dev/null"
+
+      - name: Enable CRB Repository
         if: matrix.os == 'rockylinux:9'
         run: |
           docker exec builder dnf config-manager --set-enabled crb
           docker exec builder dnf install -y 'dnf-command(config-manager)'
           docker exec builder dnf install -y epel-release
 
-      - name: Set up ${{ matrix.os }} container
+      - name: Install Dependencies
         run: |
-          docker run -d --name builder ${{ matrix.os }} bash -c "tail -f /dev/null"
-          
           docker exec builder dnf install -y \
             autoconf \
             automake \
