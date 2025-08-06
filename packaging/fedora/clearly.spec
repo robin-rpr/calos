@@ -13,6 +13,9 @@
 %{?systemd_requires}
 %{?systemd_user_requires}
 
+# Define systemd unit directory if not already defined
+%{!?_unitdir: %define _unitdir /usr/lib/systemd/system}
+
 Name:          clearly
 Version:       @VERSION@
 Release:       @RELEASE@%{?dist}
@@ -111,6 +114,8 @@ LDFLAGS="$(python3-config --ldflags --embed)"; export LDFLAGS
 %make_install
 
 # Create systemd service file
+%{?systemd_requires}
+mkdir -p %{buildroot}%{_unitdir}
 cat > %{buildroot}%{_unitdir}/clearly.service <<EOF
 [Unit]
 Description=Clearly Daemon
