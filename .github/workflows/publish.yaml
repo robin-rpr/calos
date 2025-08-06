@@ -102,6 +102,9 @@ jobs:
             # Configure the build system.
             ./configure
 
+            # Write version to a file.
+            echo \"$VERSION\" > /root/clearly/VERSION
+
             # Build the distribution tarball.
             make dist
             
