@@ -15,7 +15,7 @@ jobs:
         os: [fedora:40, rockylinux:9]
     
     steps:
-        run: echo "MATRIX_OS=${VALUE//:/-}" >> $GITHUB_ENV
+      - run: echo "MATRIX_OS=${VALUE//:/-}" >> $GITHUB_ENV
         env:
           VALUE: ${{ matrix.os }}
 
