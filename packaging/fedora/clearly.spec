@@ -174,14 +174,8 @@ EOF
 %{__rm} -f %{buildroot}%{_pkgdocdir}/README.rst
 
 %pre
-# Make 'clearly' user and group if they don't exist.
 getent group clearly >/dev/null 2>&1 || groupadd -r clearly
 getent passwd clearly >/dev/null 2>&1 || useradd -r -g clearly -d /var/lib/clearly -s /sbin/nologin clearly
-
-# Create the home directory with proper permissions
-mkdir -p /var/lib/clearly
-chown clearly:clearly /var/lib/clearly
-chmod 755 /var/lib/clearly
 
 %post
 %systemd_post clearly.service
@@ -195,8 +189,15 @@ chmod 755 /var/lib/clearly
 %files
 %license LICENSE
 %doc README.rst %{?el7:README.EL7}
+
 %{_bindir}/clearly
 %{_unitdir}/clearly.service
+
+%dir %attr(0700,clearly,clearly) /var/tmp/clearly.clearly
+%dir %attr(0700,clearly,clearly) /srv/clearly.clearly
+%dir %attr(0700,clearly,clearly) /run/clearly.clearly
+%dir %attr(0700,clearly,clearly) /var/lib/clearly
+
 %{_libexecdir}/%{name}/check
 %{_libexecdir}/%{name}/convert
 %{_libexecdir}/%{name}/daemon
