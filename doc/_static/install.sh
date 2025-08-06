@@ -18,7 +18,6 @@ main() {
 	#
 	OS=""
 	PACKAGEMANAGER=""
-	TAG=""
 
 	if [ -f /etc/os-release ]; then
 		# Source the os-release file to get variables like ID and VERSION_ID
@@ -33,24 +32,12 @@ main() {
 				else
 					PACKAGEMANAGER="dnf"
 				fi
-				# Set the package tag based on OS
-				case "$ID" in
-					fedora)
-						TAG="fc${VERSION_ID%%.*}"
-						;;
-					rhel|centos|rocky|almalinux|ol)
-						TAG="el${VERSION_ID%%.*}"
-						;;
-					amzn)
-						TAG="amzn${VERSION_ID%%.*}"
-						;;
-				esac
 				;;
 		esac
 	fi
 
 	# If we couldn't identify the OS as a supported RPM-based system, exit.
-	if [ -z "$PACKAGEMANAGER" ] || [ -z "$TAG" ]; then
+	if [ -z "$PACKAGEMANAGER" ]; then
 		echo "This installation script is for RPM-based systems (like Fedora, CentOS, RHEL)."
 		echo
 		if [ -n "${ID:-}" ]; then
@@ -113,8 +100,7 @@ main() {
 name=Clearly Repository
 baseurl=$REPO_URL
 enabled=1
-gpgcheck=0
-includepkgs=clearly*.$TAG"
+gpgcheck=0"
 
 	# Use 'set -x' to print the commands being executed for transparency.
 	set -x
