@@ -265,34 +265,18 @@ def main():
             },
         )
 
-        # Define our own Zeroconf service
-        with listener.lock:
-            listener.services[service_name] = {
-                'name': service_name,
-                'address': socket.inet_ntoa(service_address),
-                'port': 0,
-                'weight': 0,
-                'priority': 0,
-                'properties': {
-                    'version': version,
-                    'identifier': identifier,
-                    'service': 'clearly'
-                },
-                'server': service_name,
-            }
-
         # Register our own Zeroconf service
         zeroconf.registerService(service_info)
 
+        # Start Webserver
+        webserver.start()
+
         # Peer discovery timeout
-        sleep(15)
+        sleep(60)
 
         # Start Storage
         #storage.set_nodes(listener.get_services())
         #storage.start()
-
-        # Start Webserver
-        webserver.start()
         
         try:
             # Keep alive
