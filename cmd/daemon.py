@@ -143,7 +143,8 @@ def stop_studio(studio_id, payload=None):
 @webserver.get('/api/machines')
 def list_machines(payload=None):
     """List all discovered Clearly machines."""
-    return listener.services.copy()
+    with listener.lock:
+        return listener.services.copy()
 
 
 ## Pages ##
