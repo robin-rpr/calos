@@ -47,7 +47,6 @@ studio_executor = _executor.StudioExecutor()
 
 # Zeroconf
 zeroconf = None
-listener = None
 
 # Webserver
 webserver = WebServer(
@@ -142,8 +141,38 @@ def stop_studio(studio_id, payload=None):
 @webserver.get('/api/machines')
 def list_machines(payload=None):
     """List all discovered Clearly machines."""
-    with listener.lock:
-        return listener.services
+    machines = []
+    service_type = "_clearly._tcp.local."
+    
+    # Query the cache for all records related to our service type.
+    # The entriesWithName() method gives us all records for this name.
+    records = zeroconf.cache.entriesWithName(service_type)
+    
+    # Find all unique service names from the PTR records.
+    # A set is used to automatically handle duplicates.
+    discovered_names = set()
+    for record in records:
+        # We only care about PTR records, as they point to service instances.
+        if record.type == _zeroconf._TYPE_PTR:
+            # The record.alias holds the full service name, e.g.,
+            # 'clearly-identifier._clearly._tcp.local.'
+            discovered_names.add(record.alias)
+
+    # Resolve the details for each unique name found.
+    for name in discovered_names:
+        # getServiceInfo is still the best way to resolve all the details
+        # (SRV, A, TXT records) for a given service name.
+        info = zeroconf.getServiceInfo(service_type, name, timeout=500)
+        if info:
+            machines.append({
+                'name': name,
+                'address': socket.inet_ntoa(info.getAddress()),
+                'port': info.getPort(),
+                'properties': info.getProperties(),
+                'server': info.getServer(),
+            })
+            
+    return machines
 
 
 ## Pages ##
@@ -175,72 +204,15 @@ def get_interface_address(ifname='eth0'):
     )[20:24]
 
 
-## Classes ##
-
-class ServiceListener(object):
-    """A ServiceListener is used by this module to listen on the multicast
-    group to which DNS messages are sent, allowing the implementation to cache information
-    as it arrives as well as dynamically add and remove services from the cluster.
-
-    It requires registration with an Engine object in order to have
-    the read() method called when a socket is availble for reading."""
-
-    def __init__(self):
-        self.lock = threading.Lock()
-        self.services = {}
-        self.resolving = set()
-
-    def addService(self, zeroconf, type, name):
-        """Called when a new service is discovered.
-        This method is designed to avoid blocking the caller thread."""
-
-        with self.lock:
-            if name in self.services or name in self.resolving:
-                return
-            self.resolving.add(name)
-
-        info = None
-        try:
-            info = zeroconf.getServiceInfo(type, name, timeout=3000)
-        except Exception as e:
-            logger.error(f"Error retrieving service info for {name}: {e}")
-        finally:
-            with self.lock:
-                self.resolving.remove(name)
-
-                if info:
-                    self.services[name] = {
-                        'name': name,
-                        'address': socket.inet_ntoa(info.getAddress()),
-                        'port': info.getPort(),
-                        'weight': info.getWeight(),
-                        'priority': info.getPriority(),
-                        'properties': info.getProperties(),
-                        'server': info.getServer(),
-                    }
-                    logger.info(f"Discovered and added: {name} at {socket.inet_ntoa(info.getAddress())}")
-                else:
-                    logger.warning(f"Could not resolve details for {name}. It may have disappeared.")
-
-    def removeService(self, zeroconf, type, name):
-        """Called when a service is removed."""
-        with self.lock:
-            if name in self.services:
-                service = self.services.pop(name)
-                logger.info(f"Removed: {name} at {service.get('address')}:{service.get('port')}")
-
 ## Main ##
 
 def main():
     try:
         # Zeroconf
-        global listener
         global zeroconf
 
-        listener = ServiceListener()
         service_address = get_interface_address('clearly0')
         zeroconf = _zeroconf.Zeroconf(bindaddress=socket.inet_ntoa(service_address))
-        browser = _zeroconf.ServiceBrowser(zeroconf, "_clearly._tcp.local.", listener)
         version = subprocess.check_output(['clearly', 'version']).decode('utf-8').strip()
         identifier = open('/etc/machine-id').read().strip()
 
