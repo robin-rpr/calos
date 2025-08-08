@@ -188,17 +188,26 @@ class ServiceListener(object):
     def __init__(self):
         self.lock = threading.Lock()
         self.services = {}
-    
+        self.resolving = set()
+
     def addService(self, zeroconf, type, name):
-        """Called when a new service is discovered."""
+        """Called when a new service is discovered.
+        This method is designed to avoid blocking the caller thread."""
+
         with self.lock:
-            try:
-                # If already known, do nothing.
-                if name in self.services:
-                    return
-                
-                # Retrieve the service info.
-                info = zeroconf.getServiceInfo(type, name, timeout=3000)
+            if name in self.services or name in self.resolving:
+                return
+            self.resolving.add(name)
+
+        info = None
+        try:
+            info = zeroconf.getServiceInfo(type, name, timeout=3000)
+        except Exception as e:
+            logger.error(f"Error retrieving service info for {name}: {e}")
+        finally:
+            with self.lock:
+                self.resolving.remove(name)
+
                 if info:
                     self.services[name] = {
                         'name': name,
@@ -209,28 +218,16 @@ class ServiceListener(object):
                         'properties': info.getProperties(),
                         'server': info.getServer(),
                     }
+                    logger.info(f"Discovered and added: {name} at {socket.inet_ntoa(info.getAddress())}")
+                else:
+                    logger.warning(f"Could not resolve details for {name}. It may have disappeared.")
 
-                # Update storage configuration.
-                #storage.set_nodes(self.services)
-
-                # Log the discovery.
-                logger.info(f"Discovered: {name} at {socket.inet_ntoa(info.getAddress())}")
-            except Exception as e:
-                logger.error(f"Discovery retrieval failed for {name}: {e}")
-        
     def removeService(self, zeroconf, type, name):
         """Called when a service is removed."""
         with self.lock:
             if name in self.services:
-                # Remove the service from the cache.
                 service = self.services.pop(name)
-
-                # Update storage configuration.
-                #storage.set_nodes(self.services)
-
-                # Log the removal.
                 logger.info(f"Removed: {name} at {service.get('address')}:{service.get('port')}")
-
 
 ## Main ##
 
