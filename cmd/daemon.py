@@ -245,7 +245,7 @@ def main():
         service_address = get_interface_address('clearly0')
         zeroconf = _zeroconf.Zeroconf(bindaddress=service_address)
         version = subprocess.check_output(['clearly', 'version']).decode('utf-8').strip()
-        identifier = open('/sys/class/dmi/id/product_uuid').read().strip()
+        identifier = open('/etc/machine-id').read().strip()
 
         # Create a Zeroconf service
         service_name = f"clearly-{identifier}._clearly._tcp.local."
