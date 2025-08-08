@@ -210,6 +210,8 @@ class ServiceListener(object):
         """Resolve SRV/TXT/A; retry until it succeeds."""
         while True:
             try:
+                # Lookup the service info.
+                # This is blocking, which is why we run it in a thread.
                 info = zeroconf.getServiceInfo(type, name, timeout=2000)
             except Exception as e:
                 logger.error(f"Lookup failed for {name}: {e}")
@@ -225,9 +227,12 @@ class ServiceListener(object):
                     'properties': info.getProperties(),
                     'server': info.getServer(),
                 }
+                # Add to the cache.
                 with self.lock:
                     self.services[name] = service
                     self.pending.discard(name)
+
+                # Log the discovery.
                 logger.info(f"Discovered: {name} at {service['address']}")
                 return
 
@@ -237,7 +242,10 @@ class ServiceListener(object):
     def removeService(self, zeroconf, type, name):
         """Called when a service is removed."""
         with self.lock:
-            self.pending.discard(name)
+            # DO NOT discard from pending. A removal should only act on a
+            # fully resolved service. This prevents a race condition where a
+            # "goodbye" from a previous instance of a service cancels the
+            # resolution of its new instance.
             if name in self.services:
                 service = self.services.pop(name)
                 logger.info(f"Removed: {name} at {service.get('address')}:{service.get('port')}")
