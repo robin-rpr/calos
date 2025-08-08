@@ -80,8 +80,8 @@ jobs:
             # Configure the build system.
             ./configure --prefix=/usr --libdir=/usr/lib
 
-            # Write version to a file.
-            echo \"$VERSION\" > /root/clearly/VERSION
+            # Write version and release to a file.
+            echo \"$VERSION-$RELEASE\" > /root/clearly/VERSION
 
             # Build the distribution tarball.
             make dist
