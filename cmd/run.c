@@ -837,7 +837,7 @@ char *runtime_default(void)
    char *runtime = getenv("CLEARLY_RUNTIME_STORAGE");
 
    if (runtime == NULL)
-      T_ (1 <= asprintf(&runtime, "/run/%s.clearly", username));
+      T_ (1 <= asprintf(&runtime, "/run/clearly"));
 
    return runtime;
 }
@@ -848,7 +848,7 @@ char *storage_default(void)
    char *storage = getenv("CLEARLY_IMAGE_STORAGE");
 
    if (storage == NULL)
-      T_ (1 <= asprintf(&storage, "/var/tmp/%s.clearly", username));
+      T_ (1 <= asprintf(&storage, "/var/tmp/clearly"));
 
    return storage;
 }

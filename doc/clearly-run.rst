@@ -95,7 +95,7 @@ mounting SquashFS images with FUSE.
 
   :code:`-m`, :code:`--mount=DIR`
     Use :code:`DIR` for the SquashFS mount point, which must already exist. If
-    not specified, the default is :code:`/var/tmp/$USER.clearly/mnt`, which *will*
+    not specified, the default is :code:`/var/tmp/clearly/mnt`, which *will*
     be created if needed.
 
   :code:`--no-passwd`

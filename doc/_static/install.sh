@@ -2,7 +2,7 @@
 #
 # This script detects the current RPM-based Linux distribution and
 # installs the 'clearly' package from the Gemfury repository.
-# It is located at https://clearly.run/install.sh
+# curl -fsSL https://clearly.run/install.sh | sh
 
 # Exit immediately if a command fails (-e) or if an unset variable is used (-u).
 set -eu
@@ -38,15 +38,13 @@ main() {
 
 	# If we couldn't identify the OS as a supported RPM-based system, exit.
 	if [ -z "$PACKAGEMANAGER" ]; then
-		echo "This installation script is for RPM-based systems (like Fedora, CentOS, RHEL)."
 		echo
 		if [ -n "${ID:-}" ]; then
-			echo "Your OS ($ID) is not supported by this script."
+			echo "Clearly is not supported on your system."
 		else
 			echo "Could not determine your operating system."
 		fi
-		echo
-		echo "Please install 'clearly' manually for your system."
+		echo "For more information, see https://clearly.run/install"
 		exit 1
 	fi
 
@@ -68,10 +66,8 @@ main() {
 	fi
 
 	#
-	# Step 3: Apply system configuration (from your original script)
+	# Step 3: Apply system configuration
 	#
-	# Best-effort attempt to enable IP forwarding, as required by 'clearly'.
-	echo "Attempting to enable IP forwarding..."
 	set +e # Temporarily disable exit-on-error for this check
 	echo "1" | $SUDO tee /proc/sys/net/ipv4/ip_forward > /dev/null
 	RC=$?
@@ -85,12 +81,30 @@ main() {
 	fi
 
 	#
-	# Step 4: Install the 'clearly' package
+	# Step 4: Enable the additional repositories
 	#
-	echo
-	echo "Installing 'clearly' for $OS using '$PACKAGEMANAGER'..."
+	case "$VERSION_ID" in
+		"8")
+			dnf config-manager --set-enabled ha
+			dnf config-manager --set-enabled rs
+			;;
+		"9")
+			dnf config-manager --set-enabled highavailability
+			dnf config-manager --set-enabled resilientstorage
+			;;
+		*)
+			echo "Warning: Could not enable additional repositories automatically." >&2
+			echo "You may need to run the following commands as root:" >&2
+			echo "  dnf config-manager --set-enabled highavailability" >&2
+			echo "  dnf config-manager --set-enabled resilientstorage" >&2
+			;;
+	esac
 
-	# The URL of your Gemfury RPM repository.
+	#
+	# Step 5: Install the 'clearly' package
+	#
+
+	# The URL of our Gemfury RPM repository.
 	REPO_URL="https://repo.clearly.run/yum"
 
 	# The configuration for the .repo file.
@@ -119,5 +133,5 @@ gpgcheck=0"
 	echo "Installation complete."
 }
 
-# This final line executes the main function defined above.
+# Execute the main function.
 main

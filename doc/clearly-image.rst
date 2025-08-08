@@ -274,10 +274,8 @@ In descending order of priority, this directory is located at:
     likely set in a very different context than when it’s used, which seems
     error-prone on what a relative path is relative to.
 
-  :code:`/var/tmp/$USER.clearly`
-    Default. (Previously, the default was :code:`/var/tmp/$USER/clearly image`. If
-    a valid storage directory is found at the old default path,
-    :code:`clearly image` tries to move it to the new default path.)
+  :code:`/var/tmp/clearly`
+    Default.
 
 Unlike many container implementations, there is no notion of storage drivers,
 graph drivers, etc., to select and/or configure.

@@ -22,9 +22,9 @@ except NameError:
     # in the project's top-level 'lib' directory.
     sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../lib'))
 
-import _syncthing as _syncthing
 import _executor as _executor
 import _zeroconf as _zeroconf
+import _storage as _storage
 from _http import WebServer
 
 
@@ -49,18 +49,20 @@ studio_executor = _executor.StudioExecutor()
 zeroconf = None
 listener = None
 
-# Syncthing
-syncthing = _syncthing.Syncthing(
-    config_dir=Path.home() / ".config/clearly",
-    folder_dir=Path(f"/srv/{os.environ.get('USER', 'root')}.clearly"),
-)
-
 # Webserver
 webserver = WebServer(
     host='127.0.0.1',
     port=8080,
     static_dir=STATIC_DIR,
     template_dir=TEMPLATE_DIR,
+)
+
+# Storage
+storage = _storage.Storage(
+    name='runtime',
+    image_dir='/var/lib/clearly',
+    mount_dir='/run/clearly',
+    size='10G'
 )
 
 # Logging
@@ -177,7 +179,7 @@ def get_interface_address(ifname='eth0'):
 class ServiceListener(object):
     """A ServiceListener is used by this module to listen on the multicast
     group to which DNS messages are sent, allowing the implementation to cache information
-    as it arrives as well as dynamically add and remove services from Syncthing.
+    as it arrives as well as dynamically add and remove services from the cluster.
 
     It requires registration with an Engine object in order to have
     the read() method called when a socket is availble for reading."""
@@ -203,12 +205,9 @@ class ServiceListener(object):
                         'server': info.getServer()
                     }
 
-                # Add the service to Syncthing
-                syncthing.add_peer(info.getProperties()['device_id'], info.getAddress())
-
-                # Restart Syncthing to pick up the new peer
-                syncthing.stop()
-                syncthing.start()
+                # Update storage configuration
+                services = self.get_services()
+                storage.set_nodes(services)
 
                 # Log the discovery
                 logger.info(f"Discovered: {name} at {socket.inet_ntoa(info.getAddress())}:{info.getPort()}")
@@ -221,12 +220,9 @@ class ServiceListener(object):
             if name in self.services:
                 removed_service = self.services.pop(name)
 
-                # Remove the service from Syncthing
-                syncthing.remove_peer(removed_service.get('properties')['device_id'])
-
-                # Restart Syncthing to pick up the peer removal
-                syncthing.stop()
-                syncthing.start()
+                # Update storage configuration
+                services = self.get_services()
+                storage.set_nodes(services)
 
                 # Log the removal
                 logger.info(f"Lost: {name} at {removed_service.get('address')}:{removed_service.get('port')}")
@@ -248,9 +244,11 @@ def main():
         listener = ServiceListener()
         service_address = get_interface_address('clearly0')
         zeroconf = _zeroconf.Zeroconf(bindaddress=service_address)
+        version = subprocess.check_output(['clearly', 'version']).decode('utf-8').strip()
+        identifier = open('/sys/class/dmi/id/product_uuid').read().strip()
 
         # Create a Zeroconf service
-        service_name = f"clearly-{service_address}._clearly._tcp.local."
+        service_name = f"clearly-{identifier}._clearly._tcp.local."
         service_info = _zeroconf.ServiceInfo(
             type="_clearly._tcp.local.",
             name=service_name,
@@ -259,50 +257,53 @@ def main():
             weight=0,
             priority=0,
             properties={
-                'version': '1.0',
-                'device_id': syncthing.device_id,
+                'version': version,
+                'identifier': identifier,
                 'service': 'clearly'
             },
         )
 
         # Define our own Zeroconf service
-        listener.services[service_name] = {
-            'name': service_name,
-            'address': service_address,
-            'port': 0,
-            'properties': {
-                'version': '1.0',
-                'device_id': syncthing.device_id,
-                'service': 'clearly'
-            },
-            'server': service_name,
-        }
+        with listener.lock:
+            listener.services[service_name] = {
+                'name': service_name,
+                'address': service_address,
+                'port': 0,
+                'properties': {
+                    'version': version,
+                    'identifier': identifier,
+                    'service': 'clearly'
+                },
+                'server': service_name,
+            }
 
         # Register the Zeroconf service
         zeroconf.registerService(service_info)
 
-        # Set the Syncthing IP address
-        syncthing.set_ip_address(service_address)
-
         # Register a listener for other Zeroconf services
         zeroconf.addServiceListener("_clearly._tcp.local.", listener)
 
-        # Start Syncthing
-        syncthing.start()
+        # Allow some time for peer discovery
+        sleep(15)
+
+        # Start Storage
+        #storage.set_nodes(listener.get_services())
+        #storage.start()
 
         # Start Webserver
         webserver.start()
         
-        # Keep the main thread alive
         try:
+            # Keep alive
             while True:
                 sleep(1)
         except KeyboardInterrupt:
-            logger.info("Shutting down...")
+            logger.info("Exiting...")
         finally:
-            # Unregister the Zeroconf service
+            # Cleanup and exit
             zeroconf.unregisterService(service_info)
             zeroconf.close()
+            storage.stop()
 
     except Exception as e:
         logger.error(f"Fatal error: {e}", exc_info=True)

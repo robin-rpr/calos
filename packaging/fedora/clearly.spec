@@ -51,13 +51,22 @@ Requires:      libcap
 Requires:      fuse3
 Requires:      json-c
 Requires:      python3
-Requires:      syncthing
 Requires:      python3-lark-parser
 Requires:      python3-requests
 Requires:      python3-libsass
 Requires:      python3-jinja2
 Requires:      python3-wheel
 Requires:      git
+
+# Red Hat High Availability Repository
+Requires:      fence-agents-all
+Requires:      drbd-utils+
+Requires:      pacemaker
+Requires:      pcs
+
+# Red Hat Resilient Storage Repository
+Requires:      gfs2-utils
+Requires:      dlm
 
 %description
 Clearly uses Linux user namespaces to run containers with no privileged
@@ -115,10 +124,9 @@ LDFLAGS="$(python3-config --ldflags --embed)"; export LDFLAGS
 %make_install
 
 # Create required directories
-mkdir -p %{buildroot}/var/tmp/clearly.clearly
-mkdir -p %{buildroot}/srv/clearly.clearly
-mkdir -p %{buildroot}/run/clearly.clearly
+mkdir -p %{buildroot}/var/tmp/clearly
 mkdir -p %{buildroot}/var/lib/clearly
+mkdir -p %{buildroot}/run/clearly
 
 # Create systemd service file
 mkdir -p %{buildroot}%{_unitdir}
@@ -143,7 +151,7 @@ SyslogIdentifier=clearly
 # Security settings
 # ProtectSystem=strict
 # ProtectHome=true
-# ReadWritePaths=/var/tmp/clearly.clearly /srv/clearly.clearly /run/clearly.clearly /var/lib/clearly
+# ReadWritePaths=/var/tmp/clearly /var/lib/clearly /run/clearly 
 # ProtectKernelTunables=true
 # ProtectKernelModules=true
 # ProtectControlGroups=true
@@ -184,6 +192,8 @@ getent passwd clearly >/dev/null 2>&1 || useradd -r -g clearly -d /var/lib/clear
 
 %post
 %systemd_post clearly.service
+modprobe drbd 2>/dev/null || true
+echo drbd > /etc/modules-load.d/drbd.conf
 
 %preun
 %systemd_preun clearly.service
@@ -198,10 +208,9 @@ getent passwd clearly >/dev/null 2>&1 || useradd -r -g clearly -d /var/lib/clear
 %{_bindir}/clearly
 %{_unitdir}/clearly.service
 
-%dir %attr(0700,clearly,clearly) /var/tmp/clearly.clearly
-%dir %attr(0700,clearly,clearly) /srv/clearly.clearly
-%dir %attr(0700,clearly,clearly) /run/clearly.clearly
+%dir %attr(0700,clearly,clearly) /var/tmp/clearly
 %dir %attr(0700,clearly,clearly) /var/lib/clearly
+%dir %attr(0700,clearly,clearly) /run/clearly
 
 %{_libexecdir}/%{name}/check
 %{_libexecdir}/%{name}/convert
@@ -267,7 +276,6 @@ getent passwd clearly >/dev/null 2>&1 || useradd -r -g clearly -d /var/lib/clear
 %{_prefix}/lib/%{name}/_push.*.so
 %{_prefix}/lib/%{name}/_reference.*.so
 %{_prefix}/lib/%{name}/_registry.*.so
-%{_prefix}/lib/%{name}/_syncthing.*.so
 %{_prefix}/lib/%{name}/_tree.*.so
 %{_prefix}/lib/%{name}/_zeroconf.*.so
 %{?el7:%{_prefix}/lib/%{name}/__pycache__}
