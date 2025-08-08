@@ -85,12 +85,12 @@ main() {
 	#
 	case "$VERSION_ID" in
 		"8")
-			dnf config-manager --set-enabled ha
-			dnf config-manager --set-enabled rs
+			$SUDO dnf config-manager --set-enabled ha
+			$SUDO dnf config-manager --set-enabled rs
 			;;
 		"9")
-			dnf config-manager --set-enabled highavailability
-			dnf config-manager --set-enabled resilientstorage
+			$SUDO dnf config-manager --set-enabled highavailability
+			$SUDO dnf config-manager --set-enabled resilientstorage
 			;;
 		*)
 			echo "Warning: Could not enable additional repositories automatically." >&2
