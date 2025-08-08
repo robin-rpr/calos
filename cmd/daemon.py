@@ -143,8 +143,7 @@ def stop_studio(studio_id, payload=None):
 @webserver.get('/api/machines')
 def list_machines(payload=None):
     """List all discovered Clearly machines."""
-    with listener.lock:
-        return listener.services
+    return listener.services.copy()
 
 
 ## Pages ##
@@ -234,6 +233,8 @@ class ServiceListener(object):
                     self.services[name] = service
                     self.pending.discard(name)
 
+                logger.info("Services are now: %s", self.services)
+
                 # Log the discovery.
                 logger.info(f"Discovered: {name} at {service['address']}")
                 return
@@ -243,7 +244,9 @@ class ServiceListener(object):
 
     def removeService(self, zeroconf, type, name):
         """Called when a service is removed."""
+        logger.info("A removal has been called for %s", name)
         with self.lock:
+            logger.info("Lock acquired. for removal of %s", name)
             self.pending.discard(name)
             if name in self.services:
                 service = self.services.pop(name)
