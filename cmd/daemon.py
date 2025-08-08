@@ -185,14 +185,13 @@ class ServiceListener(object):
     the read() method called when a socket is availble for reading."""
 
     def __init__(self):
-        self.zeroconf = _zeroconf.Zeroconf()
         self.services = {}
     
     def addService(self, zeroconf, type, name):
         """Called when a new service is discovered."""
         try:
             # Get service info
-            info = self.zeroconf.getServiceInfo(type, name, timeout=3000)
+            info = zeroconf.getServiceInfo(type, name, timeout=3000)
             if info:
                 self.services[name] = {
                     'name': name,
@@ -214,15 +213,14 @@ class ServiceListener(object):
     
     def removeService(self, zeroconf, type, name):
         """Called when a service is removed."""
-        with self.lock:
-            if name in self.services:
-                removed_service = self.services.pop(name)
+        if name in self.services:
+            removed_service = self.services.pop(name)
 
-                # Update storage configuration
-                #storage.set_nodes(self.services)
+            # Update storage configuration
+            #storage.set_nodes(self.services)
 
-                # Log the removal
-                logger.info(f"Lost: {name} at {removed_service.get('address')}:{removed_service.get('port')}")
+            # Log the removal
+            logger.info(f"Removed: {name} at {removed_service.get('address')}:{removed_service.get('port')}")
 
 
 ## Main ##
