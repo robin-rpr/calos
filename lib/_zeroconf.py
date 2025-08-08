@@ -1227,7 +1227,6 @@ class Zeroconf(object):
                 f"mDNS bind to udp/5353 failed; another daemon may hold it "
                 f"without SO_REUSEPORT (e.g., avahi-daemon). error={e}"
             )
-            pass
         self.socket.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_IF,
             socket.inet_aton(self.intf))
         self.socket.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP,
