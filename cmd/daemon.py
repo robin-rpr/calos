@@ -281,6 +281,9 @@ def main():
                 'server': service_name,
             }
 
+        # Register our own Zeroconf service
+        zeroconf.registerService(service_info)
+
         # Peer discovery timeout
         sleep(15)
 
