@@ -143,10 +143,8 @@ def stop_studio(studio_id, payload=None):
 @webserver.get('/api/machines')
 def list_machines(payload=None):
     """List all discovered Clearly machines."""
-    logger.info("Listing machines... %s", listener.services)
     with listener.lock:
-        logger.info("Lock acquired. for listing machines. %s", listener.services.copy())
-        return listener.services.copy()
+        return listener.discovered.copy()
 
 
 ## Pages ##
@@ -191,12 +189,12 @@ class ServiceListener(object):
     def __init__(self):
         self.lock = threading.Lock()
         self.pending = set()
-        self.services = {}
+        self.discovered = {}
 
     def addService(self, zeroconf, type, name):
         """Called when a new service is discovered."""
         with self.lock:
-            if name in self.services or name in self.pending:
+            if name in self.discovered or name in self.pending:
                 # Skip if already known or being resolved.
                 return
             # Add to the pending set.
@@ -230,13 +228,9 @@ class ServiceListener(object):
                     'server': info.getServer(),
                 }
                 # Add to the cache.
-                logger.info("Waiting for lock... for %s", name)
                 with self.lock:
-                    logger.info("Lock acquired. for %s", name)
-                    self.services[name] = service
+                    self.discovered[name] = service
                     self.pending.discard(name)
-
-                logger.info("Services are now: %s", self.services)
 
                 # Log the discovery.
                 logger.info(f"Discovered: {name} at {service['address']}")
@@ -247,12 +241,10 @@ class ServiceListener(object):
 
     def removeService(self, zeroconf, type, name):
         """Called when a service is removed."""
-        logger.info("A removal has been called for %s", name)
         with self.lock:
-            logger.info("Lock acquired. for removal of %s", name)
             self.pending.discard(name)
-            if name in self.services:
-                service = self.services.pop(name)
+            if name in self.discovered:
+                service = self.discovered.pop(name)
                 logger.info(f"Removed: {name} at {service.get('address')}")
 
 
