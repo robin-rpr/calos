@@ -205,8 +205,7 @@ class ServiceListener(object):
                 }
 
                 # Update storage configuration
-                services = self.get_services()
-                #storage.set_nodes(services)
+                #storage.set_nodes(self.services)
 
                 # Log the discovery
                 logger.info(f"Discovered: {name} at {socket.inet_ntoa(info.getAddress())}")
@@ -220,8 +219,7 @@ class ServiceListener(object):
                 removed_service = self.services.pop(name)
 
                 # Update storage configuration
-                services = self.get_services()
-                #storage.set_nodes(services)
+                #storage.set_nodes(self.services)
 
                 # Log the removal
                 logger.info(f"Lost: {name} at {removed_service.get('address')}:{removed_service.get('port')}")
