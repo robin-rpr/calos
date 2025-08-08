@@ -165,13 +165,13 @@ def serve_studio(studio_id, payload=None):
 ## Helpers ##
 
 def get_interface_address(ifname='eth0'):
-    """Get the IP address of an interface"""
+    """Get the IP address of an interface (as 4-byte packed format)"""
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    return socket.inet_ntoa(fcntl.ioctl(
+    return fcntl.ioctl(
         s.fileno(),
-        0x8915, # SIOCGIFADDR
+        0x8915,  # SIOCGIFADDR
         struct.pack('256s', ifname.encode('utf-8')[:15])
-    )[20:24])
+    )[20:24]
 
 
 ## Classes ##
@@ -185,36 +185,37 @@ class ServiceListener(object):
     the read() method called when a socket is availble for reading."""
 
     def __init__(self):
-        self.services = {
-            
-        } # Discovered services
+        self.zeroconf = _zeroconf.Zeroconf()
         self.lock = threading.Lock()
+        self.services = {}
     
-    def addService(self, zeroconf, service_type, name):
+    def addService(self, zeroconf, type, name):
         """Called when a new service is discovered."""
         try:
             # Get service info
-            info = zeroconf.getServiceInfo(service_type, name, timeout=3000)
+            info = self.zeroconf.getServiceInfo(type, name, timeout=3000)
             if info:
                 with self.lock:
                     self.services[name] = {
                         'name': name,
-                        'address': socket.inet_ntoa(info.getAddress()) if info.getAddress() else None,
+                        'address': socket.inet_ntoa(info.getAddress()),
                         'port': info.getPort(),
+                        'weight': info.getWeight(),
+                        'priority': info.getPriority(),
                         'properties': info.getProperties(),
-                        'server': info.getServer()
+                        'server': info.getServer(),
                     }
 
                 # Update storage configuration
                 services = self.get_services()
-                storage.set_nodes(services)
+                #storage.set_nodes(services)
 
                 # Log the discovery
-                logger.info(f"Discovered: {name} at {socket.inet_ntoa(info.getAddress())}:{info.getPort()}")
+                logger.info(f"Discovered: {name} at {socket.inet_ntoa(info.getAddress())}")
         except Exception as e:
             logger.error(f"Discovery retrieval failed for {name}: {e}")
     
-    def removeService(self, zeroconf, service_type, name):
+    def removeService(self, zeroconf, type, name):
         """Called when a service is removed."""
         with self.lock:
             if name in self.services:
@@ -222,7 +223,7 @@ class ServiceListener(object):
 
                 # Update storage configuration
                 services = self.get_services()
-                storage.set_nodes(services)
+                #storage.set_nodes(services)
 
                 # Log the removal
                 logger.info(f"Lost: {name} at {removed_service.get('address')}:{removed_service.get('port')}")
@@ -243,7 +244,8 @@ def main():
 
         listener = ServiceListener()
         service_address = get_interface_address('clearly0')
-        zeroconf = _zeroconf.Zeroconf(bindaddress=service_address)
+        zeroconf = _zeroconf.Zeroconf(bindaddress=socket.inet_ntoa(service_address))
+        browser = _zeroconf.ServiceBrowser(zeroconf, "_clearly._tcp.local.", listener)
         version = subprocess.check_output(['clearly', 'version']).decode('utf-8').strip()
         identifier = open('/etc/machine-id').read().strip()
 
@@ -267,8 +269,10 @@ def main():
         with listener.lock:
             listener.services[service_name] = {
                 'name': service_name,
-                'address': service_address,
+                'address': socket.inet_ntoa(service_address),
                 'port': 0,
+                'weight': 0,
+                'priority': 0,
                 'properties': {
                     'version': version,
                     'identifier': identifier,
@@ -277,13 +281,7 @@ def main():
                 'server': service_name,
             }
 
-        # Register the Zeroconf service
-        zeroconf.registerService(service_info)
-
-        # Register a listener for other Zeroconf services
-        zeroconf.addServiceListener("_clearly._tcp.local.", listener)
-
-        # Allow some time for peer discovery
+        # Peer discovery timeout
         sleep(15)
 
         # Start Storage
