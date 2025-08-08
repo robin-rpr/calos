@@ -1219,7 +1219,7 @@ class Zeroconf(object):
         self.socket.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_LOOP, 1)
         try:
             self.socket.bind(self.group)
-        except:
+        except Exception as e:
             # Some versions of linux raise an exception even though
             # the SO_REUSE* options have been set.
             #
