@@ -244,7 +244,7 @@ class ServiceListener(object):
         with self.lock:
             self.pending.discard(name)
             if name in self.discovered:
-                service = self.discovered.pop(name)
+                #service = self.discovered.pop(name)
                 logger.info(f"Removed: {name} at {service.get('address')}")
 
 
