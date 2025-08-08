@@ -59,9 +59,7 @@ jobs:
             VERSION=${GITHUB_REF#refs/tags/v}
             RELEASE=0
           else
-            git fetch --tags --force
-            GIT_DESCRIBE=$(git describe --tags --always --dirty)
-            VERSION=$(echo "$GIT_DESCRIBE" | sed -e 's/^v//' -e 's/-/~/; s/-/.g/')
+            VERSION=0.0.0
             RELEASE=1
           fi
 
