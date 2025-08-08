@@ -1228,10 +1228,10 @@ class Zeroconf(object):
             # the SO_REUSE* options have been set, so ignore it
             #
             pass
-        #self.socket.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_IF,
-        #    socket.inet_aton(self.intf) + socket.inet_aton('0.0.0.0'))
+        self.socket.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_IF,
+            socket.inet_aton(self.intf))
         self.socket.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP,
-            socket.inet_aton(_MDNS_ADDR) + socket.inet_aton('0.0.0.0'))
+            socket.inet_aton(_MDNS_ADDR) + socket.inet_aton(self.intf))
 
         self.listeners = []
         self.browsers = []
