@@ -5,6 +5,7 @@ import os
 import logging
 import subprocess
 import uuid
+import time
 import socket
 import threading
 import fcntl
@@ -187,47 +188,60 @@ class ServiceListener(object):
 
     def __init__(self):
         self.lock = threading.Lock()
+        self.pending = set()
         self.services = {}
-        self.resolving = set()
 
     def addService(self, zeroconf, type, name):
-        """Called when a new service is discovered.
-        This method is designed to avoid blocking the caller thread."""
-
+        """Called when a new service is discovered."""
         with self.lock:
-            if name in self.services or name in self.resolving:
+            if name in self.services or name in self.pending:
+                # Skip if already known or being resolved.
                 return
-            self.resolving.add(name)
+            # Add to the pending set.
+            self.pending.add(name)
 
-        info = None
-        try:
-            info = zeroconf.getServiceInfo(type, name, timeout=3000)
-        except Exception as e:
-            logger.error(f"Error retrieving service info for {name}: {e}")
-        finally:
-            with self.lock:
-                self.resolving.remove(name)
+        # Resolve in background.
+        threading.Thread(
+            target=self._resolve_loop, args=(zeroconf, type, name),
+            daemon=True
+        ).start()
 
-                if info:
-                    self.services[name] = {
-                        'name': name,
-                        'address': socket.inet_ntoa(info.getAddress()),
-                        'port': info.getPort(),
-                        'weight': info.getWeight(),
-                        'priority': info.getPriority(),
-                        'properties': info.getProperties(),
-                        'server': info.getServer(),
-                    }
-                    logger.info(f"Discovered and added: {name} at {socket.inet_ntoa(info.getAddress())}")
-                else:
-                    logger.warning(f"Could not resolve details for {name}. It may have disappeared.")
+    def _resolve_loop(self, zeroconf, type, name):
+        """Resolve SRV/TXT/A; retry until it succeeds."""
+        while True:
+            try:
+                info = zeroconf.getServiceInfo(type, name, timeout=2000)
+            except Exception as e:
+                logger.error(f"Lookup failed for {name}: {e}")
+                info = None
+
+            if info:
+                service = {
+                    'name': name,
+                    'address': socket.inet_ntoa(info.getAddress()),
+                    'port': info.getPort(),
+                    'weight': info.getWeight(),
+                    'priority': info.getPriority(),
+                    'properties': info.getProperties(),
+                    'server': info.getServer(),
+                }
+                with self.lock:
+                    self.services[name] = service
+                    self.pending.discard(name)
+                logger.info(f"Discovered: {name} at {service['address']}")
+                return
+
+            # Not resolved yet; try again later.
+            time.sleep(2)
 
     def removeService(self, zeroconf, type, name):
         """Called when a service is removed."""
         with self.lock:
+            self.pending.discard(name)
             if name in self.services:
                 service = self.services.pop(name)
                 logger.info(f"Removed: {name} at {service.get('address')}:{service.get('port')}")
+
 
 ## Main ##
 
