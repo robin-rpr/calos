@@ -60,7 +60,7 @@ Requires:      git
 
 # Red Hat High Availability Repository
 Requires:      fence-agents-all
-Requires:      drbd-utils+
+Requires:      drbd-utils
 Requires:      pacemaker
 Requires:      pcs
 
