@@ -142,7 +142,7 @@ def stop_studio(studio_id, payload=None):
 @webserver.get('/api/machines')
 def list_machines(payload=None):
     """List all discovered Clearly machines."""
-    return listener.get_services()
+    return listener.services
 
 
 ## Pages ##
@@ -186,7 +186,6 @@ class ServiceListener(object):
 
     def __init__(self):
         self.zeroconf = _zeroconf.Zeroconf()
-        self.lock = threading.Lock()
         self.services = {}
     
     def addService(self, zeroconf, type, name):
@@ -195,16 +194,15 @@ class ServiceListener(object):
             # Get service info
             info = self.zeroconf.getServiceInfo(type, name, timeout=3000)
             if info:
-                with self.lock:
-                    self.services[name] = {
-                        'name': name,
-                        'address': socket.inet_ntoa(info.getAddress()),
-                        'port': info.getPort(),
-                        'weight': info.getWeight(),
-                        'priority': info.getPriority(),
-                        'properties': info.getProperties(),
-                        'server': info.getServer(),
-                    }
+                self.services[name] = {
+                    'name': name,
+                    'address': socket.inet_ntoa(info.getAddress()),
+                    'port': info.getPort(),
+                    'weight': info.getWeight(),
+                    'priority': info.getPriority(),
+                    'properties': info.getProperties(),
+                    'server': info.getServer(),
+                }
 
                 # Update storage configuration
                 services = self.get_services()
@@ -227,11 +225,6 @@ class ServiceListener(object):
 
                 # Log the removal
                 logger.info(f"Lost: {name} at {removed_service.get('address')}:{removed_service.get('port')}")
-    
-    def get_services(self):
-        """Get a copy of the current services map."""
-        with self.lock:
-            return self.services.copy()
 
 
 ## Main ##
