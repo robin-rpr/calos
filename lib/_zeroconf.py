@@ -1221,8 +1221,12 @@ class Zeroconf(object):
             self.socket.bind(self.group)
         except:
             # Some versions of linux raise an exception even though
-            # the SO_REUSE* options have been set, so ignore it
+            # the SO_REUSE* options have been set.
             #
+            raise RuntimeError(
+                f"mDNS bind to udp/5353 failed; another daemon may hold it "
+                f"without SO_REUSEPORT (e.g., avahi-daemon). error={e}"
+            )
             pass
         self.socket.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_IF,
             socket.inet_aton(self.intf))
