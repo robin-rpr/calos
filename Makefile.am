@@ -31,13 +31,13 @@ install-exec-hook:
 	mkdir -p /run/clearly
 
 uninstall-hook:
-    @echo '### deleting runtime paths ###'
-   	rm -rf /var/tmp/clearly
+	@echo '### deleting runtime paths ###'
+	rm -rf /var/tmp/clearly
 	rm -rf /var/lib/clearly
 	rm -rf /run/clearly
 
 clean-local:
-    @echo '### emptying runtime paths ###'
-   	rm -rf /var/tmp/clearly/*
+	@echo '### emptying runtime paths ###'
+	rm -rf /var/tmp/clearly/*
 	rm -rf /var/lib/clearly/*
 	rm -rf /run/clearly/*
