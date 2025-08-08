@@ -83,7 +83,7 @@ main() {
 	#
 	# Step 4: Enable the additional repositories
 	#
-	case "$VERSION_ID" in
+	case "${VERSION_ID%%.*}" in
 		"8")
 			$SUDO dnf config-manager --set-enabled ha
 			$SUDO dnf config-manager --set-enabled rs
