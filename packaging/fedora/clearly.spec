@@ -276,6 +276,7 @@ echo drbd > /etc/modules-load.d/drbd.conf
 %{_prefix}/lib/%{name}/_push.*.so
 %{_prefix}/lib/%{name}/_reference.*.so
 %{_prefix}/lib/%{name}/_registry.*.so
+%{_prefix}/lib/%{name}/_storage.*.so
 %{_prefix}/lib/%{name}/_tree.*.so
 %{_prefix}/lib/%{name}/_zeroconf.*.so
 %{?el7:%{_prefix}/lib/%{name}/__pycache__}
