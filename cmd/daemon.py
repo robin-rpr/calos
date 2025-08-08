@@ -228,7 +228,9 @@ class ServiceListener(object):
                     'server': info.getServer(),
                 }
                 # Add to the cache.
+                logger.info("Waiting for lock... for %s", name)
                 with self.lock:
+                    logger.info("Lock acquired. for %s", name)
                     self.services[name] = service
                     self.pending.discard(name)
 
@@ -242,13 +244,10 @@ class ServiceListener(object):
     def removeService(self, zeroconf, type, name):
         """Called when a service is removed."""
         with self.lock:
-            # DO NOT discard from pending. A removal should only act on a
-            # fully resolved service. This prevents a race condition where a
-            # "goodbye" from a previous instance of a service cancels the
-            # resolution of its new instance.
+            self.pending.discard(name)
             if name in self.services:
                 service = self.services.pop(name)
-                logger.info(f"Removed: {name} at {service.get('address')}:{service.get('port')}")
+                logger.info(f"Removed: {name} at {service.get('address')}")
 
 
 ## Main ##
