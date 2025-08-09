@@ -39,22 +39,6 @@ class Syncthing:
             check=True
         )
 
-    def set_ip_address(self, ip):
-        """Set the IP address of the Syncthing device."""
-        tree = ET.parse(self.config_file)
-        root = tree.getroot()
-
-        # Find the device that matches our device_id
-        device = root.find(f"./device[@id='{self.device_id}']")
-        if device is not None:
-            # Update the IP address
-            address_elem = device.find("./address")
-            if address_elem is not None:
-                address_elem.text = f"tcp://{ip}:22000"
-        
-        # Write the changes back to the config file
-        tree.write(self.config_file, encoding="utf-8", xml_declaration=True)
-
     def set_options(self, **kwargs):
         """
         Set options in the Syncthing configuration.

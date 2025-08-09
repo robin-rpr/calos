@@ -59,8 +59,16 @@ webserver = _http.WebServer(
 )
 
 # Syncthing
-syncthing = _syncthing.Syncthing(
-    home_dir=Path("/var/lib/clearly")
+syncthing = _syncthing.Syncthing(home_dir=Path("/var/lib/clearly"))
+syncthing.add_folder("runtime", "/run/clearly", label="runtime", type="sendreceive")
+syncthing.set_options(
+    guiEnabled=False,
+    startBrowser=False,
+    maxSendKbps=1000,
+    globalAnnounceEnabled=False,
+    localAnnounceEnabled=False,
+    relaysEnabled=False,
+    natEnabled=False,
 )
 
 # Logging
@@ -187,7 +195,6 @@ class ServiceListener(object):
         self.lock = threading.Lock()
         self.pending = set()
         self.services = {}
-        self.ready = False
 
     def addService(self, zeroconf, type, name):
         """Called when a new service is discovered."""
@@ -230,13 +237,12 @@ class ServiceListener(object):
                     self.services[name] = service
                     self.pending.discard(name)
 
-                    if self.ready:
-                        # Add peer to Syncthing
-                        syncthing.add_peer(
-                            service['properties']['device_id'],
-                            service['address']
-                        )
-                        syncthing.restart()
+                    # Add peer to Syncthing
+                    syncthing.add_peer(
+                        service['properties']['device_id'],
+                        service['address']
+                    )
+                    syncthing.restart()
 
                 # Log the discovery.
                 logger.info(f"Discovered: {name} at {service['address']}")
@@ -252,12 +258,11 @@ class ServiceListener(object):
             if name in self.services:
                 service = self.services.pop(name)
 
-                if self.ready:
-                    # Remove peer from Syncthing
-                    syncthing.remove_peer(
-                        service['properties']['device_id']
-                    )
-                    syncthing.restart()
+                # Remove peer from Syncthing
+                syncthing.remove_peer(
+                    service['properties']['device_id']
+                )
+                syncthing.restart()
 
                 logger.info(f"Dropped: {name} at {service.get('address')}")
 
@@ -301,17 +306,6 @@ def main():
         webserver.start()
 
         # Start Syncthing
-        syncthing.set_ip_address(socket.inet_ntoa(service_address))
-        syncthing.add_folder("runtime", "/run/clearly", label="runtime", type="sendreceive")
-        syncthing.set_options(
-            guiEnabled=False,
-            startBrowser=False,
-            maxSendKbps=1000,
-            globalAnnounceEnabled=False,
-            localAnnounceEnabled=False,
-            relaysEnabled=False,
-            natEnabled=False,
-        )
         syncthing.start()
         
         try:
