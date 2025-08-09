@@ -152,8 +152,14 @@ int main(int argc, char *argv[])
    privs_verify_invoking();
    username_set();
 
+   // Create cgroup parent directory if it doesn't exist
    if (mkdir("/sys/fs/cgroup/clearly", 0755) && errno != EEXIST)
       Zf(1, "can't create cgroup parent directory");
+
+   // Create runtime directory if it doesn't exist
+   char *runtime_dir = runtime_default();
+   if (mkdir(runtime_dir, 0755) && errno != EEXIST)
+      Zf(1, "can't create runtime directory: %s", runtime_dir);
 
    Z_ (atexit(warnings_reprint));
 
