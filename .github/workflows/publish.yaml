@@ -74,14 +74,14 @@ jobs:
             git config --global --add safe.directory /root/clearly
             cd /root/clearly
 
+            # Write version and release to a file.
+            echo \"$VERSION-$RELEASE\" > /root/clearly/VERSION
+
             # Create the build system.
             ./autogen.sh
 
             # Configure the build system.
             ./configure --prefix=/usr --libdir=/usr/lib
-
-            # Write version and release to a file.
-            echo \"$VERSION-$RELEASE\" > /root/clearly/VERSION
 
             # Build the distribution tarball.
             make dist
@@ -100,9 +100,6 @@ jobs:
             
             # Rename the directory to match the version.
             mv \"\$ORIGINAL_DIR\" \"clearly-$VERSION\"
-            
-            # Create a VERSION file in the source so it is remembered.
-            echo \"$VERSION\" > \"clearly-$VERSION/VERSION\"
             
             # Repack the tarball with the correct internal directory name.
             tar -czf \"clearly-$VERSION.tar.gz\" \"clearly-$VERSION\"
