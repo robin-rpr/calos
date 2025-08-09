@@ -191,6 +191,18 @@ class ServiceListener(object):
         self.pending = set()
         self.discovered = {}
 
+        threading.Thread(
+            target=self._log_loop,
+            daemon=True
+        ).start()
+
+    def _log_loop(self):
+        """Log the discovered services."""
+        while True:
+            with self.lock:
+                logger.info(f"All discovered: {self.discovered}")
+            time.sleep(1)
+
     def addService(self, zeroconf, type, name):
         """Called when a new service is discovered."""
         with self.lock:
