@@ -6,7 +6,7 @@
 
 cmddir = $(pkglibexecdir)
 cmd_PROGRAMS = check run use logs stop
-EXTRA_DIST = convert fromhost test list
+EXTRA_DIST = convert fromhost test list version
 
 run_SOURCES = run.c core.h core.c net.h net.c misc.h misc.c
 if HAVE_LIBSQUASHFUSE
@@ -23,7 +23,7 @@ use_LDADD = @LIBMNL_LIBS@ @LIBNFTNL_LIBS@ @LIBNL_LIBS@
 
 ## Shell scripts - distributed as-is
 
-cmd_SCRIPTS = convert fromhost test version
+cmd_SCRIPTS = convert fromhost test list version
 
 # Python modules to compile via Cython
 cython_modules = image daemon
