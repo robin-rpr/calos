@@ -59,10 +59,7 @@ Requires:      python3-wheel
 Requires:      git
 
 # Red Hat High Availability Repository
-Requires:      fence-agents-all
 Requires:      drbd-utils
-Requires:      pacemaker
-Requires:      pcs
 
 # Red Hat Resilient Storage Repository
 Requires:      gfs2-utils
