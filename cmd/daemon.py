@@ -60,11 +60,24 @@ webserver = _http.WebServer(
 
 # Syncthing
 syncthing = _syncthing.Syncthing(home_dir=Path("/var/lib/clearly"))
-syncthing.add_folder("default", "/var/tmp/clearly", label="default", type="sendreceive")
+syncthing.add_folder(
+    "default",
+    "/var/tmp/clearly",
+    label="default",
+    type="sendreceive",
+    fsWatcherDelayS=5,
+    scanProgressIntervalS=-1,
+    maxConcurrentWrites=10,
+    caseSensitiveFS=True,
+    copyRangeMethod="copy_file_range",
+)
 syncthing.set_options(
     guiEnabled=False,
-    startBrowser=False,
     maxSendKbps=1000,
+    startBrowser=False,
+    setLowPriority=False,
+    databaseTuning="large",
+    progressUpdateIntervalS=-1,
     globalAnnounceEnabled=False,
     localAnnounceEnabled=False,
     relaysEnabled=False,
