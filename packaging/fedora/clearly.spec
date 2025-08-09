@@ -59,6 +59,7 @@ Requires:      python3-wheel
 Requires:      git
 
 # EPEL (Enterprise Linux) Repository
+# dnf install -y epel-release
 Requires:      drbd-utils
 Requires:      gfs2-utils
 Requires:      dlm
