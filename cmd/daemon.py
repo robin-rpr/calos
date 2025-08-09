@@ -253,11 +253,12 @@ class ServiceListener(object):
 
     def removeService(self, zeroconf, type, name):
         """Called when a service is removed."""
+        logger.info(f"Called for removal: {name}")
         with self.lock:
             self.pending.discard(name)
-            if name in self.discovered:
+            #if name in self.discovered:
                 #service = self.discovered.pop(name)
-                logger.info(f"Removed: {name} at {service.get('address')}")
+                #logger.info(f"Removed: {name} at {service.get('address')}")
 
 
 ## Main ##
