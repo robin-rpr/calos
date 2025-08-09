@@ -144,7 +144,7 @@ def stop_studio(studio_id, payload=None):
 def list_machines(payload=None):
     """List all discovered Clearly machines."""
     with listener.lock:
-        return listener.discovered.copy()
+        return listener.services.copy()
 
 
 ## Pages ##
@@ -189,24 +189,12 @@ class ServiceListener(object):
     def __init__(self):
         self.lock = threading.Lock()
         self.pending = set()
-        self.discovered = {}
-
-        threading.Thread(
-            target=self._log_loop,
-            daemon=True
-        ).start()
-
-    def _log_loop(self):
-        """Log the discovered services."""
-        while True:
-            with self.lock:
-                logger.info(f"All discovered: {self.discovered}")
-            time.sleep(1)
+        self.services = {}
 
     def addService(self, zeroconf, type, name):
         """Called when a new service is discovered."""
         with self.lock:
-            if name in self.discovered or name in self.pending:
+            if name in self.services or name in self.pending:
                 # Skip if already known or being resolved.
                 return
             # Add to the pending set.
@@ -241,7 +229,7 @@ class ServiceListener(object):
                 }
                 # Add to the cache.
                 with self.lock:
-                    self.discovered[name] = service
+                    self.services[name] = service
                     self.pending.discard(name)
 
                 # Log the discovery.
@@ -252,13 +240,12 @@ class ServiceListener(object):
             time.sleep(2)
 
     def removeService(self, zeroconf, type, name):
-        """Called when a service is removed."""
-        logger.info(f"Called for removal: {name}")
+        """Called when a service is dropped."""
         with self.lock:
             self.pending.discard(name)
-            #if name in self.discovered:
-                #service = self.discovered.pop(name)
-                #logger.info(f"Removed: {name} at {service.get('address')}")
+            if name in self.services:
+                service = self.services.pop(name)
+                logger.info(f"Dropped: {name} at {service.get('address')}")
 
 
 ## Main ##
