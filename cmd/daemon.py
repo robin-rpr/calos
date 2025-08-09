@@ -23,10 +23,10 @@ except NameError:
     # in the project's top-level 'lib' directory.
     sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../lib'))
 
+import _syncthing as _syncthing
 import _executor as _executor
 import _zeroconf as _zeroconf
-import _storage as _storage
-from _http import WebServer
+import _http as _http
 
 
 ## Constants ##
@@ -51,19 +51,16 @@ zeroconf = None
 listener = None
 
 # Webserver
-webserver = WebServer(
+webserver = _http.WebServer(
     host='127.0.0.1',
     port=8080,
     static_dir=STATIC_DIR,
     template_dir=TEMPLATE_DIR,
 )
 
-# Storage
-storage = _storage.Storage(
-    name='runtime',
-    image_dir='/var/lib/clearly',
-    mount_dir='/run/clearly',
-    size='10G'
+# Syncthing
+syncthing = _syncthing.Syncthing(
+    home_dir=Path("/var/lib/clearly")
 )
 
 # Logging
@@ -181,7 +178,7 @@ def get_interface_address(ifname='eth0'):
 class ServiceListener(object):
     """A ServiceListener is used by this module to listen on the multicast
     group to which DNS messages are sent, allowing the implementation to cache information
-    as it arrives as well as dynamically add and remove services from the cluster.
+    as it arrives as well as dynamically add and remove services from Syncthing.
 
     It requires registration with an Engine object in order to have
     the read() method called when a socket is availble for reading."""
@@ -190,6 +187,7 @@ class ServiceListener(object):
         self.lock = threading.Lock()
         self.pending = set()
         self.services = {}
+        self.ready = False
 
     def addService(self, zeroconf, type, name):
         """Called when a new service is discovered."""
@@ -232,6 +230,14 @@ class ServiceListener(object):
                     self.services[name] = service
                     self.pending.discard(name)
 
+                    if self.ready:
+                        # Add peer to Syncthing
+                        syncthing.add_peer(
+                            service['properties']['device_id'],
+                            service['address']
+                        )
+                        syncthing.restart()
+
                 # Log the discovery.
                 logger.info(f"Discovered: {name} at {service['address']}")
                 return
@@ -245,6 +251,14 @@ class ServiceListener(object):
             self.pending.discard(name)
             if name in self.services:
                 service = self.services.pop(name)
+
+                if self.ready:
+                    # Remove peer from Syncthing
+                    syncthing.remove_peer(
+                        service['properties']['device_id']
+                    )
+                    syncthing.restart()
+
                 logger.info(f"Dropped: {name} at {service.get('address')}")
 
 
@@ -252,10 +266,11 @@ class ServiceListener(object):
 
 def main():
     try:
-        # Zeroconf
+        # Globals
         global listener
         global zeroconf
 
+        # Zeroconf
         listener = ServiceListener()
         service_address = get_interface_address('clearly0')
         zeroconf = _zeroconf.Zeroconf(bindaddress=socket.inet_ntoa(service_address))
@@ -274,7 +289,7 @@ def main():
             priority=0,
             properties={
                 'version': version,
-                'identifier': identifier,
+                'device_id': syncthing.device_id,
                 'service': 'clearly'
             },
         )
@@ -285,12 +300,18 @@ def main():
         # Start Webserver
         webserver.start()
 
-        # Peer discovery timeout
-        sleep(60)
-
-        # Start Storage
-        #storage.set_nodes(listener.get_services())
-        #storage.start()
+        # Start Syncthing
+        syncthing.set_ip_address(socket.inet_ntoa(service_address))
+        syncthing.add_folder("runtime", "/run/clearly", label="runtime", type="sendreceive")
+        syncthing.set_options(
+            startBrowser=False,
+            maxSendKbps=1000,
+            globalAnnounceEnabled=False,
+            localAnnounceEnabled=False,
+            relaysEnabled=False,
+            natEnabled=False,
+        )
+        syncthing.start()
         
         try:
             # Keep alive
@@ -302,7 +323,8 @@ def main():
             # Cleanup and exit
             zeroconf.unregisterService(service_info)
             zeroconf.close()
-            storage.stop()
+            webserver.stop()
+            syncthing.stop()
 
     except Exception as e:
         logger.error(f"Fatal error: {e}", exc_info=True)

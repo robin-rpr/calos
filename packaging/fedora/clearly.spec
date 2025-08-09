@@ -56,13 +56,8 @@ Requires:      python3-requests
 Requires:      python3-libsass
 Requires:      python3-jinja2
 Requires:      python3-wheel
+Requires:      syncthing
 Requires:      git
-
-# EPEL (Enterprise Linux) Repository
-# dnf install -y epel-release
-Requires:      drbd-utils
-Requires:      gfs2-utils
-Requires:      dlm
 
 %description
 Clearly uses Linux user namespaces to run containers with no privileged
@@ -130,8 +125,9 @@ cat > %{buildroot}%{_unitdir}/clearly.service <<EOF
 [Unit]
 Description=Clearly Daemon
 Documentation=https://clearly.run/docs
-After=network.target
-Wants=network.target
+After=network.target nfs-server.service
+Wants=network.target nfs-server.service
+Requires=nfs-server.service
 
 [Service]
 Type=simple
@@ -188,8 +184,6 @@ getent passwd clearly >/dev/null 2>&1 || useradd -r -g clearly -d /var/lib/clear
 
 %post
 %systemd_post clearly.service
-modprobe drbd 2>/dev/null || true
-echo drbd > /etc/modules-load.d/drbd.conf
 
 %preun
 %systemd_preun clearly.service
@@ -272,7 +266,7 @@ echo drbd > /etc/modules-load.d/drbd.conf
 %{_prefix}/lib/%{name}/_push.*.so
 %{_prefix}/lib/%{name}/_reference.*.so
 %{_prefix}/lib/%{name}/_registry.*.so
-%{_prefix}/lib/%{name}/_storage.*.so
+%{_prefix}/lib/%{name}/_syncthing.*.so
 %{_prefix}/lib/%{name}/_tree.*.so
 %{_prefix}/lib/%{name}/_zeroconf.*.so
 %{?el7:%{_prefix}/lib/%{name}/__pycache__}

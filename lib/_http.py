@@ -1,4 +1,5 @@
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
+from typing import Callable, Dict, List, Tuple, Any, Optional
 from jinja2 import Environment, FileSystemLoader
 import threading
 import mimetypes
@@ -12,7 +13,6 @@ import subprocess
 import uuid
 import functools
 import logging
-from typing import Callable, Dict, List, Tuple, Any, Optional
 
 
 ## Constants ##
@@ -50,6 +50,7 @@ class WebServer:
         """
         self.host = host
         self.port = port
+        self.thread = None
         self.static_dir = static_dir
         self.template_dir = template_dir
         self.routes: Dict[str, Dict[str, Callable]] = {}
@@ -258,7 +259,11 @@ class WebServer:
         server.template_dir = self.template_dir
         server._match_route = self._match_route
 
-        thread = threading.Thread(target=server.serve_forever, daemon=True)
-        thread.start()
+        self.thread = threading.Thread(target=server.serve_forever, daemon=True)
+        self.thread.start()
 
-        return thread
+    def stop(self):
+        """Stop the server."""
+        if self.thread is not None:
+            self.thread.join()
+            self.thread = None
