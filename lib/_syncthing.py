@@ -30,8 +30,6 @@ class Syncthing:
         """
         self.config_file = home_dir / "syncthing.xml"
         self.home_dir = home_dir
-        self.device_id = None
-        self.process = None
         self.thread = None
 
         # Ensure config file exists
@@ -40,14 +38,6 @@ class Syncthing:
             '--no-default-folder', '--skip-port-probing'],
             check=True
         )
-
-        # Disable the GUI
-        tree = ET.parse(self.config_file)
-        root = tree.getroot()
-        gui = root.find("./gui")
-        if gui is not None:
-            gui.set("enabled", "false")
-        tree.write(self.config_file, encoding="utf-8", xml_declaration=True)
 
     def set_ip_address(self, ip):
         """Set the IP address of the Syncthing device."""
@@ -78,6 +68,13 @@ class Syncthing:
         """
         tree = ET.parse(self.config_file)
         root = tree.getroot()
+
+        # Handle special case for guiEnabled
+        if "guiEnabled" in kwargs:
+            gui = root.find("./gui")
+            if gui is not None:
+                gui.set("enabled", str(kwargs["guiEnabled"]).lower())
+                del kwargs["guiEnabled"]
 
         # Find the options element
         options = root.find("./options")

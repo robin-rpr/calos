@@ -304,6 +304,7 @@ def main():
         syncthing.set_ip_address(socket.inet_ntoa(service_address))
         syncthing.add_folder("runtime", "/run/clearly", label="runtime", type="sendreceive")
         syncthing.set_options(
+            guiEnabled=False,
             startBrowser=False,
             maxSendKbps=1000,
             globalAnnounceEnabled=False,
