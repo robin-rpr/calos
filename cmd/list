@@ -1,0 +1,73 @@
+#!/bin/sh
+
+set -u
+
+runtime="${CLEARLY_RUNTIME_STORAGE:-/var/tmp/clearly/runtime}"
+json_output="${1:-}"  # "--json" or empty
+
+# If runtime dir doesn't exist: mimic original behavior
+if [[ ! -d "$runtime" ]]; then
+  if [[ "$json_output" == "--json" ]]; then
+    printf '[]\n'
+  else
+    printf 'CONTAINER ID\tSTATUS\n'
+  fi
+  exit 0
+fi
+
+if [[ "$json_output" == "--json" ]]; then
+  printf '[\n'
+else
+  # Header with fixed widths (like the C version when dir exists)
+  printf '%-20s\t%-15s\t%s\n' "CONTAINER ID" "IP ADDRESS" "STATUS"
+fi
+
+first_item=1
+
+# Iterate only directories (ignore files)
+shopt -s nullglob
+for path in "$runtime"/*/; do
+  [[ -d "$path" ]] || continue
+  id="${path%/}"; id="${id##*/}"
+
+  pid_path="${path}pid"
+  net_path="${path}net"
+
+  [[ -f "$pid_path" ]] || continue
+
+  # Read PID; skip if invalid
+  if ! read -r pid < "$pid_path"; then
+    continue
+  fi
+
+  # Read IP (first line) or N/A
+  ip_address="N/A"
+  if [[ -f "$net_path" ]]; then
+    if read -r ip_line < "$net_path"; then
+      ip_address="${ip_line//$'\n'/}"
+    fi
+  fi
+
+  # Determine status (Running / Stopped / Unknown)
+  if kill -0 "$pid" 2>/dev/null; then
+    status="Running"
+  elif [[ ! -e "/proc/$pid" ]]; then
+    status="Stopped"
+  else
+    status="Unknown"
+  fi
+
+  if [[ "$json_output" == "--json" ]]; then
+    if (( first_item == 0 )); then
+      printf ',\n'
+    fi
+    printf '  {"id": "%s", "ip_address": "%s", "status": "%s"}' "$id" "$ip_address" "$status"
+    first_item=0
+  else
+    printf '%-20s\t%-15s\t%s\n' "$id" "$ip_address" "$status"
+  fi
+done
+
+if [[ "$json_output" == "--json" ]]; then
+  printf '\n]\n'
+fi
