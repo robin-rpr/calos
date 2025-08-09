@@ -114,20 +114,14 @@ LDFLAGS="$(python3-config --ldflags --embed)"; export LDFLAGS
 %install
 %make_install
 
-# Create required directories
-mkdir -p %{buildroot}/var/tmp/clearly
-mkdir -p %{buildroot}/var/lib/clearly
-mkdir -p %{buildroot}/run/clearly
-
 # Create systemd service file
 mkdir -p %{buildroot}%{_unitdir}
 cat > %{buildroot}%{_unitdir}/clearly.service <<EOF
 [Unit]
 Description=Clearly Daemon
 Documentation=https://clearly.run/docs
-After=network.target nfs-server.service
-Wants=network.target nfs-server.service
-Requires=nfs-server.service
+After=network.target
+Wants=network.target
 
 [Service]
 Type=simple
@@ -197,10 +191,6 @@ getent passwd clearly >/dev/null 2>&1 || useradd -r -g clearly -d /var/lib/clear
 
 %{_bindir}/clearly
 %{_unitdir}/clearly.service
-
-%dir %attr(0700,clearly,clearly) /var/tmp/clearly
-%dir %attr(0700,clearly,clearly) /var/lib/clearly
-%dir %attr(0700,clearly,clearly) /run/clearly
 
 %{_libexecdir}/%{name}/check
 %{_libexecdir}/%{name}/convert

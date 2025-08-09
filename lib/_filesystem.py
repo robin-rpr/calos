@@ -1167,10 +1167,10 @@ class Storage:
          op = "initializing"
          v_found = None
       else:
-         op = "upgrading"  # not used unless upgrading
+         op = "upgrading" # not used unless upgrading
          if (not self.valid_p):
             if (os.path.exists(self.root) and not self.root.listdir()):
-               hint = "let Clearly create %s; see FAQ" % self.root.name
+               hint = "let Clearly create %s; see FAQ" % self.root.path
             else:
                hint = None
             _clearly.FATAL("storage directory seems invalid: %s" % self.root, hint)
