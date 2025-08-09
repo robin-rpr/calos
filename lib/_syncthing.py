@@ -28,7 +28,7 @@ class Syncthing:
         Args:
             home_dir: Directory for the Syncthing configuration
         """
-        self.config_file = home_dir / "syncthing.xml"
+        self.config_file = home_dir / "config.xml"
         self.home_dir = home_dir
         self.thread = None
 
@@ -219,7 +219,8 @@ class Syncthing:
     @property
     def device_id(self):
         """Get the device ID of the Syncthing device."""
-        return subprocess.check_output(['syncthing', '-device-id']).decode('utf-8').strip()
+        return subprocess.check_output(['syncthing', '--device-id', '--home',
+                                        str(self.home_dir)]).decode('utf-8').strip()
 
     def serve_forever(self):
         """Start the Syncthing daemon."""
