@@ -109,34 +109,24 @@ void sq_done_request(int signum)
    }
 }
 
-/* Mount SquashFS archive c->img_path on directory c->newroot. If the latter
-   is NULL, then mkdir(2) the default mount point and assign its path to
-   c->newroot. After mounting, fork; the child returns immediately while the
-   parent runs the FUSE loop until the child exits and then exits itself,
-   with the same exit code as the child (unless something else went wrong). */
-void sq_fork(struct container *c)
+/* Mount SquashFS archive c->img_path on directory mount_dir. After mounting,
+   fork; the child returns immediately while the parent runs the FUSE loop until
+   the child exits and then exits itself, with the same exit code as the child
+   (unless something else went wrong). */
+void sq_fork(struct container *c, const char *mount_dir)
 {
    pid_t pid_child;
    struct stat st;
 
-   // Default mount point?
-   if (c->newroot == NULL) {
-      char *subdir;
-      T_ (asprintf(&subdir, "/clearly/mnt") > 0);
-      c->newroot = cat("/var/tmp", subdir);
-      VERBOSE("using default mount point: %s", c->newroot);
-      mkdirs("/var/tmp", subdir, NULL, NULL);
-   }
-
    // Verify mount point exists and is a directory. (SquashFS file path
    // already checked in img_type_get().)
-   Zf (stat(c->newroot, &st), "can't stat mount point: %s", c->newroot);
-   Te (S_ISDIR(st.st_mode), "not a directory: %s", c->newroot);
+   Zf (stat(mount_dir, &st), "can't stat mount point: %s", mount_dir);
+   Te (S_ISDIR(st.st_mode), "not a directory: %s", mount_dir);
 
    // Mount SquashFS. Use PR_SET_NO_NEW_PRIVS to actively reject running
    // fusermount3(1) setuid, even if it’s installed that way.
    Zf (prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0), "can't set no_new_privs");
-   sq_mount(c->img_ref, c->newroot);
+   sq_mount(c->img_ref, mount_dir);
 
    // Now that the filesystem is mounted, we can fork without race condition.
    // The child returns to caller and runs the user command. When that exits,

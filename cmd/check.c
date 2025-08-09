@@ -83,7 +83,7 @@ int main(int argc, char *argv[])
 
    /* Ensure that our image directory exists. It doesn't really matter what's
       in it. */
-   if (mkdir("/tmp/newroot", 0755) && errno != EEXIST)
+   if (mkdir("/tmp/mount", 0755) && errno != EEXIST)
       TRY (errno);
 
    /* Enter the mount and user namespaces. Note that in some cases (e.g., RHEL
@@ -93,7 +93,7 @@ int main(int argc, char *argv[])
 
    /* Claim the image for our namespace by recursively bind-mounting it over
       itself. This standard trick avoids conditions 1 and 2. */
-   TRY (mount("/tmp/newroot", "/tmp/newroot", NULL,
+   TRY (mount("/tmp/mount", "/tmp/mount", NULL,
               MS_REC | MS_BIND | MS_PRIVATE, NULL));
 
    /* The next few calls deal with condition 3. The solution is to overmount
@@ -102,7 +102,7 @@ int main(int argc, char *argv[])
       it for simplicity. */
 
    /* Claim /tmp for our namespace. You would think that because /tmp contains
-      /tmp/newroot and it's a recursive bind mount, we could claim both in the
+      /tmp/mount and it's a recursive bind mount, we could claim both in the
       same call. But, this causes pivot_root(2) to fail later with EBUSY. */
    TRY (mount("/tmp", "/tmp", NULL, MS_REC | MS_BIND | MS_PRIVATE, NULL));
 
@@ -126,16 +126,16 @@ int main(int argc, char *argv[])
    TRY (chroot("."));
 
    /* Make a place for the old (intermediate) root filesystem to land. */
-   if (mkdir("/newroot/oldroot", 0755) && errno != EEXIST)
+   if (mkdir("/mount/oldroot", 0755) && errno != EEXIST)
       TRY (errno);
 
    /* Re-mount the image read-only. */
-   flags = path_mount_flags("/newroot") | MS_REMOUNT | MS_BIND | MS_RDONLY;
-   TRY (mount(NULL, "/newroot", NULL, flags, NULL));
+   flags = path_mount_flags("/mount") | MS_REMOUNT | MS_BIND | MS_RDONLY;
+   TRY (mount(NULL, "/mount", NULL, flags, NULL));
 
-   /* Finally, make our "real" newroot into the root filesystem. */
-   TRY (chdir("/newroot"));
-   TRY (syscall(SYS_pivot_root, "/newroot", "/newroot/oldroot"));
+   /* Finally, make our "real" mount into the root filesystem. */
+   TRY (chdir("/mount"));
+   TRY (syscall(SYS_pivot_root, "/mount", "/mount/oldroot"));
    TRY (chroot("."));
 
    /* Unmount the old filesystem and it's gone for good. */

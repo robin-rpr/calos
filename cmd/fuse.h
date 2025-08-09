@@ -4,4 +4,4 @@
 
 /** Function prototypes **/
 
-void sq_fork(struct container *c);
+void sq_fork(struct container *c, const char *mount_dir);

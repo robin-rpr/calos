@@ -44,7 +44,6 @@ struct container {
    char *host_home;         // if --home, host path to user homedir, else NULL
    char **host_map_strs;    // e.g. "google.com:127.0.0.1"
    char *img_ref;           // image description from command line
-   char *newroot;           // path to new root directory
    bool join;               // is this a synchronized join?
    int join_ct;             // number of peers in a synchronized join
    pid_t join_pid;          // process in existing namespace to join
@@ -60,7 +59,7 @@ struct container {
 
 /** Function prototypes **/
 
-void containerize(struct container *c, const char *runtime_dir);
+void containerize(struct container *c, const char *runtime_dir, const char *mount_dir);
 enum img_type image_type(const char *ref, const char *images_dir);
 char *img_name2path(const char *name, const char *storage_dir);
 void run_command(char *argv[], const char *initial_dir);

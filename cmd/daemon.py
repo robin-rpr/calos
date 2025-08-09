@@ -60,7 +60,7 @@ webserver = _http.WebServer(
 
 # Syncthing
 syncthing = _syncthing.Syncthing(home_dir=Path("/var/lib/clearly"))
-syncthing.add_folder("runtime", "/run/clearly", label="runtime", type="sendreceive")
+syncthing.add_folder("default", "/var/tmp/clearly", label="default", type="sendreceive")
 syncthing.set_options(
     guiEnabled=False,
     startBrowser=False,

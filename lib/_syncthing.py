@@ -17,8 +17,8 @@ class Syncthing:
     
     Example:
         syncthing = Syncthing(home_dir=Path("/var/lib/clearly"))
-        syncthing.add_folder("clearly", "/run/clearly", label="runtime", type="sendreceive")
-        syncthing.add_peer("192.168.1.100", "tcp://192.168.1.100:22000")
+        syncthing.add_folder("default", "/var/tmp/clearly", label="default", type="sendreceive")
+        syncthing.add_peer("XX-XX-XX-XX-XX-XX", "192.168.1.100")
         syncthing.start()
     """
     def __init__(self, home_dir=Path.home()):

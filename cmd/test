@@ -143,7 +143,7 @@ builder_set () {
     fi
     printf "%-*s %s (%s)\n" "$width" 'builder:' "$CLEARLY_TEST_BUILDER" "$method"
     if [[ $CLEARLY_TEST_BUILDER == image ]]; then
-        vset CLEARLY_IMAGE_STORAGE '' "$CLEARLY_IMAGE_STORAGE" "/var/tmp/clearly" \
+        vset CLEARLY_IMAGE_STORAGE '' "$CLEARLY_IMAGE_STORAGE" "/var/tmp/clearly/images" \
                               "$width" 'image storage'
     fi
     export CLEARLY_TEST_BUILDER

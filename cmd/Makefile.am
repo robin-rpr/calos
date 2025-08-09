@@ -5,7 +5,7 @@
 ## C programs
 
 cmddir = $(pkglibexecdir)
-cmd_PROGRAMS = check run use list logs stop
+cmd_PROGRAMS = check run use logs stop
 EXTRA_DIST = convert fromhost test
 
 run_SOURCES = run.c core.h core.c net.h net.c misc.h misc.c
@@ -20,8 +20,6 @@ check_SOURCES = check.c misc.h misc.c
 use_SOURCES = use.c net.h net.c misc.h misc.c
 use_CFLAGS = @LIBNL_CFLAGS@
 use_LDADD = @LIBMNL_LIBS@ @LIBNFTNL_LIBS@ @LIBNL_LIBS@
-
-list_SOURCES = list.c misc.h misc.c
 
 ## Shell scripts - distributed as-is
 

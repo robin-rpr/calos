@@ -103,6 +103,7 @@ struct args {
    char *initial_dir;
    char *runtime_dir;
    char *storage_dir;
+   char *mount_dir;
    bool unsafe;
 };
 
@@ -111,7 +112,7 @@ struct args {
 
 void fix_environment(struct args *args);
 bool get_first_env(char **array, char **name, char **value);
-void img_directory_verify(const char *img_path, const struct args *args);
+void img_directory_verify(const char *mount_dir, const struct args *args);
 int join_ct(int cli_ct);
 char *join_tag(char *cli_tag);
 int uid(struct json_object *config);
@@ -125,6 +126,7 @@ struct json_object *parse_config(const char *image_path);
 void privs_verify_invoking();
 char *runtime_default(void);
 char *storage_default(void);
+char *mount_default(void);
 extern void warnings_reprint(void);
 
 
@@ -152,14 +154,19 @@ int main(int argc, char *argv[])
    privs_verify_invoking();
    username_set();
 
-   // Create cgroup parent directory if it doesn't exist
+   // Create cgroup directory if it doesn't exist
    if (mkdir("/sys/fs/cgroup/clearly", 0755) && errno != EEXIST)
-      Zf(1, "can't create cgroup parent directory");
+      Zf(1, "can't create cgroup directory");
 
    // Create runtime directory if it doesn't exist
    char *runtime_dir = runtime_default();
    if (mkdir(runtime_dir, 0755) && errno != EEXIST)
       Zf(1, "can't create runtime directory: %s", runtime_dir);
+
+   // Create mount directory if it doesn't exist
+   char *mount_dir = mount_default();
+   if (mkdir(mount_dir, 0755) && errno != EEXIST)
+      Zf(1, "can't create mount directory: %s", mount_dir);
 
    Z_ (atexit(warnings_reprint));
 
@@ -185,7 +192,6 @@ int main(int argc, char *argv[])
                                .host_home = NULL,
                                .host_map_strs = list_new(sizeof(char *), 0),
                                .img_ref = NULL,
-                               .newroot = NULL,
                                .join = false,
                                .join_ct = 0,
                                .join_pid = 0,
@@ -202,6 +208,7 @@ int main(int argc, char *argv[])
       .initial_dir = NULL,
       .runtime_dir = runtime_default(),
       .storage_dir = storage_default(),
+      .mount_dir = mount_default(),
       .unsafe = false };
 
    /* I couldn't find a way to set argp help defaults other than this
@@ -231,20 +238,20 @@ int main(int argc, char *argv[])
       FATAL(0, "IMAGE not specified");
    }
    args.c.img_ref = argv[arg_next++];
-   args.c.newroot = realpath_(args.c.newroot, true);
+   args.mount_dir = realpath_(args.mount_dir, true);
    args.storage_dir = realpath_(args.storage_dir, true);
    args.runtime_dir = realpath_(args.runtime_dir, true);
    args.c.type = image_type(args.c.img_ref, args.storage_dir);
 
    switch (args.c.type) {
    case IMG_DIRECTORY:
-      if (args.c.newroot != NULL)  // --mount was set
+      if (args.mount_dir != NULL) // --mount was set
          WARNING("--mount invalid with directory image, ignoring");
-      args.c.newroot = realpath_(args.c.img_ref, false);
-      img_directory_verify(args.c.newroot, &args);
+      args.mount_dir = realpath_(args.c.img_ref, false);
+      img_directory_verify(args.mount_dir, &args);
       break;
    case IMG_NAME:
-      args.c.newroot = img_name2path(args.c.img_ref, args.storage_dir);
+      args.mount_dir = img_name2path(args.c.img_ref, args.storage_dir);
       Tf (!args.c.writable || args.unsafe,
           "--write invalid when running by name");
       break;
@@ -259,7 +266,7 @@ int main(int argc, char *argv[])
    }
 
    // Parse the config file from the image.
-   args.pulled_config = parse_config(args.c.newroot);
+   args.pulled_config = parse_config(args.mount_dir);
 
    if (args.pulled_config) {
       // Set the container UID and GID.
@@ -302,7 +309,7 @@ int main(int argc, char *argv[])
    VERBOSE("image: %s", args.c.img_ref);
    VERBOSE("storage: %s", args.storage_dir);
    VERBOSE("runtime: %s", args.runtime_dir);
-   VERBOSE("newroot: %s", args.c.newroot);
+   VERBOSE("mount: %s", args.mount_dir);
    VERBOSE("container uid: %u", args.c.uid);
    VERBOSE("container gid: %u", args.c.gid);
    VERBOSE("join: %d %d %s %d", args.c.join, args.c.join_ct, args.c.join_tag,
@@ -310,7 +317,7 @@ int main(int argc, char *argv[])
    VERBOSE("private /tmp: %d", args.c.private_tmp);
    VERBOSE("unsafe: %d", args.unsafe);
 
-   containerize(&args.c, args.runtime_dir);
+   containerize(&args.c, args.runtime_dir, args.mount_dir);
    fix_environment(&args);
 #ifdef HAVE_SECCOMP
    seccomp_install();
@@ -398,10 +405,10 @@ bool get_first_env(char **array, char **name, char **value)
 
 /* Validate that it’s OK to run the IMG_DIRECTORY format image at path; if
    not, exit with error. */
-void img_directory_verify(const char *newroot, const struct args *args)
+void img_directory_verify(const char *mount_dir, const struct args *args)
 {
-   Te (args->c.newroot != NULL, "can't find image: %s", args->c.newroot);
-   Te (args->unsafe || !path_subdir_p(args->storage_dir, args->c.newroot),
+   Te (args->mount_dir != NULL, "can't find image: %s", args->mount_dir);
+   Te (args->unsafe || !path_subdir_p(args->storage_dir, args->mount_dir),
        "can't run directory images from storage (hint: run by name)");
 }
 
@@ -689,8 +696,9 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state)
       args->c.join = true;
       break;
    case 'm':  // --mount
-      Ze ((arg[0] == '\0'), "mount point can't be empty string");
-      args->c.newroot = arg;
+      args->mount_dir = arg;
+      if (!path_exists(arg, NULL, false))
+         WARNING("mount directory not found: %s", arg);
       break;
    case 'r':  // --runtime
       args->runtime_dir = arg;
@@ -843,7 +851,7 @@ char *runtime_default(void)
    char *runtime = getenv("CLEARLY_RUNTIME_STORAGE");
 
    if (runtime == NULL)
-      T_ (1 <= asprintf(&runtime, "/run/clearly"));
+      T_ (1 <= asprintf(&runtime, "/var/tmp/clearly/runtime"));
 
    return runtime;
 }
@@ -854,7 +862,18 @@ char *storage_default(void)
    char *storage = getenv("CLEARLY_IMAGE_STORAGE");
 
    if (storage == NULL)
-      T_ (1 <= asprintf(&storage, "/var/tmp/clearly"));
+      T_ (1 <= asprintf(&storage, "/var/tmp/clearly/images"));
 
    return storage;
+}
+
+/* Return path to the mount directory, if -m is not specified. */
+char *mount_default(void)
+{
+   char *mount = getenv("CLEARLY_MOUNT_STORAGE");
+
+   if (mount == NULL)
+      T_ (1 <= asprintf(&mount, "/var/tmp/clearly/mount"));
+
+   return mount;
 }

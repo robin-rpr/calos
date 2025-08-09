@@ -852,7 +852,7 @@ EOF
     run clearly run -v "$clearly_timg" -- /bin/true
     echo "$output"
     [[ $status -eq 0 ]]
-    [[ $output = *"newroot: (null)"* ]]
+    [[ $output = *"mount: (null)"* ]]
     [[ $output = *"using default mount point: ${clearly_mnt}"* ]]
     [[ -d ${clearly_mnt} ]]
     rmdir "${clearly_mnt}"
@@ -864,7 +864,7 @@ EOF
     run clearly run -m "$mountpt" -v "$clearly_timg" -- /bin/true
     echo "$output"
     [[ $status -eq 0 ]]
-    [[ $output = *"newroot: ${mountpt_real}"* ]]
+    [[ $output = *"mount: ${mountpt_real}"* ]]
     rmdir "$mountpt"
 
     # -m with non-sqfs img
@@ -874,7 +874,7 @@ EOF
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = *"warning: --mount invalid with directory image, ignoring"* ]]
-    [[ $output = *"newroot: ${img}"* ]]
+    [[ $output = *"mount: ${img}"* ]]
     rm -Rf --one-file-system "$img"
 }
 
