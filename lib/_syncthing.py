@@ -41,6 +41,14 @@ class Syncthing:
             check=True
         )
 
+        # Disable the GUI
+        tree = ET.parse(self.config_file)
+        root = tree.getroot()
+        gui = root.find("./gui")
+        if gui is not None:
+            gui.set("enabled", "false")
+        tree.write(self.config_file, encoding="utf-8", xml_declaration=True)
+
     def set_ip_address(self, ip):
         """Set the IP address of the Syncthing device."""
         tree = ET.parse(self.config_file)
