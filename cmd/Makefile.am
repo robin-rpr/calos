@@ -6,7 +6,7 @@
 
 cmddir = $(pkglibexecdir)
 cmd_PROGRAMS = check run use logs stop
-EXTRA_DIST = convert fromhost test
+EXTRA_DIST = convert fromhost test list
 
 run_SOURCES = run.c core.h core.c net.h net.c misc.h misc.c
 if HAVE_LIBSQUASHFUSE
