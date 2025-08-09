@@ -58,10 +58,8 @@ Requires:      python3-jinja2
 Requires:      python3-wheel
 Requires:      git
 
-# Red Hat High Availability Repository
+# EPEL (Enterprise Linux) Repository
 Requires:      drbd-utils
-
-# Red Hat Resilient Storage Repository
 Requires:      gfs2-utils
 Requires:      dlm
 

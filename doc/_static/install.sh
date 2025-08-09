@@ -81,27 +81,7 @@ main() {
 	fi
 
 	#
-	# Step 4: Enable the additional repositories
-	#
-	case "${VERSION_ID%%.*}" in
-		"8")
-			$SUDO dnf config-manager --set-enabled ha
-			$SUDO dnf config-manager --set-enabled rs
-			;;
-		"9")
-			$SUDO dnf config-manager --set-enabled highavailability
-			$SUDO dnf config-manager --set-enabled resilientstorage
-			;;
-		*)
-			echo "Warning: Could not enable additional repositories automatically." >&2
-			echo "You may need to run the following commands as root:" >&2
-			echo "  dnf config-manager --set-enabled highavailability" >&2
-			echo "  dnf config-manager --set-enabled resilientstorage" >&2
-			;;
-	esac
-
-	#
-	# Step 5: Install the 'clearly' package
+	# Step 4: Install the 'clearly' and 'epel-release' packages
 	#
 
 	# The URL of our Gemfury RPM repository.
@@ -124,13 +104,10 @@ gpgcheck=0"
 
 	# Install the package using the detected package manager.
 	# The '-y' flag automatically answers 'yes' to any prompts.
-	$SUDO $PACKAGEMANAGER install -y clearly
+	$SUDO $PACKAGEMANAGER install -y epel-release clearly
 
 	# Stop printing executed commands.
 	set +x
-
-	echo
-	echo "Installation complete."
 }
 
 # Execute the main function.
