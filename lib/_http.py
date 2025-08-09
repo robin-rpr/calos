@@ -1,6 +1,6 @@
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from jinja2 import Environment, FileSystemLoader
-import multiprocessing
+import threading
 import mimetypes
 import logging
 import json
@@ -258,7 +258,7 @@ class WebServer:
         server.template_dir = self.template_dir
         server._match_route = self._match_route
 
-        process = multiprocessing.Process(target=server.serve_forever, daemon=True)
-        process.start()
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
 
-        return process
+        return thread
