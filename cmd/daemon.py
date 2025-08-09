@@ -74,10 +74,9 @@ syncthing.set_options(
 # Logging
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.StreamHandler()
-    ]
+    format='%(asctime)s %(levelname)s: %(message)s',
+    datefmt='%Y/%m/%d %H:%M:%S',
+    handlers=[logging.StreamHandler()]
 )
 logger = logging.getLogger(__name__)
 
@@ -240,9 +239,9 @@ class ServiceListener(object):
                     # Add peer to Syncthing
                     syncthing.add_peer(
                         service['properties']['device_id'],
-                        service['address']
+                        service['address'],
+                        service['name']
                     )
-                    syncthing.restart()
 
                 # Log the discovery.
                 logger.info(f"Discovered: {name} at {service['address']}")
@@ -262,7 +261,6 @@ class ServiceListener(object):
                 syncthing.remove_peer(
                     service['properties']['device_id']
                 )
-                syncthing.restart()
 
                 logger.info(f"Dropped: {name} at {service.get('address')}")
 
@@ -311,7 +309,11 @@ def main():
         try:
             # Keep alive
             while True:
-                sleep(1)
+                sleep(10)
+                if syncthing.needs_restart:
+                    # Restart Syncthing
+                    syncthing.stop()
+                    syncthing.start()
         except KeyboardInterrupt:
             logger.info("Exiting...")
         finally:

@@ -3,7 +3,7 @@ from pathlib import Path
 import subprocess
 import threading
 import requests
-import signal
+import hashlib
 import copy
 import time
 import os
@@ -29,7 +29,9 @@ class Syncthing:
             home_dir: Directory for the Syncthing configuration
         """
         self.config_file = home_dir / "config.xml"
+        self.config_sha256 = None
         self.home_dir = home_dir
+        self.process = None
         self.thread = None
 
         # Ensure config file exists
@@ -78,49 +80,61 @@ class Syncthing:
                 new_option = ET.SubElement(options, key)
                 new_option.text = new_value
         
-        tree.write(self.config_file, encoding="utf-8", xml_declaration=True)
+        self._indent_xml(root)
+        self._write_config(tree)
         
-    def add_peer(self, device_id, ip):
+    def add_peer(self, device_id, ip, name):
         """Add a peer to the Syncthing configuration."""
         tree = ET.parse(self.config_file)
         root = tree.getroot()
         
-        # Skip if already present
-        if any(d.attrib["id"] == device_id for d in root.findall("device")):
-            return
+        # Remove existing device if present (replace behavior)
+        for existing_device in root.findall("device"):
+            if existing_device.attrib.get("id") == device_id:
+                root.remove(existing_device)
+        
+        # Also remove from all folders
+        for folder in root.findall("folder"):
+            for device_ref in folder.findall("device"):
+                if device_ref.attrib.get("id") == device_id:
+                    folder.remove(device_ref)
 
         # Copy default device configuration
         defaults = root.find("./defaults")
         default_device = defaults.find("./device")
-        device = ET.SubElement(root, "device")
-        
-        # Copy all attributes from default device
-        for key, value in default_device.attrib.items():
-            device.set(key, value)
+        device = copy.deepcopy(default_device)
         
         # Override with specific values
         device.set("id", device_id)
-        device.set("name", device_id)
-        
-        # Copy all child elements from default device
-        for child in default_device:
-            child_copy = ET.SubElement(device, child.tag)
-            # Copy attributes
-            for key, value in child.attrib.items():
-                child_copy.set(key, value)
-            # Copy text content
-            if child.text:
-                child_copy.text = child.text
+        device.set("name", name)
         
         # Update the address element with the specific IP
         address_elem = device.find("./address")
-        address_elem.text = f"tcp://{ip}:22000"
+        if address_elem is not None:
+            address_elem.text = f"tcp://{ip}:22000"
+
+        # Find the correct position to insert the device (after options, before defaults)
+        options_elem = root.find("./options")
+        if options_elem is not None:
+            # Insert after options element
+            options_index = list(root).index(options_elem)
+            root.insert(options_index + 1, device)
+        else:
+            # Insert before defaults element
+            defaults_elem = root.find("./defaults")
+            if defaults_elem is not None:
+                defaults_index = list(root).index(defaults_elem)
+                root.insert(defaults_index, device)
+            else:
+                # Fallback: append to root
+                root.append(device)
 
         # Link device to all folders
         for folder in root.findall("folder"):
             ET.SubElement(folder, "device", {"id": device_id})
 
-        tree.write(self.config_file, encoding="utf-8", xml_declaration=True)
+        self._indent_xml(root)
+        self._write_config(tree)
 
     def remove_peer(self, device_id):
         """Remove a peer from the Syncthing configuration."""
@@ -138,7 +152,8 @@ class Syncthing:
                 if dev.attrib.get("id") == device_id:
                     folder.remove(dev)
 
-        tree.write(self.config_file, encoding="utf-8", xml_declaration=True)
+        self._indent_xml(root)
+        self._write_config(tree)
 
     def add_folder(self, id, path, **kwargs):
         """
@@ -186,7 +201,9 @@ class Syncthing:
         
         # Add to configuration
         root.insert(0, folder)
-        tree.write(self.config_file, encoding="utf-8", xml_declaration=True)
+
+        self._indent_xml(root)
+        self._write_config(tree)
 
     def remove_folder(self, id):
         """Remove a folder from the Syncthing configuration."""
@@ -198,7 +215,8 @@ class Syncthing:
             if folder.attrib.get("id") == id:
                 root.remove(folder)
 
-        tree.write(self.config_file, encoding="utf-8", xml_declaration=True)
+        self._indent_xml(root)
+        self._write_config(tree)
 
     @property
     def device_id(self):
@@ -206,19 +224,38 @@ class Syncthing:
         return subprocess.check_output(['syncthing', '--device-id', '--home',
                                         str(self.home_dir)]).decode('utf-8').strip()
 
+    @property
+    def needs_restart(self):
+        """Check if the Syncthing configuration has changed."""
+        return self.config_sha256 != hashlib.sha256(self.config_file.read_bytes()).hexdigest()
+
+    def _indent_xml(self, elem, level=0):
+        """Add pretty-printing indentation to XML elements."""
+        i = "\n" + level * "    "
+        if len(elem):
+            if not elem.text or not elem.text.strip():
+                elem.text = i + "    "
+            if not elem.tail or not elem.tail.strip():
+                elem.tail = i
+            for elem in elem:
+                self._indent_xml(elem, level + 1)
+            if not elem.tail or not elem.tail.strip():
+                elem.tail = i
+        else:
+            if level and (not elem.tail or not elem.tail.strip()):
+                elem.tail = i
+
+    def _write_config(self, tree):
+        """Write the Syncthing configuration to the file."""
+        tree.write(self.config_file, encoding="utf-8", xml_declaration=True)
+        self.config_sha256 = hashlib.sha256(self.config_file.read_bytes()).hexdigest()
+
     def serve_forever(self):
         """Start the Syncthing daemon."""
-        subprocess.run(
-            ['syncthing', 'serve', '--home', str(self.home_dir)],
-            check=True
+        self.process = subprocess.Popen(
+            ['syncthing', 'serve', '--home', str(self.home_dir)]
         )
-
-    def restart(self):
-        """Restart the Syncthing daemon."""
-        subprocess.run(
-            ['syncthing', 'cli', 'operations', 'restart', '--home', str(self.home_dir)],
-            check=True
-        )
+        self.process.wait()
 
     def start(self):
         """Start the Syncthing daemon."""
@@ -227,6 +264,10 @@ class Syncthing:
 
     def stop(self):
         """Stop the Syncthing daemon."""
-        if self.thread is not None:
-            self.thread.join()
+        if self.process and self.process.poll() is None:
+            self.process.terminate()
+            self.process.wait()
+            self.process = None
+        if self.thread and self.thread.is_alive():
+            self.thread.join(timeout=10)
             self.thread = None
