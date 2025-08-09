@@ -3,14 +3,14 @@
 set -u
 
 runtime="${CLEARLY_RUNTIME_STORAGE:-/var/tmp/clearly/runtime}"
-json_output="${1:-}"  # "--json" or empty
+json_output="${1:-}" # "--json" or empty
 
 # If runtime dir doesn't exist: mimic original behavior
 if [[ ! -d "$runtime" ]]; then
   if [[ "$json_output" == "--json" ]]; then
     printf '[]\n'
   else
-    printf 'CONTAINER ID\tSTATUS\n'
+    printf 'CONTAINER ID\tIP ADDRESS\tSTATUS\n'
   fi
   exit 0
 fi
@@ -24,29 +24,12 @@ fi
 
 first_item=1
 
-# Iterate only directories (ignore files)
-shopt -s nullglob
-for path in "$runtime"/*/; do
-  [[ -d "$path" ]] || continue
-  id="${path%/}"; id="${id##*/}"
+for dir in "$runtime"/*/; do
 
-  pid_path="${path}pid"
-  net_path="${path}net"
+  id="${dir%/}"; id="${id##*/}"
 
-  [[ -f "$pid_path" ]] || continue
-
-  # Read PID; skip if invalid
-  if ! read -r pid < "$pid_path"; then
-    continue
-  fi
-
-  # Read IP (first line) or N/A
-  ip_address="N/A"
-  if [[ -f "$net_path" ]]; then
-    if read -r ip_line < "$net_path"; then
-      ip_address="${ip_line//$'\n'/}"
-    fi
-  fi
+  pid=$(<"${dir}pid")
+  ip=$(<"${dir}net")
 
   # Determine status (Running / Stopped / Unknown)
   if kill -0 "$pid" 2>/dev/null; then
@@ -61,10 +44,10 @@ for path in "$runtime"/*/; do
     if (( first_item == 0 )); then
       printf ',\n'
     fi
-    printf '  {"id": "%s", "ip_address": "%s", "status": "%s"}' "$id" "$ip_address" "$status"
+    printf '  {"id": "%s", "ip_address": "%s", "status": "%s"}' "$id" "$ip" "$status"
     first_item=0
   else
-    printf '%-20s\t%-15s\t%s\n' "$id" "$ip_address" "$status"
+    printf '%-20s\t%-15s\t%s\n' "$id" "$ip" "$status"
   fi
 done
 

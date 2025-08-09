@@ -24,7 +24,7 @@ install-exec-hook:
                 $$i; \
 	  fi \
 	done
-    @echo '### creating paths ###'
+	@echo '### creating paths ###'
 	mkdir -p /var/tmp/clearly
 	mkdir -p /var/lib/clearly
 
