@@ -1254,7 +1254,7 @@ bool pull_image(const char *ref, const char *storage_dir) {
    argv[argc++] = "pull";
 
    // Add storage directory if specified
-   if (storage_dir != NULL && strcmp(storage_dir, "/var/tmp/clearly") != 0) {
+   if (storage_dir != NULL && strcmp(storage_dir, "/var/tmp/clearly/images") != 0) {
       T_ (1 <= asprintf(&storage_arg, "--storage=%s", storage_dir));
       argv[argc++] = storage_arg;
    }
