@@ -196,8 +196,8 @@ getent passwd clearly >/dev/null 2>&1 || useradd -r -g clearly -d /var/lib/clear
 %{_bindir}/clearly
 %{_unitdir}/clearly.service
 
-%dir %attr(0700,clearly,clearly) /var/tmp/clearly
-%dir %attr(0700,clearly,clearly) /var/lib/clearly
+%dir %attr(0755,clearly,clearly) /var/tmp/clearly
+%dir %attr(0755,clearly,clearly) /var/lib/clearly
 
 %{_libexecdir}/%{name}/check
 %{_libexecdir}/%{name}/convert
