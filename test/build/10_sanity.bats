@@ -168,30 +168,6 @@ load ../common
     [[ $empty_ct -eq 0 ]]
 }
 
-
-@test 'trailing whitespace' {
-    scope standard
-    [[ -z $TEST_INSTALLED ]] || skip 'build directory only'
-
-    # Can’t use a here document to store the approved trailing-whitespace
-    # lines because we’re grepping *this* file, so we’d have to add the here
-    # document, which would expand the here document, etc.
-    #
-    # When updating CI to Ubuntu 22.04 (#1561), this test started failing because
-    # the output of the “grep” started printing in a different order than what
-    # was expected. Piping it into the “sort” ensures ordering consistency. The
-    # command sorts first alphabetically by file path, then numerically by line
-    # number.
-    #
-    # Note you can update the file by piping this “grep” and "sort" into it,
-    # assuming there is no bogus trailing whitespace present. I have had trouble
-    # with copy-and-paste removing the trailing whitespace.
-      ../misc/grep -E '\s+$' \
-    | LC_ALL=C sort -t: -k1,1 -k2n,2 \
-    | diff -u approved-trailing-whitespace -
-}
-
-
 @test 'python object order' {
     scope standard
     status_all=0

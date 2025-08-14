@@ -217,9 +217,6 @@ rebase works through a stack of commits.
 Note that PRs with merge conflicts will generally not be merged. Resolve
 conflicts before asking for review.
 
-**Remove obsolete branches.** Keep your repo free of old branches with the
-script :code:`misc/branches-tidy`.
-
 Miscellaneous issue and pull request notes
 ------------------------------------------
 
