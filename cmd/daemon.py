@@ -10,9 +10,9 @@ import socket
 import threading
 import fcntl
 import struct
+import yaml
 from time import sleep
 from pathlib import Path
-import xml.etree.ElementTree as ET
 
 try:
     # Cython provides PKGLIBDIR.
@@ -23,13 +23,14 @@ except NameError:
     # in the project's top-level 'lib' directory.
     sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../lib'))
 
-import _syncthing as _syncthing
-import _executor as _executor
-import _zeroconf as _zeroconf
+import _runtime as _runtime
 import _http as _http
 
 
 ## Constants ##
+
+# Peer TTL for cluster discovery
+PEER_TTL = 15.0
 
 try:
     # Cython provides PKGDATADIR.
@@ -40,15 +41,8 @@ except NameError:
     STATIC_DIR = os.path.join(os.path.dirname(__file__), '..', 'static')
     TEMPLATE_DIR = os.path.join(STATIC_DIR, 'templates')
 
-# Executors
-# The C-based executor is being phased out for container operations
-# in favor of calling the clearly CLI.
-executor = _executor.Executor()
-studio_executor = _executor.StudioExecutor()
-
-# Zeroconf
-zeroconf = None
-listener = None
+# Runtime
+runtime = _runtime.Runtime()
 
 # Webserver
 webserver = _http.WebServer(
@@ -56,32 +50,6 @@ webserver = _http.WebServer(
     port=8080,
     static_dir=STATIC_DIR,
     template_dir=TEMPLATE_DIR,
-)
-
-# Syncthing
-syncthing = _syncthing.Syncthing(home_dir=Path("/var/lib/clearly"))
-syncthing.add_folder(
-    "default",
-    "/var/tmp/clearly",
-    label="default",
-    type="sendreceive",
-    fsWatcherDelayS=5,
-    scanProgressIntervalS=-1,
-    maxConcurrentWrites=10,
-    caseSensitiveFS=True,
-    copyRangeMethod="copy_file_range",
-)
-syncthing.set_options(
-    guiEnabled=False,
-    maxSendKbps=1000,
-    startBrowser=False,
-    setLowPriority=False,
-    databaseTuning="large",
-    progressUpdateIntervalS=-1,
-    globalAnnounceEnabled=False,
-    localAnnounceEnabled=False,
-    relaysEnabled=False,
-    natEnabled=False,
 )
 
 # Logging
@@ -93,27 +61,79 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+
 ## Routes ##
+
+@webserver.post('/api/deploy')
+def deploy(payload=None):
+    """Deploy a new container."""
+    try:
+        document = yaml.safe_load(payload)
+        identifier = uuid.uuid4().hex
+        message = {
+            "t": "DEPLOY", 
+            "deploy": {
+                "id": identifier,
+                "services": document["services"]
+            },
+            "ts": time.time()
+        }
+
+        runtime.deploy(message)
+        runtime.announce(message)
+
+        return { "success": True, "id": identifier }
+    except Exception as e:
+        logger.error(f"Failed to deploy: {e}")
+        return { "error": str(e) }
 
 @webserver.get('/api/containers')
 def list_containers(payload=None):
     """List all containers."""
-    return executor.list_containers()
+    try:
+        now = time.time();
+        containers = {}
+        with runtime.lock:
+            for k, v in runtime.local_view.items():
+                if v["status"] != "removed": 
+                    container_info = {
+                        "node": runtime.machine_id,
+                        "status": v.get("status"),
+                        "ip_address": v.get("ip_address", None),
+                        "id": v.get("id", None)
+                    }
+                    containers[k] = container_info
+            for nid, m in runtime.cluster.items():
+                if now - m["ts"] > PEER_TTL: continue
+                for k, v in m["containers"].items():
+                    if v.get("status") != "removed":
+                        container_info = {
+                            "node": nid,
+                            "status": v.get("status"),
+                            "ip_address": v.get("ip_address", None),
+                            "id": v.get("id", None)
+                        }
+                        containers.setdefault(k, container_info)
+
+        return { "success": True, "containers": containers }
+    except Exception as e:
+        logger.error(f"Failed to list containers: {e}")
+        return { "error": str(e) }
 
 @webserver.get('/api/containers/<container_id>')
 def get_container(container_id, payload=None):
     """Get container details by ID."""
-    return executor.get_container(container_id)
+    return runtime.get_container(container_id)
 
 @webserver.get('/api/containers/<container_id>/logs')
 def get_container_logs(container_id, payload=None):
     """Get container logs by ID."""
-    return executor.get_container_logs(container_id)
+    return runtime.get_container_logs(container_id)
 
 @webserver.post('/api/containers')
 def start_container(payload):
     """Start a new container."""
-    return executor.start_container(
+    return runtime.start_container(
         payload.get('name', str(uuid.uuid4())[:8]),
         payload.get('image', 'ubuntu:latest'),
         payload.get('command', []),
@@ -124,44 +144,39 @@ def start_container(payload):
 @webserver.delete('/api/containers/<container_id>')
 def stop_container(container_id, payload=None):
     """Stop a container by ID."""
-    try:
-        subprocess.run(['clearly', 'stop', container_id], capture_output=True, text=True, check=True)
-        return {'status': 'stopped', 'id': container_id}
-    except subprocess.CalledProcessError as e:
-        logger.error(f"Failed to stop container {container_id}: {e.stderr}")
-        raise Exception(f"Error stopping container: {e.stderr}")
+    return runtime.stop_container(container_id)
 
-@webserver.get('/api/studios')
-def list_studios(payload=None):
-    """List all studios."""
-    return studio_executor.list_studios()
-
-@webserver.get('/api/studios/<studio_id>')
-def get_studio(studio_id, payload=None):
-    """Get studio details by ID."""
-    return studio_executor.get_studio(studio_id)
-
-@webserver.get('/api/studios/<studio_id>/logs')
-def get_studio_logs(studio_id, payload=None):
-    """Get studio logs by ID."""
-    return studio_executor.get_studio_logs(studio_id)
-
-@webserver.post('/api/studios')
-def start_studio(payload):
-    """Start a new studio."""
-    name = payload.get('name', str(uuid.uuid4())[:8])
-    return studio_executor.start_studio(name)
-
-@webserver.delete('/api/studios/<studio_id>')
-def stop_studio(studio_id, payload=None):
-    """Stop a studio by ID."""
-    return studio_executor.stop_studio(studio_id)
-
-@webserver.get('/api/machines')
-def list_machines(payload=None):
-    """List all discovered Clearly machines."""
-    with listener.lock:
-        return listener.services.copy()
+# @webserver.get('/api/studios')
+# def list_studios(payload=None):
+#     """List all studios."""
+#     return studio_executor.list_studios()
+# 
+# @webserver.get('/api/studios/<studio_id>')
+# def get_studio(studio_id, payload=None):
+#     """Get studio details by ID."""
+#     return studio_executor.get_studio(studio_id)
+# 
+# @webserver.get('/api/studios/<studio_id>/logs')
+# def get_studio_logs(studio_id, payload=None):
+#     """Get studio logs by ID."""
+#     return studio_executor.get_studio_logs(studio_id)
+# 
+# @webserver.post('/api/studios')
+# def start_studio(payload):
+#     """Start a new studio."""
+#     name = payload.get('name', str(uuid.uuid4())[:8])
+#     return studio_executor.start_studio(name)
+# 
+# @webserver.delete('/api/studios/<studio_id>')
+# def stop_studio(studio_id, payload=None):
+#     """Stop a studio by ID."""
+#     return studio_executor.stop_studio(studio_id)
+# 
+# @webserver.get('/api/machines')
+# def list_machines(payload=None):
+#     """List all discovered Clearly machines."""
+#     with listener.lock:
+#         return listener.services.copy()
 
 
 ## Pages ##
@@ -181,160 +196,26 @@ def serve_studio(studio_id, payload=None):
     return {'type': 'text/html', 'content': html}
 
 
-## Helpers ##
-
-def get_interface_address(ifname='eth0'):
-    """Get the IP address of an interface (as 4-byte packed format)"""
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    return fcntl.ioctl(
-        s.fileno(),
-        0x8915, # SIOCGIFADDR
-        struct.pack('256s', ifname.encode('utf-8')[:15])
-    )[20:24]
-
-
-## Classes ##
-
-class ServiceListener(object):
-    """A ServiceListener is used by this module to listen on the multicast
-    group to which DNS messages are sent, allowing the implementation to cache information
-    as it arrives as well as dynamically add and remove services from Syncthing.
-
-    It requires registration with an Engine object in order to have
-    the read() method called when a socket is availble for reading."""
-
-    def __init__(self):
-        self.lock = threading.Lock()
-        self.pending = set()
-        self.services = {}
-
-    def addService(self, zeroconf, type, name):
-        """Called when a new service is discovered."""
-        with self.lock:
-            if name in self.services or name in self.pending:
-                # Skip if already known or being resolved.
-                return
-            # Add to the pending set.
-            self.pending.add(name)
-
-        # Resolve in background.
-        threading.Thread(
-            target=self._resolve_loop, args=(zeroconf, type, name),
-            daemon=True
-        ).start()
-
-    def _resolve_loop(self, zeroconf, type, name):
-        """Resolve SRV/TXT/A; retry until it succeeds."""
-        while True:
-            try:
-                # Lookup the service info.
-                # This is blocking, which is why we run it in a thread.
-                info = zeroconf.getServiceInfo(type, name, timeout=2000)
-            except Exception as e:
-                logger.error(f"Lookup failed for {name}: {e}")
-                info = None
-
-            if info:
-                service = {
-                    'name': name,
-                    'address': socket.inet_ntoa(info.getAddress()),
-                    'port': info.getPort(),
-                    'weight': info.getWeight(),
-                    'priority': info.getPriority(),
-                    'properties': info.getProperties(),
-                    'server': info.getServer(),
-                }
-                # Add to the cache.
-                with self.lock:
-                    self.services[name] = service
-                    self.pending.discard(name)
-
-                    # Add peer to Syncthing
-                    syncthing.add_peer(
-                        service['properties']['device_id'],
-                        service['address'],
-                        service['name']
-                    )
-
-                # Log the discovery.
-                logger.info(f"Discovered: {name} at {service['address']}")
-                return
-
-            # Not resolved yet; try again later.
-            time.sleep(2)
-
-    def removeService(self, zeroconf, type, name):
-        """Called when a service is dropped."""
-        with self.lock:
-            self.pending.discard(name)
-            if name in self.services:
-                service = self.services.pop(name)
-
-                # Remove peer from Syncthing
-                syncthing.remove_peer(
-                    service['properties']['device_id']
-                )
-
-                logger.info(f"Dropped: {name} at {service.get('address')}")
-
-
 ## Main ##
 
 def main():
     try:
-        # Globals
-        global listener
-        global zeroconf
-
-        # Zeroconf
-        listener = ServiceListener()
-        service_address = get_interface_address('clearly0')
-        zeroconf = _zeroconf.Zeroconf(bindaddress=socket.inet_ntoa(service_address))
-        browser = _zeroconf.ServiceBrowser(zeroconf, "_clearly._tcp.local.", listener)
-        version = subprocess.check_output(['clearly', 'version']).decode('utf-8').strip()
-        identifier = open('/etc/machine-id').read().strip()
-
-        # Create a Zeroconf service
-        service_name = f"clearly-{identifier}._clearly._tcp.local."
-        service_info = _zeroconf.ServiceInfo(
-            type="_clearly._tcp.local.",
-            name=service_name,
-            address=service_address,
-            port=0,
-            weight=0,
-            priority=0,
-            properties={
-                'version': version,
-                'device_id': syncthing.device_id,
-                'service': 'clearly'
-            },
-        )
-
-        # Register our own Zeroconf service
-        zeroconf.registerService(service_info)
-
         # Start Webserver
         webserver.start()
 
-        # Start Syncthing
-        syncthing.start()
-        
+        # Start Runtime
+        runtime.start()
+
         try:
             # Keep alive
             while True:
                 sleep(10)
-                if syncthing.needs_restart:
-                    # Restart Syncthing
-                    syncthing.stop()
-                    syncthing.start()
         except KeyboardInterrupt:
             logger.info("Exiting...")
         finally:
             # Cleanup and exit
-            zeroconf.unregisterService(service_info)
-            zeroconf.close()
             webserver.stop()
-            syncthing.stop()
+            runtime.stop()
 
     except Exception as e:
         logger.error(f"Fatal error: {e}", exc_info=True)

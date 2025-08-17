@@ -36,6 +36,7 @@ BuildRequires: json-c-devel
 BuildRequires: python3-devel
 BuildRequires: python3-lark-parser
 BuildRequires: python3-requests
+BuildRequires: python3-pyyaml
 BuildRequires: python3-libsass
 BuildRequires: python3-jinja2
 BuildRequires: python3-wheel
@@ -53,6 +54,7 @@ Requires:      json-c
 Requires:      python3
 Requires:      python3-lark-parser
 Requires:      python3-requests
+Requires:      python3-pyyaml
 Requires:      python3-libsass
 Requires:      python3-jinja2
 Requires:      python3-wheel
@@ -250,7 +252,6 @@ getent passwd clearly >/dev/null 2>&1 || useradd -r -g clearly -d /var/lib/clear
 %{_prefix}/lib/%{name}/_build_cache.*.so
 %{_prefix}/lib/%{name}/_build.*.so
 %{_prefix}/lib/%{name}/_clearly.*.so
-%{_prefix}/lib/%{name}/_executor.*.so
 %{_prefix}/lib/%{name}/_filesystem.*.so
 %{_prefix}/lib/%{name}/_force.*.so
 %{_prefix}/lib/%{name}/_grammar.*.so
@@ -263,7 +264,7 @@ getent passwd clearly >/dev/null 2>&1 || useradd -r -g clearly -d /var/lib/clear
 %{_prefix}/lib/%{name}/_push.*.so
 %{_prefix}/lib/%{name}/_reference.*.so
 %{_prefix}/lib/%{name}/_registry.*.so
-%{_prefix}/lib/%{name}/_syncthing.*.so
+%{_prefix}/lib/%{name}/_runtime.*.so
 %{_prefix}/lib/%{name}/_tree.*.so
 %{_prefix}/lib/%{name}/_zeroconf.*.so
 %{?el7:%{_prefix}/lib/%{name}/__pycache__}
