@@ -43,7 +43,7 @@ class Runtime():
             multicast_addr='239.42.0.1',
             multicast_port=4243,
             machine_id=open('/etc/machine-id').read().strip(),
-            address='192.168.1.100'
+            interface='clearly0'
         )
         runtime.start()
         runtime.stop()
@@ -55,10 +55,10 @@ class Runtime():
         Initialize the Runtime.
         
         Args:
-            multicast_addr: Multicast group address for cluster communication.
-            multicast_port: UDP port for cluster communication.
+            multicast_addr: Multicast group address for cluster communication (default: '239.42.0.1').
+            multicast_port: UDP port for cluster communication (default: 4243).
             machine_id: Unique identifier for this node (default: read from /etc/machine-id).
-            interface: The network interface used by this node.
+            interface: The network interface used by this node (default: 'clearly0').
 
         Attributes:
             address: The IP address of the network interface used by this node.
