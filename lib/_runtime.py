@@ -10,6 +10,8 @@ import time
 import json
 import os
 import re
+import random
+from collections import defaultdict, deque
 
 import _executor as _executor
 
@@ -18,9 +20,11 @@ import _executor as _executor
 
 PEER_TTL = 15.0
 SCAN_INTERVAL = 1.0
-ANNOUNCE_INTERVAL = 2.0
+GOSSIP_INTERVAL = 3.0  # Increased from 2.0 to reduce noise
+GOSSIP_FANOUT = 3      # Number of peers to gossip to per round
 DEPLOY_TTL = 24 * 3600 # Deploy TTL (24 hours)
-MAX_UDP = 60000 # UDP packet body limit
+MAX_UDP = 60000        # UDP packet body limit (60KB)
+MAX_GOSSIP_AGE = 30.0  # Maximum age of gossip messages to forward
 logger = logging.getLogger(__name__)
 
 
@@ -31,8 +35,8 @@ class Runtime():
     Container runtime for distributed container orchestration.
 
     Handles cluster membership, state synchronization, and deployment propagation
-    using UDP multicast. Each node maintains a view of the cluster and periodically
-    announces its state.
+    using efficient gossip-based communication. Each node maintains a view of the 
+    cluster and gossips incremental state changes to a subset of peers.
 
     Example:
         runtime = Runtime(
@@ -65,6 +69,8 @@ class Runtime():
             cluster: Known cluster nodes and their state.
             deploys: Active deployments.
             threads: List of threads.
+            pending_updates: Queue of pending state updates to gossip.
+            seen_messages: Set of seen message IDs to prevent loops.
 
             _send: UDP socket for sending multicast packets.
         """
@@ -82,6 +88,12 @@ class Runtime():
         self.cluster = {}
         self.deploys = {}
         self.threads = []
+        
+        # Gossip protocol state
+        self.pending_updates = deque(maxlen=1000)  # Limit memory usage
+        self.seen_messages = set()  # Message deduplication
+        self.last_gossip_round = 0
+        self.peer_addresses = {}  # Map node IDs to addresses
 
         self._send = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
         self._send.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_IF, socket.inet_aton(self._ip("clearly0")))
@@ -109,6 +121,11 @@ class Runtime():
         scored.sort(reverse=True)
         return [n for _, n in scored[:max(1, min(k, len(scored)))]]
 
+    def _generate_message_id(self, msg_type: str, content: dict) -> str:
+        """Generate a unique message ID for deduplication"""
+        content_str = json.dumps(content, separators=(",", ":"), sort_keys=True)
+        return hashlib.blake2b(f"{msg_type}:{content_str}".encode(), digest_size=16).hexdigest()
+
     def _sock_recv(self) -> socket.socket:
         """Create a socket for receiving multicast messages"""
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
@@ -122,60 +139,162 @@ class Runtime():
         s.settimeout(1.0)
         return s
 
-    def _sock_send(self, msg: dict):
-        """Send multicast message to the cluster"""
+    def _sock_send(self, msg: dict, target_addr: str = None):
+        """Send message to specific target or multicast"""
         raw = json.dumps(msg, separators=(",", ":")).encode()
         comp = zlib.compress(raw, 6)
         payload, enc = (comp, "z") if len(comp) <= MAX_UDP else (raw, "raw")
         header = json.dumps({"enc": enc}).encode() + b"\n"
+        
+        addr = target_addr or self.multicast_addr
         try:
-            self._send.sendto(header + payload, (self.multicast_addr, self.multicast_port))
-            logger.info(f"Sent multicast message: {msg.get('t', 'UNKNOWN')} to {self.multicast_addr}:{self.multicast_port}")
-        except Exception:
-            pass
+            self._send.sendto(header + payload, (addr, self.multicast_port))
+            if target_addr:
+                logger.debug(f"Sent direct message: {msg.get('t', 'UNKNOWN')} to {addr}:{self.multicast_port}")
+            else:
+                logger.debug(f"Sent multicast message: {msg.get('t', 'UNKNOWN')} to {addr}:{self.multicast_port}")
+        except Exception as e:
+            logger.debug(f"Failed to send message: {e}")
 
-    def _announce_loop(self):
-        """Announce the local view to the cluster"""
-        last_hash = None
+    def _get_random_peers(self, count: int) -> list:
+        """Get random subset of known peers for gossip"""
+        with self.lock:
+            now = time.time()
+            active_peers = [
+                node_id for node_id, info in self.cluster.items()
+                if now - info["ts"] <= PEER_TTL and node_id != self.machine_id
+            ]
+            
+            if len(active_peers) <= count:
+                return active_peers
+            
+            return random.sample(active_peers, count)
+
+    def _gossip_loop(self):
+        """Efficient gossip-based state propagation"""
         while True:
-            time.sleep(ANNOUNCE_INTERVAL)
+            time.sleep(GOSSIP_INTERVAL)
+            
+            # Get current state snapshot
             snapshot = self.executor.list_containers()
             if "error" in snapshot:
                 continue
             
-            hash_data = []
-            for container in snapshot.get("containers"):
-                hash_data.append(f"{container.get('id')}:{container.get('ip_address')}:{container.get('status')}")
+            # Detect changes and create incremental updates
+            changes = self._detect_changes(snapshot)
+            if changes:
+                self._queue_updates(changes)
+            
+            # Gossip to random subset of peers
+            peers = self._get_random_peers(GOSSIP_FANOUT)
+            if peers:
+                self._gossip_to_peers(peers)
+            
+            # Clean up old seen messages (prevent memory leaks)
+            self._cleanup_seen_messages()
 
-            h = hashlib.blake2b("|".join(hash_data).encode(), digest_size=8).hexdigest()
-            if h != last_hash:
-                self.seq += 1
-                with self.lock:
-                    for container in snapshot.get("containers"):
-                        self.local_view[container.get('id')] = {
-                            "status": container.get('status'),
-                            "ip_address": container.get('ip_address'),
-                            "id": container.get('id'),
-                            "ver": self.seq
-                        }
-                    
-                    for k in [k for k in list(self.local_view.keys()) if k not in [container.get('id') for container in snapshot.get("containers")]]:
-                        self.seq += 1
-                        self.local_view[k] = {"status": "removed", "ver": self.seq}
+    def _detect_changes(self, snapshot: dict) -> list:
+        """Detect incremental changes in container state"""
+        changes = []
+        current_containers = {c.get('id'): c for c in snapshot.get("containers", [])}
+        
+        with self.lock:
+            # Check for new/updated containers
+            for container_id, container_info in current_containers.items():
+                old_info = self.local_view.get(container_id, {})
+                new_state = {
+                    "status": container_info.get('status'),
+                    "ip_address": container_info.get('ip_address'),
+                    "id": container_id,
+                    "ver": self.seq + 1
+                }
+                
+                if (old_info.get('status') != new_state['status'] or 
+                    old_info.get('ip_address') != new_state['ip_address']):
+                    changes.append(('update', container_id, new_state))
+                    self.seq += 1
+            
+            # Check for removed containers
+            current_ids = set(current_containers.keys())
+            old_ids = set(self.local_view.keys())
+            for removed_id in old_ids - current_ids:
+                if self.local_view[removed_id].get('status') != 'removed':
+                    changes.append(('remove', removed_id, {"status": "removed", "ver": self.seq + 1}))
+                    self.seq += 1
+        
+        return changes
 
-                last_hash = h
-            with self.lock:
-                items = sorted(self.local_view.items(), key=lambda kv: kv[1]["ver"], reverse=True)
-                delta = dict(items[:400])
+    def _queue_updates(self, changes: list):
+        """Queue updates for gossip propagation"""
+        with self.lock:
+            for change_type, container_id, state in changes:
+                # Update local view
+                self.local_view[container_id] = state
+                
+                # Queue for gossip
+                update_msg = {
+                    "t": "UPDATE",
+                    "node": self.machine_id,
+                    "container_id": container_id,
+                    "state": state,
+                    "ts": time.time()
+                }
+                self.pending_updates.append(update_msg)
 
-            self._sock_send({
-                "t": "STATE",
+    def _gossip_to_peers(self, peers: list):
+        """Gossip pending updates to selected peers"""
+        if not self.pending_updates:
+            return
+        
+        # Aggregate multiple updates into a single message
+        updates = []
+        with self.lock:
+            while self.pending_updates and len(updates) < 10:  # Limit batch size
+                updates.append(self.pending_updates.popleft())
+        
+        if not updates:
+            return
+        
+        # Send aggregated updates to each peer
+        for peer_id in peers:
+            peer_addr = self.peer_addresses.get(peer_id)
+            if not peer_addr:
+                continue
+                
+            gossip_msg = {
+                "t": "GOSSIP",
+                "from": self.machine_id,
+                "updates": updates,
+                "msg_id": self._generate_message_id("GOSSIP", {"updates": updates}),
+                "ts": time.time()
+            }
+            
+            self._sock_send(gossip_msg, peer_addr)
+
+    def _cleanup_seen_messages(self):
+        """Clean up old message IDs to prevent memory leaks"""
+        now = time.time()
+        cutoff = now - MAX_GOSSIP_AGE
+        
+        # This is a simplified cleanup - in production you'd want a more sophisticated approach
+        if len(self.seen_messages) > 10000:  # Prevent unbounded growth
+            self.seen_messages.clear()
+
+    def _announce_loop(self):
+        """Legacy announce loop - now just sends lightweight heartbeat"""
+        while True:
+            time.sleep(GOSSIP_INTERVAL * 2)  # Less frequent heartbeats
+            
+            # Send lightweight heartbeat instead of full state
+            heartbeat = {
+                "t": "HEARTBEAT",
                 "node": self.machine_id,
                 "addr": self.address,
                 "seq": self.seq,
-                "delta": delta,
                 "ts": time.time()
-            })
+            }
+            
+            self._sock_send(heartbeat)
 
     def _purge_loop(self):
         """Purge expired nodes and deployments"""
@@ -187,12 +306,14 @@ class Runtime():
                 for n in list(self.cluster.keys()):
                     if self.cluster[n]["ts"] < cut:
                         del self.cluster[n]
+                        if n in self.peer_addresses:
+                            del self.peer_addresses[n]
                 for d in list(self.deploys.keys()):
                     if self.deploys[d]["ts"] < dep_cut:
                         del self.deploys[d]
 
     def _receive_loop(self):
-        """Receive multicast messages from the cluster"""
+        """Receive messages from the cluster"""
         r = self._sock_recv()
         while True:
             try:
@@ -206,28 +327,68 @@ class Runtime():
                 msg = json.loads(raw.decode())
             except Exception:
                 continue
+            
+            # Handle different message types
             t = msg.get("t")
-            if t == "STATE":
-                self._merge_state(msg)
+            if t == "GOSSIP":
+                self._handle_gossip(msg)
+            elif t == "HEARTBEAT":
+                self._handle_heartbeat(msg)
             elif t == "DEPLOY":
                 self.deploy(msg)
 
-    def _merge_state(self, msg: dict):
-        """Merge the state of a node into the local view"""
-        n = msg.get("node")
-        if not n or n == self.machine_id:
+    def _handle_gossip(self, msg: dict):
+        """Handle incoming gossip messages"""
+        msg_id = msg.get("msg_id")
+        if not msg_id or msg_id in self.seen_messages:
+            return  # Already seen this message
+        
+        self.seen_messages.add(msg_id)
+        
+        # Process updates
+        updates = msg.get("updates", [])
+        with self.lock:
+            for update in updates:
+                container_id = update.get("container_id")
+                state = update.get("state")
+                source_node = update.get("node")
+                
+                if source_node and source_node != self.machine_id:
+                    # Update cluster view
+                    if source_node not in self.cluster:
+                        self.cluster[source_node] = {"containers": {}, "ts": time.time()}
+                    
+                    self.cluster[source_node]["containers"][container_id] = state
+                    self.cluster[source_node]["ts"] = time.time()
+        
+        # Forward to other peers (with some probability to prevent flooding)
+        if random.random() < 0.3:  # 30% chance to forward
+            peers = self._get_random_peers(GOSSIP_FANOUT - 1)
+            for peer_id in peers:
+                if peer_id != msg.get("from"):
+                    peer_addr = self.peer_addresses.get(peer_id)
+                    if peer_addr:
+                        self._sock_send(msg, peer_addr)
+
+    def _handle_heartbeat(self, msg: dict):
+        """Handle heartbeat messages for membership"""
+        node_id = msg.get("node")
+        if not node_id or node_id == self.machine_id:
             return
+        
         now = time.time()
         with self.lock:
-            ent = self.cluster.setdefault(n, {"seq": 0, "containers": {}, "ts": now, "addr": msg.get("addr"), "http": msg.get("http")})
-            ent["ts"] = now
-            ent["addr"] = msg.get("addr")
-            ent["http"] = msg.get("http")
-            ent["seq"] = max(ent["seq"], int(msg.get("seq", 0)))
-            for name, v in msg.get("delta", {}).items():
-                cur = ent["containers"].get(name)
-                if (not cur) or int(v["ver"]) > int(cur["ver"]):
-                    ent["containers"][name] = v
+            if node_id not in self.cluster:
+                self.cluster[node_id] = {"containers": {}, "ts": now}
+            
+            self.cluster[node_id]["ts"] = now
+            self.cluster[node_id]["addr"] = msg.get("addr")
+            self.peer_addresses[node_id] = msg.get("addr")
+
+    def _merge_state(self, msg: dict):
+        """Legacy state merge - kept for compatibility"""
+        # This is now handled by _handle_gossip
+        pass
 
     def _reconcile_state(self):
         """Reconcile the local view with the cluster state"""
@@ -295,12 +456,20 @@ class Runtime():
             self.deploys[dep_id] = {"ts": time.time(), "services": dep.get("services", [])}
         self._reconcile_state()
 
+    def _reconcile_loop(self):
+        """Periodic reconciliation to ensure state consistency"""
+        while True:
+            time.sleep(10)  # Run every 10 seconds
+            self._reconcile_state()
+
     def start(self):
         """Start the runtime"""
         self.threads = [
+            threading.Thread(target=self._gossip_loop, daemon=True),
             threading.Thread(target=self._announce_loop, daemon=True),
             threading.Thread(target=self._receive_loop, daemon=True),
             threading.Thread(target=self._purge_loop, daemon=True),
+            threading.Thread(target=self._reconcile_loop, daemon=True),
         ]
         for t in self.threads:
             t.start()
