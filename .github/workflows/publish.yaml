@@ -44,28 +44,11 @@ jobs:
             python3-sphinx_rtd_theme \
             python3-libsass \
             python3-requests \
+            python3-pyyaml \
             python3-jinja2 \
             python3-wheel \
             python3-Cython \
             git
-
-          # Install OpenDHT (v3.4.0)
-          docker exec builder bash -c "
-            set -ex
-            cd /root
-            git clone --branch v3.4.0 --depth 1 \
-                https://github.com/savoirfairelinux/opendht.git
-            cd opendht
-            mkdir build && cd build
-            cmake .. \
-                -DOPENDHT_C=ON \
-                -DOPENDHT_PYTHON=ON \
-                -DOPENDHT_PEER_DISCOVERY=ON \
-                -DOPENDHT_HTTP=OFF \
-                -DCMAKE_INSTALL_PREFIX=/usr
-            make -j$(nproc)
-            make install
-          "
 
       - name: Build RPM in Container
         run: |
