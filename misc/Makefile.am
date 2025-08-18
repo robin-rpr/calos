@@ -1,1 +1,1 @@
-EXTRA_DIST = grep version
+EXTRA_DIST = version
