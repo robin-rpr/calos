@@ -19,7 +19,6 @@ bool is_link_exists(const char *link_name);
 /* NL (Netlink) Bridge (Layer 2 switch) */
 void create_bridge(const char *bridge_name, const struct in_addr *ip, int cidr);
 bool is_bridge_exists(const char *bridge_name);
-void set_bridge_attach(const char *bridge_name, const char *link_name);
 
 /* NL (Netlink) Veth (Virtual Ethernet) */
 void create_veth_pair(const char *host_name, const char *peer_name);
@@ -46,6 +45,10 @@ void create_nft_forward(const struct in_addr *guest_ip, int host_port, int guest
 void flush_nft_forward(const struct in_addr *guest_ip, const char *protocol);
 
 /* VXLAN (Virtual Extensible LAN) */
-void create_vxlan(const char *vxlan_name, uint32_t vni, const struct in_addr *remote_ip);
+void create_vxlan(const char *vxlan_name, uint32_t vni, const char *lower_device_name, const struct in_addr *group_ip, const struct in_addr *local_ip, uint16_t dstport);
 bool is_vxlan_exists(uint32_t vni, const char *vxlan_name, const struct in_addr *remote_ip);
 void set_vxlan_bridge(const char *vxlan_name, const char *bridge_name);
+void set_vxlan_up(const char *vxlan_name);
+
+/* Helpers */
+bool get_default_ipv4(struct in_addr *out_ip, char *out_ifname, size_t ifname_len);

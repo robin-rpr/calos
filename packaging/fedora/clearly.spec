@@ -207,7 +207,6 @@ getent passwd clearly >/dev/null 2>&1 || useradd -r -g clearly -d /var/lib/clear
 %{_libexecdir}/%{name}/list
 %{_libexecdir}/%{name}/logs
 %{_libexecdir}/%{name}/run
-%{_libexecdir}/%{name}/use
 %{_libexecdir}/%{name}/image
 %{_libexecdir}/%{name}/version
 

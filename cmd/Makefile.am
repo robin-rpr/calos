@@ -5,7 +5,7 @@
 ## C programs
 
 cmddir = $(pkglibexecdir)
-cmd_PROGRAMS = check run use
+cmd_PROGRAMS = check run
 EXTRA_DIST = convert fromhost test list stop logs version
 
 run_SOURCES = run.c core.h core.c net.h net.c misc.h misc.c
@@ -16,10 +16,6 @@ run_CFLAGS = $(PTHREAD_CFLAGS) -DLIBEXECDIR="\"$(pkglibexecdir)\"" @LIBNL_CFLAGS
 run_LDADD = $(CLEARLY_RUN_LIBS) @LIBMNL_LIBS@ @LIBNFTNL_LIBS@ @LIBNL_LIBS@ @JSONC_LIBS@
 
 check_SOURCES = check.c misc.h misc.c
-
-use_SOURCES = use.c net.h net.c misc.h misc.c
-use_CFLAGS = @LIBNL_CFLAGS@
-use_LDADD = @LIBMNL_LIBS@ @LIBNFTNL_LIBS@ @LIBNL_LIBS@
 
 ## Shell scripts - distributed as-is
 

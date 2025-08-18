@@ -306,38 +306,6 @@ bool is_bridge_exists(const char *bridge_name) {
     }
 }
 
-/* Attach a physical link to a bridge. */
-void set_bridge_attach(const char *bridge_name, const char *link_name) {
-    struct nl_sock *sock = nl_socket_alloc();
-    Tf(sock != NULL, "failed to allocate netlink socket");
-    Zf(nl_connect(sock, NETLINK_ROUTE) < 0, "failed to connect to netlink route socket");
-
-    // Get the link and bridge.
-    struct rtnl_link *link, *bridge;
-    Zf(rtnl_link_get_kernel(sock, 0, link_name, &link) < 0, "failed to get link '%s'", link_name);
-    Zf(rtnl_link_get_kernel(sock, 0, bridge_name, &bridge) < 0, "failed to get bridge '%s'", bridge_name);
-
-    // Clone the link so we can modify it.
-    struct rtnl_link *link_change = rtnl_link_alloc();
-    Zf(link_change == NULL, "failed to allocate link");
-
-    // Set the ifindex and master (bridge's ifindex).
-    rtnl_link_set_ifindex(link_change, rtnl_link_get_ifindex(link));
-    rtnl_link_set_master(link_change, rtnl_link_get_ifindex(bridge));
-
-    // Send the link change to the kernel.
-    Zf(rtnl_link_change(sock, link, link_change, 0) < 0,
-       "failed to attach '%s' to bridge '%s'", link_name, bridge_name);
-
-    rtnl_link_put(link_change);
-    rtnl_link_put(link);
-    rtnl_link_put(bridge);
-
-    // Free the socket.
-    VERBOSE("link '%s' attached to bridge '%s'", link_name, bridge_name);
-    nl_socket_free(sock);
-}
-
 /* Create a new veth pair.
 
    This function will create a veth pair, and configure it with
@@ -1594,42 +1562,79 @@ void flush_nft_forward(const struct in_addr *guest_ip, const char *protocol) {
    The assumption is that the vxlan link doesn't already exist with these parameters.
    If it does, this function will fail.
 */
-void create_vxlan(const char *vxlan_name, uint32_t vni, const struct in_addr *remote_ip) {
+void create_vxlan(const char *vxlan_name, uint32_t vni, const char *lower_device_name, const struct in_addr *group_ip, const struct in_addr *local_ip, uint16_t dstport) {
     struct nl_sock *sock = nl_socket_alloc();
-    Tf(sock != NULL, "failed to allocate netlink socket for VXLAN");
-    Zf(nl_connect(sock, NETLINK_ROUTE) < 0, "failed to connect to netlink route socket for VXLAN");
+    Tf(sock != NULL, "failed to allocate netlink socket for VXLAN(create) with device");
+    Zf(nl_connect(sock, NETLINK_ROUTE) < 0, "failed to connect to netlink route socket for VXLAN(create) with device");
+
+    // Resolve the lower device ifindex
+    struct rtnl_link *lower_link;
+    Zf(rtnl_link_get_kernel(sock, 0, lower_device_name, &lower_link) < 0, "failed to get lower device '%s'", lower_device_name);
+    int lower_ifindex = rtnl_link_get_ifindex(lower_link);
+    Zf(lower_ifindex <= 0, "invalid ifindex for lower device '%s'", lower_device_name);
 
     // Allocate a vxlan link.
     struct rtnl_link *vxlan_link = rtnl_link_vxlan_alloc();
     Tf(vxlan_link != NULL, "failed to allocate VXLAN link");
 
-    // Set the name, type, and flags (IFF_UP).
+    // Set base attributes
     rtnl_link_set_name(vxlan_link, vxlan_name);
-    rtnl_link_set_flags(vxlan_link, IFF_UP);
-
-    // Set VXLAN specific attributes.
     rtnl_link_vxlan_set_id(vxlan_link, vni);
 
-    // Create an nl_addr object for the remote_ip (group).
-    struct nl_addr *group_addr = nl_addr_build(AF_INET, (void *)remote_ip, sizeof(*remote_ip));
-    Tf(group_addr != NULL, "failed to build nl_addr for remote IP");
+    // Bind to lower device
+    rtnl_link_set_link(vxlan_link, lower_ifindex);
 
-    // Set the VXLAN group (which is the remote IP for most common VXLAN setups).
-    int err_set_group = rtnl_link_vxlan_set_group(vxlan_link, group_addr);
-    Zf(err_set_group < 0, "failed to set VXLAN group IP: %s", nl_geterror(err_set_group));
+    // Set VXLAN specific attributes: group, local, dstport
+    struct nl_addr *group_addr = nl_addr_build(AF_INET, (void *)group_ip, sizeof(*group_ip));
+    Tf(group_addr != NULL, "failed to build nl_addr for VXLAN group IP");
+    Zf(rtnl_link_vxlan_set_group(vxlan_link, group_addr) < 0, "failed to set VXLAN group IP");
 
-    rtnl_link_vxlan_set_port(vxlan_link, 4789); // Default VXLAN UDP port
+    struct nl_addr *local_addr = nl_addr_build(AF_INET, (void *)local_ip, sizeof(*local_ip));
+    Tf(local_addr != NULL, "failed to build nl_addr for VXLAN local IP");
+    Zf(rtnl_link_vxlan_set_local(vxlan_link, local_addr) < 0, "failed to set VXLAN local IP");
 
-    // Send the vxlan link to the linux kernel.
+    rtnl_link_vxlan_set_port(vxlan_link, dstport);
+
+    // Send the vxlan link to the linux kernel (do not set IFF_UP here; handled by set_vxlan_up)
     Zf(rtnl_link_add(sock, vxlan_link, NLM_F_CREATE | NLM_F_EXCL | NLM_F_ACK) < 0,
-       "failed to create VXLAN interface '%s' to remote IP '%s'",
-       vxlan_name, inet_ntoa(*remote_ip));
+       "failed to create VXLAN interface '%s' (vni %u, dev %s)", vxlan_name, vni, lower_device_name);
 
+    // Cleanup
     nl_addr_put(group_addr);
+    nl_addr_put(local_addr);
     rtnl_link_put(vxlan_link);
+    rtnl_link_put(lower_link);
 
-    // Free the socket.
-    VERBOSE("VXLAN interface '%s' created with remote IP '%s' and VNI %u", vxlan_name, inet_ntoa(*remote_ip), vni);
+    VERBOSE("VXLAN interface '%s' created (vni %u, dev %s, group %s, local %s, dstport %u)",
+            vxlan_name, vni, lower_device_name, inet_ntoa(*group_ip), inet_ntoa(*local_ip), dstport);
+    nl_socket_free(sock);
+}
+
+/* Bring up a VXLAN interface. */
+void set_vxlan_up(const char *vxlan_name) {
+    struct nl_sock *sock = nl_socket_alloc();
+    Tf(sock != NULL, "failed to allocate netlink socket for VXLAN up");
+    Zf(nl_connect(sock, NETLINK_ROUTE) < 0, "failed to connect to netlink route socket for VXLAN up");
+
+    // Get the vxlan link
+    struct rtnl_link *link;
+    Zf(rtnl_link_get_kernel(sock, 0, vxlan_name, &link) < 0, "failed to get VXLAN link '%s'", vxlan_name);
+
+    // Clone the link so we can modify it.
+    struct rtnl_link *link_change = rtnl_link_alloc();
+    Zf(link_change == NULL, "failed to allocate link for VXLAN up");
+
+    // Set the ifindex and flags (IFF_UP)
+    rtnl_link_set_ifindex(link_change, rtnl_link_get_ifindex(link));
+    rtnl_link_set_flags(link_change, IFF_UP);
+
+    // Send the link change to the kernel.
+    Zf(rtnl_link_change(sock, link, link_change, 0) < 0, "failed to bring up VXLAN '%s'", vxlan_name);
+
+    rtnl_link_put(link_change);
+    rtnl_link_put(link);
+
+    VERBOSE("VXLAN '%s' brought up", vxlan_name);
     nl_socket_free(sock);
 }
 
@@ -1798,4 +1803,95 @@ void set_vxlan_bridge(const char *vxlan_name, const char *bridge_name) {
 
     VERBOSE("VXLAN interface '%s' attached to bridge '%s'", vxlan_name, bridge_name);
     nl_socket_free(sock);
+}
+
+/* Get IPv4 address and interface name used by the default route. */
+bool get_default_ipv4(struct in_addr *out_ip, char *out_ifname, size_t ifname_len) {
+    struct nl_sock *sock = nl_socket_alloc();
+    if (!sock) return false;
+    if (nl_connect(sock, NETLINK_ROUTE) < 0) { nl_socket_free(sock); return false; }
+
+    struct nl_cache *route_cache = NULL;
+    if (rtnl_route_alloc_cache(sock, AF_INET, 0, &route_cache) < 0) {
+        nl_socket_free(sock);
+        return false;
+    }
+
+    struct rtnl_route *best_route = NULL;
+    uint32_t best_priority = UINT32_MAX;
+
+    for (struct rtnl_route *rt = (struct rtnl_route *) nl_cache_get_first(route_cache);
+         rt != NULL;
+         rt = (struct rtnl_route *) nl_cache_get_next((struct nl_object *) rt)) {
+
+        struct nl_addr *dst = rtnl_route_get_dst(rt);
+        int prefixlen = dst ? nl_addr_get_prefixlen(dst) : 0;
+        if (dst && nl_addr_get_family(dst) != AF_INET) continue;
+
+        // default route if no dst or /0
+        if (dst == NULL || prefixlen == 0) {
+            int oif = rtnl_route_get_oif(rt);
+            if (oif <= 0) continue; // require explicit output interface
+
+            uint32_t prio = rtnl_route_get_priority(rt);
+            if (best_route == NULL || prio < best_priority) {
+                best_route = rt;
+                best_priority = prio;
+            }
+        }
+    }
+
+    if (best_route == NULL) {
+        nl_cache_free(route_cache);
+        nl_socket_free(sock);
+        return false;
+    }
+
+    int ifindex = rtnl_route_get_oif(best_route);
+    if (ifindex <= 0) {
+        nl_cache_free(route_cache);
+        nl_socket_free(sock);
+        return false;
+    }
+
+    // Resolve interface name
+    struct nl_cache *link_cache = NULL;
+    if (rtnl_link_alloc_cache(sock, AF_UNSPEC, &link_cache) < 0) {
+        nl_cache_free(route_cache);
+        nl_socket_free(sock);
+        return false;
+    }
+    struct rtnl_link *link = rtnl_link_get(link_cache, ifindex);
+    if (link && out_ifname && ifname_len > 0) {
+        const char *name = rtnl_link_get_name(link);
+        if (name) {
+            strncpy(out_ifname, name, ifname_len - 1);
+            out_ifname[ifname_len - 1] = '\0';
+        }
+    }
+
+    // Find an IPv4 address on this interface
+    bool found_ip = false;
+    struct nl_cache *addr_cache = NULL;
+    if (rtnl_addr_alloc_cache(sock, &addr_cache) == 0) {
+        for (struct rtnl_addr *a = (struct rtnl_addr *) nl_cache_get_first(addr_cache);
+             a != NULL;
+             a = (struct rtnl_addr *) nl_cache_get_next((struct nl_object *) a)) {
+            if (rtnl_addr_get_ifindex(a) != ifindex) continue;
+            struct nl_addr *local = rtnl_addr_get_local(a);
+            if (!local || nl_addr_get_family(local) != AF_INET) continue;
+            if (out_ip) {
+                memcpy(out_ip, nl_addr_get_binary_addr(local), sizeof(struct in_addr));
+                found_ip = true;
+                break;
+            }
+        }
+    }
+
+    if (addr_cache) nl_cache_free(addr_cache);
+    if (link) rtnl_link_put(link);
+    if (link_cache) nl_cache_free(link_cache);
+    if (route_cache) nl_cache_free(route_cache);
+    nl_socket_free(sock);
+    return found_ip;
 }
