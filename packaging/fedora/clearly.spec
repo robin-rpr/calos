@@ -116,10 +116,6 @@ LDFLAGS="$(python3-config --ldflags --embed)"; export LDFLAGS
 %install
 %make_install
 
-# Create required directories
-mkdir -p %{buildroot}/var/tmp/clearly
-mkdir -p %{buildroot}/var/lib/clearly
-
 # Create systemd service file
 mkdir -p %{buildroot}%{_unitdir}
 cat > %{buildroot}%{_unitdir}/clearly.service <<EOF
@@ -143,7 +139,7 @@ SyslogIdentifier=clearly
 # Security settings
 # ProtectSystem=strict
 # ProtectHome=true
-# ReadWritePaths=/var/tmp/clearly /var/lib/clearly
+# ReadWritePaths=/var/lib/clearly
 # ProtectKernelTunables=true
 # ProtectKernelModules=true
 # ProtectControlGroups=true
@@ -198,7 +194,6 @@ getent passwd clearly >/dev/null 2>&1 || useradd -r -g clearly -d /var/lib/clear
 %{_bindir}/clearly
 %{_unitdir}/clearly.service
 
-%dir %attr(0755,clearly,clearly) /var/tmp/clearly
 %dir %attr(0755,clearly,clearly) /var/lib/clearly
 
 %{_libexecdir}/%{name}/check

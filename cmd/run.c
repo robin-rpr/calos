@@ -851,7 +851,7 @@ char *runtime_default(void)
    char *runtime = getenv("CLEARLY_RUNTIME_STORAGE");
 
    if (runtime == NULL)
-      T_ (1 <= asprintf(&runtime, "/var/tmp/clearly/runtime"));
+      T_ (1 <= asprintf(&runtime, "/var/lib/clearly/runtime"));
 
    return runtime;
 }
@@ -862,7 +862,7 @@ char *storage_default(void)
    char *storage = getenv("CLEARLY_IMAGE_STORAGE");
 
    if (storage == NULL)
-      T_ (1 <= asprintf(&storage, "/var/tmp/clearly/images"));
+      T_ (1 <= asprintf(&storage, "/var/lib/clearly/images"));
 
    return storage;
 }
@@ -873,7 +873,7 @@ char *mount_default(void)
    char *mount = getenv("CLEARLY_MOUNT_STORAGE");
 
    if (mount == NULL)
-      T_ (1 <= asprintf(&mount, "/var/tmp/clearly/mount"));
+      T_ (1 <= asprintf(&mount, "/var/lib/clearly/mount"));
 
    return mount;
 }

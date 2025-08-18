@@ -80,7 +80,7 @@ class Runtime():
         self.machine_id = machine_id
         self.interface = interface
         
-        self.address = self._ip(interface)
+        self.address = socket.inet_ntoa(self._ip(interface))
         self.executor = _executor.Executor()
         self.lock = threading.RLock()
         self.seq = 0
@@ -96,18 +96,18 @@ class Runtime():
         self.peer_addresses = {}  # Map node IDs to addresses
 
         self._send = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-        self._send.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_IF, socket.inet_aton(self._ip("clearly0")))
+        self._send.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_IF, self._ip("clearly0"))
         self._send.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 1)
 
     @staticmethod
     def _ip(ifname: str) -> bytes:
-        """IP address retrieval function"""
+        """IP address (4 byte-packed)"""
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        return socket.inet_ntoa(fcntl.ioctl(
+        return fcntl.ioctl(
             s.fileno(),
             0x8915, # SIOCGIFADDR
             struct.pack('256s', ifname.encode('utf-8')[:15])
-        )[20:24])
+        )[20:24]
 
     @staticmethod
     def _blake64(b: bytes) -> int:
@@ -134,7 +134,7 @@ class Runtime():
             s.bind(("", self.multicast_port))
         except OSError:
             s.bind((self.multicast_addr, self.multicast_port))
-        mreq = struct.pack("4s4s", socket.inet_aton(self.multicast_addr), socket.inet_aton(self._ip("clearly0")))
+        mreq = struct.pack("4s4s", socket.inet_aton(self.multicast_addr), self._ip("clearly0"))
         s.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
         s.settimeout(1.0)
         return s
@@ -431,9 +431,20 @@ class Runtime():
                         environment=spec["environment"]
                     )
 
+        # Only stop containers that are part of deployments but shouldn't be here
+        # Don't stop manually started containers that aren't part of any deployment
         current = set([k for k, v in self.local_view.items() if v["status"] != "removed"])
-
-        for cname in current - want_here:
+        
+        # Only consider containers that are part of deployments for stopping
+        deployment_containers = set()
+        for identifier, deployment in self.deploys.items():
+            for name in deployment.get("services", {}).keys():
+                deployment_containers.add(name)
+        
+        # Only stop containers that are part of deployments but not wanted here
+        containers_to_stop = (current & deployment_containers) - want_here
+        
+        for cname in containers_to_stop:
             self.executor.stop_container(cname)
 
     def list_nodes(self) -> list:

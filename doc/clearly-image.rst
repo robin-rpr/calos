@@ -274,7 +274,7 @@ In descending order of priority, this directory is located at:
     likely set in a very different context than when it’s used, which seems
     error-prone on what a relative path is relative to.
 
-  :code:`/var/tmp/clearly/images`
+  :code:`/var/lib/clearly/images`
     Default.
 
 Unlike many container implementations, there is no notion of storage drivers,

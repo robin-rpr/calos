@@ -836,7 +836,7 @@ EOF
     my_storage=${BATS_TMPDIR}/unsafe
 
     # Default storage location.
-    if [[ $CLEARLY_IMAGE_STORAGE = /var/tmp/clearly/images ]]; then
+    if [[ $CLEARLY_IMAGE_STORAGE = /var/lib/clearly/images ]]; then
         sold=$CLEARLY_IMAGE_STORAGE
         unset CLEARLY_IMAGE_STORAGE
         [[ ! -e .%3.17 ]]

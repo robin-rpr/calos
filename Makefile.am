@@ -28,15 +28,12 @@ install-exec-hook:
 	  fi \
 	done
 	@echo '### creating paths ###'
-	mkdir -p /var/tmp/clearly
 	mkdir -p /var/lib/clearly
 
 uninstall-hook:
 	@echo '### deleting paths ###'
-	rm -rf /var/tmp/clearly
 	rm -rf /var/lib/clearly
 
 clean-local:
 	@echo '### emptying paths ###'
-	rm -rf /var/tmp/clearly/*
 	rm -rf /var/lib/clearly/*

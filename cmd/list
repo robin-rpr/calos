@@ -2,7 +2,7 @@
 
 set -u
 
-clearly_runtime="${CLEARLY_RUNTIME_STORAGE:-/var/tmp/clearly/runtime}"
+clearly_runtime="${CLEARLY_RUNTIME_STORAGE:-/var/lib/clearly/runtime}"
 clearly_lib=$(cd "$(dirname "$0")" && pwd)/../../lib
 . "${clearly_lib}/_base.sh"
 
@@ -55,7 +55,7 @@ if [[ ! -d "$clearly_runtime" ]]; then
   if [[ "$json_output" == "--json" ]]; then
     printf '[]\n'
   else
-    printf 'CONTAINER ID\tIP ADDRESS\tSTATUS\n'
+    printf '%-20s\t%-15s\t%s\n' "CONTAINER ID" "IP ADDRESS" "STATUS"
   fi
   exit 0
 fi
@@ -69,6 +69,7 @@ fi
 
 first_item=1
 
+shopt -s nullglob
 for dir in "$clearly_runtime"/*/; do
 
   id="${dir%/}"; id="${id##*/}"

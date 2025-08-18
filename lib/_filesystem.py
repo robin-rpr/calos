@@ -1075,7 +1075,7 @@ class Storage:
 
    @staticmethod
    def root_default():
-      return Path("/var/tmp/clearly/images")
+      return Path("/var/lib/clearly/images")
 
    @staticmethod
    def root_env():
