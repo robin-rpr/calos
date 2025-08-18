@@ -246,6 +246,7 @@ getent passwd clearly >/dev/null 2>&1 || useradd -r -g clearly -d /var/lib/clear
 %{_prefix}/lib/%{name}/_build_cache.*.so
 %{_prefix}/lib/%{name}/_build.*.so
 %{_prefix}/lib/%{name}/_clearly.*.so
+%{_prefix}/lib/%{name}/_executor.*.so
 %{_prefix}/lib/%{name}/_filesystem.*.so
 %{_prefix}/lib/%{name}/_force.*.so
 %{_prefix}/lib/%{name}/_grammar.*.so
@@ -260,7 +261,6 @@ getent passwd clearly >/dev/null 2>&1 || useradd -r -g clearly -d /var/lib/clear
 %{_prefix}/lib/%{name}/_registry.*.so
 %{_prefix}/lib/%{name}/_runtime.*.so
 %{_prefix}/lib/%{name}/_tree.*.so
-%{_prefix}/lib/%{name}/_zeroconf.*.so
 %{?el7:%{_prefix}/lib/%{name}/__pycache__}
 
 %files doc
