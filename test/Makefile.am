@@ -5,7 +5,6 @@ testfiles = \
 .dockerignore \
 Dockerfile.argenv \
 Dockerfile.quick \
-approved-trailing-whitespace \
 bucache/a.df \
 bucache/a-fail.df \
 bucache/argenv.df \
@@ -72,10 +71,10 @@ sotest/libsotest.so.1.0 \
 sotest/sotest
 
 CLEANFILES = $(sobuilts) \
-             docs-sane \
-             doctest build/30_doctest-auto.bats \
-             force-auto force-auto.bats \
-             make-perms-test order-py
+	docs-sane \
+	doctest build/30_doctest-auto.bats \
+	force-auto force-auto.bats \
+	make-perms-test order-py
 
 if ENABLE_TEST
 nobase_test_DATA = $(testfiles)
@@ -102,12 +101,12 @@ uninstall-local:
 	rmdir $(DESTDIR)$(testdir)/fixtures || true
 endif
 EXTRA_DIST = $(testfiles) \
-             $(testfiles_exec) \
-             docs-sane.py \
-             doctest.py \
-             force-auto.py \
-	     make-perms-test.py \
-             order-py.py
+	$(testfiles_exec) \
+	docs-sane.py \
+	doctest.py \
+	force-auto.py \
+	make-perms-test.py \
+	order-py.py
 EXTRA_SCRIPTS = $(sobuilts)
 
 ## Python scripts - need text processing

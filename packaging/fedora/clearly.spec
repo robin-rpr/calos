@@ -236,7 +236,6 @@ getent passwd clearly >/dev/null 2>&1 || useradd -r -g clearly -d /var/lib/clear
 %{_datadir}/%{name}/Build.missing
 %{_datadir}/%{name}/Dockerfile.argenv
 %{_datadir}/%{name}/Dockerfile.quick
-%{_datadir}/%{name}/approved-trailing-whitespace
 %{_datadir}/%{name}/common.bash
 %{_datadir}/%{name}/docs-sane
 %{_datadir}/%{name}/doctest

@@ -1,12 +1,17 @@
 import subprocess
 import threading
+import socket
+import fcntl
+import struct
+import hashlib
+import zlib
 import logging
 import time
 import json
 import os
 import re
 
-import _proxy as _proxy
+import _executor as _executor
 
 
 ## Constants ##
@@ -21,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 ## Classes ##
 
-class Runtime(BaseRuntime):
+class Runtime():
     """
     Container runtime for distributed container orchestration.
 
@@ -53,6 +58,7 @@ class Runtime(BaseRuntime):
 
         Attributes:
             address: The IP address of the network interface used by this node.
+            executor: High-level (CLI) executor to interact with runtime.
             lock: Reentrant lock for thread-safe state changes.
             seq: Local sequence number for state updates.
             local_view: Local containers' state.
@@ -62,7 +68,6 @@ class Runtime(BaseRuntime):
 
             _send: UDP socket for sending multicast packets.
         """
-        super().__init__()
 
         self.multicast_addr = multicast_addr
         self.multicast_port = multicast_port
@@ -70,6 +75,7 @@ class Runtime(BaseRuntime):
         self.interface = interface
         
         self.address = self._ip(interface)
+        self.executor = _executor.Executor()
         self.lock = threading.RLock()
         self.seq = 0
         self.local_view = {}
@@ -78,17 +84,18 @@ class Runtime(BaseRuntime):
         self.threads = []
 
         self._send = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+        self._send.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_IF, socket.inet_aton(self._ip("clearly0")))
         self._send.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 1)
 
     @staticmethod
-    def _ip(ifname: str) -> str:
-        """IP address (as 4-byte packed format)"""
+    def _ip(ifname: str) -> bytes:
+        """IP address retrieval function"""
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        return fcntl.ioctl(
+        return socket.inet_ntoa(fcntl.ioctl(
             s.fileno(),
             0x8915, # SIOCGIFADDR
             struct.pack('256s', ifname.encode('utf-8')[:15])
-        )[20:24]
+        )[20:24])
 
     @staticmethod
     def _blake64(b: bytes) -> int:
@@ -110,19 +117,20 @@ class Runtime(BaseRuntime):
             s.bind(("", self.multicast_port))
         except OSError:
             s.bind((self.multicast_addr, self.multicast_port))
-        mreq = struct.pack("=4sl", socket.inet_aton(self.multicast_addr), socket.INADDR_ANY)
+        mreq = struct.pack("4s4s", socket.inet_aton(self.multicast_addr), socket.inet_aton(self._ip("clearly0")))
         s.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
         s.settimeout(1.0)
         return s
 
     def _sock_send(self, msg: dict):
-        """Announce a message to the cluster"""
+        """Send multicast message to the cluster"""
         raw = json.dumps(msg, separators=(",", ":")).encode()
         comp = zlib.compress(raw, 6)
         payload, enc = (comp, "z") if len(comp) <= MAX_UDP else (raw, "raw")
         header = json.dumps({"enc": enc}).encode() + b"\n"
         try:
             self._send.sendto(header + payload, (self.multicast_addr, self.multicast_port))
+            logger.info(f"Sent multicast message: {msg.get('t', 'UNKNOWN')} to {self.multicast_addr}:{self.multicast_port}")
         except Exception:
             pass
 
@@ -131,31 +139,30 @@ class Runtime(BaseRuntime):
         last_hash = None
         while True:
             time.sleep(ANNOUNCE_INTERVAL)
-            snapshot = self.runtime.list_containers()
+            snapshot = self.executor.list_containers()
             if "error" in snapshot:
                 continue
             
             hash_data = []
-            for k, v in sorted(snapshot.get("containers", {}).items()):
-                hash_data.append(f"{k}:{v.get('status', 'unknown')}:{v.get('ip_address', '')}:{v.get('id', '')}")
-            
+            for container in snapshot.get("containers"):
+                hash_data.append(f"{container.get('id')}:{container.get('ip_address')}:{container.get('status')}")
+
             h = hashlib.blake2b("|".join(hash_data).encode(), digest_size=8).hexdigest()
             if h != last_hash:
                 self.seq += 1
                 with self.lock:
-                    for k, v in snapshot.get("containers", {}).items():
-                        prev = self.local_view.get(k)
-                        if not prev or prev.get("status") != v.get("status"):
-                            self.local_view[k] = {
-                                "status": v.get("status", "unknown"),
-                                "ip_address": v.get("ip_address", ""),
-                                "id": v.get("id", ""),
-                                "ver": self.seq
-                            }
+                    for container in snapshot.get("containers"):
+                        self.local_view[container.get('id')] = {
+                            "status": container.get('status'),
+                            "ip_address": container.get('ip_address'),
+                            "id": container.get('id'),
+                            "ver": self.seq
+                        }
                     
-                    for k in [k for k in list(self.local_view.keys()) if k not in snapshot.get("containers", {})]:
+                    for k in [k for k in list(self.local_view.keys()) if k not in [container.get('id') for container in snapshot.get("containers")]]:
                         self.seq += 1
                         self.local_view[k] = {"status": "removed", "ver": self.seq}
+
                 last_hash = h
             with self.lock:
                 items = sorted(self.local_view.items(), key=lambda kv: kv[1]["ver"], reverse=True)
@@ -255,7 +262,7 @@ class Runtime(BaseRuntime):
             if owner == self.machine_id:
                 want_here.add(name)
                 if name not in self.local_view or self.local_view.get(name, {}).get("status") == "stopped":
-                    self.runtime.start_container(
+                    self.executor.start_container(
                         name=name,
                         image=spec["image"],
                         command=spec["command"],
@@ -266,7 +273,7 @@ class Runtime(BaseRuntime):
         current = set([k for k, v in self.local_view.items() if v["status"] != "removed"])
 
         for cname in current - want_here:
-            self.runtime.stop_container(cname)
+            self.executor.stop_container(cname)
 
     def list_nodes(self) -> list:
         """List all nodes in the cluster"""
@@ -303,134 +310,3 @@ class Runtime(BaseRuntime):
         for t in self.threads:
             t.join()
         self.threads = []
-
-class BaseRuntime(Runtime):
-    """BaseRuntime"""
-
-    def __init__(self):
-        pass
-
-    def start_container(self, name: str, image: str, command: list,
-                        publish: dict, environment: dict) -> dict:
-        """Start a container"""
-        try:
-            cmd = ["clearly", "run", image, "--name", name, "--detach"]
-
-            if publish:
-                for key, value in publish.items():
-                    cmd.extend(["--publish", f"{key}:{value}"])
-            
-            if environment:
-                for key, value in environment.items():
-                    cmd.extend(["--env", f"{key}={value}"])
-            
-            if command:
-                cmd.extend(["--"] + command)
-
-            # Execute command.
-            logger.info(f"Starting container {name} with command: {cmd}")
-            subprocess.Popen(cmd)
-            
-            return {"success": True}
-                
-        except Exception as e:
-            logger.error(f"Failed to start container {name}: {e}")
-            return {"error": str(e)}
-    
-    def stop_container(self, name):
-        """Stop a container"""
-        try:
-            cmd = ["clearly", "stop", name]
-
-            # Execute command.
-            subprocess.Popen(cmd)
-            
-            return {"success": True}
-                
-        except Exception as e:
-            logger.error(f"Failed to stop container {name}: {e}")
-            return {"error": str(e)}
-    
-    def get_container_logs(self, name):
-        """Get logs from a container"""
-        try:
-            cmd = ["clearly", "logs", name]
-
-            # Execute command and capture output.
-            result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-            
-            return {"success": True, "stdout": result.stdout, "stderr": result.stderr}
-                
-        except Exception as e:
-            logger.error(f"Failed to get logs for container {name}: {e}")
-            return {"error": str(e)}
-    
-    def list_containers(self):
-        """List all containers"""
-        try:
-            cmd = ["clearly", "list", "--json"]
-
-            # Execute command and capture output.
-            result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-            
-            return {"success": True, "containers": json.loads(result.stdout)}
-                
-        except Exception as e:
-            logger.error(f"Failed to list containers: {e}")
-            return {"error": str(e)}
-
-    
-# class StudioExecutor(Executor):
-#     """StudioExecutor"""
-# 
-#     def __init__(self):
-#         super().__init__()
-# 
-#     def start_studio(self, name):
-#         """Start a studio, which is a group of containers"""
-# 
-#         containers = [
-#             {
-#                 "name": "vscode",
-#                 "image": "codercom/code-server:4.101.2-39",
-#                 "command": ["/usr/bin/entrypoint.sh", "--bind-addr", "0.0.0.0:8080", ".", "--auth", "none"],
-#                 "proxy": { "0": "8080" }
-#             },
-#             {
-#                 "name": "jupyter",
-#                 "image": "jupyter/minimal-notebook:python-3.9.13",
-#                 "command": [
-#                     "tini", "-g", "--", "start-notebook.sh",
-#                     "--ServerApp.token=",
-#                     "--ServerApp.password=",
-#                     "--ServerApp.allow_origin=*",
-#                     "--ServerApp.disable_check_xsrf=True",
-#                     "--ServerApp.tornado_settings={\"headers\":{\"Content-Security-Policy\":\"frame-ancestors *\"}}"
-#                 ],
-#                 "proxy": { "0": "8888" }
-#             }
-#         ]
-#         
-#         # Start all containers.
-#         for container in containers:
-#             result = self.start_container(
-#                 name=f"~{name}-{container['name']}",
-#                 image=container.get('image', None),
-#                 command=container.get('command', []),
-#                 environment=container.get('environment', {})
-#             )
-# 
-#             # Check for errors.
-#             if "error" in result:
-#                 return result
-# 
-#         return {"success": True}
-# 
-#     def stop_studio(self, name):
-#         """Stop a studio and all its containers"""
-#         logger.info(f"Stopping studio {name}")
-#     
-#     def list_studios(self):
-#         """List all studios"""
-#         logger.info(f"Listing studios")
-# 

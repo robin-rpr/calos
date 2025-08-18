@@ -3,6 +3,9 @@
 set -u
 
 clearly_runtime="${CLEARLY_RUNTIME_STORAGE:-/var/tmp/clearly/runtime}"
+clearly_lib=$(cd "$(dirname "$0")" && pwd)/../../lib
+. "${clearly_lib}/_base.sh"
+
 json_output="${1:-}" # "--json" or empty
 
 usage=$(cat <<EOF
@@ -39,14 +42,10 @@ while [ $# -gt 0 ]; do
             json_output="--json"
             ;;
         -*)
-            echo "invalid option: ${opt}" >&2
-            echo "$usage" >&2
-            exit 1
+            FATAL "invalid option: ${opt}"
             ;;
         *)
-            echo "unexpected argument: ${opt}" >&2
-            echo "$usage" >&2
-            exit 1
+            FATAL "unexpected argument: ${opt}"
             ;;
     esac
 done

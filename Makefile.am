@@ -12,6 +12,9 @@ install-exec-hook:
 	for i in $(DESTDIR)@libexecdir@/clearly/convert \
 	         $(DESTDIR)@libexecdir@/clearly/fromhost \
 	         $(DESTDIR)@libexecdir@/clearly/test \
+			 $(DESTDIR)@libexecdir@/clearly/list \
+			 $(DESTDIR)@libexecdir@/clearly/stop \
+			 $(DESTDIR)@libexecdir@/clearly/logs \
 			 $(DESTDIR)@datadir@/clearly/common.bash \
 	         $(DESTDIR)@datadir@/clearly/doctest \
 			 $(DESTDIR)@libdir@/clearly/_base.sh; \
