@@ -334,7 +334,6 @@ void containerize(
 
     const int cidr = 8;
     char network_cidr[18];
-    char hostname[256];
 
     struct in_addr subnet_ip = { .s_addr = inet_addr("10.0.0.0") };
     struct in_addr bridge_ip = { .s_addr = inet_addr("10.0.0.1") };
@@ -343,19 +342,7 @@ void containerize(
     // Get network cidr.
     snprintf(network_cidr, sizeof(network_cidr), "%s/%d", inet_ntoa(subnet_ip), cidr);
 
-    // Get hostname.
-    if (gethostname(hostname, sizeof(hostname)) != 0) {
-      strncpy(hostname, "unknown", sizeof(hostname));
-   }
-
-   /* Step 1: Ensure the network bridge exists.
-      The bridge provides a virtual switch for containers to communicate with each other
-      and the host. If the bridge does not exist, create it and assign it the bridge IP. */
-   if (!is_bridge_exists(bridge_name)) {
-      create_bridge(bridge_name, &bridge_ip, cidr);
-   }
-
-   /* Step 2: Generate a unique IP for the container.
+   /* Step 1: Generate a unique IP for the container.
        To minimize network conflicts, especially in multi-tenant systems, we
        generate a pseudo-random IP address. We then send an ARP request to
        ensure the address is not currently in use on the local network segment.
@@ -426,7 +413,7 @@ void containerize(
             create_nft_forward(&guest_ip, host_port, guest_port, "udp");
         }
         
-        /* Step 3: Synchronize with child.
+        /* Step 2: Synchronize with child.
            Wait for the child to signal 'S' (sync), indicating it has created
            its namespaces. Then, move the veth peer into the child's network
            namespace and signal 'R' (ready) to allow the child to proceed. */
@@ -437,7 +424,7 @@ void containerize(
         // This is the last step before the child can proceed.
         set_veth_ns_pid(veth_peer_name, child_pid);
 
-        /* Step 4: Signal child to proceed.
+        /* Step 3: Signal child to proceed.
            The parent writes 'R' (ready) to the pipe to notify the child that
            network setup is complete and it can continue. The child will read
            this signal before proceeding. */
@@ -447,12 +434,12 @@ void containerize(
         // Ignore SIGHUP.
         signal(SIGHUP, SIG_IGN);
 
-        /* Step 10: Wait for child to exit.
+        /* Step 9: Wait for child to exit.
            We wait for the child to exit so we can perform cleanup. */
         int status;
         waitpid(child_pid, &status, 0);
 
-        /* Step 11: Cleanup.
+        /* Step 10: Cleanup.
            Various cleanup tasks to leave the system in a clean state.
            Without this, the system will be left in a dirty state where the
            child process is still thought to exist and the parent process has
@@ -557,13 +544,13 @@ void containerize(
             join_end(c->join_ct);
         }
 
-        /* Step 5: Synchronize with parent.
+        /* Step 4: Synchronize with parent.
            Signal 'S' (sync) to the parent, indicating namespace setup is
            complete. Then wait for the parent to send 'R' (ready) after it
            has moved the veth interface into our namespace. */
         Zf(write(sync_pipe[1], "S", 1) != 1, "child failed to send sync signal");
 
-        /* Step 6: Wait for parent to move veth interface.
+        /* Step 5: Wait for parent to move veth interface.
            The child reads 'R' (ready) from the pipe to wait for the parent
            to move the veth interface into our namespace. After this, the child
            can proceed until it exits. */
@@ -587,7 +574,7 @@ void containerize(
         // Configure default route.
         set_veth_route(veth_guest_name, &bridge_ip, "0.0.0.0/0");
 
-        /* Step 7: Drop elevated capabilities.
+        /* Step 6: Drop elevated capabilities.
            The CAP_NET_ADMIN capability was required to configure the network
            interfaces. As it is no longer needed, we drop it to adhere to the
            principle of least privilege. */
@@ -602,7 +589,7 @@ void containerize(
         VERBOSE("dropped NET_ADMIN capability");
 #endif
 
-        /* Step 8: Configure DNS.
+        /* Step 7: Configure DNS.
            We add two nameservers to /etc/resolv.conf: Google's DNS and Cloudflare's DNS.
            This provides a basic DNS resolution mechanism for the container. */
         FILE *resolv_conf = fopen("/etc/resolv.conf", "w");
@@ -612,7 +599,7 @@ void containerize(
             fclose(resolv_conf);
         }
 
-        /* Step 9: Configure /etc/hosts.
+        /* Step 8: Configure /etc/hosts.
            We add hostname entries to /etc/hosts to enable basic hostname
            resolution within the container. This is a simple mechanism to
            allow containers to resolve hostnames to IP addresses. */
