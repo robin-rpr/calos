@@ -5,8 +5,6 @@ a.out
 /cmd/check
 /cmd/run
 /cmd/use
-/cmd/logs
-/cmd/stop
 /cmd/image
 /cmd/daemon
 /cmd/version

@@ -1,0 +1,77 @@
+#!/bin/sh
+
+set -u
+
+clearly_runtime="${CLEARLY_RUNTIME_STORAGE:-/var/tmp/clearly/runtime}"
+clearly_lib=$(cd "$(dirname "$0")" && pwd)/../../lib
+. "${clearly_lib}/_base.sh"
+
+usage=$(cat <<EOF
+Show logs from a container.
+
+Usage:
+
+  $ clearly logs [OPTIONS] CONTAINER_ID
+
+Options:
+
+  -f, --follow    follow log output (like tail -f)
+  -h, --help      print this help and exit
+
+Examples:
+
+  $ clearly logs myapp
+  $ clearly logs -f myapp
+  $ clearly logs --follow abc123
+
+The logs command displays the stdout and stderr output from a running container.
+Use the -f flag to follow the logs in real-time.
+EOF
+)
+
+container_id=""
+follow=false
+
+# Parse arguments
+while [ $# -gt 0 ]; do
+    opt=$1; shift
+    if [ "$opt" = "-h" ] || [ "$opt" = "--help" ]; then
+        echo "$usage"
+        exit 0
+    fi
+    case $opt in
+        -f|--follow)
+            follow=true
+            ;;
+        -*)
+            FATAL "invalid option: ${opt}"
+            ;;
+        *)
+            [ -z "$container_id" ] || FATAL "duplicate container ID: ${opt}"
+            container_id="$opt"
+            ;;
+    esac
+done
+
+[ -n "$container_id" ] || FATAL "container ID required"
+
+# Check if container exists
+container_dir="$clearly_runtime/$container_id"
+if [[ ! -d "$container_dir" ]]; then
+    FATAL "container '$container_id' not found."
+fi
+
+# Check if log file exists
+log_file="$container_dir/log"
+if [[ ! -f "$log_file" ]]; then
+    FATAL "no logs available for container '$container_id'."
+fi
+
+# Display logs
+if [[ "$follow" == true ]]; then
+    # Follow logs in real-time
+    tail -f "$log_file"
+else
+    # Show all logs
+    cat "$log_file"
+fi

@@ -6,7 +6,7 @@ clearly_lib=$(cd "$(dirname "$0")" && pwd)/../../lib
 set -e
 
 usage=$(cat <<EOF
-Deploy applications using Clearly's distributed runtime.
+Deploy applications to the cluster.
 
 Usage:
 
@@ -17,8 +17,6 @@ Options:
 
   -f, --file FILE    specify an alternate compose file (default: docker-compose.yml)
   -h, --help         print this help and exit
-  -q, --quiet        make the program more quiet, can be repeated
-  -v, --verbose      make the program more verbose, can be repeated
 
 Examples:
 
@@ -37,23 +35,26 @@ app_name=""
 # Parse arguments
 while [ $# -gt 0 ]; do
     opt=$1; shift
-    if ! parse_basic_arg "$opt"; then
-        case $opt in
-            -f|--file)
-                [ $# -gt 0 ] || FATAL "missing argument for --file"
-                compose_file=$1
-                shift
-                ;;
-            -*)
-                INFO "invalid option: ${opt}"
-                usage
-                ;;
-            *)
-                [ -z "$app_name" ] || FATAL "duplicate app name: ${opt}"
-                app_name="$opt"
-                ;;
-        esac
+    if [ "$opt" = "-h" ] || [ "$opt" = "--help" ]; then
+        echo "$usage"
+        exit 0
     fi
+    case $opt in
+        -f|--file)
+            [ $# -gt 0 ] || FATAL "missing argument for --file"
+            compose_file=$1
+            shift
+            ;;
+        -*)
+            INFO "invalid option: ${opt}"
+            echo "$usage"
+            exit 1
+            ;;
+        *)
+            [ -z "$app_name" ] || FATAL "duplicate app name: ${opt}"
+            app_name="$opt"
+            ;;
+    esac
 done
 
 [ -n "$app_name" ] || FATAL "app name required"
@@ -70,14 +71,14 @@ fi
 # Read and validate the compose file
 VERBOSE "reading compose file: ${compose_file}"
 
-# Just send the compose file as-is to the API, no validation, using curl and jq if available
+# Send the compose file as-is
 response=$(curl -s -X POST \
     -H "Content-Type: application/x-yaml" \
     --data-binary @"$compose_file" \
     "$daemon_url/api/deploy")
 
-# Print the API response as-is
+# Print the response
 echo "$response"
 
-INFO "done"
+INFO "ok"
 

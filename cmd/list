@@ -2,11 +2,57 @@
 
 set -u
 
-runtime="${CLEARLY_RUNTIME_STORAGE:-/var/tmp/clearly/runtime}"
+clearly_runtime="${CLEARLY_RUNTIME_STORAGE:-/var/tmp/clearly/runtime}"
 json_output="${1:-}" # "--json" or empty
 
+usage=$(cat <<EOF
+List all containers on the system.
+
+Usage:
+
+  $ clearly list [OPTIONS]
+
+Options:
+
+  --json              output in JSON format
+  -h, --help          print this help and exit
+
+Examples:
+
+  $ clearly list
+  $ clearly list --json
+
+The list command shows all containers currently managed by the Clearly
+runtime, including their container ID, IP address, and current status.
+EOF
+)
+
+# Parse arguments
+while [ $# -gt 0 ]; do
+    opt=$1; shift
+    if [ "$opt" = "-h" ] || [ "$opt" = "--help" ]; then
+        echo "$usage"
+        exit 0
+    fi
+    case $opt in
+        --json)
+            json_output="--json"
+            ;;
+        -*)
+            echo "invalid option: ${opt}" >&2
+            echo "$usage" >&2
+            exit 1
+            ;;
+        *)
+            echo "unexpected argument: ${opt}" >&2
+            echo "$usage" >&2
+            exit 1
+            ;;
+    esac
+done
+
 # If runtime dir doesn't exist: mimic original behavior
-if [[ ! -d "$runtime" ]]; then
+if [[ ! -d "$clearly_runtime" ]]; then
   if [[ "$json_output" == "--json" ]]; then
     printf '[]\n'
   else
@@ -24,7 +70,7 @@ fi
 
 first_item=1
 
-for dir in "$runtime"/*/; do
+for dir in "$clearly_runtime"/*/; do
 
   id="${dir%/}"; id="${id##*/}"
 

@@ -50,7 +50,7 @@ fi
 export clearly_docker_nosudo
 
 usage=$(cat <<EOF
-Run some or all of the Clearly test suite.
+Run some or all of the test suite.
 
 Usage:
 

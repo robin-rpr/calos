@@ -1,0 +1,93 @@
+#!/bin/sh
+
+set -u
+
+clearly_runtime="${CLEARLY_RUNTIME_STORAGE:-/var/tmp/clearly/runtime}"
+clearly_lib=$(cd "$(dirname "$0")" && pwd)/../../lib
+. "${clearly_lib}/_base.sh"
+
+usage=$(cat <<EOF
+Stop a running container.
+
+Usage:
+
+  $ clearly stop CONTAINER_ID
+
+Examples:
+
+  $ clearly stop myapp
+  $ clearly stop abc123
+
+The stop command sends a SIGTERM signal to the container process.
+If the container doesn't stop gracefully within 3 seconds,
+a SIGKILL signal is sent to force termination.
+EOF
+)
+
+container_id=""
+
+# Parse arguments
+while [ $# -gt 0 ]; do
+    opt=$1; shift
+    if [ "$opt" = "-h" ] || [ "$opt" = "--help" ]; then
+        echo "$usage"
+        exit 0
+    fi
+    case $opt in
+        -*)
+            FATAL "invalid option: ${opt}"
+            ;;
+        *)
+            [ -z "$container_id" ] || FATAL "duplicate container ID: ${opt}"
+            container_id="$opt"
+            ;;
+    esac
+done
+
+[ -n "$container_id" ] || FATAL "container ID required"
+
+# Check if container exists
+container_dir="$clearly_runtime/$container_id"
+if [[ ! -d "$container_dir" ]]; then
+    FATAL "container '$container_id' not found."
+    exit 1
+fi
+
+# Read PID from container directory
+pid_file="$container_dir/pid"
+if [[ ! -f "$pid_file" ]]; then
+    FATAL "could not read PID for container '$container_id'."
+fi
+
+pid=$(<"$pid_file")
+INFO "stopping container $container_id..."
+
+# Send SIGTERM
+if ! kill "$pid" 2>/dev/null; then
+    if [[ ! -e "/proc/$pid" ]]; then
+        FATAL "container '$container_id' was not running."
+        # Clean up container directory
+        rm -rf "$container_dir"
+        exit 0
+    else
+        FATAL "failed to send SIGTERM to container."
+        exit 1
+    fi
+fi
+
+# Wait a few seconds for graceful shutdown
+sleep 3
+
+# Check if the process is still running
+if kill -0 "$pid" 2>/dev/null; then
+    FATAL "container did not stop gracefully. sending SIGKILL..."
+    if ! kill -9 "$pid" 2>/dev/null; then
+        FATAL "failed to send SIGKILL to container."
+        exit 1
+    fi
+fi
+
+INFO "container $container_id stopped."
+
+# Cleanup container directory
+rm -rf "$container_dir"
