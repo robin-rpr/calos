@@ -153,14 +153,12 @@ class Runtime():
             s.bind((self.multicast_addr, self.multicast_port))
             logger.info(f"Bound socket to {self.multicast_addr}:{self.multicast_port}")
 
-        ifindex = socket.if_nametoindex(self.interface)
-        mreqn = struct.pack("4s4si",
+        mreq = struct.pack("4s4s",
             socket.inet_aton(self.multicast_addr),
-            socket.inet_aton("0.0.0.0"),
-            ifindex
+            socket.inet_aton(self.address),
         )
-        s.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreqn)
-        logger.info(f"Joined multicast group {self.multicast_addr}")
+        s.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
+        logger.info(f"Joined multicast group {self.multicast_addr} on {self.address}")
 
         s.settimeout(1.0)
         return s
