@@ -149,6 +149,10 @@ SyslogIdentifier=clearly
 # RestrictSUIDSGID=true
 # NoNewPrivileges=true
 
+# Capability settings
+CapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_RAW
+AmbientCapabilities=CAP_NET_ADMIN CAP_NET_RAW
+
 # Resource limits
 LimitNOFILE=65536
 LimitNPROC=4096
