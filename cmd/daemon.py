@@ -146,6 +146,11 @@ def stop_container(container_id, payload=None):
     """Stop a container by ID."""
     return runtime.stop_container(container_id)
 
+@webserver.get('/api/machines')
+def list_machines(payload=None):
+    """List all discovered machines."""
+    return runtime.cluster
+
 # @webserver.get('/api/studios')
 # def list_studios(payload=None):
 #     """List all studios."""
@@ -171,12 +176,6 @@ def stop_container(container_id, payload=None):
 # def stop_studio(studio_id, payload=None):
 #     """Stop a studio by ID."""
 #     return studio_executor.stop_studio(studio_id)
-# 
-# @webserver.get('/api/machines')
-# def list_machines(payload=None):
-#     """List all discovered Clearly machines."""
-#     with listener.lock:
-#         return listener.services.copy()
 
 
 ## Pages ##
