@@ -1391,7 +1391,7 @@ void create_nft_forward(const struct in_addr *guest_ip, int host_port, int guest
     nftnl_batch_end(mnl_nlmsg_batch_current(batch), seq++);
     mnl_nlmsg_batch_next(batch);
 
-    // Send the batch to the kernel
+    // Send the batch to the kernel.
     if (mnl_socket_sendto(sock, mnl_nlmsg_batch_head(batch), mnl_nlmsg_batch_size(batch)) < 0) {
       Zf(1, "kernel rejected port forwarding rule");
       mnl_socket_close(sock);
@@ -1553,60 +1553,64 @@ void flush_nft_forward(const struct in_addr *guest_ip, const char *protocol) {
 
 /* Create a VXLAN interface. 
 
-   This function will create a VXLAN interface for the specified remote IP address.
+   This function will create a VXLAN interface for the specified group and local IP addresses.
 
    1. Allocate a netlink socket.
-   2. Allocate a vxlan link, set the name, type, VNI, remote IP, and port.
+   2. Allocate a vxlan link, set the name, type, VNI, group IP, local IP, and port.
    3. Send the vxlan link to the linux kernel.
 
    The assumption is that the vxlan link doesn't already exist with these parameters.
    If it does, this function will fail.
 */
-void create_vxlan(const char *vxlan_name, uint32_t vni, const char *lower_device_name, const struct in_addr *group_ip, const struct in_addr *local_ip, uint16_t dstport) {
+void create_vxlan(const char *vxlan_name, uint32_t vni, const char *lower_device, const struct in_addr *group_ip, const struct in_addr *local_ip, uint16_t dstport) {
     struct nl_sock *sock = nl_socket_alloc();
     Tf(sock != NULL, "failed to allocate netlink socket for VXLAN(create) with device");
     Zf(nl_connect(sock, NETLINK_ROUTE) < 0, "failed to connect to netlink route socket for VXLAN(create) with device");
 
-    // Resolve the lower device ifindex
+    // Get the lower device.
     struct rtnl_link *lower_link;
-    Zf(rtnl_link_get_kernel(sock, 0, lower_device_name, &lower_link) < 0, "failed to get lower device '%s'", lower_device_name);
+    Zf(rtnl_link_get_kernel(sock, 0, lower_device, &lower_link) < 0, "failed to get lower device '%s'", lower_device);
     int lower_ifindex = rtnl_link_get_ifindex(lower_link);
-    Zf(lower_ifindex <= 0, "invalid ifindex for lower device '%s'", lower_device_name);
+    Zf(lower_ifindex <= 0, "invalid ifindex for lower device '%s'", lower_device);
 
     // Allocate a vxlan link.
     struct rtnl_link *vxlan_link = rtnl_link_vxlan_alloc();
     Tf(vxlan_link != NULL, "failed to allocate VXLAN link");
 
-    // Set base attributes
+    // Set the name, VNI, and bind to lower device.
     rtnl_link_set_name(vxlan_link, vxlan_name);
     rtnl_link_vxlan_set_id(vxlan_link, vni);
 
-    // Bind to lower device
-    rtnl_link_set_link(vxlan_link, lower_ifindex);
+    // Bind to lower device.
+    rtnl_link_vxlan_set_link(vxlan_link, lower_ifindex);
 
-    // Set VXLAN specific attributes: group, local, dstport
-    struct nl_addr *group_addr = nl_addr_build(AF_INET, (void *)group_ip, sizeof(*group_ip));
-    Tf(group_addr != NULL, "failed to build nl_addr for VXLAN group IP");
+    // Build addresses via nl_addr_parse to avoid byte-order/len pitfalls.
+    char group_str[INET_ADDRSTRLEN], local_str[INET_ADDRSTRLEN];
+    inet_ntop(AF_INET, &group_ip->s_addr, group_str, sizeof(group_str));
+    inet_ntop(AF_INET, &local_ip->s_addr, local_str, sizeof(local_str));
+
+    struct nl_addr *group_addr = NULL, *local_addr = NULL;
+    Zf(nl_addr_parse(group_str, AF_INET, &group_addr) < 0, "failed to parse VXLAN group IP");
+    Zf(nl_addr_parse(local_str, AF_INET, &local_addr) < 0, "failed to parse VXLAN local IP");
+
+    // Set VXLAN attributes (group, local, port, ttl).
     Zf(rtnl_link_vxlan_set_group(vxlan_link, group_addr) < 0, "failed to set VXLAN group IP");
-
-    struct nl_addr *local_addr = nl_addr_build(AF_INET, (void *)local_ip, sizeof(*local_ip));
-    Tf(local_addr != NULL, "failed to build nl_addr for VXLAN local IP");
     Zf(rtnl_link_vxlan_set_local(vxlan_link, local_addr) < 0, "failed to set VXLAN local IP");
-
     rtnl_link_vxlan_set_port(vxlan_link, dstport);
+    rtnl_link_vxlan_set_ttl(vxlan_link, 1);
 
-    // Send the vxlan link to the linux kernel (do not set IFF_UP here; handled by set_vxlan_up)
+    // Send to the kernel.
     Zf(rtnl_link_add(sock, vxlan_link, NLM_F_CREATE | NLM_F_EXCL | NLM_F_ACK) < 0,
-       "failed to create VXLAN interface '%s' (vni %u, dev %s)", vxlan_name, vni, lower_device_name);
+       "failed to create VXLAN interface '%s' (vni %u, dev %s)", vxlan_name, vni, lower_device);
 
-    // Cleanup
     nl_addr_put(group_addr);
     nl_addr_put(local_addr);
     rtnl_link_put(vxlan_link);
     rtnl_link_put(lower_link);
 
+    // Close the socket.
     VERBOSE("VXLAN interface '%s' created (vni %u, dev %s, group %s, local %s, dstport %u)",
-            vxlan_name, vni, lower_device_name, inet_ntoa(*group_ip), inet_ntoa(*local_ip), dstport);
+            vxlan_name, vni, lower_device, inet_ntoa(*group_ip), inet_ntoa(*local_ip), dstport);
     nl_socket_free(sock);
 }
 
