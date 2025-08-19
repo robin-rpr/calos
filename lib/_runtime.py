@@ -42,15 +42,15 @@ class Runtime():
         runtime.stop()
         
     """
-    def __init__(self, multicast_addr: str = '239.0.0.1', multicast_port: int = 4243,
+    def __init__(self, multicast_addr: str = '239.0.0.2', multicast_port: int = 4242,
                  machine_id: str = open('/etc/machine-id').read().strip()):
         """
         Initialize the Runtime.
         
         Args:
-            multicast_addr: Multicast group address for cluster communication (default: '239.0.0.1').
-            multicast_port: UDP port for cluster communication (default: 4243).
-            machine_id: Unique identifier for this node (default: read from /etc/machine-id).
+            multicast_addr: Multicast group address for cluster communication.
+            multicast_port: UDP port for cluster communication.
+            machine_id: Unique identifier for this node.
 
         Attributes:
             interface: The name of the default network interface used by this node.
@@ -89,7 +89,8 @@ class Runtime():
 
         self._send = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
         self._send.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_IF, socket.inet_aton(self.address))
-        self._send.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 1)
+        self._send.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 1) # TTL = 1.
+        self._send.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_LOOP, 1) # Loopback.
 
     @staticmethod
     def _ipaddr() -> str:
@@ -144,12 +145,20 @@ class Runtime():
         """Create a socket for receiving multicast messages"""
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+
         try:
             s.bind(("", self.multicast_port))
         except OSError:
             s.bind((self.multicast_addr, self.multicast_port))
-        mreq = struct.pack("4s4s", socket.inet_aton(self.multicast_addr), socket.inet_aton(self.address))
-        s.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
+
+        ifindex = socket.if_nametoindex(self.interface)
+        mreqn = struct.pack("4s4si",
+            socket.inet_aton(self.multicast_addr),
+            socket.inet_aton("0.0.0.0"),
+            ifindex
+        )
+        s.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreqn)
+        
         s.settimeout(1.0)
         return s
 
