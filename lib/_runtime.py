@@ -89,8 +89,8 @@ class Runtime():
 
         self._send = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
         self._send.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_IF, socket.inet_aton(self.address))
+        self._send.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_LOOP, 0) # Loopback.
         self._send.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 1) # TTL = 1.
-        self._send.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_LOOP, 1) # Loopback.
 
     @staticmethod
     def _ipaddr() -> str:
@@ -148,8 +148,10 @@ class Runtime():
 
         try:
             s.bind(("", self.multicast_port))
+            logger.info(f"Bound socket to port {self.multicast_port}")
         except OSError:
             s.bind((self.multicast_addr, self.multicast_port))
+            logger.info(f"Bound socket to {self.multicast_addr}:{self.multicast_port}")
 
         ifindex = socket.if_nametoindex(self.interface)
         mreqn = struct.pack("4s4si",
@@ -158,7 +160,8 @@ class Runtime():
             ifindex
         )
         s.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreqn)
-        
+        logger.info(f"Joined multicast group {self.multicast_addr}")
+
         s.settimeout(1.0)
         return s
 
@@ -392,7 +395,7 @@ class Runtime():
         """Handle incoming gossip messages"""
         msg_id = msg.get("msg_id")
         if not msg_id or msg_id in self.seen_messages:
-            return  # Already seen this message
+            return # Already seen this message
         
         self.seen_messages.add(msg_id)
         
