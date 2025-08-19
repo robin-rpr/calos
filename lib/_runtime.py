@@ -89,7 +89,7 @@ class Runtime():
 
         self._send = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
         self._send.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_IF, socket.inet_aton(self.address))
-        self._send.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_LOOP, 0) # Loopback.
+        self._send.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_LOOP, 1) # Loopback.
         self._send.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 1) # TTL = 1.
 
     @staticmethod
@@ -147,8 +147,8 @@ class Runtime():
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
         # Bind to the specific interface address instead of INADDR_ANY
-        s.bind((self.address, self.multicast_port))
-        logger.info(f"Bound socket to {self.address}:{self.multicast_port}")
+        s.bind(("", self.multicast_port))
+        logger.info(f"Bound socket to port {self.multicast_port}")
 
         mreq = struct.pack("4s4s",
             socket.inet_aton(self.multicast_addr),
