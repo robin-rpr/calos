@@ -338,6 +338,7 @@ class Runtime():
                 "ts": time.time()
             }
             
+            logger.info(f"Sending heartbeat from {self.machine_id} at {self.address}")
             self._sock_send(heartbeat)
 
     def _purge_loop(self):
@@ -369,7 +370,12 @@ class Runtime():
                 enc = json.loads(header.decode()).get("enc", "z")
                 raw = zlib.decompress(body) if enc == "z" else body
                 msg = json.loads(raw.decode())
-            except Exception:
+                
+                # Debug logging
+                logger.info(f"Received message type: {msg.get('t')} from {msg.get('node', 'unknown')}")
+                
+            except Exception as e:
+                logger.info(f"Failed to parse message: {e}")
                 continue
             
             # Handle different message types
@@ -377,6 +383,7 @@ class Runtime():
             if t == "GOSSIP":
                 self._handle_gossip(msg)
             elif t == "HEARTBEAT":
+                logger.info(f"Processing heartbeat from {msg.get('node')}")
                 self._handle_heartbeat(msg)
             elif t == "DEPLOY":
                 self.deploy(msg)
@@ -418,16 +425,21 @@ class Runtime():
         """Handle heartbeat messages for membership"""
         node_id = msg.get("node")
         if not node_id or node_id == self.machine_id:
+            logger.info(f"Ignoring heartbeat from self or invalid node: {node_id}")
             return
         
         now = time.time()
         with self.lock:
             if node_id not in self.cluster:
+                logger.info(f"Adding new node to cluster: {node_id}")
                 self.cluster[node_id] = {"containers": {}, "ts": now}
+            else:
+                logger.info(f"Updating existing node in cluster: {node_id}")
             
             self.cluster[node_id]["ts"] = now
             self.cluster[node_id]["addr"] = msg.get("addr")
             self.peer_addresses[node_id] = msg.get("addr")
+            logger.info(f"Cluster now has {len(self.cluster)} nodes")
 
     def _merge_state(self, msg: dict):
         """Legacy state merge - kept for compatibility"""
