@@ -58,7 +58,6 @@ Requires:      python3-pyyaml
 Requires:      python3-libsass
 Requires:      python3-jinja2
 Requires:      python3-wheel
-Requires:      syncthing
 Requires:      git
 
 %description

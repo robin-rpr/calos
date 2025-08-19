@@ -39,18 +39,13 @@ class Runtime():
     cluster and gossips incremental state changes to a subset of peers.
 
     Example:
-        runtime = Runtime(
-            multicast_addr='239.0.0.1',
-            multicast_port=4243,
-            machine_id=open('/etc/machine-id').read().strip(),
-            interface='clearly0'
-        )
+        runtime = Runtime()
         runtime.start()
         runtime.stop()
         
     """
     def __init__(self, multicast_addr: str = '239.0.0.1', multicast_port: int = 4243,
-                 machine_id: str = open('/etc/machine-id').read().strip(), interface: str = 'clearly0'):
+                 machine_id: str = open('/etc/machine-id').read().strip()):
         """
         Initialize the Runtime.
         
@@ -61,7 +56,7 @@ class Runtime():
             interface: The network interface used by this node (default: 'clearly0').
 
         Attributes:
-            address: The IP address of the network interface used by this node.
+            address: The IP address of the default network interface used by this node.
             executor: High-level (CLI) executor to interact with runtime.
             lock: Reentrant lock for thread-safe state changes.
             seq: Local sequence number for state updates.
@@ -78,9 +73,8 @@ class Runtime():
         self.multicast_addr = multicast_addr
         self.multicast_port = multicast_port
         self.machine_id = machine_id
-        self.interface = interface
         
-        self.address = socket.inet_ntoa(self._ip(interface))
+        self.address = self._ipaddr()
         self.executor = _executor.Executor()
         self.lock = threading.RLock()
         self.seq = 0
@@ -96,18 +90,18 @@ class Runtime():
         self.peer_addresses = {}  # Map node IDs to addresses
 
         self._send = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-        self._send.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_IF, self._ip("clearly0"))
+        self._send.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_IF, socket.inet_aton(self.address))
         self._send.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 1)
 
     @staticmethod
-    def _ip(ifname: str) -> bytes:
+    def _ipaddr() -> str:
         """IP address (4 byte-packed)"""
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        return fcntl.ioctl(
-            s.fileno(),
-            0x8915, # SIOCGIFADDR
-            struct.pack('256s', ifname.encode('utf-8')[:15])
-        )[20:24]
+        try:
+            s.connect(("1.1.1.1", 80)) # Doesn't send.
+            return s.getsockname()[0]
+        finally:
+            s.close()
 
     @staticmethod
     def _blake64(b: bytes) -> int:
@@ -134,7 +128,7 @@ class Runtime():
             s.bind(("", self.multicast_port))
         except OSError:
             s.bind((self.multicast_addr, self.multicast_port))
-        mreq = struct.pack("4s4s", socket.inet_aton(self.multicast_addr), self._ip("clearly0"))
+        mreq = struct.pack("4s4s", socket.inet_aton(self.multicast_addr), socket.inet_aton(self.address))
         s.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
         s.settimeout(1.0)
         return s
