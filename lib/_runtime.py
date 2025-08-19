@@ -1,7 +1,6 @@
-import subprocess
+from collections import deque
 import threading
 import socket
-import fcntl
 import struct
 import hashlib
 import zlib
@@ -9,9 +8,7 @@ import logging
 import time
 import json
 import os
-import re
 import random
-from collections import defaultdict, deque
 
 import _executor as _executor
 
@@ -20,6 +17,7 @@ import _executor as _executor
 
 PEER_TTL = 15.0
 SCAN_INTERVAL = 1.0
+IGMP_INTERVAL = 125.0  # 125s (RFC 2236 (IGMPv2)).
 GOSSIP_INTERVAL = 3.0  # Increased from 2.0 to reduce noise
 GOSSIP_FANOUT = 3      # Number of peers to gossip to per round
 DEPLOY_TTL = 24 * 3600 # Deploy TTL (24 hours)
@@ -53,9 +51,9 @@ class Runtime():
             multicast_addr: Multicast group address for cluster communication (default: '239.0.0.1').
             multicast_port: UDP port for cluster communication (default: 4243).
             machine_id: Unique identifier for this node (default: read from /etc/machine-id).
-            interface: The network interface used by this node (default: 'clearly0').
 
         Attributes:
+            interface: The name of the default network interface used by this node.
             address: The IP address of the default network interface used by this node.
             executor: High-level (CLI) executor to interact with runtime.
             lock: Reentrant lock for thread-safe state changes.
@@ -73,21 +71,21 @@ class Runtime():
         self.multicast_addr = multicast_addr
         self.multicast_port = multicast_port
         self.machine_id = machine_id
-        
-        self.address = self._ipaddr()
+
+        self.interface = Runtime._ifname()
+        self.address = Runtime._ipaddr()
         self.executor = _executor.Executor()
         self.lock = threading.RLock()
         self.seq = 0
         self.local_view = {}
         self.cluster = {}
         self.deploys = {}
-        self.threads = []
         
         # Gossip protocol state
-        self.pending_updates = deque(maxlen=1000)  # Limit memory usage
-        self.seen_messages = set()  # Message deduplication
-        self.last_gossip_round = 0
-        self.peer_addresses = {}  # Map node IDs to addresses
+        self.pending_updates = deque(maxlen=1000) # Limit memory usage.
+        self.seen_messages = set() # Message deduplication.
+        self.last_gossip_round = 0 # Last gossip round.
+        self.peer_addresses = {} # Map node IDs to addresses.
 
         self._send = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
         self._send.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_IF, socket.inet_aton(self.address))
@@ -104,6 +102,33 @@ class Runtime():
             s.close()
 
     @staticmethod
+    def _ifname() -> str:
+        """Interface name (default route)"""
+        with open("/proc/net/route") as f:
+            for line in f.readlines()[1:]:
+                iface, dest, _ = line.split()[:3]
+                if dest == "00000000":
+                    return iface
+        raise RuntimeError("No default route found")
+
+    @staticmethod
+    def _checksum(data: bytes) -> int:
+        """Checksum function (RFC 1071)"""
+        s = 0
+        for i in range(0, len(data), 2):
+            w = data[i] << 8 | (data[i+1] if i+1 < len(data) else 0)
+            s = (s + w) & 0xffffffff
+        while (s >> 16):
+            s = (s & 0xffff) + (s >> 16)
+        return (~s) & 0xffff
+
+    @staticmethod
+    def _hashsum(msg_type: str, content: dict) -> str:
+        """Generate a unique message ID for deduplication"""
+        content_str = json.dumps(content, separators=(",", ":"), sort_keys=True)
+        return hashlib.blake2b(f"{msg_type}:{content_str}".encode(), digest_size=16).hexdigest()
+
+    @staticmethod
     def _blake64(b: bytes) -> int:
         """Blake2b hash function"""
         return int.from_bytes(hashlib.blake2b(b, digest_size=8).digest(), "big", signed=False)
@@ -114,11 +139,6 @@ class Runtime():
         scored = [(Runtime._blake64(key + n.encode()), n) for n in nodes]
         scored.sort(reverse=True)
         return [n for _, n in scored[:max(1, min(k, len(scored)))]]
-
-    def _generate_message_id(self, msg_type: str, content: dict) -> str:
-        """Generate a unique message ID for deduplication"""
-        content_str = json.dumps(content, separators=(",", ":"), sort_keys=True)
-        return hashlib.blake2b(f"{msg_type}:{content_str}".encode(), digest_size=16).hexdigest()
 
     def _sock_recv(self) -> socket.socket:
         """Create a socket for receiving multicast messages"""
@@ -163,29 +183,6 @@ class Runtime():
                 return active_peers
             
             return random.sample(active_peers, count)
-
-    def _gossip_loop(self):
-        """Efficient gossip-based state propagation"""
-        while True:
-            time.sleep(GOSSIP_INTERVAL)
-            
-            # Get current state snapshot
-            snapshot = self.executor.list_containers()
-            if "error" in snapshot:
-                continue
-            
-            # Detect changes and create incremental updates
-            changes = self._detect_changes(snapshot)
-            if changes:
-                self._queue_updates(changes)
-            
-            # Gossip to random subset of peers
-            peers = self._get_random_peers(GOSSIP_FANOUT)
-            if peers:
-                self._gossip_to_peers(peers)
-            
-            # Clean up old seen messages (prevent memory leaks)
-            self._cleanup_seen_messages()
 
     def _detect_changes(self, snapshot: dict) -> list:
         """Detect incremental changes in container state"""
@@ -259,23 +256,67 @@ class Runtime():
                 "t": "GOSSIP",
                 "from": self.machine_id,
                 "updates": updates,
-                "msg_id": self._generate_message_id("GOSSIP", {"updates": updates}),
+                "msg_id": Runtime._hashsum("GOSSIP", {"updates": updates}),
                 "ts": time.time()
             }
             
             self._sock_send(gossip_msg, peer_addr)
 
-    def _cleanup_seen_messages(self):
-        """Clean up old message IDs to prevent memory leaks"""
-        now = time.time()
-        cutoff = now - MAX_GOSSIP_AGE
-        
-        # This is a simplified cleanup - in production you'd want a more sophisticated approach
-        if len(self.seen_messages) > 10000:  # Prevent unbounded growth
-            self.seen_messages.clear()
+    def _igmp_loop(self):
+        """Refresh IGMP membership for the cluster."""
+        while True:
+            time.sleep(IGMP_INTERVAL)
+
+            IGMP_MEMBERSHIP_QUERY = 0x11 # Membership query.
+            MAX_RESP_TIME = 10 # 1s (in 1/10s units).
+            IGMP_GROUP = "224.0.0.1" # All-hosts group.
+
+            # Create raw socket for IGMP.
+            sock = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_IGMP)
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_BINDTODEVICE, self.interface.encode())
+
+            # Build IGMP query packet.
+            igmp_type = IGMP_MEMBERSHIP_QUERY
+            max_resp_time = MAX_RESP_TIME
+            group_addr = socket.inet_aton("0.0.0.0") # General query.
+
+            pkt = struct.pack("!BBH4s", igmp_type, max_resp_time, 0, group_addr)
+            cksum = Runtime._checksum(pkt)
+            pkt = struct.pack("!BBH4s", igmp_type, max_resp_time, cksum, group_addr)
+
+            # Destination = all-hosts group.
+            dst = (IGMP_GROUP, 0)
+            sock.sendto(pkt, dst)
+
+    def _gossip_loop(self):
+        """Efficient gossip-based state propagation"""
+        while True:
+            time.sleep(GOSSIP_INTERVAL)
+            
+            # Get current state snapshot
+            snapshot = self.executor.list_containers()
+            if "error" in snapshot:
+                continue
+            
+            # Detect changes and create incremental updates
+            changes = self._detect_changes(snapshot)
+            if changes:
+                self._queue_updates(changes)
+            
+            # Gossip to random subset of peers
+            peers = self._get_random_peers(GOSSIP_FANOUT)
+            if peers:
+                self._gossip_to_peers(peers)
+            
+            # Clean up old seen messages (prevent memory leaks)
+            now = time.time()
+            cutoff = now - MAX_GOSSIP_AGE
+
+            if len(self.seen_messages) > 10000: # Prevent unbounded growth.
+                self.seen_messages.clear()
 
     def _announce_loop(self):
-        """Legacy announce loop - now just sends lightweight heartbeat"""
+        """Announce heartbeat to the cluster."""
         while True:
             time.sleep(GOSSIP_INTERVAL * 2)  # Less frequent heartbeats
             
@@ -356,7 +397,7 @@ class Runtime():
                     self.cluster[source_node]["ts"] = time.time()
         
         # Forward to other peers (with some probability to prevent flooding)
-        if random.random() < 0.3:  # 30% chance to forward
+        if random.random() < 0.3: # 30% chance to forward.
             peers = self._get_random_peers(GOSSIP_FANOUT - 1)
             for peer_id in peers:
                 if peer_id != msg.get("from"):
@@ -469,18 +510,9 @@ class Runtime():
 
     def start(self):
         """Start the runtime"""
-        self.threads = [
-            threading.Thread(target=self._gossip_loop, daemon=True),
-            threading.Thread(target=self._announce_loop, daemon=True),
-            threading.Thread(target=self._receive_loop, daemon=True),
-            threading.Thread(target=self._purge_loop, daemon=True),
-            threading.Thread(target=self._reconcile_loop, daemon=True),
-        ]
-        for t in self.threads:
-            t.start()
-
-    def stop(self):
-        """Stop the runtime"""
-        for t in self.threads:
-            t.join()
-        self.threads = []
+        threading.Thread(target=self._igmp_loop, daemon=True).start()
+        threading.Thread(target=self._gossip_loop, daemon=True).start()
+        threading.Thread(target=self._announce_loop, daemon=True).start()
+        threading.Thread(target=self._receive_loop, daemon=True).start()
+        threading.Thread(target=self._purge_loop, daemon=True).start()
+        threading.Thread(target=self._reconcile_loop, daemon=True).start()

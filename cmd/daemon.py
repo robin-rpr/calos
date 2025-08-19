@@ -211,11 +211,7 @@ def main():
             while True:
                 sleep(10)
         except KeyboardInterrupt:
-            logger.info("Exiting...")
-        finally:
-            # Cleanup and exit
-            webserver.stop()
-            runtime.stop()
+            logger.info("Shutting down...")
 
     except Exception as e:
         logger.error(f"Fatal error: {e}", exc_info=True)

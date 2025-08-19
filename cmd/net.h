@@ -43,3 +43,12 @@ void flush_nft_filter(const struct in_addr *ip_to_flush);
 /* NFT (Netfilter Table) Forward */
 void create_nft_forward(const struct in_addr *guest_ip, int host_port, int guest_port, const char *protocol);
 void flush_nft_forward(const struct in_addr *guest_ip, const char *protocol);
+
+/* VXLAN (Virtual Extensible LAN) */
+void create_vxlan(const char *vxlan_name, uint32_t vni, const char *lower_device_name, const struct in_addr *group_ip, const struct in_addr *local_ip, uint16_t dstport);
+bool is_vxlan_exists(const char *vxlan_name);
+void set_vxlan_bridge(const char *vxlan_name, const char *bridge_name);
+void set_vxlan_up(const char *vxlan_name);
+
+/* Helpers */
+bool get_default_route(struct in_addr *out_ip, char *out_ifname, size_t ifname_len);

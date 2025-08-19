@@ -50,7 +50,6 @@ class WebServer:
         """
         self.host = host
         self.port = port
-        self.thread = None
         self.static_dir = static_dir
         self.template_dir = template_dir
         self.routes: Dict[str, Dict[str, Callable]] = {}
@@ -259,11 +258,4 @@ class WebServer:
         server.template_dir = self.template_dir
         server._match_route = self._match_route
 
-        self.thread = threading.Thread(target=server.serve_forever, daemon=True)
-        self.thread.start()
-
-    def stop(self):
-        """Stop the server."""
-        if self.thread is not None:
-            self.thread.join()
-            self.thread = None
+        threading.Thread(target=server.serve_forever, daemon=True).start()
