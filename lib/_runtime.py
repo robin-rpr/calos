@@ -146,12 +146,9 @@ class Runtime():
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
-        try:
-            s.bind(("", self.multicast_port))
-            logger.info(f"Bound socket to port {self.multicast_port}")
-        except OSError:
-            s.bind((self.multicast_addr, self.multicast_port))
-            logger.info(f"Bound socket to {self.multicast_addr}:{self.multicast_port}")
+        # Bind to the specific interface address instead of INADDR_ANY
+        s.bind((self.address, self.multicast_port))
+        logger.info(f"Bound socket to {self.address}:{self.multicast_port}")
 
         mreq = struct.pack("4s4s",
             socket.inet_aton(self.multicast_addr),
