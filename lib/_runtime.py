@@ -40,7 +40,7 @@ class Runtime():
 
     Example:
         runtime = Runtime(
-            multicast_addr='239.42.0.1',
+            multicast_addr='239.0.0.1',
             multicast_port=4243,
             machine_id=open('/etc/machine-id').read().strip(),
             interface='clearly0'
@@ -49,13 +49,13 @@ class Runtime():
         runtime.stop()
         
     """
-    def __init__(self, multicast_addr: str = '239.42.0.1', multicast_port: int = 4243,
+    def __init__(self, multicast_addr: str = '239.0.0.1', multicast_port: int = 4243,
                  machine_id: str = open('/etc/machine-id').read().strip(), interface: str = 'clearly0'):
         """
         Initialize the Runtime.
         
         Args:
-            multicast_addr: Multicast group address for cluster communication (default: '239.42.0.1').
+            multicast_addr: Multicast group address for cluster communication (default: '239.0.0.1').
             multicast_port: UDP port for cluster communication (default: 4243).
             machine_id: Unique identifier for this node (default: read from /etc/machine-id).
             interface: The network interface used by this node (default: 'clearly0').

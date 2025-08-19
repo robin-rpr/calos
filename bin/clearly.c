@@ -30,23 +30,13 @@ int main(int argc, char *argv[])
 	}
 
 	/* Ensure the vxlan link exists. */
-	printf("Checking if vxlan link exists...\n");
 	if (!is_vxlan_exists(4242, "vxclearly0", &group_ip)) {
-		printf("Creating vxlan link...\n");
 		struct in_addr local_ip;
 		char ifname[IFNAMSIZ];
-
-		printf("Getting default IPv4 address...\n");
 		get_default_ipv4(&local_ip, ifname, sizeof(ifname));
-		printf("Default IPv4 address: %s\n", inet_ntoa(local_ip));
-		printf("Default group IP: %s\n", inet_ntoa(group_ip));
-		printf("Default interface: %s\n", ifname);
-
 		create_vxlan("vxclearly0", 4242, ifname, &group_ip, &local_ip, 4789);
-		printf("Setting vxlan link up...\n");
-		set_vxlan_up("vxclearly0");
-		printf("Attaching vxlan link to bridge...\n");
 		set_vxlan_bridge("vxclearly0", "clearly0");
+		set_vxlan_up("vxclearly0");
 	}
 
 	/* Execute the subcommand. */
