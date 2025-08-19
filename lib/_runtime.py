@@ -89,7 +89,7 @@ class Runtime():
 
         self._send = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
         self._send.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_IF, socket.inet_aton(self.address))
-        self._send.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_LOOP, 1) # Loopback.
+        self._send.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_LOOP, 0) # Loopback.
         self._send.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 1) # TTL = 1.
 
     @staticmethod
