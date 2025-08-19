@@ -145,17 +145,10 @@ class Runtime():
         """Create a socket for receiving multicast messages"""
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-
-        # Bind to the specific interface address instead of INADDR_ANY
         s.bind(("", self.multicast_port))
-        logger.info(f"Bound socket to port {self.multicast_port}")
 
-        mreq = struct.pack("4s4s",
-            socket.inet_aton(self.multicast_addr),
-            socket.inet_aton(self.address),
-        )
+        mreq = struct.pack("4s4s", socket.inet_aton(self.multicast_addr), socket.inet_aton(self.address))
         s.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
-        logger.info(f"Joined multicast group {self.multicast_addr} on {self.address}")
 
         s.settimeout(1.0)
         return s
@@ -170,12 +163,8 @@ class Runtime():
         addr = target_addr or self.multicast_addr
         try:
             self._send.sendto(header + payload, (addr, self.multicast_port))
-            if target_addr:
-                logger.debug(f"Sent direct message: {msg.get('t', 'UNKNOWN')} to {addr}:{self.multicast_port}")
-            else:
-                logger.debug(f"Sent multicast message: {msg.get('t', 'UNKNOWN')} to {addr}:{self.multicast_port}")
         except Exception as e:
-            logger.debug(f"Failed to send message: {e}")
+            logger.warning(f"Failed to send message: {e}")
 
     def _get_random_peers(self, count: int) -> list:
         """Get random subset of known peers for gossip"""
@@ -336,7 +325,6 @@ class Runtime():
                 "ts": time.time()
             }
             
-            logger.info(f"Sending heartbeat from {self.machine_id} at {self.address}")
             self._sock_send(heartbeat)
 
     def _purge_loop(self):
@@ -368,12 +356,8 @@ class Runtime():
                 enc = json.loads(header.decode()).get("enc", "z")
                 raw = zlib.decompress(body) if enc == "z" else body
                 msg = json.loads(raw.decode())
-                
-                # Debug logging
-                logger.info(f"Received message type: {msg.get('t')} from {msg.get('node', 'unknown')}")
-                
             except Exception as e:
-                logger.info(f"Failed to parse message: {e}")
+                logger.warning(f"Failed to parse message: {e}")
                 continue
             
             # Handle different message types
@@ -381,7 +365,6 @@ class Runtime():
             if t == "GOSSIP":
                 self._handle_gossip(msg)
             elif t == "HEARTBEAT":
-                logger.info(f"Processing heartbeat from {msg.get('node')}")
                 self._handle_heartbeat(msg)
             elif t == "DEPLOY":
                 self.deploy(msg)
@@ -423,26 +406,16 @@ class Runtime():
         """Handle heartbeat messages for membership"""
         node_id = msg.get("node")
         if not node_id or node_id == self.machine_id:
-            logger.info(f"Ignoring heartbeat from self or invalid node: {node_id}")
             return
         
         now = time.time()
         with self.lock:
             if node_id not in self.cluster:
-                logger.info(f"Adding new node to cluster: {node_id}")
                 self.cluster[node_id] = {"containers": {}, "ts": now}
-            else:
-                logger.info(f"Updating existing node in cluster: {node_id}")
             
             self.cluster[node_id]["ts"] = now
             self.cluster[node_id]["addr"] = msg.get("addr")
             self.peer_addresses[node_id] = msg.get("addr")
-            logger.info(f"Cluster now has {len(self.cluster)} nodes")
-
-    def _merge_state(self, msg: dict):
-        """Legacy state merge - kept for compatibility"""
-        # This is now handled by _handle_gossip
-        pass
 
     def _reconcile_state(self):
         """Reconcile the local view with the cluster state"""
