@@ -51,4 +51,5 @@ void set_vxlan_bridge(const char *vxlan_name, const char *bridge_name);
 void set_vxlan_up(const char *vxlan_name);
 
 /* Helpers */
-bool get_default_route(struct in_addr *out_ip, char *out_ifname, size_t ifname_len);
+bool get_default_interface(char *out_ifname, size_t ifname_len);
+bool get_interface_ipv4(const char *ifname, struct in_addr *out_ip);

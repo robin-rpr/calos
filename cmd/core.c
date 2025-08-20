@@ -334,13 +334,17 @@ void containerize(
 
     const int cidr = 8;
     char network_cidr[18];
+    char ifname[IFNAMSIZ] = "clearly0";
 
     struct in_addr subnet_ip = { .s_addr = inet_addr("10.0.0.0") };
-    struct in_addr bridge_ip = { .s_addr = inet_addr("10.0.0.1") };
+    struct in_addr bridge_ip = { .s_addr = 0 };
     struct in_addr guest_ip  = { .s_addr = 0 };
     
-    // Get network cidr.
+    // Get network CIDR.
     snprintf(network_cidr, sizeof(network_cidr), "%s/%d", inet_ntoa(subnet_ip), cidr);
+
+    // Get bridge IP.
+    get_interface_ipv4(ifname, &bridge_ip);
 
    /* Step 1: Generate a unique IP for the container.
        To minimize network conflicts, especially in multi-tenant systems, we

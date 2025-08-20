@@ -1706,113 +1706,122 @@ void set_vxlan_bridge(const char *vxlan_name, const char *bridge_name) {
     nl_socket_free(sock);
 }
 
-/* Get the system's default route (IPv4 and Interface). */
-bool get_default_route(struct in_addr *out_ip, char *out_ifname, size_t ifname_len) {
-    struct nl_sock *sock = nl_socket_alloc();
-    if (!sock) return false;
-    if (nl_connect(sock, NETLINK_ROUTE) < 0) { nl_socket_free(sock); return false; }
+/* Helper to derive output ifindex from a route's nexthops. */
+static int route_get_oif_compat(struct rtnl_route *route) {
+	int num_nexthops = rtnl_route_get_nnexthops(route);
+	for (int i = 0; i < num_nexthops; i++) {
+		struct rtnl_nexthop *nh = rtnl_route_nexthop_n(route, i);
+		if (!nh) continue;
+		int ifindex = rtnl_route_nh_get_ifindex(nh);
+		if (ifindex > 0) return ifindex;
+	}
+	return 0;
+}
 
-    // Get the route cache.
-    struct nl_cache *route_cache = NULL;
-    if (rtnl_route_alloc_cache(sock, AF_INET, 0, &route_cache) < 0) {
-        nl_socket_free(sock);
-        return false;
-    }
+/* Get the system's default interface name (via IPv4 default route). */
+bool get_default_interface(char *out_ifname, size_t ifname_len) {
+	if (!out_ifname || ifname_len == 0) return false;
 
-    // To derive output ifindex from a route's nexthops.
-    int route_get_oif_compat(struct rtnl_route *route) {
-        int num_nexthops = rtnl_route_get_nnexthops(route);
-        for (int i = 0; i < num_nexthops; i++) {
-            struct rtnl_nexthop *nh = rtnl_route_nexthop_n(route, i);
-            if (!nh) continue;
-            int ifindex = rtnl_route_nh_get_ifindex(nh);
-            if (ifindex > 0) return ifindex;
-        }
-        return 0;
-    }
+	struct nl_sock *sock = nl_socket_alloc();
+	if (!sock) return false;
+	if (nl_connect(sock, NETLINK_ROUTE) < 0) { nl_socket_free(sock); return false; }
 
-    struct rtnl_route *best_route = NULL;
-    uint32_t best_priority = UINT32_MAX;
+	struct nl_cache *route_cache = NULL;
+	if (rtnl_route_alloc_cache(sock, AF_INET, 0, &route_cache) < 0) {
+		nl_socket_free(sock);
+		return false;
+	}
 
-    // Find the best route through the route cache.
-    for (struct rtnl_route *rt = (struct rtnl_route *) nl_cache_get_first(route_cache);
-         rt != NULL;
-         rt = (struct rtnl_route *) nl_cache_get_next((struct nl_object *) rt)) {
+	struct rtnl_route *best_route = NULL;
+	uint32_t best_priority = UINT32_MAX;
 
-        // Get the destination address and prefix length.
-        struct nl_addr *dst = rtnl_route_get_dst(rt);
-        int prefixlen = dst ? nl_addr_get_prefixlen(dst) : 0;
-        if (dst && nl_addr_get_family(dst) != AF_INET) continue;
+	for (struct rtnl_route *rt = (struct rtnl_route *) nl_cache_get_first(route_cache);
+	     rt != NULL;
+	     rt = (struct rtnl_route *) nl_cache_get_next((struct nl_object *) rt)) {
+		struct nl_addr *dst = rtnl_route_get_dst(rt);
+		int prefixlen = dst ? nl_addr_get_prefixlen(dst) : 0;
+		if (dst && nl_addr_get_family(dst) != AF_INET) continue;
+		if (dst == NULL || prefixlen == 0) {
+			int oif = route_get_oif_compat(rt);
+			if (oif <= 0) continue;
+			uint32_t prio = rtnl_route_get_priority(rt);
+			if (best_route == NULL || prio < best_priority) {
+				best_route = rt;
+				best_priority = prio;
+			}
+		}
+	}
 
-        // Default route if no dst or /0.
-        if (dst == NULL || prefixlen == 0) {
-            int oif = route_get_oif_compat(rt);
-            if (oif <= 0) continue; // Require explicit output interface.
+	if (best_route == NULL) {
+		nl_cache_free(route_cache);
+		nl_socket_free(sock);
+		return false;
+	}
 
-            uint32_t prio = rtnl_route_get_priority(rt);
-            if (best_route == NULL || prio < best_priority) {
-                best_route = rt;
-                best_priority = prio;
-            }
-        }
-    }
+	int ifindex = route_get_oif_compat(best_route);
+	if (ifindex <= 0) {
+		nl_cache_free(route_cache);
+		nl_socket_free(sock);
+		return false;
+	}
 
-    // No best route found.
-    if (best_route == NULL) {
-        nl_cache_free(route_cache);
-        nl_socket_free(sock);
-        return false;
-    }
+	struct nl_cache *link_cache = NULL;
+	if (rtnl_link_alloc_cache(sock, AF_UNSPEC, &link_cache) < 0) {
+		nl_cache_free(route_cache);
+		nl_socket_free(sock);
+		return false;
+	}
 
-    // Get the output interface index.
-    int ifindex = route_get_oif_compat(best_route);
-    if (ifindex <= 0) {
-        nl_cache_free(route_cache);
-        nl_socket_free(sock);
-        return false;
-    }
+	bool ok = false;
+	struct rtnl_link *link = rtnl_link_get(link_cache, ifindex);
+	if (link) {
+		const char *name = rtnl_link_get_name(link);
+		if (name) {
+			strncpy(out_ifname, name, ifname_len - 1);
+			out_ifname[ifname_len - 1] = '\0';
+			ok = true;
+		}
+	}
 
-    // Resolve interface name.
-    struct nl_cache *link_cache = NULL;
-    if (rtnl_link_alloc_cache(sock, AF_UNSPEC, &link_cache) < 0) {
-        nl_cache_free(route_cache);
-        nl_socket_free(sock);
-        return false;
-    }
+	if (link) rtnl_link_put(link);
+	if (link_cache) nl_cache_free(link_cache);
+	if (route_cache) nl_cache_free(route_cache);
+	nl_socket_free(sock);
+	return ok;
+}
 
-    // Get the link.
-    struct rtnl_link *link = rtnl_link_get(link_cache, ifindex);
-    if (link && out_ifname && ifname_len > 0) {
-        const char *name = rtnl_link_get_name(link);
-        if (name) {
-            strncpy(out_ifname, name, ifname_len - 1);
-            out_ifname[ifname_len - 1] = '\0';
-        }
-    }
+/* Get the first IPv4 address assigned to a given interface. */
+bool get_interface_ipv4(const char *ifname, struct in_addr *out_ip) {
+	if (!ifname || !out_ip) return false;
 
-    // Find an IPv4 address on this interface.
-    bool found_ip = false;
-    struct nl_cache *addr_cache = NULL;
-    if (rtnl_addr_alloc_cache(sock, &addr_cache) == 0) {
-        for (struct rtnl_addr *a = (struct rtnl_addr *) nl_cache_get_first(addr_cache);
-             a != NULL;
-             a = (struct rtnl_addr *) nl_cache_get_next((struct nl_object *) a)) {
-            if (rtnl_addr_get_ifindex(a) != ifindex) continue;
-            struct nl_addr *local = rtnl_addr_get_local(a);
-            if (!local || nl_addr_get_family(local) != AF_INET) continue;
-            if (out_ip) {
-                memcpy(out_ip, nl_addr_get_binary_addr(local), sizeof(struct in_addr));
-                found_ip = true;
-                break;
-            }
-        }
-    }
+	struct nl_sock *sock = nl_socket_alloc();
+	if (!sock) return false;
+	if (nl_connect(sock, NETLINK_ROUTE) < 0) { nl_socket_free(sock); return false; }
 
-    // Free the caches and the socket.
-    if (addr_cache) nl_cache_free(addr_cache);
-    if (link) rtnl_link_put(link);
-    if (link_cache) nl_cache_free(link_cache);
-    if (route_cache) nl_cache_free(route_cache);
-    nl_socket_free(sock);
-    return found_ip;
+	struct rtnl_link *link = NULL;
+	if (rtnl_link_get_kernel(sock, 0, ifname, &link) < 0) {
+		nl_socket_free(sock);
+		return false;
+	}
+	int ifindex = rtnl_link_get_ifindex(link);
+
+	bool found_ip = false;
+	struct nl_cache *addr_cache = NULL;
+	if (rtnl_addr_alloc_cache(sock, &addr_cache) == 0) {
+		for (struct rtnl_addr *a = (struct rtnl_addr *) nl_cache_get_first(addr_cache);
+		     a != NULL;
+		     a = (struct rtnl_addr *) nl_cache_get_next((struct nl_object *) a)) {
+			if (rtnl_addr_get_ifindex(a) != ifindex) continue;
+			struct nl_addr *local = rtnl_addr_get_local(a);
+			if (!local || nl_addr_get_family(local) != AF_INET) continue;
+			memcpy(out_ip, nl_addr_get_binary_addr(local), sizeof(struct in_addr));
+			found_ip = true;
+			break;
+		}
+	}
+
+	if (addr_cache) nl_cache_free(addr_cache);
+	if (link) rtnl_link_put(link);
+	nl_socket_free(sock);
+	return found_ip;
 }

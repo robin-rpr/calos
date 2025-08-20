@@ -36,7 +36,8 @@ int main(int argc, char *argv[])
 		struct in_addr group_ip = { .s_addr = inet_addr("239.0.0.1") };
 		struct in_addr local_ip;
 		char ifname[IFNAMSIZ];
-		get_default_route(&local_ip, ifname, sizeof(ifname));
+		get_default_interface(ifname, sizeof(ifname));
+		get_interface_ipv4(ifname, &local_ip);
 		create_vxlan("vxclearly0", 4242, ifname, &group_ip, &local_ip, 4789);
 		set_vxlan_bridge("vxclearly0", "clearly0");
 		set_vxlan_up("vxclearly0");
