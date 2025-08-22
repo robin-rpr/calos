@@ -346,29 +346,29 @@ void containerize(
     // Get bridge IP.
     get_interface_ipv4(ifname, &bridge_ip);
 
-   /* Step 1: Generate a unique IP for the container.
-       To minimize network conflicts, especially in multi-tenant systems, we
-       generate a pseudo-random IP address. We then send an ARP request to
-       ensure the address is not currently in use on the local network segment.
-       If it is, we linearly probe for the next available address. */
+   /* Step 1: Generate or use the provided IP for the container.
+      To minimize network conflicts, especially in multi-tenant systems, we
+      generate a pseudo-random IP address. We then send an ARP request to
+      ensure the address is not currently in use on the local network segment.
+      If it is, we linearly probe for the next available address. */
+   if (c->ip == NULL) {
+      // Seed the random number generator.
+      srand(time(NULL) ^ getpid());
 
-   // Seed the random number generator.
-   srand(time(NULL) ^ getpid());
+      while (1) {
+         // Generate a random IP address.
+         uint32_t ip = (10U << 24) | (rand() % 0x1000000U);
 
-   while (1) {
-      // Generate a random IP address.
-      uint32_t ip = (10U << 24) | (rand() % 0x1000000U);
-      if (ip == ((10U << 24) | 1U)) {
-          ip++; // skip 10.0.0.1
+         // Convert the IP address to network byte order.
+         guest_ip.s_addr = htonl(ip);
+
+         // Send ARP Request.
+         int status = send_arp(&guest_ip, bridge_name, &bridge_ip);
+         if (status == -1) FATAL(0, "ARP request failed");
+         if (status == 0) break;
       }
-
-      // Convert the IP address to network byte order.
-      guest_ip.s_addr = htonl(ip);
-
-      // Send ARP Request.
-      int status = send_arp(&guest_ip, bridge_name, &bridge_ip);
-      if (status == -1) FATAL(0, "ARP request failed");
-      if (status == 0) break; // IP is available.
+   } else {
+      guest_ip.s_addr = inet_addr(c->ip);
    }
 
     // Use a pipe to synchronize parent and child. The child will write to the

@@ -497,7 +497,7 @@ class Runtime():
     def _reconcile_loop(self):
         """Periodic reconciliation to ensure state consistency"""
         while True:
-            time.sleep(10)  # Run every 10 seconds
+            time.sleep(10)
             self._reconcile_state()
 
     def start(self):

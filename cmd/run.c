@@ -53,7 +53,7 @@ const char args_doc[] = "IMAGE -- COMMAND [ARG...]";
    one, don’t re-number the others. */
 const struct argp_option options[] = {
    { "allow",         'a', "DST",              0, "allow egress traffic to peer container DST" },
-   { "bind",          'b', "SRC[:DST[:MODE]]", 0, "mount SRC at guest DST (default: same as SRC)" },
+   { "bind",          'b', "SRC:DST",          0, "mount SRC at guest DST (default: same as SRC)" },
    { "cd",            'c', "DIR",              0, "initial working directory in container" },
    { "detach",        'd', 0,                  0, "detach the container into the background" },
    { "env-no-expand", -8,  0,                  0, "don't expand $ in --env input" },
@@ -61,6 +61,7 @@ const struct argp_option options[] = {
    { "gid",           'g', "GID",              0, "run as GID within container" },
    { "home",          -10, 0,                  0, "mount host $HOME at guest /home/$USER" },
    { "host",          'h', "SRC:DST",          0, "map SRC at guest DST (e.g. google.com:1.2.3.4)" },
+   { "ip",            'i', "IP",               0, "set a static IP address for container" },
    { "join",          'j', 0,                  0, "use same container as peer clearly run" },
    { "join-pid",       -5, "PID",              0, "join a namespace using a PID" },
    { "join-ct",        -3, "N",                0, "number of join peers (implies --join)" },
@@ -192,6 +193,7 @@ int main(int argc, char *argv[])
                                .host_home = NULL,
                                .host_map_strs = list_new(sizeof(char *), 0),
                                .img_ref = NULL,
+                               .ip = NULL,
                                .join = false,
                                .join_ct = 0,
                                .join_pid = 0,
@@ -691,6 +693,10 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state)
    case 'h':  // --host
       Ze(arg[0] == '\0', "host mapping can't be empty string");
       list_append((void **)&(args->c.host_map_strs), &arg, sizeof(char *));
+      break;
+   case 'i':  // --ip
+      Ze(arg[0] == '\0', "ip can't be empty string");
+      args->c.ip = arg;
       break;
    case 'j':  // --join
       args->c.join = true;
