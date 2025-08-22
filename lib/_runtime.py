@@ -9,6 +9,7 @@ import time
 import json
 import os
 import random
+import fcntl
 
 import _executor as _executor
 
@@ -51,46 +52,46 @@ class Runtime():
             multicast_addr: Multicast group address for cluster communication.
             multicast_port: UDP port for cluster communication.
             machine_id: Unique identifier for this node.
-
-        Attributes:
-            interface: The name of the default network interface used by this node.
-            address: The IP address of the default network interface used by this node.
-            executor: High-level (CLI) executor to interact with runtime.
-            lock: Reentrant lock for thread-safe state changes.
-            seq: Local sequence number for state updates.
-            local_view: Local containers' state.
-            cluster: Known cluster nodes and their state.
-            deploys: Active deployments.
-            threads: List of threads.
-            pending_updates: Queue of pending state updates to gossip.
-            seen_messages: Set of seen message IDs to prevent loops.
-
-            _send: UDP socket for sending multicast packets.
         """
 
         self.multicast_addr = multicast_addr
         self.multicast_port = multicast_port
         self.machine_id = machine_id
 
+        # Runtime state.
         self.interface = Runtime._ifname()
         self.address = Runtime._ipaddr()
         self.executor = _executor.Executor()
         self.lock = threading.RLock()
         self.seq = 0
-        self.local_view = {}
+        self.local = {}
         self.cluster = {}
         self.deploys = {}
         
-        # Gossip protocol state
+        # Gossip protocol state.
         self.pending_updates = deque(maxlen=1000) # Limit memory usage.
         self.seen_messages = set() # Message deduplication.
         self.last_gossip_round = 0 # Last gossip round.
         self.peer_addresses = {} # Map node IDs to addresses.
+        self.deployment_plans = {} # Map deployment IDs to plans.
+        self.ip_reservations = {} # Map IP addresses to reservations.
 
+        # Multicast socket.
         self._send = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
         self._send.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_IF, socket.inet_aton(self.address))
         self._send.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_LOOP, 0) # Loopback.
         self._send.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 1) # TTL = 1.
+
+    @property
+    def nodes(self) -> list:
+        """List all nodes in the cluster"""
+        with self.lock:
+            ids = [self.machine_id]
+            now = time.time()
+            for n, m in self.cluster.items():
+                if now - m["ts"] <= PEER_TTL:
+                    ids.append(n)
+        return sorted(set(ids))
 
     @staticmethod
     def _ipaddr() -> str:
@@ -166,6 +167,181 @@ class Runtime():
         except Exception as e:
             logger.warning(f"Failed to send message: {e}")
 
+    @staticmethod
+    def _get_if_mac(ifname: str) -> bytes:
+        """Read interface MAC address as 6 bytes."""
+        try:
+            with open(f"/sys/class/net/{ifname}/address", "r") as f:
+                mac_str = f.read().strip()
+            return bytes(int(x, 16) for x in mac_str.split(":"))
+        except Exception:
+            return b"\x00\x00\x00\x00\x00\x00"
+
+    @staticmethod
+    def _get_if_ipv4(ifname: str) -> str:
+        """Get IPv4 address for interface (best-effort)."""
+        SIOCGIFADDR = 0x8915
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        try:
+            ifreq = struct.pack('256s', ifname.encode('utf-8')[:15])
+            res = fcntl.ioctl(s.fileno(), SIOCGIFADDR, ifreq)
+            ip = socket.inet_ntoa(res[20:24])
+            return ip
+        except Exception:
+            return "0.0.0.0"
+        finally:
+            s.close()
+
+    def _arp_is_free(self, ip: str, ifname: str = None, retries: int = 2, timeout: float = 0.2) -> bool:
+        """Send ARP who-has for ip on interface and return True if no reply received."""
+        target_ip = socket.inet_aton(ip)
+        iface = ifname or ("clearly0" if os.path.exists("/sys/class/net/clearly0") else self.interface)
+        src_mac = Runtime._get_if_mac(iface)
+        src_ip = socket.inet_aton(Runtime._get_if_ipv4(iface))
+
+        # Ethernet frame header
+        eth_dst = b"\xff\xff\xff\xff\xff\xff"
+        eth_src = src_mac
+        eth_type = struct.pack('!H', 0x0806)  # ARP
+
+        # ARP payload (request)
+        htype = struct.pack('!H', 1)          # Ethernet
+        ptype = struct.pack('!H', 0x0800)     # IPv4
+        hlen  = struct.pack('!B', 6)
+        plen  = struct.pack('!B', 4)
+        oper  = struct.pack('!H', 1)          # request
+        sha   = src_mac
+        spa   = src_ip
+        tha   = b"\x00" * 6
+        tpa   = target_ip
+        arp_payload = b"".join([htype, ptype, hlen, plen, oper, sha, spa, tha, tpa])
+        frame = eth_dst + eth_src + eth_type + arp_payload
+
+        try:
+            s = socket.socket(socket.AF_PACKET, socket.SOCK_RAW, socket.htons(0x0806))
+            s.settimeout(timeout)
+            s.bind((iface, 0))
+        except Exception:
+            # If we cannot craft ARP, be conservative and mark as not free
+            return False
+
+        try:
+            for _ in range(retries):
+                try:
+                    s.send(frame)
+                except Exception:
+                    pass
+                try:
+                    while True:
+                        pkt = s.recv(65535)
+                        if len(pkt) < 42:
+                            continue
+                        # EtherType
+                        if pkt[12:14] != b"\x08\x06":
+                            continue
+                        # ARP op
+                        op = struct.unpack('!H', pkt[20:22])[0]
+                        if op != 2:  # reply
+                            continue
+                        spa_reply = pkt[28:32]
+                        if spa_reply == target_ip:
+                            return False  # someone has this IP
+                except socket.timeout:
+                    # no reply observed in this interval
+                    pass
+            return True
+        finally:
+            s.close()
+
+    @staticmethod
+    def _virtual_mac_for_ip(ip: str) -> bytes:
+        """Derive a stable, locally administered unicast MAC from an IP string."""
+        h = hashlib.blake2b(ip.encode(), digest_size=6).digest()
+        first = (h[0] & 0b11111100) | 0b00000010 # local admin, unicast
+        return bytes([first]) + h[1:6]
+
+    @staticmethod
+    def _deterministic_ip(dep_id: str, service: str, replica: int) -> str:
+        """Generate a deterministic IP within 10.0.0.0/8 avoiding .0 and .255 last octet."""
+        seed = f"{dep_id}:{service}:{replica}".encode()
+        h = hashlib.blake2b(seed, digest_size=4).digest()
+        a = 10
+        b = h[0]
+        c = h[1]
+        # map last octet to 2..254
+        d = (h[2] % 253) + 2
+        return f"{a}.{b}.{c}.{d}"
+
+    @staticmethod
+    def _candidate_ip(dep_id: str, service: str, replica: int, salt: int) -> str:
+        seed = f"{dep_id}:{service}:{replica}:{salt}".encode()
+        h = hashlib.blake2b(seed, digest_size=4).digest()
+        a = 10
+        b = h[0]
+        c = h[1]
+        d = (h[2] % 253) + 2
+        return f"{a}.{b}.{c}.{d}"
+
+    def _reserve_ip(self, ip: str, dep_id: str, service: str, replica: int, ttl: float = 120.0):
+        now = time.time()
+        with self.lock:
+            self.ip_reservations[ip] = {"node": self.machine_id, "dep": dep_id, "service": service, "replica": replica, "ts": now, "ttl": ttl}
+        msg = {
+            "t": "RESERVE_IP",
+            "ip": ip,
+            "dep": dep_id,
+            "service": service,
+            "replica": replica,
+            "node": self.machine_id,
+            "ttl": ttl,
+            "ts": now,
+            "msg_id": Runtime._hashsum("RESERVE_IP", {"ip": ip, "dep": dep_id, "service": service, "replica": replica})
+        }
+        self._sock_send(msg)
+
+    def _build_plan(self, dep: dict) -> dict:
+        """Build a deterministic plan assigning replicas to nodes and IPs.
+
+        Returns a dict: { service: { replica_index: {"node": node_id, "ip": ip, "name": cname }}}
+        """
+        plan = {}
+        services = dep.get("services", {}) or {}
+
+        # Build a plan for each service.
+        for name, service in services.items():
+            replicas = int(service.get("deploy", {}).get("replicas", 1))
+            base_key = f"{dep.get('id')}:{name}".encode()
+            chosen_nodes = self._hrw_topk(base_key, self.nodes, max(1, replicas)) or []
+            plan[name] = {}
+            for i in range(replicas):
+                owner = chosen_nodes[i % len(chosen_nodes)] if chosen_nodes else self.machine_id
+                cname = name if replicas == 1 else f"{name}-{i}"
+                # Find an available IP: prefer deterministic, fallback with salted candidates
+                sel_ip = None
+                for salt in range(0, 64):
+                    cand = Runtime._candidate_ip(dep.get("id"), name, i, salt)
+                    with self.lock:
+                        reserved = self.ip_reservations.get(cand)
+                    if reserved and reserved.get("node") != self.machine_id:
+                        continue
+                    if not self._arp_is_free(cand):
+                        continue
+                    sel_ip = cand
+                    break
+                if sel_ip is None:
+                    # As a last resort, pick deterministic without checking to proceed
+                    sel_ip = Runtime._deterministic_ip(dep.get("id"), name, i)
+
+                # Reserve chosen IP (best-effort)
+                self._reserve_ip(sel_ip, dep.get("id"), name, i)
+
+                plan[name][i] = {
+                    "node": owner,
+                    "ip": sel_ip,
+                    "name": cname,
+                }
+        return plan
+
     def _get_random_peers(self, count: int) -> list:
         """Get random subset of known peers for gossip"""
         with self.lock:
@@ -188,7 +364,7 @@ class Runtime():
         with self.lock:
             # Check for new/updated containers
             for container_id, container_info in current_containers.items():
-                old_info = self.local_view.get(container_id, {})
+                old_info = self.local.get(container_id, {})
                 new_state = {
                     "status": container_info.get('status'),
                     "ip_address": container_info.get('ip_address'),
@@ -203,9 +379,9 @@ class Runtime():
             
             # Check for removed containers
             current_ids = set(current_containers.keys())
-            old_ids = set(self.local_view.keys())
+            old_ids = set(self.local.keys())
             for removed_id in old_ids - current_ids:
-                if self.local_view[removed_id].get('status') != 'removed':
+                if self.local[removed_id].get('status') != 'removed':
                     changes.append(('remove', removed_id, {"status": "removed", "ver": self.seq + 1}))
                     self.seq += 1
         
@@ -216,7 +392,7 @@ class Runtime():
         with self.lock:
             for change_type, container_id, state in changes:
                 # Update local view
-                self.local_view[container_id] = state
+                self.local[container_id] = state
                 
                 # Queue for gossip
                 update_msg = {
@@ -258,14 +434,70 @@ class Runtime():
             
             self._sock_send(gossip_msg, peer_addr)
 
+    def _arp_loop(self):
+        """Respond to ARP requests for reserved IPs so others see them as taken."""
+        iface = "clearly0" if os.path.exists("/sys/class/net/clearly0") else self.interface
+        try:
+            s = socket.socket(socket.AF_PACKET, socket.SOCK_RAW, socket.htons(0x0806))
+            s.bind((iface, 0))
+        except Exception as e:
+            logger.warning(f"ARP responder disabled (raw socket error): {e}")
+            return
+        while True:
+            try:
+                pkt = s.recv(65535)
+            except Exception:
+                continue
+            # Minimum ARP over Ethernet frame size
+            if len(pkt) < 42:
+                continue
+            # EtherType ARP
+            if pkt[12:14] != b"\x08\x06":
+                continue
+            # Parse ARP request
+            arp = pkt[14:]
+            if len(arp) < 28:
+                continue
+            op = struct.unpack("!H", arp[6:8])[0]
+            if op != 1:
+                continue
+            sha = arp[8:14]
+            spa = arp[14:18]
+            tha = arp[18:24]
+            tpa = arp[24:28]
+            target_ip = socket.inet_ntoa(tpa)
+            with self.lock:
+                reserved = self.ip_reservations.get(target_ip)
+            if not reserved:
+                continue
+            # Craft reply
+            src_mac = Runtime._virtual_mac_for_ip(target_ip)
+            eth = sha           # dest = sender MAC.
+            eth += src_mac      # src = our virtual mac.
+            eth += b"\x08\x06"  # EtherType ARP.
+            htype = b"\x00\x01" # Ethernet.
+            ptype = b"\x08\x00" # IPv4.
+            hlen = b"\x06"      # Hardware address length.
+            plen = b"\x04"      # Protocol address length.
+            oper = b"\x00\x02"  # ARP operation (reply).
+            spa_reply = tpa     # sender protocol address.
+            tpa_reply = spa     # target protocol address.
+            tha_reply = sha     # sender hardware address.
+            arp_reply = htype + ptype + hlen + plen + oper + src_mac + spa_reply + tha_reply + tpa_reply
+            frame = eth + arp_reply
+            try:
+                s.send(frame)
+            except Exception:
+                pass
+
     def _igmp_loop(self):
         """Refresh IGMP membership for the cluster."""
         while True:
             time.sleep(IGMP_INTERVAL)
 
             IGMP_MEMBERSHIP_QUERY = 0x11 # Membership query.
-            MAX_RESP_TIME = 10 # 1s (in 1/10s units).
-            IGMP_GROUP = "224.0.0.1" # All-hosts group.
+            MAX_RESP_TIME = 10           # 1s (in 1/10s units).
+            IGMP_GROUP = "224.0.0.1"     # All-hosts group.
 
             # Create raw socket for IGMP.
             sock = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_IGMP)
@@ -334,14 +566,26 @@ class Runtime():
             cut = time.time() - PEER_TTL
             dep_cut = time.time() - DEPLOY_TTL
             with self.lock:
+                # Purge expired nodes.
                 for n in list(self.cluster.keys()):
                     if self.cluster[n]["ts"] < cut:
                         del self.cluster[n]
                         if n in self.peer_addresses:
                             del self.peer_addresses[n]
+
+                # Purge expired deployments.
                 for d in list(self.deploys.keys()):
                     if self.deploys[d]["ts"] < dep_cut:
                         del self.deploys[d]
+
+                # Purge expired IP reservations.
+                now = time.time()
+                for ip in list(self.ip_reservations.keys()):
+                    entry = self.ip_reservations.get(ip)
+                    if not entry:
+                        continue
+                    if now - entry.get("ts", 0) > entry.get("ttl", 120.0):
+                        del self.ip_reservations[ip]
 
     def _receive_loop(self):
         """Receive messages from the cluster"""
@@ -367,7 +611,40 @@ class Runtime():
             elif t == "HEARTBEAT":
                 self._handle_heartbeat(msg)
             elif t == "DEPLOY":
+                msg_id = msg.get("msg_id")
+                if msg_id and msg_id in self.seen_messages:
+                    continue
+                if msg_id:
+                    self.seen_messages.add(msg_id)
                 self.deploy(msg)
+            elif t == "RESERVE_IP":
+                msg_id = msg.get("msg_id")
+                if msg_id and msg_id in self.seen_messages:
+                    continue
+                if msg_id:
+                    self.seen_messages.add(msg_id)
+                ip = msg.get("ip")
+                ttl = float(msg.get("ttl", 120.0))
+                if not ip:
+                    continue
+                with self.lock:
+                    current = self.ip_reservations.get(ip)
+                    # Only record if unreserved or same owner; ignore conflicting owners
+                    if not current or current.get("node") == msg.get("node"):
+                        self.ip_reservations[ip] = {
+                            "node": msg.get("node"),
+                            "dep": msg.get("dep"),
+                            "service": msg.get("service"),
+                            "replica": msg.get("replica"),
+                            "ts": time.time(),
+                            "ttl": ttl,
+                        }
+
+    def _reconcile_loop(self):
+        """Periodic reconciliation to ensure state consistency"""
+        while True:
+            time.sleep(10)
+            self._reconcile_state()
 
     def _handle_gossip(self, msg: dict):
         """Handle incoming gossip messages"""
@@ -421,52 +698,80 @@ class Runtime():
         """Reconcile the local view with the cluster state"""
         rows = []
         want_here = set()
-        nodes = self.list_nodes()
+
+        # Build a local plan for each deployment.
         with self.lock:
             for identifier, deployment in self.deploys.items():
-                for name, service in deployment["services"].items():
+                    services = deployment.get("services", {})
+                    plan = deployment.get("plan")
+                    if plan is None:
+                        # Fallback: Construct a local plan (not broadcasted).
+                        plan = self._build_plan({"id": identifier, "services": services})
+                        deployment["plan"] = plan
 
-                    replicas = int(service.get("deploy", {}).get("replicas", 1))
-                    base_key = f"{identifier}:{name}".encode()
+                    for name, replicas in plan.items():
+                        service = services.get(name, {})
+                        for i, spec_plan in replicas.items():
+                            owner = spec_plan.get("node")
+                            spec = {
+                                "replica": i,
+                                "identifier": identifier,
+                                "image": service.get("image"),
+                                "command": service.get("command", []),
+                                "publish": service.get("ports", []),
+                                "environment": service.get("environment", {}),
+                                "ip": spec_plan.get("ip"),
+                                "name": spec_plan.get("name") or (name if len(replicas) == 1 else f"{name}-{i}")
+                            }
+                            rows.append((owner, name, spec))
 
-                    chosen = self._hrw_topk(base_key, nodes, replicas)
-                    if not chosen:
-                        continue
-
-                    for i in range(replicas):
-                        owner = chosen[i % len(chosen)]
-                        spec = {
-                            "replica": i,
-                            "identifier": identifier,
-                            "image": service.get("image"),
-                            "command": service.get("command", []),
-                            "publish": service.get("ports", []),
-                            "environment": service.get("environment", {}),
-                        }
-
-                        rows.append((owner, name, spec))
-
+        # Start containers.
         for owner, name, spec in rows:
             if owner == self.machine_id:
-                want_here.add(name)
-                if name not in self.local_view or self.local_view.get(name, {}).get("status") == "stopped":
+                cname = spec.get("name") or name
+                want_here.add(cname)
+                if cname not in self.local or self.local.get(cname, {}).get("status") == "stopped":
+                    plan = None
+                    allow = []
+
+                    # Get deployment plan for this container.
+                    with self.lock:
+                        plan = self.deploys.get(spec["identifier"], {}).get("plan")
+
+                    # Build allow list from entire deployment plan.
+                    for _svc, replicas in plan.items():
+                        for _i, spec in replicas.items():
+                            ip = spec.get("ip")
+                            if ip and ip != spec.get("ip"):
+                                allow.append(ip)
+
+                    # Start container.
                     self.executor.start_container(
-                        name=name,
+                        name=cname,
                         image=spec["image"],
                         command=spec["command"],
                         publish=spec["publish"],
-                        environment=spec["environment"]
+                        environment=spec["environment"],
+                        ip=spec.get("ip"),
+                        allow=allow
                     )
 
         # Only stop containers that are part of deployments but shouldn't be here
         # Don't stop manually started containers that aren't part of any deployment
-        current = set([k for k, v in self.local_view.items() if v["status"] != "removed"])
+        current = set([k for k, v in self.local.items() if v["status"] != "removed"])
         
         # Only consider containers that are part of deployments for stopping
         deployment_containers = set()
         for identifier, deployment in self.deploys.items():
-            for name in deployment.get("services", {}).keys():
-                deployment_containers.add(name)
+            plan = deployment.get("plan")
+            services = deployment.get("services", {})
+            if plan:
+                for name, replicas in plan.items():
+                    for i, spec_plan in replicas.items():
+                        deployment_containers.add(spec_plan.get("name") or (name if len(replicas) == 1 else f"{name}-{i}"))
+            else:
+                for name in services.keys():
+                    deployment_containers.add(name)
         
         # Only stop containers that are part of deployments but not wanted here
         containers_to_stop = (current & deployment_containers) - want_here
@@ -474,34 +779,31 @@ class Runtime():
         for cname in containers_to_stop:
             self.executor.stop_container(cname)
 
-    def list_nodes(self) -> list:
-        """List all nodes in the cluster"""
-        with self.lock:
-            ids = [self.machine_id]
-            now = time.time()
-            for n, m in self.cluster.items():
-                if now - m["ts"] <= PEER_TTL:
-                    ids.append(n)
-        return sorted(set(ids))
-
     def deploy(self, msg: dict):
         """Deploy a group of containers"""
         dep = msg.get("deploy") or {}
         dep_id = dep.get("id")
         if not dep_id:
             return
+        plan = msg.get("plan")
+        # If no plan provided, originate a plan and broadcast once.
+        if plan is None:
+            plan = self._build_plan(dep)
+            out = {
+                "t": "DEPLOY",
+                "deploy": dep,
+                "plan": plan,
+                "ts": time.time(),
+                "msg_id": Runtime._hashsum("DEPLOY", {"deploy": dep})
+            }
+            self._sock_send(out)
         with self.lock:
-            self.deploys[dep_id] = {"ts": time.time(), "services": dep.get("services", [])}
+            self.deploys[dep_id] = {"ts": time.time(), "services": dep.get("services", {}), "plan": plan}
         self._reconcile_state()
-
-    def _reconcile_loop(self):
-        """Periodic reconciliation to ensure state consistency"""
-        while True:
-            time.sleep(10)
-            self._reconcile_state()
 
     def start(self):
         """Start the runtime"""
+        threading.Thread(target=self._arp_loop, daemon=True).start()
         threading.Thread(target=self._igmp_loop, daemon=True).start()
         threading.Thread(target=self._gossip_loop, daemon=True).start()
         threading.Thread(target=self._announce_loop, daemon=True).start()

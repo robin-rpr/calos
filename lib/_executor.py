@@ -16,14 +16,29 @@ class Executor():
     """Executor"""
 
     def start_container(self, name: str, image: str, command: list,
-                        publish: dict, environment: dict) -> dict:
+                        publish, environment: dict, ip: str = None, allow: list = None) -> dict:
         """Start a container"""
         try:
             cmd = ["clearly", "run", image, "--name", name, "--detach"]
 
+            # Optional static IP
+            if ip:
+                cmd.extend(["--ip", ip])
+
+            # Optional per-peer allow list
+            if allow:
+                for peer_ip in allow:
+                    cmd.extend(["--allow", str(peer_ip)])
+
+            # Publish can be a dict (host->container) or a list of strings
             if publish:
-                for key, value in publish.items():
-                    cmd.extend(["--publish", f"{key}:{value}"])
+                if isinstance(publish, dict):
+                    for key, value in publish.items():
+                        cmd.extend(["--publish", f"{key}:{value}"])
+                elif isinstance(publish, list):
+                    for entry in publish:
+                        # Accept already formatted strings like "8080:80" or "NET:src:dst"
+                        cmd.extend(["--publish", str(entry)])
             
             if environment:
                 for key, value in environment.items():
