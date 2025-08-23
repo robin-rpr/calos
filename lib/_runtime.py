@@ -719,12 +719,12 @@ class Runtime():
 
         # Build a local plan for each deployment.
         with self.lock:
-            for identifier, deployment in self.deploys.items():
+            for id, deployment in self.deploys.items():
                     services = deployment.get("services", {})
                     plan = deployment.get("plan")
                     if plan is None:
                         # Fallback: Construct a local plan (not broadcasted).
-                        plan = self._get_plan({"id": identifier, "services": services})
+                        plan = self._get_plan({"id": id, "services": services})
                         deployment["plan"] = plan
 
                     for name, replicas in plan.items():
@@ -732,8 +732,8 @@ class Runtime():
                         for i, spec_plan in replicas.items():
                             owner = spec_plan.get("node")
                             spec = {
+                                "id": id,
                                 "replica": i,
-                                "identifier": identifier,
                                 "image": service.get("image"),
                                 "command": service.get("command", []),
                                 "publish": service.get("ports", []),
@@ -746,7 +746,7 @@ class Runtime():
             # Start containers.
             for owner, name, spec in rows:
                 if owner == self.machine_id:
-                    cname = spec.get("name") or name
+                    cname = f"{spec.get('id')}_{spec.get('name')}"
                     want_here.add(cname)
                     if cname not in self.local or self.local.get(cname, {}).get("status") == "stopped":
                         plan = None
@@ -754,7 +754,7 @@ class Runtime():
 
                         # Get deployment plan for this container.
                         with self.lock:
-                            plan = self.deploys.get(spec["identifier"], {}).get("plan")
+                            plan = self.deploys.get(spec["id"], {}).get("plan")
 
                         # Build allow list from entire deployment plan.
                         for _svc, replicas in plan.items():
@@ -780,7 +780,7 @@ class Runtime():
             
             # Only consider containers that are part of deployments for stopping
             deployment_containers = set()
-            for identifier, deployment in self.deploys.items():
+            for _, deployment in self.deploys.items():
                 plan = deployment.get("plan")
                 services = deployment.get("services", {})
                 if plan:
@@ -802,9 +802,6 @@ class Runtime():
     def deploy(self, msg: dict):
         """Deploy a group of containers"""
         deployment = msg.get("deploy") or {}
-        if not deployment.get("id"):
-            raise ValueError("Deployment ID is required")
-
         plan = msg.get("plan")
 
         # If no plan provided, originate a plan and broadcast once.

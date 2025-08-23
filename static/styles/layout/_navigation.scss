@@ -58,14 +58,6 @@
             column-gap: 0.5rem;
             align-items: center;
 
-            &--blue {
-                color: #0167ff;
-            }
-
-            &--bold {
-                font-weight: 400;
-            }
-
             &--active,
             &:active {
                 background: #d5e5fb;

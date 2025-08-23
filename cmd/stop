@@ -79,11 +79,11 @@ sleep 3
 
 # Check if the process is still running
 if kill -0 "$pid" 2>/dev/null; then
-    FATAL "container did not stop gracefully. sending SIGKILL..."
-    if ! kill -9 "$pid" 2>/dev/null; then
-        FATAL "failed to send SIGKILL to container."
-        exit 1
-    fi
+    WARNING "container did not stop gracefully. sending SIGKILL..."
+    kill -9 "$pid" 2>/dev/null
+    while kill -0 "$pid" 2>/dev/null; do
+        sleep 0.1
+    done
 fi
 
 INFO "done"

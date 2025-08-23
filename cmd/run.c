@@ -42,7 +42,7 @@ Run a command in a Clearly container.\n\
 \v\
 Example:\n\
 \n\
-  $ clearly run /data/foo -- echo hello\n\
+  $ clearly run ubuntu:latest -- echo hello\n\
   hello\n\
 \n\
 You cannot use this program to actually change your UID.\n";
@@ -52,7 +52,7 @@ const char args_doc[] = "IMAGE -- COMMAND [ARG...]";
 /* Note: Long option numbers, once issued, are permanent; i.e., if you remove
    one, don’t re-number the others. */
 const struct argp_option options[] = {
-   { "allow",         'a', "DST",              0, "allow egress traffic to peer container DST" },
+   { "allow",         'a', "DST",              0, "allow traffic to peer container DST" },
    { "bind",          'b', "SRC:DST",          0, "mount SRC at guest DST (default: same as SRC)" },
    { "cd",            'c', "DIR",              0, "initial working directory in container" },
    { "detach",        'd', 0,                  0, "detach the container into the background" },
@@ -67,17 +67,17 @@ const struct argp_option options[] = {
    { "join-ct",        -3, "N",                0, "number of join peers (implies --join)" },
    { "join-tag",       -4, "TAG",              0, "label for peer group (implies --join)" },
    { "test",          -13, "TEST",             0, "do 'clearly test' TEST" },
-   { "mount",         'm', "DIR",              0, "SquashFS mount point" },
+   { "mount",         'm', "DIR",              0, "overwrite SquashFS mount point" },
    { "name",          -18, "NAME",             0, "assign a name to the container" },
    { "passwd",         -7, 0,                  0, "bind-mount /etc/{passwd,group}" },
-   { "overlay-size",  'o', "SIZE", OPTION_ARG_OPTIONAL,
+   { "overlay",       'o', "SIZE", OPTION_ARG_OPTIONAL,
                            "overlay read-write tmpfs size on top of image" },
-   { "publish",       'p', "SRC:DST[/PROTO]",  0,
-                           "forward host port SRC to container port DST[/PROTO]" },
-   { "pids-max",      -14, "N",                0, "maximum number of PIDs" },
-   { "cpu-weight",    -15, "WEIGHT",           0, "CPU weight" },
-   { "memory-max",    -16, "BYTES",            0, "memory limit" },
-   { "cpus",          -17, "N",                0, "number of CPUs" },
+   { "publish",       'p', "SRC:DST",          0,
+                           "forward host port SRC to container port DST" },
+   { "pids-max",      -14, "N",                0, "maximum number of PIDs (0-1024)" },
+   { "cpu-weight",    -15, "WEIGHT",           0, "set CPU weight (1-10000)" },
+   { "memory-max",    -16, "BYTES",            0, "set memory limit (bytes, up to 1024G)" },
+   { "cpus",          -17, "N",                0, "set number of CPUs (0-1024)" },
    { "private-tmp",   't', 0,                  0, "use container-private /tmp" },
    { "quiet",         'q', 0,                  0, "print less output (can be repeated)" },
    { "env",           'e', "ARG",              0,
@@ -737,7 +737,7 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state)
    case 'w':  // --write
       args->c.writable = true;
       break;
-   case 'o':  // --overlay-size
+   case 'o':  // --overlay
       Ze(arg[0] == '\0', "overlay size can't be empty string");
       args->c.overlay_size = arg;
       break;

@@ -84,19 +84,8 @@ for dir in "$clearly_runtime"/*/; do
   net=$(<"${dir}net")
   img=$(<"${dir}img")
 
-  # Determine status (Running / Stopped / Unknown)
-  if kill -0 "$pid" 2>/dev/null; then
-    status="Running"
-  elif [[ ! -e "/proc/$pid" ]]; then
-    status="Stopped"
-    net=""
-  else
-    status="Unknown"
-    net=""
-  fi
-  
   ports=""
-  # Collect ports from both tcp and udp files
+  # Determine ports from both tcp and udp files
   for proto in tcp udp; do
     file="${dir}${proto}"
     if [[ -f "$file" && -s "$file" ]]; then
@@ -105,6 +94,19 @@ for dir in "$clearly_runtime"/*/; do
       done < "$file"
     fi
   done
+
+  # Determine status (Running / Stopped / Unknown)
+  if kill -0 "$pid" 2>/dev/null; then
+    status="Running"
+  elif [[ ! -e "/proc/$pid" ]]; then
+    status="Stopped"
+    ports=""
+    net=""
+  else
+    status="Unknown"
+    ports=""
+    net=""
+  fi
 
   if [[ "$json_output" == "--json" ]]; then
     if (( first_item == 0 )); then
