@@ -51,8 +51,17 @@ class Executor():
                 cmd.extend(["--"] + command)
 
             # Execute command.
-            logger.info(f"Starting container {name} with command: {cmd}")
-            subprocess.Popen(cmd)
+            logger.info(f"Running: {' '.join(cmd)}")
+            result = subprocess.run(
+                cmd,
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                start_new_session=True,
+                check=True
+            )
+            
+            logger.info(f"Container {name} started")
             
             return {"success": True}
                 
@@ -66,9 +75,9 @@ class Executor():
             cmd = ["clearly", "stop", name]
 
             # Execute command.
-            subprocess.Popen(cmd)
+            result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True)
             
-            return {"success": True}
+            return {"success": True, "stdout": result.stdout, "stderr": result.stderr}
                 
         except Exception as e:
             logger.error(f"Failed to stop container {name}: {e}")
@@ -80,7 +89,7 @@ class Executor():
             cmd = ["clearly", "logs", name]
 
             # Execute command and capture output.
-            result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True)
             
             return {"success": True, "stdout": result.stdout, "stderr": result.stderr}
                 
@@ -94,7 +103,7 @@ class Executor():
             cmd = ["clearly", "list", "--json"]
 
             # Execute command and capture output.
-            result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True)
             
             return {"success": True, "containers": json.loads(result.stdout)}
                 

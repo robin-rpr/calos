@@ -79,4 +79,4 @@ if echo "$response" | grep -q '"error"'; then
     FATAL "$response"
 fi
 
-INFO "ok"
+INFO "done"

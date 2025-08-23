@@ -743,59 +743,59 @@ class Runtime():
                             }
                             rows.append((owner, name, spec))
 
-        # Start containers.
-        for owner, name, spec in rows:
-            if owner == self.machine_id:
-                cname = spec.get("name") or name
-                want_here.add(cname)
-                if cname not in self.local or self.local.get(cname, {}).get("status") == "stopped":
-                    plan = None
-                    allow = []
+            # Start containers.
+            for owner, name, spec in rows:
+                if owner == self.machine_id:
+                    cname = spec.get("name") or name
+                    want_here.add(cname)
+                    if cname not in self.local or self.local.get(cname, {}).get("status") == "stopped":
+                        plan = None
+                        allow = []
 
-                    # Get deployment plan for this container.
-                    with self.lock:
-                        plan = self.deploys.get(spec["identifier"], {}).get("plan")
+                        # Get deployment plan for this container.
+                        with self.lock:
+                            plan = self.deploys.get(spec["identifier"], {}).get("plan")
 
-                    # Build allow list from entire deployment plan.
-                    for _svc, replicas in plan.items():
-                        for _i, spec_plan in replicas.items():
-                            ip = spec_plan.get("ip")
-                            if ip and ip != spec.get("ip"):
-                                allow.append(ip)
+                        # Build allow list from entire deployment plan.
+                        for _svc, replicas in plan.items():
+                            for _i, spec_plan in replicas.items():
+                                ip = spec_plan.get("ip")
+                                if ip and ip != spec.get("ip"):
+                                    allow.append(ip)
 
-                    # Start container.
-                    self.executor.start_container(
-                        name=cname,
-                        image=spec.get("image"),
-                        command=spec.get("command", []),
-                        publish=spec.get("publish", []),
-                        environment=spec.get("environment", {}),
-                        ip=spec.get("ip"),
-                        allow=allow
-                    )
+                        # Start container.
+                        self.executor.start_container(
+                            name=cname,
+                            image=spec.get("image"),
+                            command=spec.get("command", []),
+                            publish=spec.get("publish", []),
+                            environment=spec.get("environment", {}),
+                            ip=spec.get("ip"),
+                            allow=allow
+                        )
 
-        # Only stop containers that are part of deployments but shouldn't be here
-        # Don't stop manually started containers that aren't part of any deployment
-        current = set([k for k, v in self.local.items() if v["status"] != "removed"])
-        
-        # Only consider containers that are part of deployments for stopping
-        deployment_containers = set()
-        for identifier, deployment in self.deploys.items():
-            plan = deployment.get("plan")
-            services = deployment.get("services", {})
-            if plan:
-                for name, replicas in plan.items():
-                    for i, spec_plan in replicas.items():
-                        deployment_containers.add(spec_plan.get("name") or (name if len(replicas) == 1 else f"{name}-{i}"))
-            else:
-                for name in services.keys():
-                    deployment_containers.add(name)
-        
-        # Only stop containers that are part of deployments but not wanted here
-        containers_to_stop = (current & deployment_containers) - want_here
-        
-        for cname in containers_to_stop:
-            self.executor.stop_container(cname)
+            # Only stop containers that are part of deployments but shouldn't be here
+            # Don't stop manually started containers that aren't part of any deployment
+            current = set([k for k, v in self.local.items() if v["status"] != "removed"])
+            
+            # Only consider containers that are part of deployments for stopping
+            deployment_containers = set()
+            for identifier, deployment in self.deploys.items():
+                plan = deployment.get("plan")
+                services = deployment.get("services", {})
+                if plan:
+                    for name, replicas in plan.items():
+                        for i, spec_plan in replicas.items():
+                            deployment_containers.add(spec_plan.get("name") or (name if len(replicas) == 1 else f"{name}-{i}"))
+                else:
+                    for name in services.keys():
+                        deployment_containers.add(name)
+            
+            # Only stop containers that are part of deployments but not wanted here
+            containers_to_stop = (current & deployment_containers) - want_here
+            
+            for cname in containers_to_stop:
+                self.executor.stop_container(cname)
 
     """ Main """
 

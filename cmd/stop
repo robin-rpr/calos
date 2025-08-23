@@ -60,7 +60,6 @@ if [[ ! -f "$pid_file" ]]; then
 fi
 
 pid=$(<"$pid_file")
-INFO "stopping container $container_id..."
 
 # Send SIGTERM
 if ! kill "$pid" 2>/dev/null; then
@@ -87,7 +86,7 @@ if kill -0 "$pid" 2>/dev/null; then
     fi
 fi
 
-INFO "container $container_id stopped."
-
 # Cleanup container directory
 rm -rf "$container_dir"
+
+INFO "done"
