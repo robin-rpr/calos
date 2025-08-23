@@ -1,26 +1,26 @@
-version: '2'
-
 services:
-   db:
-     image: mysql:5.7
-     restart: always
-     volumes:
-       - db_data:/var/lib/mysql
-     environment:
-       MYSQL_ROOT_PASSWORD: wordpress
-       MYSQL_DATABASE: wordpress
-       MYSQL_USER: wordpress
-       MYSQL_PASSWORD: wordpress
+  ollama:
+    image: ollama/ollama:latest
+    restart: unless-stopped
+    volumes:
+      - ollama:/root/.ollama
+    tty: true
 
-   wordpress:
-     image: wordpress:latest
-     restart: always
-     ports:
-       - 80
-     environment:
-       WORDPRESS_DB_HOST: db:3306
-       WORDPRESS_DB_USER: wordpress
-       WORDPRESS_DB_PASSWORD: wordpress
+  app:
+    image: ghcr.io/open-webui/open-webui:latest
+    restart: unless-stopped
+    volumes:
+      - app:/app/backend/data
+    depends_on:
+      - ollama
+    ports:
+      - 3000:8080
+    environment:
+      OLLAMA_BASE_URL: http://ollama:11434
+      WEBUI_SECRET_KEY: 'admin'
+    extra_hosts:
+      - host.docker.internal:host-gateway
 
 volumes:
-    db_data:
+  ollama: {}
+  app: {}

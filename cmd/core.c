@@ -222,7 +222,7 @@ void iw(struct sock_fprog *p, int i,
 #endif
 void parse_host_map(const char* map_str, char** hostname, struct in_addr* ip_addr);
 void parse_allow_map(const char* map_str, struct in_addr* ip_addr);
-void parse_publish_map(const char* map_str, int* host_port, int* container_port);
+void parse_publish_map(const char* map_str, int* host_port, int* container_port, char** protocol);
 void join_begin(const char *join_tag);
 void join_namespace(pid_t pid, const char *ns);
 void join_namespaces(pid_t pid);
@@ -412,9 +412,10 @@ void containerize(
         // Ensure DNAT (Destination NAT) Forward.
         for (int i = 0; c->publish_map_strs[i] != NULL; i++) {
             int host_port, guest_port;
-            parse_publish_map(c->publish_map_strs[i], &host_port, &guest_port);
-            create_nft_forward(&guest_ip, host_port, guest_port, "tcp");
-            create_nft_forward(&guest_ip, host_port, guest_port, "udp");
+            char* protocol;
+            parse_publish_map(c->publish_map_strs[i], &host_port, &guest_port, &protocol);
+            create_nft_forward(&guest_ip, host_port, guest_port, protocol);
+            free(protocol);
         }
         
         /* Step 2: Synchronize with child.
@@ -482,7 +483,11 @@ void containerize(
          char log_path[PATH_CHARS];
          char net_path[PATH_CHARS];
          char pid_path[PATH_CHARS];
-     
+         char img_path[PATH_CHARS];
+         char tcp_path[PATH_CHARS];
+         char udp_path[PATH_CHARS];
+         char cmd_path[PATH_CHARS];
+
          // The 'path' argument to mkdirs must begin with a '/', representing the path
          // to be created *within* the base directory (runtime_dir).
      #pragma GCC diagnostic push
@@ -499,6 +504,10 @@ void containerize(
          snprintf(log_path, sizeof(log_path), "%s/log", container_path);
          snprintf(net_path, sizeof(net_path), "%s/net", container_path);
          snprintf(pid_path, sizeof(pid_path), "%s/pid", container_path);
+         snprintf(img_path, sizeof(img_path), "%s/img", container_path);
+         snprintf(tcp_path, sizeof(tcp_path), "%s/tcp", container_path);
+         snprintf(udp_path, sizeof(udp_path), "%s/udp", container_path);
+         snprintf(cmd_path, sizeof(cmd_path), "%s/cmd", container_path);
 #pragma GCC diagnostic pop
      
          // Redirect stdout and stderr to the log file.
@@ -510,6 +519,29 @@ void containerize(
      
          // Write PID to file.
          T_ (1 <= dprintf(open(pid_path, O_WRONLY | O_CREAT | O_TRUNC, 0644), "%d", getpid()));
+
+         // Write image to file.
+         T_ (1 <= dprintf(open(img_path, O_WRONLY | O_CREAT | O_TRUNC, 0644), "%s", c->image));
+
+         // Write TCP and UDP ports to files.
+         for (int i = 0; c->publish_map_strs[i] != NULL; i++) {
+             int host_port, guest_port;
+             char* protocol;
+             parse_publish_map(c->publish_map_strs[i], &host_port, &guest_port, &protocol);
+             char* path = strcmp(protocol, "tcp") == 0 ? tcp_path : udp_path;
+             T_ (1 <= dprintf(open(path, O_WRONLY | O_CREAT | O_APPEND, 0644), "%d->%d\n", host_port, guest_port));
+             free(protocol);
+         }
+
+         // Write command to file.
+         if (c->command != NULL) {
+             int fd = open(cmd_path, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+             T_ (fd >= 0);
+             for (int i = 0; c->command[i] != NULL; i++) {
+                 T_ (1 <= dprintf(fd, "%s%s", c->command[i], c->command[i+1] != NULL ? " " : ""));
+             }
+             close(fd);
+         }
      }
 
         // Initialize cgroup.
@@ -807,16 +839,19 @@ void parse_allow_map(const char* map_str, struct in_addr* ip_addr) {
     free(str);
 }
 
-/* Helper function to parse "HOST_PORT:CONTAINER_PORT" string. */
-void parse_publish_map(const char* map_str, int* host_port, int* container_port) {
+/* Helper function to parse "HOST_PORT:CONTAINER_PORT[/PROTOCOL]" string. */
+void parse_publish_map(const char* map_str, int* host_port, int* container_port, char** protocol) {
     char* str = strdup(map_str);
     char* colon = strchr(str, ':');
-    Tf(colon != NULL, "invalid port entry format. Expected HOST_PORT:CONTAINER_PORT");
+    Tf(colon != NULL, "invalid port entry format. Expected HOST_PORT:CONTAINER_PORT[/PROTOCOL]");
     *colon = '\0';
     *host_port = atoi(str);
     *container_port = atoi(colon + 1);
     Tf(*host_port > 0 && *host_port < 65536, "invalid host port number");
     Tf(*container_port > 0 && *container_port < 65536, "invalid container port number");
+    
+    char* slash = strchr(colon + 1, '/');
+    *protocol = slash ? strdup(slash + 1) : strdup("tcp");
     free(str);
 }
 

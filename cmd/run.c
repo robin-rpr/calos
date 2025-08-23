@@ -72,8 +72,8 @@ const struct argp_option options[] = {
    { "passwd",         -7, 0,                  0, "bind-mount /etc/{passwd,group}" },
    { "overlay-size",  'o', "SIZE", OPTION_ARG_OPTIONAL,
                            "overlay read-write tmpfs size on top of image" },
-   { "publish",       'p', "[NET:]SRC:DST",    0,
-                           "forward host port [NET:]SRC to container port DST" },
+   { "publish",       'p', "SRC:DST[/PROTO]",  0,
+                           "forward host port SRC to container port DST[/PROTO]" },
    { "pids-max",      -14, "N",                0, "maximum number of PIDs" },
    { "cpu-weight",    -15, "WEIGHT",           0, "CPU weight" },
    { "memory-max",    -16, "BYTES",            0, "memory limit" },
@@ -192,7 +192,7 @@ int main(int argc, char *argv[])
                                .env_expand = true,
                                .host_home = NULL,
                                .host_map_strs = list_new(sizeof(char *), 0),
-                               .img_ref = NULL,
+                               .image = NULL,
                                .ip = NULL,
                                .join = false,
                                .join_ct = 0,
@@ -239,21 +239,21 @@ int main(int argc, char *argv[])
       printf("Usage: run [OPTION...] IMAGE -- COMMAND [ARG...]\n");
       FATAL(0, "IMAGE not specified");
    }
-   args.c.img_ref = argv[arg_next++];
+   args.c.image = argv[arg_next++];
    args.mount_dir = realpath_(args.mount_dir, true);
    args.storage_dir = realpath_(args.storage_dir, true);
    args.runtime_dir = realpath_(args.runtime_dir, true);
-   args.c.type = image_type(args.c.img_ref, args.storage_dir);
+   args.c.type = image_type(args.c.image, args.storage_dir);
 
    switch (args.c.type) {
    case IMG_DIRECTORY:
       if (args.mount_dir != NULL) // --mount was set
          WARNING("--mount invalid with directory image, ignoring");
-      args.mount_dir = realpath_(args.c.img_ref, false);
+      args.mount_dir = realpath_(args.c.image, false);
       img_directory_verify(args.mount_dir, &args);
       break;
    case IMG_NAME:
-      args.mount_dir = img_name2path(args.c.img_ref, args.storage_dir);
+      args.mount_dir = img_name2path(args.c.image, args.storage_dir);
       Tf (!args.c.writable || args.unsafe,
           "--write invalid when running by name");
       break;
@@ -263,7 +263,7 @@ int main(int argc, char *argv[])
 #endif
       break;
    case IMG_NONE:
-      FATAL(0, "unknown image type: %s", args.c.img_ref);
+      FATAL(0, "unknown image type: %s", args.c.image);
       break;
    }
 
@@ -308,7 +308,7 @@ int main(int argc, char *argv[])
    }
 
    VERBOSE("verbosity: %d", verbose);
-   VERBOSE("image: %s", args.c.img_ref);
+   VERBOSE("image: %s", args.c.image);
    VERBOSE("storage: %s", args.storage_dir);
    VERBOSE("runtime: %s", args.runtime_dir);
    VERBOSE("mount: %s", args.mount_dir);

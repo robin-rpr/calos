@@ -55,16 +55,22 @@ if [[ ! -d "$clearly_runtime" ]]; then
   if [[ "$json_output" == "--json" ]]; then
     printf '[]\n'
   else
-    printf '%-20s\t%-15s\t%s\n' "CONTAINER ID" "IP ADDRESS" "STATUS"
+    printf '%-20s\t%-20s\t%-20s\t%-10s\t%s\n' "CONTAINER ID" "IMAGE" "IP ADDRESS" "STATUS" "PORTS"
   fi
   exit 0
 fi
 
+space=20 # Minimum width.
+shopt -s nullglob
+for dir in "$clearly_runtime"/*/; do
+  img=$(<"${dir}img")
+  (( w = ${#img} + 2, w > space )) && space=$w
+done
+
 if [[ "$json_output" == "--json" ]]; then
   printf '[\n'
 else
-  # Header with fixed widths (like the C version when dir exists)
-  printf '%-20s\t%-15s\t%s\n' "CONTAINER ID" "IP ADDRESS" "STATUS"
+  printf '%-20s\t%-*s\t%-20s\t%-10s\t%s\n' "CONTAINER ID" "$space" "IMAGE" "IP ADDRESS" "STATUS" "PORTS"
 fi
 
 first_item=1
@@ -75,25 +81,39 @@ for dir in "$clearly_runtime"/*/; do
   id="${dir%/}"; id="${id##*/}"
 
   pid=$(<"${dir}pid")
-  ip=$(<"${dir}net")
+  net=$(<"${dir}net")
+  img=$(<"${dir}img")
 
   # Determine status (Running / Stopped / Unknown)
   if kill -0 "$pid" 2>/dev/null; then
     status="Running"
   elif [[ ! -e "/proc/$pid" ]]; then
     status="Stopped"
+    net=""
   else
     status="Unknown"
+    net=""
   fi
+  
+  ports=""
+  # Collect ports from both tcp and udp files
+  for proto in tcp udp; do
+    file="${dir}${proto}"
+    if [[ -f "$file" && -s "$file" ]]; then
+      while IFS= read -r line; do
+        [[ $line ]] && ports+="${ports:+, }${line}/$proto"
+      done < "$file"
+    fi
+  done
 
   if [[ "$json_output" == "--json" ]]; then
     if (( first_item == 0 )); then
       printf ',\n'
     fi
-    printf '  {"id": "%s", "ip_address": "%s", "status": "%s"}' "$id" "$ip" "$status"
+    printf '  {"id": "%s", "image": "%s", "ip_address": "%s", "status": "%s", "ports": "%s"}' "$id" "$img" "$net" "$status" "$ports"
     first_item=0
   else
-    printf '%-20s\t%-15s\t%s\n' "$id" "$ip" "$status"
+    printf '%-20s\t%-*s\t%-20s\t%-10s\t%s\n' "$id" "$space" "$img" "${net:--}" "$status" "${ports:--}"
   fi
 done
 

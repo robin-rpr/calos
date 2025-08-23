@@ -51,18 +51,17 @@ class Executor():
                 cmd.extend(["--"] + command)
 
             # Execute command.
-            logger.info(f"Running: {' '.join(cmd)}")
-            result = subprocess.run(
+            process = subprocess.Popen(
                 cmd,
                 stdin=subprocess.DEVNULL,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                start_new_session=True,
-                check=True
+                stdout=None,
+                stderr=None,
+                start_new_session=True
             )
-            
-            logger.info(f"Container {name} started")
-            
+            process.wait()
+            if process.returncode != 0:
+                raise subprocess.CalledProcessError(process.returncode, cmd)
+
             return {"success": True}
                 
         except Exception as e:
@@ -75,9 +74,9 @@ class Executor():
             cmd = ["clearly", "stop", name]
 
             # Execute command.
-            result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True)
+            subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, text=True, check=True)
             
-            return {"success": True, "stdout": result.stdout, "stderr": result.stderr}
+            return {"success": True}
                 
         except Exception as e:
             logger.error(f"Failed to stop container {name}: {e}")

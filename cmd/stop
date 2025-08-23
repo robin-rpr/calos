@@ -86,7 +86,4 @@ if kill -0 "$pid" 2>/dev/null; then
     fi
 fi
 
-# Cleanup container directory
-rm -rf "$container_dir"
-
 INFO "done"

@@ -68,19 +68,14 @@ logger = logging.getLogger(__name__)
 def deploy(payload=None, name=None):
     """Deploy a new container."""
     try:
-        logger.info(f"Deploying {name} with payload: {payload}")
-
-        # Most of all below is wrong currently.
-        message = {
-            "t": "DEPLOY", 
+        runtime.deploy({
+            "t": "DEPLOY",
             "deploy": {
                 "id": name,
                 "services": payload["services"]
             },
             "ts": time.time()
-        }
-
-        runtime.deploy(message)
+        })
 
         return { "success": True, "id": name }
     except Exception as e:
