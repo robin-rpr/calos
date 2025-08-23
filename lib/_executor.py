@@ -1,3 +1,4 @@
+from typing import Union
 import subprocess
 import logging
 import json
@@ -15,34 +16,36 @@ logger = logging.getLogger(__name__)
 class Executor():
     """Executor"""
 
-    def start_container(self, name: str, image: str, command: list,
-                        publish, environment: dict, ip: str = None, allow: list = None) -> dict:
+    def start_container(self, name: str, image: str, command: list, publish: Union[list, dict],
+                        environment: Union[list, dict], ip: str = None, allow: list = None) -> dict:
         """Start a container"""
         try:
             cmd = ["clearly", "run", image, "--name", name, "--detach"]
 
-            # Optional static IP
+            # (Optional) static IP.
             if ip:
                 cmd.extend(["--ip", ip])
 
-            # Optional per-peer allow list
+            # (Optional) per-peer allow list.
             if allow:
                 for peer_ip in allow:
                     cmd.extend(["--allow", str(peer_ip)])
 
-            # Publish can be a dict (host->container) or a list of strings
             if publish:
                 if isinstance(publish, dict):
                     for key, value in publish.items():
                         cmd.extend(["--publish", f"{key}:{value}"])
                 elif isinstance(publish, list):
                     for entry in publish:
-                        # Accept already formatted strings like "8080:80" or "NET:src:dst"
                         cmd.extend(["--publish", str(entry)])
             
             if environment:
-                for key, value in environment.items():
-                    cmd.extend(["--env", f"{key}={value}"])
+                if isinstance(environment, dict):
+                    for key, value in environment.items():
+                        cmd.extend(["--env", f"{key}={value}"])
+                elif isinstance(environment, list):
+                    for entry in environment:
+                        cmd.extend(["--env", str(entry)])
             
             if command:
                 cmd.extend(["--"] + command)

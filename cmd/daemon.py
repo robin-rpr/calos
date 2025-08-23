@@ -65,26 +65,26 @@ logger = logging.getLogger(__name__)
 ## Routes ##
 
 @webserver.post('/api/deploy')
-def deploy(payload=None):
+def deploy(payload=None, name=None):
     """Deploy a new container."""
     try:
-        document = yaml.safe_load(payload)
-        identifier = uuid.uuid4().hex
+        logger.info(f"Deploying {name} with payload: {payload}")
+
+        # Most of all below is wrong currently.
         message = {
             "t": "DEPLOY", 
             "deploy": {
-                "id": identifier,
-                "services": document["services"]
+                "id": name,
+                "services": payload["services"]
             },
             "ts": time.time()
         }
 
         runtime.deploy(message)
-        runtime.announce(message)
 
-        return { "success": True, "id": identifier }
+        return { "success": True, "id": name }
     except Exception as e:
-        logger.error(f"Failed to deploy: {e}")
+        logger.error(f"Failed to deploy: {e}", exc_info=True)
         return { "error": str(e) }
 
 @webserver.get('/api/containers')
@@ -94,8 +94,8 @@ def list_containers(payload=None):
         now = time.time();
         containers = {}
         with runtime.lock:
-            for k, v in runtime.local_view.items():
-                if v["status"] != "removed": 
+            for k, v in runtime.local.items():
+                if v.get("status") != "removed": 
                     container_info = {
                         "node": runtime.machine_id,
                         "status": v.get("status"),
@@ -117,7 +117,7 @@ def list_containers(payload=None):
 
         return { "success": True, "containers": containers }
     except Exception as e:
-        logger.error(f"Failed to list containers: {e}")
+        logger.error(f"Failed to list containers: {e}", exc_info=True)
         return { "error": str(e) }
 
 @webserver.get('/api/containers/<container_id>')
@@ -199,14 +199,12 @@ def serve_studio(studio_id, payload=None):
 
 def main():
     try:
-        # Start Webserver
+        # Startup.
         webserver.start()
-
-        # Start Runtime
         runtime.start()
 
         try:
-            # Keep alive
+            # Keep alive.
             while True:
                 sleep(10)
         except KeyboardInterrupt:

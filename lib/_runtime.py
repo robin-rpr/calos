@@ -758,18 +758,18 @@ class Runtime():
 
                     # Build allow list from entire deployment plan.
                     for _svc, replicas in plan.items():
-                        for _i, spec in replicas.items():
-                            ip = spec.get("ip")
+                        for _i, spec_plan in replicas.items():
+                            ip = spec_plan.get("ip")
                             if ip and ip != spec.get("ip"):
                                 allow.append(ip)
 
                     # Start container.
                     self.executor.start_container(
                         name=cname,
-                        image=spec["image"],
-                        command=spec["command"],
-                        publish=spec["publish"],
-                        environment=spec["environment"],
+                        image=spec.get("image"),
+                        command=spec.get("command", []),
+                        publish=spec.get("publish", []),
+                        environment=spec.get("environment", {}),
                         ip=spec.get("ip"),
                         allow=allow
                     )
@@ -801,32 +801,40 @@ class Runtime():
 
     def deploy(self, msg: dict):
         """Deploy a group of containers"""
-        dep = msg.get("deploy") or {}
-        dep_id = dep.get("id")
-        if not dep_id:
-            return
+        deployment = msg.get("deploy") or {}
+        if not deployment.get("id"):
+            raise ValueError("Deployment ID is required")
 
         plan = msg.get("plan")
+
         # If no plan provided, originate a plan and broadcast once.
         if plan is None:
-            plan = self._get_plan(dep)
-            out = {
+            plan = self._get_plan(deployment)
+            message = {
                 "t": "DEPLOY",
-                "deploy": dep,
+                "deploy": deployment,
                 "plan": plan,
                 "ts": time.time(),
-                "id": Runtime._hashsum("DEPLOY", {"deploy": dep})
+                "id": Runtime._hashsum(
+                    "DEPLOY", {"deploy": deployment}
+                )
             }
 
             Runtime._socket_send(
                 socket=self._send,
-                message=out,
+                message=message,
                 address=self.multicast_addr,
                 port=self.multicast_port
             )
 
         with self.lock:
-            self.deploys[dep_id] = {"ts": time.time(), "services": dep.get("services", {}), "plan": plan}
+            self.deploys[deployment.get("id")] = {
+                "ts": time.time(),
+                "services": deployment.get("services", {}),
+                "plan": plan
+            }
+
+        # Reconcile.
         self._handle_reconcile()
 
     def start(self):

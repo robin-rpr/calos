@@ -6,12 +6,12 @@ clearly_lib=$(cd "$(dirname "$0")" && pwd)/../../lib
 set -e
 
 usage=$(cat <<EOF
-Deploy applications to the cluster.
+Deploy an application to the cluster.
 
 Usage:
 
-  $ clearly deploy [OPTIONS] APP_NAME
-  $ clearly deploy [OPTIONS] -f COMPOSE_FILE APP_NAME
+  $ clearly deploy [OPTIONS] NAME
+  $ clearly deploy [OPTIONS] -f COMPOSE_FILE NAME
 
 Options:
 
@@ -30,9 +30,9 @@ EOF
 )
 
 compose_file="docker-compose.yml"
-app_name=""
+name=""
 
-# Parse arguments
+# Parse arguments.
 while [ $# -gt 0 ]; do
     opt=$1; shift
     if [ "$opt" = "-h" ] || [ "$opt" = "--help" ]; then
@@ -51,34 +51,32 @@ while [ $# -gt 0 ]; do
             exit 1
             ;;
         *)
-            [ -z "$app_name" ] || FATAL "duplicate app name: ${opt}"
-            app_name="$opt"
+            [ -z "$name" ] || FATAL "duplicate name: ${opt}"
+            name="$opt"
             ;;
     esac
 done
 
-[ -n "$app_name" ] || FATAL "app name required"
+[ -n "$name" ] || FATAL "name required"
 
-# Check if compose file exists
+# Check if compose file exists.
 [ -f "$compose_file" ] || FATAL "compose file not found: ${compose_file}"
 
-# Check if daemon is running by trying to connect to the API
+# Check if daemon is running by trying to connect to the API.
 daemon_url="http://127.0.0.1:8080"
 if ! curl -s --max-time 5 "$daemon_url/api/containers" > /dev/null 2>&1; then
-    FATAL "Clearly daemon not running. Start it with: clearly daemon"
+    FATAL "daemon is not running (hint: do 'service clearly start')"
 fi
 
-# Read and validate the compose file
-VERBOSE "reading compose file: ${compose_file}"
-
-# Send the compose file as-is
+# Send the compose file as-is.
 response=$(curl -s -X POST \
     -H "Content-Type: application/x-yaml" \
     --data-binary @"$compose_file" \
-    "$daemon_url/api/deploy")
+    "$daemon_url/api/deploy?name=$name")
 
-# Print the response
-echo "$response"
+# Print error if present, otherwise OK.
+if echo "$response" | grep -q '"error"'; then
+    FATAL "$response"
+fi
 
 INFO "ok"
-

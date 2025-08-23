@@ -44,6 +44,7 @@ struct container {
    char *host_home;         // if --home, host path to user homedir, else NULL
    char **host_map_strs;    // e.g. "google.com:127.0.0.1"
    char *img_ref;           // image description from command line
+   char *ip;                // IP address to use in container
    bool join;               // is this a synchronized join?
    int join_ct;             // number of peers in a synchronized join
    pid_t join_pid;          // process in existing namespace to join

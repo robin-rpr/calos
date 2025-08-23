@@ -13,6 +13,7 @@ import subprocess
 import uuid
 import functools
 import logging
+import yaml
 
 
 ## Constants ##
@@ -104,9 +105,22 @@ class WebServer:
     
     def _match_route(self, path: str, method: str) -> Tuple[Optional[Callable], Dict[str, str]]:
         """Match a request path and method to a registered route."""
+        # Split path and query parameters
+        path_parts = path.split('?', 1)
+        base_path = path_parts[0]
+        query_string = path_parts[1] if len(path_parts) > 1 else ""
+        
+        # Parse query parameters
+        query_params = {}
+        if query_string:
+            for param in query_string.split('&'):
+                if '=' in param:
+                    key, value = param.split('=', 1)
+                    query_params[key] = value
+        
         # First try exact match
-        if path in self.routes and method in self.routes[path]:
-            return self.routes[path][method], {}
+        if base_path in self.routes and method in self.routes[base_path]:
+            return self.routes[base_path][method], query_params
         
         # Then try pattern matching
         for route_path, route_handlers in self.routes.items():
@@ -130,11 +144,11 @@ class WebServer:
                     pattern_parts.append(re.escape(part))
             
             pattern = '^' + '/'.join(pattern_parts) + '$'
-            match = re.match(pattern, path)
+            match = re.match(pattern, base_path)
             
             if match:
                 # Extract path parameters using named parameters
-                params = {}
+                params = query_params.copy()  # Start with query params
                 for i, param_name in enumerate(param_names):
                     if i < len(match.groups()):
                         params[param_name] = match.group(i + 1)
@@ -176,7 +190,14 @@ class WebServer:
                             content_length = int(self.headers.get('Content-Length', 0))
                             if content_length:
                                 body = self.rfile.read(content_length).decode('utf-8')
-                                payload = json.loads(body) if body.strip() else {}
+                                if body.strip():
+                                    content_type = self.headers.get('Content-Type', '')
+                                    if 'application/x-yaml' in content_type or 'text/yaml' in content_type:
+                                        # Handle YAML content
+                                        payload = yaml.safe_load(body)
+                                    else:
+                                        # Default to JSON
+                                        payload = json.loads(body)
                         
                         # Call handler with parameters
                         if params:
