@@ -44,7 +44,7 @@ class Runtime():
         
     """
     def __init__(self, multicast_addr: str = '239.0.0.2', multicast_port: int = 4242,
-                 machine_id: str = open('/etc/machine-id').read().strip()):
+                 machine_id: str = open('/etc/machine-id').read().strip(), bridge: str = "clearly0"):
         """
         Initialize the Runtime.
         
@@ -52,11 +52,13 @@ class Runtime():
             multicast_addr: Multicast group address for cluster communication.
             multicast_port: UDP port for cluster communication.
             machine_id: Unique identifier for this node.
+            bridge: Bridge interface name.
         """
 
         self.multicast_addr = multicast_addr
         self.multicast_port = multicast_port
         self.machine_id = machine_id
+        self.bridge = bridge
 
         # Runtime state.
         self.interface = Runtime._ifname()
@@ -69,7 +71,7 @@ class Runtime():
         self.deploys = {}
         
         # Gossip protocol state.
-        self.pending_updates = deque(maxlen=1000) # Limit memory usage.
+        self.message_queue = deque(maxlen=1000) # Limit memory usage.
         self.seen_messages = set() # Message deduplication.
         self.last_gossip_round = 0 # Last gossip round.
         self.peer_addresses = {} # Map node IDs to addresses.
@@ -79,8 +81,10 @@ class Runtime():
         # Multicast socket.
         self._send = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
         self._send.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_IF, socket.inet_aton(self.address))
-        self._send.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_LOOP, 0) # Loopback.
+        self._send.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_LOOP, 0) # Disable Loopback.
         self._send.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 1) # TTL = 1.
+
+    """ Getters """
 
     @property
     def nodes(self) -> list:
@@ -92,6 +96,8 @@ class Runtime():
                 if now - m["ts"] <= PEER_TTL:
                     ids.append(n)
         return sorted(set(ids))
+
+    """ Static """
 
     @staticmethod
     def _ipaddr() -> str:
@@ -142,31 +148,6 @@ class Runtime():
         scored.sort(reverse=True)
         return [n for _, n in scored[:max(1, min(k, len(scored)))]]
 
-    def _sock_recv(self) -> socket.socket:
-        """Create a socket for receiving multicast messages"""
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        s.bind(("", self.multicast_port))
-
-        mreq = struct.pack("4s4s", socket.inet_aton(self.multicast_addr), socket.inet_aton(self.address))
-        s.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
-
-        s.settimeout(1.0)
-        return s
-
-    def _sock_send(self, msg: dict, target_addr: str = None):
-        """Send message to specific target or multicast"""
-        raw = json.dumps(msg, separators=(",", ":")).encode()
-        comp = zlib.compress(raw, 6)
-        payload, enc = (comp, "z") if len(comp) <= MAX_UDP else (raw, "raw")
-        header = json.dumps({"enc": enc}).encode() + b"\n"
-        
-        addr = target_addr or self.multicast_addr
-        try:
-            self._send.sendto(header + payload, (addr, self.multicast_port))
-        except Exception as e:
-            logger.warning(f"Failed to send message: {e}")
-
     @staticmethod
     def _get_if_mac(ifname: str) -> bytes:
         """Read interface MAC address as 6 bytes."""
@@ -192,37 +173,37 @@ class Runtime():
         finally:
             s.close()
 
-    def _arp_is_free(self, ip: str, ifname: str = None, retries: int = 2, timeout: float = 0.2) -> bool:
+    @staticmethod
+    def _arp_is_free(ip: str, ifname: str, retries: int = 2, timeout: float = 0.2) -> bool:
         """Send ARP who-has for ip on interface and return True if no reply received."""
         target_ip = socket.inet_aton(ip)
-        iface = ifname or ("clearly0" if os.path.exists("/sys/class/net/clearly0") else self.interface)
-        src_mac = Runtime._get_if_mac(iface)
-        src_ip = socket.inet_aton(Runtime._get_if_ipv4(iface))
+        src_mac = Runtime._get_if_mac(ifname)
+        src_ip = socket.inet_aton(Runtime._get_if_ipv4(ifname))
 
         # Ethernet frame header
-        eth_dst = b"\xff\xff\xff\xff\xff\xff"
-        eth_src = src_mac
-        eth_type = struct.pack('!H', 0x0806)  # ARP
+        eth_dst = b"\xff\xff\xff\xff\xff\xff" # Destination MAC address (broadcast).
+        eth_src = src_mac                     # Source MAC address.
+        eth_type = struct.pack('!H', 0x0806)  # EtherType (ARP).
 
         # ARP payload (request)
-        htype = struct.pack('!H', 1)          # Ethernet
-        ptype = struct.pack('!H', 0x0800)     # IPv4
-        hlen  = struct.pack('!B', 6)
-        plen  = struct.pack('!B', 4)
-        oper  = struct.pack('!H', 1)          # request
-        sha   = src_mac
-        spa   = src_ip
-        tha   = b"\x00" * 6
-        tpa   = target_ip
+        htype = struct.pack('!H', 1)          # Hardware type (Ethernet).
+        ptype = struct.pack('!H', 0x0800)     # Protocol type (IPv4).
+        hlen  = struct.pack('!B', 6)          # Hardware address length.
+        plen  = struct.pack('!B', 4)          # Protocol address length.
+        oper  = struct.pack('!H', 1)          # ARP operation (request).
+        sha   = src_mac                       # Source hardware address.
+        spa   = src_ip                        # Source protocol address.
+        tha   = b"\x00" * 6                   # Target hardware address.
+        tpa   = target_ip                     # Target protocol address.
         arp_payload = b"".join([htype, ptype, hlen, plen, oper, sha, spa, tha, tpa])
         frame = eth_dst + eth_src + eth_type + arp_payload
 
         try:
             s = socket.socket(socket.AF_PACKET, socket.SOCK_RAW, socket.htons(0x0806))
             s.settimeout(timeout)
-            s.bind((iface, 0))
-        except Exception:
-            # If we cannot craft ARP, be conservative and mark as not free
+            s.bind((ifname, 0))
+        except Exception as e:
+            logger.warning(f"ARP: Failed to create socket: {e}")
             return False
 
         try:
@@ -236,18 +217,18 @@ class Runtime():
                         pkt = s.recv(65535)
                         if len(pkt) < 42:
                             continue
-                        # EtherType
+                        # EtherType.
                         if pkt[12:14] != b"\x08\x06":
                             continue
-                        # ARP op
+                        # ARP op.
                         op = struct.unpack('!H', pkt[20:22])[0]
-                        if op != 2:  # reply
+                        if op != 2: # Reply.
                             continue
                         spa_reply = pkt[28:32]
                         if spa_reply == target_ip:
-                            return False  # someone has this IP
+                            return False # IP is in use.
                 except socket.timeout:
-                    # no reply observed in this interval
+                    # No reply observed.
                     pass
             return True
         finally:
@@ -282,11 +263,39 @@ class Runtime():
         d = (h[2] % 253) + 2
         return f"{a}.{b}.{c}.{d}"
 
+    @staticmethod
+    def _socket_receive(address: str, port: int, via_address: str) -> socket.socket:
+        """Create a socket for receiving multicast messages"""
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        sock.bind(("", port))
+
+        mreq = struct.pack("4s4s", socket.inet_aton(address), socket.inet_aton(via_address))
+        sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
+
+        sock.settimeout(1.0)
+        return sock
+
+    @staticmethod
+    def _socket_send(socket: socket.socket, message: dict, address: str, port: int) -> None:
+        """Send message to specific target or multicast"""
+        raw = json.dumps(message, separators=(",", ":")).encode()
+        comp = zlib.compress(raw, 6)
+        payload, enc = (comp, "z") if len(comp) <= MAX_UDP else (raw, "raw")
+        header = json.dumps({"enc": enc}).encode() + b"\n"
+        
+        try:
+            socket.sendto(header + payload, (address, port))
+        except Exception as e:
+            logger.warning(f"Failed to send message: {e}")
+
+    """ Helpers """
+
     def _reserve_ip(self, ip: str, dep_id: str, service: str, replica: int, ttl: float = 120.0):
         now = time.time()
         with self.lock:
             self.ip_reservations[ip] = {"node": self.machine_id, "dep": dep_id, "service": service, "replica": replica, "ts": now, "ttl": ttl}
-        msg = {
+        message = {
             "t": "RESERVE_IP",
             "ip": ip,
             "dep": dep_id,
@@ -295,11 +304,16 @@ class Runtime():
             "node": self.machine_id,
             "ttl": ttl,
             "ts": now,
-            "msg_id": Runtime._hashsum("RESERVE_IP", {"ip": ip, "dep": dep_id, "service": service, "replica": replica})
+            "id": Runtime._hashsum("RESERVE_IP", {"ip": ip, "dep": dep_id, "service": service, "replica": replica})
         }
-        self._sock_send(msg)
+        Runtime._socket_send(
+            socket=self._send,
+            message=message,
+            address=self.multicast_addr,
+            port=self.multicast_port
+        )
 
-    def _build_plan(self, dep: dict) -> dict:
+    def _get_plan(self, dep: dict) -> dict:
         """Build a deterministic plan assigning replicas to nodes and IPs.
 
         Returns a dict: { service: { replica_index: {"node": node_id, "ip": ip, "name": cname }}}
@@ -324,7 +338,7 @@ class Runtime():
                         reserved = self.ip_reservations.get(cand)
                     if reserved and reserved.get("node") != self.machine_id:
                         continue
-                    if not self._arp_is_free(cand):
+                    if not Runtime._arp_is_free(cand, self.bridge):
                         continue
                     sel_ip = cand
                     break
@@ -342,7 +356,7 @@ class Runtime():
                 }
         return plan
 
-    def _get_random_peers(self, count: int) -> list:
+    def _get_random(self, count: int) -> list:
         """Get random subset of known peers for gossip"""
         with self.lock:
             now = time.time()
@@ -356,83 +370,7 @@ class Runtime():
             
             return random.sample(active_peers, count)
 
-    def _detect_changes(self, snapshot: dict) -> list:
-        """Detect incremental changes in container state"""
-        changes = []
-        current_containers = {c.get('id'): c for c in snapshot.get("containers", [])}
-        
-        with self.lock:
-            # Check for new/updated containers
-            for container_id, container_info in current_containers.items():
-                old_info = self.local.get(container_id, {})
-                new_state = {
-                    "status": container_info.get('status'),
-                    "ip_address": container_info.get('ip_address'),
-                    "id": container_id,
-                    "ver": self.seq + 1
-                }
-                
-                if (old_info.get('status') != new_state['status'] or 
-                    old_info.get('ip_address') != new_state['ip_address']):
-                    changes.append(('update', container_id, new_state))
-                    self.seq += 1
-            
-            # Check for removed containers
-            current_ids = set(current_containers.keys())
-            old_ids = set(self.local.keys())
-            for removed_id in old_ids - current_ids:
-                if self.local[removed_id].get('status') != 'removed':
-                    changes.append(('remove', removed_id, {"status": "removed", "ver": self.seq + 1}))
-                    self.seq += 1
-        
-        return changes
-
-    def _queue_updates(self, changes: list):
-        """Queue updates for gossip propagation"""
-        with self.lock:
-            for change_type, container_id, state in changes:
-                # Update local view
-                self.local[container_id] = state
-                
-                # Queue for gossip
-                update_msg = {
-                    "t": "UPDATE",
-                    "node": self.machine_id,
-                    "container_id": container_id,
-                    "state": state,
-                    "ts": time.time()
-                }
-                self.pending_updates.append(update_msg)
-
-    def _gossip_to_peers(self, peers: list):
-        """Gossip pending updates to selected peers"""
-        if not self.pending_updates:
-            return
-        
-        # Aggregate multiple updates into a single message
-        updates = []
-        with self.lock:
-            while self.pending_updates and len(updates) < 10:  # Limit batch size
-                updates.append(self.pending_updates.popleft())
-        
-        if not updates:
-            return
-        
-        # Send aggregated updates to each peer
-        for peer_id in peers:
-            peer_addr = self.peer_addresses.get(peer_id)
-            if not peer_addr:
-                continue
-                
-            gossip_msg = {
-                "t": "GOSSIP",
-                "from": self.machine_id,
-                "updates": updates,
-                "msg_id": Runtime._hashsum("GOSSIP", {"updates": updates}),
-                "ts": time.time()
-            }
-            
-            self._sock_send(gossip_msg, peer_addr)
+    """ Loops """
 
     def _arp_loop(self):
         """Respond to ARP requests for reserved IPs so others see them as taken."""
@@ -521,26 +459,94 @@ class Runtime():
         while True:
             time.sleep(GOSSIP_INTERVAL)
             
-            # Get current state snapshot
+            # Get current state snapshot.
             snapshot = self.executor.list_containers()
             if "error" in snapshot:
                 continue
             
-            # Detect changes and create incremental updates
-            changes = self._detect_changes(snapshot)
+            # Detect incremental changes in container state.
+            changes = []
+            with self.lock:
+                # Check for new/updated containers
+                containers = {c.get('id'): c for c in snapshot.get("containers", [])}
+                for container_id, container_info in containers.items():
+                    old_info = self.local.get(container_id, {})
+                    new_state = {
+                        "status": container_info.get('status'),
+                        "ip_address": container_info.get('ip_address'),
+                        "id": container_id,
+                        "ver": self.seq + 1
+                    }
+                    
+                    if (old_info.get('status') != new_state['status'] or 
+                        old_info.get('ip_address') != new_state['ip_address']):
+                        changes.append(('update', container_id, new_state))
+                        self.seq += 1
+                
+                # Check for removed containers
+                current_ids = set(containers.keys())
+                old_ids = set(self.local.keys())
+                for removed_id in old_ids - current_ids:
+                    if self.local[removed_id].get('status') != 'removed':
+                        changes.append(('remove', removed_id, {"status": "removed", "ver": self.seq + 1}))
+                        self.seq += 1
+
+            # Update local view and queue for gossip.
             if changes:
-                self._queue_updates(changes)
+                with self.lock:
+                    for change_type, container_id, state in changes:
+                        # Update local view
+                        self.local[container_id] = state
+                        
+                        # Queue for gossip
+                        update_msg = {
+                            "t": "UPDATE",
+                            "node": self.machine_id,
+                            "container_id": container_id,
+                            "state": state,
+                            "ts": time.time()
+                        }
+                        self.message_queue.append(update_msg)
             
-            # Gossip to random subset of peers
-            peers = self._get_random_peers(GOSSIP_FANOUT)
-            if peers:
-                self._gossip_to_peers(peers)
+            # Gossip to random subset of peers.
+            peers = self._get_random(GOSSIP_FANOUT)
+            if peers and self.message_queue:
+                # Aggregate multiple updates into a single message
+                updates = []
+                with self.lock:
+                    while self.message_queue and len(updates) < 10:  # Limit batch size
+                        updates.append(self.message_queue.popleft())
+                
+                if not updates:
+                    return
+                
+                # Send aggregated updates to each peer
+                for peer_id in peers:
+                    peer_addr = self.peer_addresses.get(peer_id)
+                    if not peer_addr:
+                        continue
+                        
+                    message = {
+                        "t": "GOSSIP",
+                        "from": self.machine_id,
+                        "updates": updates,
+                        "id": Runtime._hashsum("GOSSIP", {"updates": updates}),
+                        "ts": time.time()
+                    }
+                    
+                    Runtime._socket_send(
+                        socket=self._send,
+                        message=message,
+                        address=peer_addr,
+                        port=self.multicast_port
+                    )
             
-            # Clean up old seen messages (prevent memory leaks)
+            # Clean up old seen messages (prevent memory leaks).
             now = time.time()
             cutoff = now - MAX_GOSSIP_AGE
 
-            if len(self.seen_messages) > 10000: # Prevent unbounded growth.
+            # Prevent unbounded growth.
+            if len(self.seen_messages) > 10000: 
                 self.seen_messages.clear()
 
     def _announce_loop(self):
@@ -557,7 +563,12 @@ class Runtime():
                 "ts": time.time()
             }
             
-            self._sock_send(heartbeat)
+            Runtime._socket_send(
+                socket=self._send,
+                message=heartbeat,
+                address=self.multicast_addr,
+                port=self.multicast_port
+            )
 
     def _purge_loop(self):
         """Purge expired nodes and deployments"""
@@ -589,7 +600,7 @@ class Runtime():
 
     def _receive_loop(self):
         """Receive messages from the cluster"""
-        r = self._sock_recv()
+        r = self._socket_receive(self.multicast_addr, self.multicast_port, self.address)
         while True:
             try:
                 pkt, _ = r.recvfrom(65535)
@@ -611,18 +622,18 @@ class Runtime():
             elif t == "HEARTBEAT":
                 self._handle_heartbeat(msg)
             elif t == "DEPLOY":
-                msg_id = msg.get("msg_id")
-                if msg_id and msg_id in self.seen_messages:
+                id = msg.get("id")
+                if id and id in self.seen_messages:
                     continue
-                if msg_id:
-                    self.seen_messages.add(msg_id)
+                if id:
+                    self.seen_messages.add(id)
                 self.deploy(msg)
             elif t == "RESERVE_IP":
-                msg_id = msg.get("msg_id")
-                if msg_id and msg_id in self.seen_messages:
+                id = msg.get("id")
+                if id and id in self.seen_messages:
                     continue
-                if msg_id:
-                    self.seen_messages.add(msg_id)
+                if id:
+                    self.seen_messages.add(id)
                 ip = msg.get("ip")
                 ttl = float(msg.get("ttl", 120.0))
                 if not ip:
@@ -644,18 +655,20 @@ class Runtime():
         """Periodic reconciliation to ensure state consistency"""
         while True:
             time.sleep(10)
-            self._reconcile_state()
+            self._handle_reconcile()
 
-    def _handle_gossip(self, msg: dict):
+    """ Handlers """
+
+    def _handle_gossip(self, message: dict):
         """Handle incoming gossip messages"""
-        msg_id = msg.get("msg_id")
-        if not msg_id or msg_id in self.seen_messages:
+        id = message.get("id")
+        if not id or id in self.seen_messages:
             return # Already seen this message
         
-        self.seen_messages.add(msg_id)
+        self.seen_messages.add(id)
         
         # Process updates
-        updates = msg.get("updates", [])
+        updates = message.get("updates", [])
         with self.lock:
             for update in updates:
                 container_id = update.get("container_id")
@@ -672,12 +685,17 @@ class Runtime():
         
         # Forward to other peers (with some probability to prevent flooding)
         if random.random() < 0.3: # 30% chance to forward.
-            peers = self._get_random_peers(GOSSIP_FANOUT - 1)
+            peers = self._get_random(GOSSIP_FANOUT - 1)
             for peer_id in peers:
-                if peer_id != msg.get("from"):
+                if peer_id != message.get("from"):
                     peer_addr = self.peer_addresses.get(peer_id)
                     if peer_addr:
-                        self._sock_send(msg, peer_addr)
+                        Runtime._socket_send(
+                            socket=self._send,
+                            message=message,
+                            address=peer_addr,
+                            port=self.multicast_port
+                        )
 
     def _handle_heartbeat(self, msg: dict):
         """Handle heartbeat messages for membership"""
@@ -694,7 +712,7 @@ class Runtime():
             self.cluster[node_id]["addr"] = msg.get("addr")
             self.peer_addresses[node_id] = msg.get("addr")
 
-    def _reconcile_state(self):
+    def _handle_reconcile(self):
         """Reconcile the local view with the cluster state"""
         rows = []
         want_here = set()
@@ -706,7 +724,7 @@ class Runtime():
                     plan = deployment.get("plan")
                     if plan is None:
                         # Fallback: Construct a local plan (not broadcasted).
-                        plan = self._build_plan({"id": identifier, "services": services})
+                        plan = self._get_plan({"id": identifier, "services": services})
                         deployment["plan"] = plan
 
                     for name, replicas in plan.items():
@@ -779,27 +797,37 @@ class Runtime():
         for cname in containers_to_stop:
             self.executor.stop_container(cname)
 
+    """ Main """
+
     def deploy(self, msg: dict):
         """Deploy a group of containers"""
         dep = msg.get("deploy") or {}
         dep_id = dep.get("id")
         if not dep_id:
             return
+
         plan = msg.get("plan")
         # If no plan provided, originate a plan and broadcast once.
         if plan is None:
-            plan = self._build_plan(dep)
+            plan = self._get_plan(dep)
             out = {
                 "t": "DEPLOY",
                 "deploy": dep,
                 "plan": plan,
                 "ts": time.time(),
-                "msg_id": Runtime._hashsum("DEPLOY", {"deploy": dep})
+                "id": Runtime._hashsum("DEPLOY", {"deploy": dep})
             }
-            self._sock_send(out)
+
+            Runtime._socket_send(
+                socket=self._send,
+                message=out,
+                address=self.multicast_addr,
+                port=self.multicast_port
+            )
+
         with self.lock:
             self.deploys[dep_id] = {"ts": time.time(), "services": dep.get("services", {}), "plan": plan}
-        self._reconcile_state()
+        self._handle_reconcile()
 
     def start(self):
         """Start the runtime"""
@@ -808,5 +836,5 @@ class Runtime():
         threading.Thread(target=self._gossip_loop, daemon=True).start()
         threading.Thread(target=self._announce_loop, daemon=True).start()
         threading.Thread(target=self._receive_loop, daemon=True).start()
-        threading.Thread(target=self._purge_loop, daemon=True).start()
         threading.Thread(target=self._reconcile_loop, daemon=True).start()
+        threading.Thread(target=self._purge_loop, daemon=True).start()
