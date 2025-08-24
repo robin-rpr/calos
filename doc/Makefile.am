@@ -37,7 +37,7 @@ favicon.ico \
 index.rst \
 install.rst \
 install.sh \
-logo-sidebar.png \
+logo.svg \
 man/README \
 py_env.rst \
 rd100-winner.png \

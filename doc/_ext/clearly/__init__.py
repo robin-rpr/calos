@@ -21,7 +21,6 @@ from . import jsonimpl
 from .builder import AwesomeHTMLBuilder
 from .code import AwesomeCodeBlock
 from .jinja_functions import setup_jinja
-from .logos import copy_logos, setup_logo_path, update_config
 
 logger = logging.getLogger(__name__)
 
@@ -80,12 +79,6 @@ class ThemeOptions:
     The values are themselves :class:`LinkIcon`.
     """
 
-    logo_light: str | None = None
-    """A path to a logo for the light mode. If you're using separate logos for light and dark mode, you **must** provide both logos."""
-
-    logo_dark: str | None = None
-    """A path to a logo for the dark mode. If you're using separate logos for light and dark mode, you **must** provide both logos."""
-
     globaltoc_includehidden: bool = True
     """If true, the theme includes entries from *hidden*
     :sphinxdocs:`toctree <usage/restructuredtext/directives.html#directive-toctree>` directives in the sidebar.
@@ -122,10 +115,7 @@ def setup(app: Sphinx) -> dict[str, Any]:
     # The theme is set up _after_ extensions are set up,
     # so I can't use internal extensions.
     # For the same reason, I also can't call the `config-inited` event
-    app.connect("builder-inited", update_config)
-    app.connect("html-page-context", setup_logo_path)
     app.connect("html-page-context", setup_jinja)
-    app.connect("build-finished", copy_logos)
 
     JSONHTMLBuilder.out_suffix = ".json"
     JSONHTMLBuilder.implementation = jsonimpl
