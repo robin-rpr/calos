@@ -92,16 +92,13 @@ To use these optimizations, you need:
 
    3. The right filesystem.
 
-.. |yes| replace:: ✅
-.. |no| replace:: ❌
-
 The following table summarizes our (possibly incorrect) understanding of
 filesystem support as of October 2023. For current or historical information,
 see the `Linux source code
 <https://elixir.bootlin.com/linux/latest/A/ident/remap_file_range>`_ for
 in-kernel filesystems or specific filesystem release nodes, e.g. `ZFS
-<https://github.com/openzfs/zfs/releases>`_. A checkmark |yes| indicates
-supported, |no| unsupported. We recommend using a filesystem that supports
+<https://github.com/openzfs/zfs/releases>`_. A `yes` indicates
+supported, `no` unsupported. We recommend using a filesystem that supports
 reflink and also (if applicable) server-side copy.
 
 +----------------------------+---------------+---------------+----------------+
@@ -109,27 +106,27 @@ reflink and also (if applicable) server-side copy.
 +============================+===============+===============+================+
 | *local filesystems*                                                         |
 +----------------------------+---------------+---------------+----------------+
-| BTRFS                      | |yes|         | n/a           | |yes|          |
+| BTRFS                      | yes           | n/a           | yes            |
 +----------------------------+---------------+---------------+----------------+
-| OCFS2                      | |yes|         | n/a           | |yes|          |
+| OCFS2                      | yes           | n/a           | yes            |
 +----------------------------+---------------+---------------+----------------+
-| XFS                        | |yes|         | n/a           | |yes|          |
+| XFS                        | yes           | n/a           | yes            |
 +----------------------------+---------------+---------------+----------------+
-| ZFS                        | |yes|         | n/a           | |yes| [1]      |
+| ZFS                        | yes           | n/a           | yes [1]        |
 +----------------------------+---------------+---------------+----------------+
 | *network filesystems*                                                       |
 +----------------------------+---------------+---------------+----------------+
-| CIFS/SMB                   | |yes|         | |yes|         | ?              |
+| CIFS/SMB                   | yes           | yes           | ?              |
 +----------------------------+---------------+---------------+----------------+
-| NFSv3                      | |yes|         | |no|          | |no|           |
+| NFSv3                      | yes           | no            | no             |
 +----------------------------+---------------+---------------+----------------+
-| NFSv4                      | |yes|         | |yes|         | |yes| [2]      |
+| NFSv4                      | yes           | yes           | yes [2]        |
 +----------------------------+---------------+---------------+----------------+
 | *other situations*                                                          |
 +----------------------------+---------------+---------------+----------------+
-| filesystems not listed     | |yes|         | |no|          | |no|           |
+| filesystems not listed     | yes           | no            | no             |
 +----------------------------+---------------+---------------+----------------+
-| copies between filesystems | |no| [3]      | |no|          | |no|           |
+| copies between filesystems | no [3]        | no            | no             |
 +----------------------------+---------------+---------------+----------------+
 
 Notes:
