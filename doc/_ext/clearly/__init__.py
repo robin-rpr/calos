@@ -105,17 +105,19 @@ def setup(app: Sphinx) -> dict[str, Any]:
     app.add_config_value("pygments_style_dark", None, "html", [str])
 
     # Monkey-patch galore
-    StandaloneHTMLBuilder.init_highlighter = AwesomeHTMLBuilder.init_highlighter  # type: ignore
-    StandaloneHTMLBuilder.create_pygments_style_file = (  # type: ignore
+    StandaloneHTMLBuilder.init_highlighter = AwesomeHTMLBuilder.init_highlighter # type: ignore
+    StandaloneHTMLBuilder.create_pygments_style_file = ( # type: ignore
         AwesomeHTMLBuilder.create_pygments_style_file
     )
 
     app.add_html_theme(name="clearly", theme_path=str(here))
+    app.add_css_file("theme.css", priority="900")
+    app.add_css_file("pygments.css", priority="900")
     app.add_js_file("theme.js", loading_method="defer")
 
     # Add the CSS overrides if we're using the `sphinx-design` extension
     if "sphinx_design" in app.config.extensions:
-        app.add_css_file("sphinx-design.css", priority=900)
+        app.add_css_file("clearly-sphinx-design.css", priority="900")
 
     # The theme is set up _after_ extensions are set up,
     # so I can't use internal extensions.

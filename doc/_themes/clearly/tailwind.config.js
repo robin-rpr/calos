@@ -5,7 +5,7 @@ module.exports = {
   corePlugins: {
     animation: false,
   },
-  content: ["../sphinxawesome_theme/*.html", "./js/**/*.js"],
+  content: ["../../_ext/clearly/*.html", "./js/**/*.js"],
   theme: {
     container: {
       center: true,

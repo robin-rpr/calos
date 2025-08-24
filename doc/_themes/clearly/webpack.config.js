@@ -15,7 +15,7 @@ module.exports = {
   mode: "production",
   entry: {
     theme: "./js/app.js",
-    "sphinx-design": "./css/sphinx-design.css",
+    "clearly-sphinx-design": "./css/sphinx-design.css",
   },
   output: {
     path: THEME_STATIC_DIR,
