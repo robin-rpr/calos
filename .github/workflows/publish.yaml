@@ -119,9 +119,6 @@ jobs:
           docker cp builder:/root/rpmbuild/RPMS ./rpms
           docker cp builder:/root/clearly/doc/html ./html
 
-          # Move install.sh to the distilled root html directory.
-          mv ./html/_static/install.sh ./html/install.sh
-
       - name: Upload RPM Artifact
         uses: actions/upload-artifact@v4
         with:

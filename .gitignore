@@ -24,6 +24,7 @@ a.out
 /doc/doctrees/
 /doc/html/
 /doc/man/*.[17]
+/doc/_static/
 /test/build/30_doctest-auto.bats
 /test/force-auto.bats
 /test/docs-sane
@@ -63,6 +64,9 @@ __pycache__
 
 # VSCode crap.
 .vscode
+
+# Node.js crap.
+node_modules/
 
 # Autotools crap. Coordinate with autogen.sh. Note negations.
 Makefile

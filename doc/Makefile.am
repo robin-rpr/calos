@@ -19,7 +19,8 @@
 .NOTPARALLEL:
 
 EXTRA_DIST = \
-_static/install.sh \
+_ext \
+_themes \
 best_practices.rst \
 bugs.rst \
 clearly.rst \
@@ -35,6 +36,7 @@ faq.rst \
 favicon.ico \
 index.rst \
 install.rst \
+install.sh \
 logo-sidebar.png \
 man/README \
 py_env.rst \
@@ -55,6 +57,7 @@ endif
 
 if ENABLE_HTML
 nobase_html_DATA = \
+html/install.sh \
 html/searchindex.js \
 html/_images/rd100-winner.png \
 html/best_practices.html \
@@ -79,9 +82,6 @@ endif
 CLEANFILES = $(man_MANS) $(nobase_html_DATA) \
              html/.buildinfo html/.nojekyll
 if ENABLE_HTML
-# Automake can't remove directories.
-clean-local:
-	rm -Rf doctrees html/_sources html/_static html/_images
 endif
 
 # Automake can't install and uninstall directories. _static contains around
@@ -114,8 +114,24 @@ SPHINXBUILD   = @SPHINX@
 PAPER         =
 BUILDDIR      = .
 
+# Theme build variables
+THEME_DIR     = _themes/clearly
+PNPM          = pnpm
+
 # Internal variables.
 ALLSPHINXOPTS   = -d $(BUILDDIR)/doctrees $(SPHINXOPTS) .
+
+# Check if pnpm is available, install if not
+check-pnpm:
+	@if ! command -v $(PNPM) >/dev/null 2>&1; then \
+		curl -fsSL https://get.pnpm.io/install.sh | sh -; \
+		source $$HOME/.bashrc; \
+	fi
+
+# Build the theme assets
+theme-build: check-pnpm
+	cd $(THEME_DIR) && $(PNPM) install
+	cd $(THEME_DIR) && $(PNPM) run build
 
 # Since we're not doing anything in parallel anyway, just put the HTML and the
 # man pages in the same target, with conditionals. Gotchas:
@@ -128,22 +144,27 @@ ALLSPHINXOPTS   = -d $(BUILDDIR)/doctrees $(SPHINXOPTS) .
 #      does seem to get run only once.
 #
 # [1]: https://www.gnu.org/software/make/manual/html_node/Multiple-Targets.html
-$(nobase_html_DATA) $(man_MANS): ../README.rst $(EXTRA_DIST)
+html-build: theme-build ../README.rst $(EXTRA_DIST)
 if ENABLE_HTML
 #       Create dummy file in case the redirect is disabled for EPEL.
 	mkdir -p html
 	touch html/command-usage.html
 #       Build.
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
-#       Some output files are copies with same timestamp as source; fix. Note
-#       we need all the HTML output files, not just the one picked in $@.
-	touch --no-create $(nobase_html_DATA)
-#       remove unused files that Sphinx made
+#       Copy non-linked files.
+	cp install.sh $(BUILDDIR)/html/
+#       Remove Sphinx made files.
 	rm -f $(BUILDDIR)/html/clearly.html \
 	      $(BUILDDIR)/html/bugs.html \
 	      $(BUILDDIR)/html/objects.inv \
 	      $(BUILDDIR)/html/see_also.html
 endif
+
+man-build: theme-build ../README.rst $(EXTRA_DIST)
 if ENABLE_MAN
 	$(SPHINXBUILD) -b man $(ALLSPHINXOPTS) $(BUILDDIR)/man
 endif
+
+$(nobase_html_DATA): html-build
+
+$(man_MANS): man-build
