@@ -18,6 +18,5 @@ Overview
    clearly-image
    clearly-run
    clearly-test
-   faq
    best_practices
-   dev
+   faq

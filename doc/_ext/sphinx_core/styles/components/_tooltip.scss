@@ -42,7 +42,7 @@
     "Noto Color Emoji";
   font-size: 0.75rem;
   font-weight: 400;
-  color: hsl(var(--muted-foreground));
+  color: var(--muted-foreground);
   text-decoration: none;
   opacity: 0;
 }

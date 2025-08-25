@@ -74,19 +74,19 @@
     /* Sphinx Design */
     /* Overrides for the `sphinx-design` extension */
     :root {
-      --sd-color-tabs-label-active: hsl(var(--foreground));
-      --sd-color-tabs-underline-active: hsl(var(--accent-foreground));
-      --sd-color-tabs-label-hover: hsl(var(--accent-foreground));
-      --sd-color-tabs-overline: hsl(var(--border));
-      --sd-color-tabs-underline: hsl(var(--border));
+      --sd-color-tabs-label-active: var(--foreground);
+      --sd-color-tabs-underline-active: var(--accent-foreground);
+      --sd-color-tabs-label-hover: var(--accent-foreground);
+      --sd-color-tabs-overline: var(--border);
+      --sd-color-tabs-underline: var(--border);
     }
 
     .sd-card {
       margin-top: 1.5rem;
       border-radius: 0.5rem;
-      border: 1px solid hsl(var(--border));
-      background-color: hsl(var(--card));
-      color: hsl(var(--card-foreground));
+      border: 1px solid var(--border);
+      background-color: var(--card);
+      color: var(--card-foreground));
     }
 
     .sd-container-fluid {
@@ -100,7 +100,7 @@
 
     .sd-summary-title {
       font-weight: 500 !important;
-      color: hsl(var(--muted-foreground));
+      color: var(--muted-foreground);
     }
 
     .sd-card-header,
@@ -127,7 +127,7 @@
 
     details.sd-dropdown:not([open]) > .sd-card-header,
     details.sd-dropdown {
-      border-color: hsl(var(--border));
+      border-color: var(--border);
     }
 
     details.sd-dropdown summary:focus {

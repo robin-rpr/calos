@@ -55,7 +55,7 @@ svg {
 hr {
     margin-top: 1rem;
     margin-bottom: 1rem;
-    border-color: hsl(var(--border));
+    border-color: var(--border);
 }
 
 h1 {
@@ -66,7 +66,7 @@ h1 {
 
 h2 {
     margin-top: 3rem;
-    border-bottom: 1px solid hsl(var(--border));
+    border-bottom: 1px solid var(--border);
     padding-bottom: 0.5rem;
     font-size: 1.875rem;
     font-weight: 600;
@@ -98,10 +98,9 @@ section {
 
         &.lead {
             font-size: 1.125rem;
-            color: hsl(var(--muted-foreground));
+            color: var(--muted-foreground);
         }
     }
-
 }
 
 ul {
@@ -168,7 +167,7 @@ figure img {
 figcaption {
     margin-bottom: 3rem;
     font-size: 0.875rem;
-    color: hsl(var(--muted-foreground));
+    color: var(--muted-foreground);
 
     &>* {
         margin-top: 1rem;
@@ -197,11 +196,11 @@ table {
     caption {
         margin-bottom: 1.5rem;
         text-align: left;
-        color: hsl(var(--muted-foreground));
+        color: var(--muted-foreground);
     }
 
     thead {
-        border-bottom: 1px solid hsl(var(--border));
+        border-bottom: 1px solid var(--border);
     }
 
     th {
@@ -217,7 +216,7 @@ table {
 
     tbody {
         tr {
-            border-bottom: 1px solid hsl(var(--border));
+            border-bottom: 1px solid var(--border);
         }
 
         td {

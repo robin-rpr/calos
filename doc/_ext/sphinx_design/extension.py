@@ -80,11 +80,13 @@ def update_css_js(app: Sphinx):
     """Copy the CSS to the build directory."""
     # reset changed identifier
     app.env.sphinx_design_css_changed = False
-    # setup up new static path in output dir
-    static_path = (Path(app.outdir) / "_sphinx_design_static").absolute()
+    # Only run for HTML builders
+    if app.builder.name not in ['html', 'dirhtml']:
+        return
+    # Use existing _static directory instead of creating a new one
+    static_path = (Path(app.outdir) / "_static").absolute()
     static_existed = static_path.exists()
     static_path.mkdir(exist_ok=True)
-    app.config.html_static_path.append(str(static_path))
     # Copy JS to the build directory.
     js_path = static_path / "design-tabs.js"
     app.add_js_file(js_path.name)
@@ -106,7 +108,7 @@ def update_css_js(app: Sphinx):
         return
     if static_existed:
         app.env.sphinx_design_css_changed = True
-    for path in static_path.glob("*.css"):
+    for path in static_path.glob("sphinx-design*.css"):
         path.unlink()
     css_path.write_text(content, encoding="utf8")
 

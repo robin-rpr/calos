@@ -34,10 +34,10 @@
     }
 
     &.current {
-      border: 1px solid hsl(var(--border));
-      background-color: hsl(var(--accent));
+      border: 1px solid var(--border);
+      background-color: var(--accent);
       font-weight: 500;
-      color: hsl(var(--accent-foreground));
+      color: var(--accent-foreground);
     }
 
     &.expandable {
@@ -50,7 +50,7 @@
 
     & > button {
       border-radius: 0.25rem;
-      color: hsl(var(--muted-foreground));
+      color: var(--muted-foreground);
 
       &:hover {
         background-color: rgba(0, 0, 0, 0.1);
@@ -89,7 +89,7 @@
         bottom: 0.25rem;
         left: 0;
         width: 1px;
-        background-color: rgb(229 231 235);
+        background-color: rgb(229, 231, 235);
         content: "";
       }
     }

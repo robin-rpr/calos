@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import os
+import posixpath
 import sass
 import shutil
 
@@ -15,16 +16,16 @@ from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from typing import Any, TypedDict
 
+from docutils.nodes import Node
 from docutils.parsers.rst import directives
 from sphinx.application import Sphinx
 from sphinx.builders.html import StandaloneHTMLBuilder
 from sphinx.util import logging
 from sphinxcontrib.serializinghtml import JSONHTMLBuilder
 
-from . import json, jinja
+from . import json
 from .builder import HTMLBuilder
 from .code import CodeBlock
-from .jinja import setup_jinja
 
 logger = logging.getLogger(__name__)
 
@@ -106,10 +107,7 @@ def setup(app: Sphinx) -> dict[str, Any]:
         HTMLBuilder.create_pygments_style_file
     )
 
-    app.add_html_theme(name="clearly", theme_path=str(here))
-    
-    # Compile SASS before adding CSS files
-    compile_sass(app)
+    app.add_html_theme(name="sphinx_core", theme_path=str(here))
     
     app.add_css_file("pygments.css", priority="900", condition=None)
     app.add_css_file("main.css", priority="900", condition=None)
@@ -154,6 +152,21 @@ def setup_sass(
     doctree: Node,
 ) -> None:
     """Compile SCSS files to CSS."""
-    path = Path(__file__).parent.resolve() / "static" / "styles"
-    with open(path / "main.css", 'w', encoding='utf-8') as f:
-        f.write(sass.compile(filename=str(path / "main.scss")))
+    # Only compile once per build
+    if hasattr(app.env, 'sphinx_core_css_compiled'):
+        return
+    
+    # Setup static path in output directory
+    static_path = Path(app.outdir) / "_static"
+    static_path.mkdir(exist_ok=True)
+    
+    # Compile SCSS to CSS
+    scss_path = Path(__file__).parent.resolve() / "styles" / "main.scss"
+    css_content = sass.compile(filename=str(scss_path))
+    
+    # Write CSS to _static directory
+    css_path = static_path / "main.css"
+    css_path.write_text(css_content, encoding='utf-8')
+    
+    # Mark as compiled to avoid recompiling on each page
+    app.env.sphinx_core_css_compiled = True

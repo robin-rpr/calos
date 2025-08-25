@@ -140,7 +140,7 @@ if ENABLE_HTML
 	      $(BUILDDIR)/html/see_also.html
 endif
 
-man-build: theme-build ../README.rst $(EXTRA_DIST)
+man-build: $(EXTRA_DIST)
 if ENABLE_MAN
 	$(SPHINXBUILD) -b man $(ALLSPHINXOPTS) $(BUILDDIR)/man
 endif

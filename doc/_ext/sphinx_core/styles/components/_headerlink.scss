@@ -9,7 +9,7 @@
 .headerlink > * {
   visibility: hidden;
   fill: currentColor;
-  color: hsl(var(--muted-foreground));
+  color: var(--muted-foreground);
 }
 
 .headerlink:focus > * {
