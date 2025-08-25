@@ -20,7 +20,6 @@
 
 EXTRA_DIST = \
 _ext \
-_themes \
 best_practices.rst \
 bugs.rst \
 clearly.rst \
@@ -31,7 +30,6 @@ clearly-image.rst \
 clearly-run.rst \
 clearly-test.rst \
 conf.py \
-dev.rst \
 faq.rst \
 favicon.ico \
 index.rst \
@@ -40,7 +38,6 @@ install.sh \
 logo.svg \
 man/README \
 py_env.rst \
-rd100-winner.png \
 see_also.rst \
 tutorial.rst
 
@@ -59,7 +56,6 @@ if ENABLE_HTML
 nobase_html_DATA = \
 html/install.sh \
 html/searchindex.js \
-html/_images/rd100-winner.png \
 html/best_practices.html \
 html/clearly-check.html \
 html/clearly-convert.html \
@@ -114,24 +110,8 @@ SPHINXBUILD   = @SPHINX@
 PAPER         =
 BUILDDIR      = .
 
-# Theme build variables
-THEME_DIR     = _themes/clearly
-PNPM          = pnpm
-
 # Internal variables.
 ALLSPHINXOPTS   = -d $(BUILDDIR)/doctrees $(SPHINXOPTS) .
-
-# Check if pnpm is available, install if not
-check-pnpm:
-	@if ! command -v $(PNPM) >/dev/null 2>&1; then \
-		curl -fsSL https://get.pnpm.io/install.sh | sh -; \
-		source $$HOME/.bashrc; \
-	fi
-
-# Build the theme assets
-theme-build: check-pnpm
-	cd $(THEME_DIR) && $(PNPM) install
-	cd $(THEME_DIR) && $(PNPM) run build
 
 # Since we're not doing anything in parallel anyway, just put the HTML and the
 # man pages in the same target, with conditionals. Gotchas:
@@ -144,7 +124,7 @@ theme-build: check-pnpm
 #      does seem to get run only once.
 #
 # [1]: https://www.gnu.org/software/make/manual/html_node/Multiple-Targets.html
-html-build: theme-build ../README.rst $(EXTRA_DIST)
+html-build: $(EXTRA_DIST)
 if ENABLE_HTML
 #       Create dummy file in case the redirect is disabled for EPEL.
 	mkdir -p html

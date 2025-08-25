@@ -1,0 +1,44 @@
+.headerlink {
+  z-index: 10;
+  margin-left: 0.25rem;
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+}
+
+.headerlink > * {
+  visibility: hidden;
+  fill: currentColor;
+  color: hsl(var(--muted-foreground));
+}
+
+.headerlink:focus > * {
+  visibility: visible;
+}
+
+/* Individual selectors for headerlinkable elements */
+h1:hover .headerlink,
+h2:hover .headerlink,
+h3:hover .headerlink,
+h4:hover .headerlink,
+table:hover .headerlink,
+.admonition-title:hover .headerlink,
+figure:hover .headerlink,
+dt:hover .headerlink,
+.math:hover .headerlink,
+.code-block-caption:hover .headerlink {
+  visibility: visible;
+}
+
+h1:hover .headerlink > *,
+h2:hover .headerlink > *,
+h3:hover .headerlink > *,
+h4:hover .headerlink > *,
+table:hover .headerlink > *,
+.admonition-title:hover .headerlink > *,
+figure:hover .headerlink > *,
+dt:hover .headerlink > *,
+.math:hover .headerlink > *,
+.code-block-caption:hover .headerlink > * {
+  visibility: visible;
+}

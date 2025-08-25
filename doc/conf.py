@@ -47,9 +47,10 @@ extensions = [
     "sphinx.ext.extlinks",
     "sphinx.ext.mathjax",
     "sphinx.ext.viewcode",
+    # Custom extensions
     "sphinx_sitemap",
     "sphinx_design",
-    "clearly",
+    "sphinx_core",
 ]
 todo_include_todos = True
 # Workaround for EPEL, which prohibits pip and doesn’t have
@@ -214,9 +215,6 @@ html_theme_options = asdict(theme_options)
 
 sitemap_show_lastmod = False
 sitemap_url_scheme = "{link}"
-
-# Add any paths that contain custom themes here, relative to this directory.
-html_theme_path = ['_themes']
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,

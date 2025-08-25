@@ -38,10 +38,11 @@ Quick Installation
 
 To build from source:
 
-1. Install dependencies: ``pip3 install -r requirements.txt``
-2. Generate build system: ``./autogen.sh``
-3. Configure: ``./configure``
-4. Build and install: ``make && sudo make install``
+1. Generate build system: ``./autogen.sh``
+2. Configure: ``./configure``
+3. Build and install: ``make && sudo make install``
+
+For more, see the `INSTALL.rst` file.
 
 How do I learn more?
 --------------------
@@ -58,94 +59,6 @@ How do I learn more?
 
 * For technical papers about Clearly, refer to the *Technical
   publications* section below.
-
-Who is responsible?
--------------------
-
-Contributors:
-
-* Richard Berger <rberger@lanl.gov>
-* Lucas Caudill <lcaudill@lanl.gov>
-* Rusty Davis <rustyd@lanl.gov>
-* Hunter Easterday <heasterday@lanl.gov>
-* Oliver Freyermuth <o.freyermuth@googlemail.com>
-* Shane Goff <rgoff@lanl.gov>
-* Michael Jennings <mej@lanl.gov>
-* Christoph Junghans <junghans@lanl.gov>
-* Dave Love <dave.love@manchester.ac.uk>
-* Jordan Ogas <jogas@lanl.gov>
-* Kevin Pelzel <kpelzel@lanl.gov>
-* Megan Phinney <mphinney@lanl.gov>
-* Reid Priedhorsky <reidpr@lanl.gov>, co-founder and project lead
-* Tim Randles <trandles@lanl.gov>, co-founder
-* Benjamin "The Storm" Stormer <bstormer@lanl.gov>
-* Meisam Tabriz <meisam.tabriz@mpcdf.mpg.de>
-* Matthew Vernon <mv3@sanger.ac.uk>
-* Peter Wienemann <wienemann@physik.uni-bonn.de>
-* Lowell Wofford <lowell@lanl.gov>
-* Robin Röper <rr@linux.com>
-
-How can I participate?
-----------------------
-
-Use our GitLab page: https://gitlab.com/charliecloud
-
-Bug reports and feature requests should be filed as "Issues". Questions,
-comments, support requests, and everything else should use our "Discussions".
-Don't worry if you put something in the wrong place; we'll be more than happy
-to help regardless.
-
-We also have mailing lists for users and developers:
-https://lists.charliecloud.io
-
-Patches are much appreciated on the software itself as well as documentation.
-Optionally, please include in your first patch a credit for yourself in the
-list above.
-
-We are friendly and welcoming of diversity on all dimensions.
-
-Technical publications
-----------------------
-
-If Clearly helped your research, or it was useful to you in any other
-context where bibliographic citations are appropriate, please cite the
-following open-access paper:
-
-  Reid Priedhorsky and Tim Randles. "Clearly: Unprivileged containers for
-  user-defined software stacks in HPC", 2017. In *Proc. Supercomputing*.
-  DOI: `10.1145/3126908.3126925 <https://doi.org/10.1145/3126908.3126925>`_.
-
-*Note:* This paper contains out-of-date number for the size of Clearly's
-code. Please instead use the current number in the FAQ.
-
-Other publications:
-
-* We compare the performance of three HPC-specific container technologies
-  against bare metal, finding no concerns about performance degradation.
-
-    Alfred Torrez, Tim Randles, and Reid Priedhorsky. "HPC container runtimes
-    have minimal or no performance impact", 2019. In *Proc. CANOPIE HPC
-    Workshop @ SC*. DOI: `10.1109/CANOPIE-HPC49598.2019.00010
-    <https://ieeexplore.ieee.org/document/8950978>`_.
-
-* A demonstration of how low-privilege containers solve increasing demand for
-  software flexibility.
-
-    Reid Priedhorsky, R. Shane Canon, Timothy Randles, and Andrew J. Younge.
-    "Minimizing privilege for building HPC containers", 2021. In *Proc.
-    Supercomputing*. DOI: `10.6084/m9.figshare.14396099
-    <https://doi.org/10.6084/m9.figshare.14396099>`_.
-
-* Clearly's build cache performs competitively with the standard
-  many-layered union filesystem approach and has structural advantages
-  including a better diff format, lower cache overhead, and better file
-  de-duplication.
-
-    Reid Priedhorsky, Jordan Ogas, Claude H. (Rusty) Davis IV, Z. Noah
-    Hounshel, Ashlyn Lee, Benjamin Stormer, and R. Shane Goff. "Clearly's
-    layer-free, Git-based container build cache", 2023. In *Proc.
-    Supercomputing*. DOI: `10.1145/3624062.3624585
-    <https://doi.org/10.1145/3624062.3624585>`_.
 
 License and intellectual property
 ---------------------------------
