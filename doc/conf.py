@@ -175,9 +175,9 @@ theme_options = ThemeOptions(
     show_prev_next=True,
     awesome_external_links=True,
     main_nav_links={
-        "Docs": "/install",
+        "Home": "/index",
         "About": "/about",
-        "Changelog": "/changelog",
+        "Documentation": "/install",
     },
     extra_nav_links={
         "repository on GitHub": {

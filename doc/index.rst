@@ -1,10 +1,16 @@
 :orphan:
 
-Overview
-********
+.. hero::
+   :title: From Notebook to Production in One Platform
+   :subtitle: The Platform for Building and Deploying AI Apps at scale in your Garage.
+   :command: curl -fsSL https://clearly.run/install.sh | sh
 
-.. spline::
-   :url: https://prod.spline.design/Cn5e9s1vHTrcGHpG/scene.splinecode
+.. slider::
+   :steps:
+      - title: "Step 1"
+        image: https://picsum.photos/200/300
+      - title: "Step 2"
+        image: https://picsum.photos/200/300
 
 .. toctree::
    :numbered:

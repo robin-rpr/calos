@@ -15,7 +15,8 @@
 @import "./components/_footer";
 @import "./components/_search";
 @import "./components/_copy";
-@import "./components/_spline";
+@import "./components/_slider";
+@import "./components/_hero";
 
 /* Layout */
 @import "./layout/_header";
@@ -49,11 +50,12 @@ html {
 }
 
 body {
-    min-height: 100vh;
-    font-feature-settings: normal;
-    -webkit-font-smoothing: antialiased;
-    background: var(--background);
-    color: var(--foreground);
+    display: flex;
+    flex-direction: column;
+    font-size: 16px;
+    color: #0d0d0d;
+    height: 100vh;
+    width: 100%;
     margin: 0;
 
     &.body--sidebar-open {
