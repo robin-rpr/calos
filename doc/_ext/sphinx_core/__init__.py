@@ -26,6 +26,7 @@ from sphinxcontrib.serializinghtml import JSONHTMLBuilder
 from . import json
 from .builder import HTMLBuilder
 from .code import CodeBlock
+from .spline import setup_spline
 
 logger = logging.getLogger(__name__)
 
@@ -91,6 +92,9 @@ def setup(app: Sphinx) -> dict[str, Any]:
 
     directives.register_directive("code-block", CodeBlock)
     app.add_config_value("pygments_style_dark", None, "html", [str])
+    
+    # Setup Spline directive
+    setup_spline(app)
 
     # Monkey-patch galore
     StandaloneHTMLBuilder.init_highlighter = HTMLBuilder.init_highlighter # type: ignore

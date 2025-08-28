@@ -3,7 +3,7 @@
 
 .. only:: not man
 
-   Run some or all of the Charliecloud test suite.
+   Run some or all of the Clearly test suite.
 
 
 Synopsis
@@ -17,7 +17,7 @@ Synopsis
 Description
 ===========
 
-Charliecloud comes with a comprehensive test suite that exercises the
+Clearly comes with a comprehensive test suite that exercises the
 container workflow itself as well as a few example applications.
 :code:`clearly test` coordinates running the test suite.
 
@@ -38,7 +38,7 @@ of storage for test fixtures:
 
 * *Filesystem permissions* directories. These are used to test that the
   kernel is enforcing permissions correctly. Note that this exercises the
-  kernel, not Charliecloud, and can be omitted from routine Charliecloud
+  kernel, not Clearly, and can be omitted from routine Clearly
   testing.
 
 The first three are created when needed if they don’t exist, while the

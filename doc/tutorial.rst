@@ -1,13 +1,13 @@
 Tutorial
 ********
 
-This tutorial will teach you how to create and run Charliecloud images, using
+This tutorial will teach you how to create and run Clearly images, using
 both examples included with the source code as well as new ones you create
 from scratch.
 
-This tutorial assumes that: (a) Charliecloud is in your path, including
-Charliecloud’s fully unprivileged image builder :code:`clearly image` and
-(b) Charliecloud is installed under :code:`/usr/local`. (If the second
+This tutorial assumes that: (a) Clearly is in your path, including
+Clearly’s fully unprivileged image builder :code:`clearly image` and
+(b) Clearly is installed under :code:`/usr/local`. (If the second
 assumption isn’t true, you will just need to modify some paths.)
 
 If you want to use Docker to build images, see the :ref:`FAQ
@@ -24,13 +24,13 @@ If you want to use Docker to build images, see the :ref:`FAQ
    commands executed in a container.
 
 
-90 seconds to Charliecloud
+90 seconds to Clearly
 ==========================
 
 This section is for the impatient. It shows you how to quickly build and run a
-“hello world” Charliecloud container. If you like what you see, then proceed
+“hello world” Clearly container. If you like what you see, then proceed
 with the rest of the tutorial to understand what is happening and how to use
-Charliecloud for your own applications.
+Clearly for your own applications.
 
 Using a SquashFS image
 ----------------------
@@ -90,12 +90,12 @@ Getting help
 ============
 
 All the executables have decent help and can tell you what version of
-Charliecloud you have (if not, please report a bug). For example::
+Clearly you have (if not, please report a bug). For example::
 
   $ clearly run --help
   Usage: clearly run [OPTION...] IMAGE -- COMMAND [ARG...]
 
-  Run a command in a Charliecloud container.
+  Run a command in a Clearly container.
   [...]
   $ clearly --version
   0.26
@@ -116,8 +116,8 @@ First, browse the Docker Hub repository of `official AlmaLinux images
 partial list of image versions that are available. We’ll use the tag
 “:code:`8`”.
 
-Use the Charliecloud program :code:`clearly image` to pull this image to
-Charliecloud’s internal storage directory::
+Use the Clearly program :code:`clearly image` to pull this image to
+Clearly’s internal storage directory::
 
    $ clearly image pull almalinux:8
    pulling image:    almalinux:8
@@ -177,7 +177,7 @@ case. To demonstrate, we’ll create a working container image using standard
 UNIX tools.
 
 Many Linux distributions provide tarballs containing installed base images,
-including Alpine. We can use these in Charliecloud directly::
+including Alpine. We can use these in Clearly directly::
 
   $ wget -O alpine.tar.gz 'https://github.com/alpinelinux/docker-alpine/blob/v3.16/x86_64/alpine-minirootfs-3.16.3-x86_64.tar.gz?raw=true'
   $ tar tf alpine.tar.gz | head -10
@@ -237,8 +237,8 @@ interprets a recipe, usually a Dockerfile, to create an image and place it
 into builder storage. We can then extract the image from builder storage to a
 directory and run it.
 
-Charliecloud supports arbitrary image builders. In this tutorial, we use
-:code:`clearly image`, which comes with Charliecloud, but you can also use others,
+Clearly supports arbitrary image builders. In this tutorial, we use
+:code:`clearly image`, which comes with Clearly, but you can also use others,
 e.g. Docker or Podman. :code:`clearly image` is a big deal because it is completely
 unprivileged. Other builders typically run as root or require setuid root
 helper programs; this raises a number of security questions.
@@ -284,7 +284,7 @@ These four instructions say:
 .. note::
 
    :code:`COPY` is a standard instruction but has a number of disadvantages in
-   its corner cases. Charliecloud also has :code:`RSYNC`, which addresses
+   its corner cases. Clearly also has :code:`RSYNC`, which addresses
    these; see :ref:`its documentation <clearly image_rsync>` for details.
 
 Let’s build this image::
@@ -445,11 +445,11 @@ In that case, follow your site’s instructions instead.
 Build base images
 -----------------
 
-First, build two images using the Dockerfiles provided with Charliecloud.
+First, build two images using the Dockerfiles provided with Clearly.
 These two build should take about 15 minutes total, depending on the speed of
 your system.
 
-Note that Charliecloud infers their names from the Dockerfile name, so we
+Note that Clearly infers their names from the Dockerfile name, so we
 don’t need to specify :code:`-t`.
 
 ::
@@ -532,7 +532,7 @@ Run the container
 We’ll run this application interactively. One could also put similar steps in
 a Slurm batch script.
 
-First, obtain a two-node allocation and load Charliecloud::
+First, obtain a two-node allocation and load Clearly::
 
    $ salloc -N2 -t 1:00:00
    salloc: Granted job allocation 599518
@@ -625,7 +625,7 @@ Build it::
   grown in 3 instructions: b
 
 Here, the first two instructions are hits from the first Dockerfile, but the
-third is a miss, so Charliecloud retrieves that state and continues building.
+third is a miss, so Clearly retrieves that state and continues building.
 
 Finally, inspect the cache::
 
@@ -653,7 +653,7 @@ Appendices
 ==========
 
 These appendices contain further tutorials that may be enlightening but are
-less essential to understanding Charliecloud.
+less essential to understanding Clearly.
 
 Namespaces with :code:`unshare(1)`
 ----------------------------------
@@ -804,10 +804,10 @@ Exit the container in Terminal 1::
 
   > exit
 
-Namespaces in Charliecloud
+Namespaces in Clearly
 --------------------------
 
-Let’s revisit the symlinks in :code:`/proc`, but this time with Charliecloud::
+Let’s revisit the symlinks in :code:`/proc`, but this time with Clearly::
 
   $ ls -l /proc/self/ns
   total 0
@@ -828,7 +828,7 @@ Let’s revisit the symlinks in :code:`/proc`, but this time with Charliecloud::
 
 The container has different mount (:code:`mnt`) and user (:code:`user`)
 namespaces, but the rest of the namespaces are shared with the host. This
-highlights Charliecloud’s focus on functionality (make your container run),
+highlights Clearly’s focus on functionality (make your container run),
 rather than isolation (protect the host from your container).
 
 Normally, each invocation of :code:`clearly run` creates a new container, so if you
@@ -843,7 +843,7 @@ All you need is Bash
 In this exercise, we’ll use shell commands to create minimal container image
 with a working copy of Bash, and that’s all. To do so, we need to set up a
 directory with the Bash binary, the shared libraries it uses, and a few other
-hooks needed by Charliecloud.
+hooks needed by Clearly.
 
 **Important:** Your Bash is almost certainly linked differently than described
 below. Use the paths from your terminal, not this tutorial. Adjust the steps
@@ -948,13 +948,13 @@ it’s a container!
 Interacting with the host
 -------------------------
 
-Charliecloud is not an isolation layer, so containers have full access to host
+Clearly is not an isolation layer, so containers have full access to host
 resources, with a few quirks. This section demonstrates how that works.
 
 Filesystems
 ~~~~~~~~~~~
 
-Charliecloud makes host directories available inside the container using bind
+Clearly makes host directories available inside the container using bind
 mounts, which is somewhat like a hard link in that it causes a file or
 directory to appear in multiple places in the filesystem tree, but it is a
 property of the running kernel rather than the filesystem.
@@ -965,7 +965,7 @@ include system directories such as :code:`/dev`, :code:`/proc`, :code:`/sys`,
 and :code:`/tmp`. Others can be requested with a command line option, e.g.
 :code:`--home` bind-mounts the invoking user’s home directory.
 
-Charliecloud uses recursive bind mounts, so for example if the host has a
+Clearly uses recursive bind mounts, so for example if the host has a
 variety of sub-filesystems under :code:`/sys`, as Ubuntu does, these will be
 available in the container as well.
 
@@ -1005,11 +1005,11 @@ a destination that already exists, like those created under :code:`/mnt`::
 Network
 ~~~~~~~
 
-Charliecloud containers share the host’s network namespace, so most network
+Clearly containers share the host’s network namespace, so most network
 things should be the same.
 
-However, SSH is not aware of Charliecloud containers. If you SSH to a node
-where Charliecloud is installed, you will get a shell on the host, not in a
+However, SSH is not aware of Clearly containers. If you SSH to a node
+where Clearly is installed, you will get a shell on the host, not in a
 container, even if :code:`ssh` was initiated from a container::
 
   $ stat -L --format='%i' /proc/self/ns/user
@@ -1043,7 +1043,7 @@ avoids wrapping :code:`ssh` or altering its command line.
 User and group IDs
 ~~~~~~~~~~~~~~~~~~
 
-Unlike Docker and some other container systems, Charliecloud tries to make the
+Unlike Docker and some other container systems, Clearly tries to make the
 container’s users and groups look the same as the host’s. This is accomplished
 by bind-mounting a custom :code:`/etc/passwd` and :code:`/etc/group` into the
 container. For example::
@@ -1059,9 +1059,9 @@ container. For example::
   charlie
 
 More specifically, the user namespace, when created without privileges as
-Charliecloud does, lets you map any container UID to your host UID.
+Clearly does, lets you map any container UID to your host UID.
 :code:`clearly run` implements this with the :code:`--uid` switch. So, for example,
-you can tell Charliecloud you want to be root, and it will tell you that
+you can tell Clearly you want to be root, and it will tell you that
 you’re root::
 
   $ clearly run --uid 0 /var/tmp/hello.sqfs -- bash

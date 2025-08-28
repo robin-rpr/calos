@@ -12,7 +12,7 @@ This isn’t the last word. Also consider:
 
 * Many of Docker’s `Best practices for writing Dockerfiles
   <https://docs.docker.com/engine/userguide/eng-image/dockerfile_best-practices>`_
-  apply to Charliecloud images as well.
+  apply to Clearly images as well.
 
 * “`Recommendations for the packaging and containerizing of bioinformatics
   software <https://f1000research.com/articles/7-742/v2>`_”, Gruening et al.
@@ -27,13 +27,13 @@ This isn’t the last word. Also consider:
 Filesystems
 ===========
 
-There are two performance gotchas to be aware of for Charliecloud.
+There are two performance gotchas to be aware of for Clearly.
 
 Metadata traffic
 ----------------
 
-Directory-format container images and the Charliecloud storage directory often
-contain, and thus Charliecloud must manipulate, a very large number of files.
+Directory-format container images and the Clearly storage directory often
+contain, and thus Clearly must manipulate, a very large number of files.
 For example, after running the test suite, the storage directory contains
 almost 140,000 files. That is, metadata traffic can be quite high.
 
@@ -60,7 +60,7 @@ though this feature is disabled by default.
 
 Copies are costly both in time (to read, transfer, and write the duplicate
 bytes) and space (to store the bytes). However significant optimizations are
-sometimes available. Charliecloud’s internal file copies (unfortunately not
+sometimes available. Clearly’s internal file copies (unfortunately not
 sub-programs like Git) can take advantage of multiple optimized file-copy
 paths offered by Linux:
 
@@ -140,13 +140,13 @@ Notes:
      in-kernel file copy between filesystems, but for many kernels it is `not
      stable
      <https://man7.org/linux/man-pages/man2/copy_file_range.2.html#BUGS>`_, so
-     Charliecloud does not currently attempt it.
+     Clearly does not currently attempt it.
 
 Installing your own software
 ============================
 
 This section covers four situations for making software available inside a
-Charliecloud container:
+Clearly container:
 
   1. Third-party software installed into the image using a package manager.
   2. Third-party software compiled from source into the image.
@@ -210,7 +210,7 @@ So what is going on here?
       appropriate parallel build.
 
    #. Clean up, in order to reduce the size of the build cache as well as the
-      resulting Charliecloud image (:code:`rm -Rf`).
+      resulting Clearly image (:code:`rm -Rf`).
 
 .. note::
 
@@ -246,7 +246,7 @@ These Dockerfile instructions:
    tar-based approach lets the Docker daemon run on a different node from the
    client without needing any shared filesystems.)
 
-   The usual convention, including for Charliecloud tests and examples, is
+   The usual convention, including for Clearly tests and examples, is
    that the context is the directory containing the Dockerfile in question. A
    common pattern, used here, is to copy in the entire context.
 
@@ -326,7 +326,7 @@ Key concepts and related issues include:
      Some privileged container implementations attempt to provide their own
      workload management, often referred to as “container orchestration”.
 
-     Charliecloud is lightweight and completely unprivileged. We rely on
+     Clearly is lightweight and completely unprivileged. We rely on
      existing, reputable and well established HPC workload managers such as
      Slurm.
 
@@ -417,7 +417,7 @@ A container's libfabric can also be replaced by a host libfabric. This is a
 brittle but usually effective way to give containers access to the Cray
 libfabric Slingshot provider :code:`cxi`.
 
-In Charliecloud, both of these injection operations are currently done with
+In Clearly, both of these injection operations are currently done with
 :code:`clearly fromhost`, though see `issue #1861
 <https://github.com/hpc/charliecloud/issues/1861>`_.
 

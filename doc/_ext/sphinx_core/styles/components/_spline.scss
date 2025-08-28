@@ -1,0 +1,67 @@
+.spline {
+    position: relative;
+    border-radius: 2rem;
+    overflow: hidden;
+    
+    /* Ensure the Spline viewer takes full container space */
+    spline-viewer {
+        display: block;
+        width: 100%;
+        height: 100%;
+        min-height: 300px;
+    }
+    
+    /* Loading state */
+    &:not(:has(spline-viewer[loaded])) {
+        &::before {
+            content: "Loading 3D Scene...";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: var(--muted-foreground);
+            font-size: 0.875rem;
+            z-index: 1;
+        }
+        
+        &::after {
+            content: "";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 24px;
+            height: 24px;
+            border: 2px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            z-index: 1;
+        }
+    }
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+    .spline {
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+    }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .spline {
+        border-radius: 6px;
+        
+        spline-viewer {
+            min-height: 250px;
+        }
+    }
+}
+
+/* Animation for loading spinner */
+@keyframes spin {
+    to {
+        transform: translate(-50%, -50%) rotate(360deg);
+    }
+}

@@ -3,10 +3,8 @@
 Overview
 ********
 
-.. note::
-
-   This documentation is for Charliecloud version |version| and was built
-   |today|.
+.. spline::
+   :url: https://prod.spline.design/Cn5e9s1vHTrcGHpG/scene.splinecode
 
 .. toctree::
    :numbered:

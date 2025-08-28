@@ -103,7 +103,7 @@ Image formats
 :code:`clearly convert` knows about these values of :code:`FMT`:
 
   :code:`clearly image`
-    Internal storage for Charliecloud’s unprivileged image builder (Dockerfile
+    Internal storage for Clearly’s unprivileged image builder (Dockerfile
     interpreter) :code:`clearly image`.
 
   :code:`dir`

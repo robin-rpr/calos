@@ -3,7 +3,7 @@
 
 .. only:: not man
 
-   Run a command in a Charliecloud container.
+   Run a command in a Clearly container.
 
 
 Synopsis
@@ -17,7 +17,7 @@ Synopsis
 Description
 ===========
 
-Run command :code:`COMMAND` in a fully unprivileged Charliecloud container using
+Run command :code:`COMMAND` in a fully unprivileged Clearly container using
 the image specified by :code:`IMAGE`, which can be: (1) a path to a directory,
 (2) the name of an image in :code:`clearly image` storage (e.g.
 :code:`example.com:5050/foo`) or, if the proper support is enabled, a SquashFS
@@ -198,7 +198,7 @@ can be accomplished by:
 * :code:`clearly convert` directly from :code:`clearly image` or another builder to a
   directory.
 
-* Charliecloud’s tarball workflow: build or pull the image, :code:`clearly convert`
+* Clearly’s tarball workflow: build or pull the image, :code:`clearly convert`
   it to a tarball, transfer the tarball to the target system, then
   :code:`clearly convert` the tarball to a directory.
 
@@ -213,19 +213,19 @@ library. :code:`clearly run` mounts the image filesystem, services all FUSE
 requests, and unmounts it, all within :code:`clearly run`. See :code:`--mount`
 above to set the mount point location.
 
-Like other FUSE implementations, Charliecloud calls the :code:`fusermount3(1)`
+Like other FUSE implementations, Clearly calls the :code:`fusermount3(1)`
 utility to mount the SquashFS filesystem. However, **this executable does not
 need to be installed setuid root**, and in fact :code:`clearly run` actively
 suppresses its setuid bit if set (using :code:`prctl(2)`).
 
-Prior versions of Charliecloud provided wrappers for the :code:`squashfuse`
+Prior versions of Clearly provided wrappers for the :code:`squashfuse`
 and :code:`squashfuse_ll` SquashFS mount commands and :code:`fusermount -u`
 unmount command. We removed these because we concluded they had minimal
 value-add over the standard, unwrapped commands.
 
 .. warning::
 
-   Currently, Charliecloud unmounts the SquashFS filesystem when user command
+   Currently, Clearly unmounts the SquashFS filesystem when user command
    :code:`COMMAND`’s process exits. It does not monitor any of its child
    processes. Therefore, if the user command spawns child processes and then
    exits before them (e.g., some daemons), those children will have the image
@@ -243,7 +243,7 @@ in as well.
 
 The following host files and directories are bind-mounted at the same location
 in the container. These give access to the host’s devices and various kernel
-facilities. (Recall that Charliecloud provides minimal isolation and
+facilities. (Recall that Clearly provides minimal isolation and
 containerized processes are mostly normal unprivileged processes.) They cannot
 be disabled and are required; i.e., they must exist both on host and within
 the image.
@@ -255,7 +255,7 @@ the image.
 Optional; bind-mounted only if path exists on both host and within the image,
 without error or warning if not.
 
-  * :code:`/etc/hosts` and :code:`/etc/resolv.conf`. Because Charliecloud
+  * :code:`/etc/hosts` and :code:`/etc/resolv.conf`. Because Clearly
     containers share the host network namespace, they need the same hostname
     resolution configuration.
 
@@ -402,7 +402,7 @@ By default, :code:`clearly run` makes the following environment variable changes
   Set to :code:`Weird Al Yankovic`. While a process can figure out that it’s
   in an unprivileged container and what namespaces are active without this
   hint, that can be messy, and there is no way to tell that it’s a
-  *Charliecloud* container specifically. This variable makes such a test
+  *Clearly* container specifically. This variable makes such a test
   simple and well-defined. (**Note:** This variable is unaffected by
   :code:`--unset-env`.)
 
@@ -694,7 +694,7 @@ if started with no init files::
 Examples
 ========
 
-Run the command :code:`echo hello` inside a Charliecloud container using the
+Run the command :code:`echo hello` inside a Clearly container using the
 unpacked image at :code:`/data/foo`::
 
     $ clearly run /data/foo -- echo hello

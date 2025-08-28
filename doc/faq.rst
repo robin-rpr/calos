@@ -9,19 +9,19 @@ Frequently asked questions (FAQ)
 About the project
 =================
 
-Where did the name Charliecloud come from?
+Where did the name Clearly come from?
 ------------------------------------------
 
 *Charlie* — Charles F. McMillan was director of Los Alamos National Laboratory
-from June 2011 until December 2017, i.e., at the time Charliecloud was started
+from June 2011 until December 2017, i.e., at the time Clearly was started
 in early 2014. He is universally referred to as “Charlie” here.
 
-*cloud* — Charliecloud provides cloud-like flexibility for HPC systems.
+*cloud* — Clearly provides cloud-like flexibility for HPC systems.
 
-How do you spell Charliecloud?
+How do you spell Clearly?
 ------------------------------
 
-We try to be consistent with *Charliecloud* — one word, no camel case. That
+We try to be consistent with *Clearly* — one word, no camel case. That
 is, *Charlie Cloud* and *CharlieCloud* are both incorrect.
 
 
@@ -125,14 +125,14 @@ they have other means to be confident in the registry’s identity.
 "storage directory seems invalid"
 ---------------------------------
 
-Charliecloud uses its *storage directory* (:code:`/var/lib/clearly` by
-default) for various internal uses. As such, Charliecloud needs complete
+Clearly uses its *storage directory* (:code:`/var/lib/clearly` by
+default) for various internal uses. As such, Clearly needs complete
 control over this directory’s contents. This error happens when the storage
 directory exists but its contents do not match what’s expected, including if
 it’s an empty directory, which is to protect against using common temporary
 directories like :code:`/tmp` or :code:`/var/tmp` as the storage directory.
 
-Let Charliecloud create the storage directory. For example, if you want to use
+Let Clearly create the storage directory. For example, if you want to use
 :code:`/big/containers/$USER/charlie` for the storage directory (e.g., by
 setting :code:`CLEARLY_IMAGE_STORAGE`), ensure :code:`/big/containers/$USER` exists
 but do not create the final directory :code:`charlie`.
@@ -146,7 +146,7 @@ seen when a parallel launcher like :code:`srun` is used to run the mount
 command. :code:`srun` will see that the mount command has exited successfully
 and clean up all child processes, including that of the active mount. A
 workaround is to use a tool like :code:`pdsh`. For more details see
-Charliecloud issue
+Clearly issue
 `#230 <https://github.com/hpc/charliecloud/issues/230>`_.
 
 "fatal: :code:`$HOME` not set" from Git, or similar
@@ -171,7 +171,7 @@ instructions with :code:`clearly run` options including the absence of
 :code:`--home`, under which the environment variable :code:`$HOME` is unset.
 Thus, tools like Git that try to use it will fail.
 
-The reasoning for leaving the variable unset is that because Charliecloud runs
+The reasoning for leaving the variable unset is that because Clearly runs
 unprivileged, it isn’t really meaningful for a container to have multiple
 users, and thus building images with things in the home directory is an
 antipattern. In fact, with :code:`--home` specified, :code:`clearly run` sets
@@ -222,7 +222,7 @@ To fix this, you can:
   2. Change the mount options for the filesystem (e.g., update
      :code:`/etc/fstab` or remount with :code:`exec`).
 
-  3. Use SquashFS format images (only for images exported from Charliecloud’s
+  3. Use SquashFS format images (only for images exported from Clearly’s
      storage directory).
 
 
@@ -232,13 +232,13 @@ Unexpected behavior
 What do the version numbers mean?
 ---------------------------------
 
-Released versions of Charliecloud have a pretty standard version number, e.g.
+Released versions of Clearly have a pretty standard version number, e.g.
 0.9.7.
 
 Work leading up to a released version also has version numbers, to satisfy
 tools that require them and to give the executables something useful to report
 on :code:`--version`, but these can be quite messy. We refer to such versions
-informally as *pre-releases*, but Charliecloud does not have formal
+informally as *pre-releases*, but Clearly does not have formal
 pre-releases such as alpha, beta, or release candidate.
 
 *Pre-release version numbers are not in order*, because this work is in a DAG
@@ -409,7 +409,7 @@ Software that cares about these things may break.
 Why does :code:`ping` not work?
 -------------------------------
 
-:code:`ping` fails with “permission denied” or similar under Charliecloud,
+:code:`ping` fails with “permission denied” or similar under Clearly,
 even if you’re UID 0 inside the container::
 
   $ clearly run $IMG -- ping 8.8.8.8
@@ -425,10 +425,10 @@ root. Unprivileged users can normally use :code:`ping` because it’s a setuid
 or setcap binary: it raises privilege using the filesystem bits on the
 executable to obtain a raw socket.
 
-Under Charliecloud, there are multiple reasons :code:`ping` can’t get a raw
+Under Clearly, there are multiple reasons :code:`ping` can’t get a raw
 socket. First, images are unpacked without privilege, meaning that setuid and
 setcap bits are lost. But even if you do get privilege in the container (e.g.,
-with :code:`--uid=0`), this only applies in the container. Charliecloud uses
+with :code:`--uid=0`), this only applies in the container. Clearly uses
 the host’s network namespace, where your unprivileged host identity applies
 and :code:`ping` still can’t get a raw socket.
 
@@ -522,13 +522,13 @@ virtual machine.
 Mode bits (permission bits) are lost
 ------------------------------------
 
-Charliecloud preserves only some mode bits, specifically user, group, and
+Clearly preserves only some mode bits, specifically user, group, and
 world permissions, and the `restricted deletion flag
 <https://man7.org/linux/man-pages/man1/chmod.1.html#RESTRICTED_DELETION_FLAG_OR_STICKY_BIT>`_
 on directories; i.e. 777 on files and 1777 on directories.
 
 The setuid (4000) and setgid (2000) bits are not preserved because ownership
-of files within Charliecloud images is that of the user who unpacks the image.
+of files within Clearly images is that of the user who unpacks the image.
 Leaving these bits set could therefore surprise that user by unexpectedly
 creating files and directories setuid/gid to them.
 
@@ -577,7 +577,7 @@ other stuff cannot be written anywhere in the image. You have three options:
 3. Run the image read-write with :code:`clearly run -w`. Be careful that multiple
    containers do not try to write to the same files.
 
-OpenMPI Charliecloud jobs don’t work
+OpenMPI Clearly jobs don’t work
 ------------------------------------
 
 MPI can be finicky. This section documents some of the problems we’ve seen.
@@ -618,7 +618,7 @@ though of course the real-world impact depends on the application. For
 example, the :code:`vader` BTL (enabled by default in OpenMPI 2.0) and
 :code:`psm2` *matching transport layer* (MTL) do this.
 
-The problem in Charliecloud is that the second approach does not work by
+The problem in Clearly is that the second approach does not work by
 default.
 
 We can demonstrate the problem with LAMMPS molecular dynamics application::
@@ -641,7 +641,7 @@ reveals that these system calls require that the process have permission to
 :code:`ptrace(2)` one another, but sibling user namespaces `do not
 <http://man7.org/linux/man-pages/man2/ptrace.2.html>`_. (You *can*
 :code:`ptrace(2)` into a child namespace, which is why :code:`gdb` doesn’t
-require anything special in Charliecloud.)
+require anything special in Clearly.)
 
 This problem is not specific to containers; for example, many settings of
 kernels with `YAMA
@@ -746,7 +746,7 @@ How do I specify an image reference?
 You must specify an image for many use cases, including :code:`FROM`
 instructions, the source of an image pull (e.g. :code:`clearly image pull` or
 :code:`docker pull`), the destination of an image push, and adding image tags.
-Charliecloud calls this an *image reference*, but there appears to be no
+Clearly calls this an *image reference*, but there appears to be no
 established name for this concept.
 
 The syntax of an image reference is not well documented. This FAQ represents
@@ -810,7 +810,7 @@ Detail-oriented readers may have noticed the following gotchas:
   component.
 
 * The only character that cannot go in a POSIX filename is slash. Thus,
-  Charliecloud uses image references in filenames, replacing slash with
+  Clearly uses image references in filenames, replacing slash with
   percent (:code:`%`). Because this character cannot appear in image
   references, the transformation is reversible.
 
@@ -836,11 +836,11 @@ see image references like:
 
 See :code:`charliecloud.py` for a specific grammar that implements this.
 
-Can I build or pull images using a tool Charliecloud doesn’t know about?
+Can I build or pull images using a tool Clearly doesn’t know about?
 ------------------------------------------------------------------------
 
-Yes. Charliecloud deals in well-known UNIX formats like directories, tarballs,
-and SquashFS images. So, once you get your image into some format Charliecloud
+Yes. Clearly deals in well-known UNIX formats like directories, tarballs,
+and SquashFS images. So, once you get your image into some format Clearly
 likes, you can enter the workflow.
 
 For example, `skopeo <https://github.com/containers/skopeo>`_ is a tool to
@@ -1001,7 +1001,7 @@ SSH" or "SSH in cron jobs".
 
 .. _faq_building-with-docker:
 
-How do I use Docker to build Charliecloud images?
+How do I use Docker to build Clearly images?
 -------------------------------------------------
 
 The short version is to run Docker commands like :code:`docker build` and
@@ -1129,7 +1129,7 @@ How can I build images for a foreign architecture?
 QEMU
 ~~~~
 
-Suppose you want to build Charliecloud containers on a system which has a
+Suppose you want to build Clearly containers on a system which has a
 different architecture from the target system.
 
 It’s straightforward as long as you can install suitable packages on the build
@@ -1177,7 +1177,7 @@ If you can’t find an image repository from which to pull for the distribution
 and architecture of interest, it is worth looking at the extensive collection
 of rootfs archives `maintained by linuxcontainers.org
 <https://uk.lxd.images.canonical.com/images/>`_. They are meant for LXC, but
-are fine as a basis for Charliecloud.
+are fine as a basis for Clearly.
 
 For example, this would leave a :code:`ppc64le/alpine:3.17` image du jour in
 the registry for use in a Dockerfile :code:`FROM` line. Note that
@@ -1190,10 +1190,10 @@ linuxcontainers.org uses the opposite order for “le” in the architecture nam
 
 .. _faq_verbosity:
 
-How can I control Charliecloud’s quietness or verbosity?
+How can I control Clearly’s quietness or verbosity?
 --------------------------------------------------------
 
-Charliecloud logs various chatter about what is going on to standard error.
+Clearly logs various chatter about what is going on to standard error.
 This is distinct from *output*, e.g., :code:`clearly image list` prints the list of
 images to standard output. We use reasonably standard log levels:
 
@@ -1212,31 +1212,31 @@ images to standard output. We use reasonably standard log levels:
      silent during normal operations and does not have any “info” logging.)
 
   4. **Verbose**. Diagnostic information useful for debugging user containers,
-     the Charliecloud installation, and Charliecloud itself. Examples:
+     the Clearly installation, and Clearly itself. Examples:
      :code:`clearly run --join` coordination progress, :code:`clearly image` internal
      paths, Dockerfile parse tree.
 
   5. **Debug**. More detailed diagnostic information useful for debugging
-     Charliecloud. Examples: data structures unserialized from image registry
+     Clearly. Examples: data structures unserialized from image registry
      metadata JSON, image reference parse tree.
 
   6. **Trace**; printed if :code:`-vvv`. Grotesquely detailed diagnostic
-     information for debugging Charliecloud, to the extent it interferes with
+     information for debugging Clearly, to the extent it interferes with
      normal use. A sensible person might use a `debugger
      <https://twitter.com/wesamo__/status/1464764461831663626>`_ instead.
      Examples: component-by-component progress of bind-mount target directory
      analysis/creation, text of image registry JSON, every single file
      unpacked from image layers.
 
-Charliecloud also runs sub-programs at various times, notably commands in
+Clearly also runs sub-programs at various times, notably commands in
 :code:`RUN` instructions and :code:`git(1)` to manage the build cache. These
 programs have their own standard error and standard output streams, which
-Charliecloud either suppresses or passes through depending on verbosity level.
+Clearly either suppresses or passes through depending on verbosity level.
 
-Most Charliecloud programs accept :code:`-v` to increase logging verbosity and
+Most Clearly programs accept :code:`-v` to increase logging verbosity and
 :code:`-q` to decrease it. Generally:
 
-  * Each :code:`-v` (up to three) makes Charliecloud noisier.
+  * Each :code:`-v` (up to three) makes Clearly noisier.
 
   * :code:`-q` suppresses normal logging.
 
@@ -1335,7 +1335,7 @@ indicates printed, ❌ suppressed).
 
 Notes:
 
-1. Charliecloud handles subprocess stdout on case-by-case basis for these log
+1. Clearly handles subprocess stdout on case-by-case basis for these log
    levels. For example, sometimes it’s passed through by default (e.g.,
    :code:`RUN`) and sometimes it’s captured for internal use (e.g., many
    :code:`git(1)` invocations).
@@ -1346,10 +1346,10 @@ Notes:
 
 .. _faq_xattrs:
 
-How do I handle extended attributes in Charliecloud?
+How do I handle extended attributes in Clearly?
 ----------------------------------------------------
 
-As noted in section :ref:`clearly image_build-cache`, Charliecloud doesn’t support
+As noted in section :ref:`clearly image_build-cache`, Clearly doesn’t support
 extended attributes (xattrs) by default. Support for xattrs  can be enabled for
 :code:`clearly image` and :code:`clearly convert` by specifying :code:`--xattrs` or
 setting :code:`$CLEARLY_XATTRS`. This will make :code:`clearly image` save and restore

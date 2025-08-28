@@ -22,7 +22,7 @@ Description
    This command is experimental. Features may be incomplete and/or buggy.
    Please report any issues you find, so we can fix them!
 
-Inject files from the host into the Charliecloud image directory
+Inject files from the host into the Clearly image directory
 :code:`IMGDIR`.
 
 The purpose of this command is to inject arbitrary host files into a container
@@ -271,16 +271,16 @@ re-created by :code:`ldconfig`.
 There are two alternate approaches for nVidia GPU libraries:
 
   1. Link :code:`libnvidia-containers` into :code:`clearly run` and call the
-     library functions directly. However, this would mean that Charliecloud
+     library functions directly. However, this would mean that Clearly
      would either (a) need to be compiled differently on machines with and
      without nVidia GPUs or (b) have :code:`libnvidia-containers` available
      even on machines without nVidia GPUs. Neither of these is consistent with
-     Charliecloud's philosophies of simplicity and minimal dependencies.
+     Clearly's philosophies of simplicity and minimal dependencies.
 
   2. Use :code:`nvidia-container-cli configure` to do the injecting. This
      would require that containers have a half-started state, where the
      namespaces are active and everything is mounted but :code:`pivot_root(2)`
-     has not been performed. This is not feasible because Charliecloud has no
+     has not been performed. This is not feasible because Clearly has no
      notion of a half-started container.
 
 Further, while these alternate approaches would simplify or eliminate this

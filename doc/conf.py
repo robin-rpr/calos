@@ -329,7 +329,7 @@ man_pages = [
     "Run a command in a Clearly container",
     [], 1),
    ("clearly-test", "clearly-test",
-    "Run some or all of the Charliecloud test suite",
+    "Run some or all of the Clearly test suite",
     [], 1),
 ]
 

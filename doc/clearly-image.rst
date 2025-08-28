@@ -150,7 +150,7 @@ Common options placed before or after the sub-command:
 Architecture
 ============
 
-Charliecloud provides the option :code:`--arch ARCH` to specify the
+Clearly provides the option :code:`--arch ARCH` to specify the
 architecture for architecture-aware registry operations. The argument
 :code:`ARCH` can be: (1) :code:`yolo`, to bypass architecture-aware code and
 use the registry’s default architecture; (2) :code:`host`, to use the host’s
@@ -181,7 +181,7 @@ architecture is not available, the error message will list which ones are.
    without translation.
 
 4. Registries treat architecture as a pair of items, architecture and
-   sometimes variant (e.g., "arm" and "v7"). Charliecloud treats
+   sometimes variant (e.g., "arm" and "v7"). Clearly treats
    architecture as a simple string and converts to/from the registry view
    transparently.
 
@@ -189,8 +189,8 @@ architecture is not available, the error message will list which ones are.
 Authentication
 ==============
 
-Charliecloud does not have configuration files; thus, it has no separate
-:code:`login` subcommand to store secrets. Instead, Charliecloud will prompt
+Clearly does not have configuration files; thus, it has no separate
+:code:`login` subcommand to store secrets. Instead, Clearly will prompt
 for a username and password when authentication is needed. Note that some
 repositories refer to the secret as something other than a "password"; e.g.,
 GitLab calls it a "personal access token (PAT)", Quay calls it an "application
@@ -208,7 +208,7 @@ environment variable :code:`$CLEARLY_IMAGE_AUTH=yes`. The exception is
 images, it can be useful to authenticate for registries that have per-user
 rate limits, such as `Docker Hub
 <https://docs.docker.com/docker-hub/download-rate-limit/>`_. (Older versions
-of Charliecloud started with anonymous access, then tried to upgrade to
+of Clearly started with anonymous access, then tried to upgrade to
 authenticated if it seemed necessary. However, this turned out to be brittle;
 see issue `#1318 <https://github.com/hpc/charliecloud/issues/1318>`_.)
 
@@ -230,7 +230,7 @@ treatment, so we cannot guarantee they will never reach non-volatile storage.
 
    Most registries use something called `Bearer authentication
    <https://datatracker.ietf.org/doc/html/rfc6750>`_, where the client (e.g.,
-   Charliecloud) includes a *token* in the headers of every HTTP request.
+   Clearly) includes a *token* in the headers of every HTTP request.
 
    The authorization dance is different from the typical UNIX approach, where
    there is a separate login sequence before any content requests are made.
@@ -244,7 +244,7 @@ treatment, so we cannot guarantee they will never reach non-volatile storage.
    token if needed, e.g. when transitioning from asking if a layer exists to
    uploading its content.
 
-   The distinction between Charliecloud’s anonymous mode and authenticated
+   The distinction between Clearly’s anonymous mode and authenticated
    modes is that it will only ask for anonymous tokens in anonymous mode and
    authenticated tokens in authenticated mode. That is, anonymous mode does
    involve an authentication procedure to obtain a token, but this
@@ -253,7 +253,7 @@ treatment, so we cannot guarantee they will never reach non-volatile storage.
    Registries also often reply HTTP 401 when an image does not exist, rather
    than the seemingly more correct HTTP 404 Not Found. This is to avoid
    information leakage about the existence of images the client is not allowed
-   to pull, and it’s why Charliecloud never says an image simply does not
+   to pull, and it’s why Clearly never says an image simply does not
    exist.
 
 
@@ -282,7 +282,7 @@ graph drivers, etc., to select and/or configure.
 
 The storage directory can reside on any single filesystem (i.e., it cannot be
 split across multiple filesystems). However, it contains lots of small files
-and metadata traffic can be intense. For example, the Charliecloud test suite
+and metadata traffic can be intense. For example, the Clearly test suite
 uses approximately 400,000 files and directories in the storage directory as
 of this writing. Place it on a filesystem appropriate for this; tmpfs’es such
 as :code:`/var/tmp` are a good choice if you have enough RAM (:code:`/tmp` is
@@ -296,7 +296,7 @@ tutorial for details.
 
 The storage directory format changes on no particular schedule.
 :code:`clearly image` is normally able to upgrade directories produced by a given
-Charliecloud version up to one year after that version’s release. Upgrades
+Clearly version up to one year after that version’s release. Upgrades
 outside this window and downgrades are not supported. In these cases,
 :code:`clearly image` will refuse to run until you delete and re-initialize the
 storage directory with :code:`clearly image reset`.
@@ -325,7 +325,7 @@ http://slow.example.com/bigfile` or transferring data billed by the byte), so
 it’s often cheaper to retrieve their results from cache instead.
 
 The build cache uses a relatively new Git under the hood; see the installation
-instructions for version requirements. Charliecloud implements workarounds for
+instructions for version requirements. Clearly implements workarounds for
 Git’s various storage limitations, so things like file metadata and Git
 repositories within the image should work. **Important exception**: No files
 named :code:`.git*` or other Git metadata are permitted in the image’s root
@@ -357,7 +357,7 @@ Compared to other implementations
 
 .. note::
 
-   This section is a lightly edited excerpt from our paper “`Charliecloud’s
+   This section is a lightly edited excerpt from our paper “`Clearly’s
    layer-free, Git-based container build cache
    <https://arxiv.org/abs/2309.00166>`_”.
 
@@ -417,7 +417,7 @@ That is, we believe our results show that the Git-based build cache is highly co
 De-duplication and garbage collection
 -------------------------------------
 
-Charliecloud’s build cache takes advantage of Git’s file de-duplication
+Clearly’s build cache takes advantage of Git’s file de-duplication
 features. This operates across the entire build cache, i.e., files are
 de-duplicated no matter where in the cache they are found or the relationship
 between their container images. Files are de-duplicated at different times
@@ -449,7 +449,7 @@ block-level de-duplicating filesystems. Exception: "Large" files are not
 compressed or de-duplicated. We use the Git default threshold of 512 MiB (as
 of this writing).
 
-Charliecloud runs Git garbage collection at two different times. First, a
+Clearly runs Git garbage collection at two different times. First, a
 lighter-weight garbage pass runs automatically when the number of loose files
 (objects) grows beyond a limit. This limit is in flux as we learn more about
 build cache performance, but it’s quite a bit higher than the Git default.
@@ -481,7 +481,7 @@ repository, somewhat like `Git Large File Storage
 :code:`clearly image` copies large files in and out of images at each instruction
 commit. It tries to do this with a fast metadata-only copy-on-write operation
 called “reflink”, but that is only supported with the right Python version,
-Linux kernel version, and filesystem. If unsupported, Charliecloud falls back
+Linux kernel version, and filesystem. If unsupported, Clearly falls back
 to an expensive standard copy, which is likely slower than letting Git deal
 with the files. See :ref:`File copy performance <best-practices_file-copy>`
 for details.
@@ -542,7 +542,7 @@ But on our second build, we get::
   grown in 3 instructions: foo
 
 Here, instead of being executed, each instruction’s results were retrieved
-from cache. (Charliecloud uses lazy retrieval; nothing is actually retrieved
+from cache. (Clearly uses lazy retrieval; nothing is actually retrieved
 until the end, as seen by the "copying image" message.) Cache hit for each
 instruction is indicated by an asterisk (:code:`*`) after the line number.
 Even for such a small and short Dockerfile, this build is noticeably faster
@@ -564,7 +564,7 @@ three instructions are the same, but the third is different::
   grown in 3 instructions: c
 
 Here, the first two instructions are hits from the first Dockerfile, but the
-third is a miss, so Charliecloud retrieves that state and continues building.
+third is a miss, so Clearly retrieves that state and continues building.
 
 We can also inspect the cache::
 
@@ -606,7 +606,7 @@ Synopsis
 Description
 -----------
 
-See below for differences with other Dockerfile interpreters. Charliecloud
+See below for differences with other Dockerfile interpreters. Clearly
 supports an extended instruction (:code:`RSYNC`), a few other instructions
 behave slightly differently, and a few are ignored.
 
@@ -720,7 +720,7 @@ zero inside the container, and only one UID (zero) and GID (zero) are available
 inside the container. Under this arrangement, processes running in the container
 for each :code:`RUN` *appear* to be running as root, but many privileged system
 calls will fail without the root emulation methods described below. **This
-affects any fully unprivileged container build, not just Charliecloud.**
+affects any fully unprivileged container build, not just Clearly.**
 
 The most common time to see this is installing packages. For example, here is
 RPM failing to :code:`chown(2)` a file, which makes the package update fail:
@@ -742,7 +742,7 @@ This one is (ironically) :code:`apt-get` failing to drop privileges:
   E: seteuid 100 failed - seteuid (22: Invalid argument)
   E: setgroups 0 failed - setgroups (1: Operation not permitted)
 
-Charliecloud provides two different mechanisms to avoid these problems. Both
+Clearly provides two different mechanisms to avoid these problems. Both
 involve lying to the containerized process about privileged system calls, but
 at very different levels of complexity.
 
@@ -754,7 +754,7 @@ is internally consistent. This program intercepts both privileged system calls
 (e.g., :code:`setuid(2)`) as well as other system calls whose return values
 depend on those calls (e.g., :code:`getuid(2)`), faking success for privileged
 system calls (perhaps making no system call at all) and altering return values
-to be consistent with earlier fake success. Charliecloud automatically
+to be consistent with earlier fake success. Clearly automatically
 installs the :code:`fakeroot(1)` program inside the container and then wraps
 :code:`RUN` instructions having known privilege needs with it. Thus, this mode
 is only available for certain distributions.
@@ -1026,7 +1026,7 @@ Features we do not plan to support
 * Parser directives are not supported. We have not identified a need for any
   of them.
 
-* :code:`EXPOSE`: Charliecloud does not use the network namespace, so
+* :code:`EXPOSE`: Clearly does not use the network namespace, so
   containerized processes can simply listen on a host port like other
   unprivileged processes.
 
@@ -1041,7 +1041,7 @@ Features we do not plan to support
 
 * :code:`USER` does not make sense for unprivileged builds.
 
-* :code:`VOLUME`: Charliecloud
+* :code:`VOLUME`: Clearly
   has good support for bind mounts; we anticipate that it will continue to
   focus on that and will not introduce the volume management features that
   Docker has.
@@ -1067,8 +1067,8 @@ BuildKit), as detailed above. On the other hand, :code:`rsync(1)` is an
 extremely capable, widely used file copy tool, with detailed options to
 specify behavior and 25 years of history dealing with weirdness.
 
-:code:`RSYNC` (also spelled :code:`NSYNC`) is a Charliecloud extension that
-gives copying behavior identical to :code:`rsync(1)`. In fact, Charliecloud’s
+:code:`RSYNC` (also spelled :code:`NSYNC`) is a Clearly extension that
+gives copying behavior identical to :code:`rsync(1)`. In fact, Clearly’s
 current implementation literally calls the host’s :code:`rsync(1)` to do the
 copy, though this may change in the future. There is no list form of
 :code:`RSYNC`.
@@ -1184,7 +1184,7 @@ Disallowed :code:`rsync(1)` features
 
 A small number of :code:`rsync(1)` features are actively disallowed:
 
-  1. :code:`rsync:` and :code:`ssh:` transports are an error. Charliecloud
+  1. :code:`rsync:` and :code:`ssh:` transports are an error. Clearly
      needs access to the entire input to compute cache hit or miss, and these
      transports make that impossible. It is possible these will become
      available in the future (please let us know if that is your use case!).
@@ -1197,7 +1197,7 @@ A small number of :code:`rsync(1)` features are actively disallowed:
      :code:`-B=4M`. :code:`-B4M` will be interpreted as the three arguments
      :code:`-B`, :code:`-4`, and :code:`-M`; :code:`--block-size 4M` will be
      interpreted as :code:`--block-size` with no argument and a copy source
-     named :code:`4M`. This is so Charliecloud can process :code:`rsync(1)`
+     named :code:`4M`. This is so Clearly can process :code:`rsync(1)`
      options without knowing which ones take an argument.
 
   3. Invalid :code:`rsync(1)` options:
@@ -1207,7 +1207,7 @@ A small number of :code:`rsync(1)` features are actively disallowed:
        container build.
 
      :code:`-n`, :code:`--dry-run`
-       This makes the copy a no-op, and Charliecloud may want to use it
+       This makes the copy a no-op, and Clearly may want to use it
        internally in the future.
 
      :code:`--remove-source-files`
@@ -1221,14 +1221,14 @@ Build cache
 
 The instruction is a cache hit if the metadata of all source files is
 unchanged (specifically: filename, file type and permissions, xattrs, size,
-and last modified time). Unlike Docker, Charliecloud does not use file
+and last modified time). Unlike Docker, Clearly does not use file
 contents. This has two implications. First, it is possible to fool the cache
 by manually restoring the last-modified time. Second, :code:`RSYNC` is
 I/O-intensive even when it hits, because it must :code:`stat(2)` every source
 file before checking the cache. However, this is still less I/O than reading
 the file content too.
 
-Notably, Charliecloud’s cache ignores :code:`rsync(1)`’s own internal notion
+Notably, Clearly’s cache ignores :code:`rsync(1)`’s own internal notion
 of whether anything would be transferred (e.g., :code:`rsync -ni`). This may
 change in the future.
 
@@ -1880,7 +1880,7 @@ Copy the image at :code:`PATH` into builder storage with name
 * a tarball with no top-level directory (a.k.a. a "`tarbomb <https://en.wikipedia.org/wiki/Tar_(computing)#Tarbomb>`_")
 * a standard tarball with one top-level directory
 
-If the imported image contains Charliecloud metadata, that will be imported
+If the imported image contains Clearly metadata, that will be imported
 unchanged, i.e., images exported from :code:`clearly image` builder storage will be
 functionally identical when re-imported.
 
@@ -2022,7 +2022,7 @@ Options:
     Use the unpacked image located at :code:`DIR` rather than an image in the
     storage directory named :code:`IMAGE_REF`.
 
-Because Charliecloud is fully unprivileged, the owner and group of files in
+Because Clearly is fully unprivileged, the owner and group of files in
 its images are not meaningful in the broader ecosystem. Thus, when pushed,
 everything in the image is flattened to user:group :code:`root:root`. Also,
 setuid/setgid bits are removed, to avoid surprises if the image is pulled by a
