@@ -1,36 +1,22 @@
 {#- Template for the sidebar. -#}
 
-{%- set only_main_nav = sidebars == ["sidebar_main_nav_links.html"] -%}
-
-{%- if not only_main_nav and sidebars|length > 0 -%}
-<aside id="sidebar"
-  class="fixed inset-y-0 left-0 md:top-14 z-50 md:z-30 bg-background md:bg-transparent transition-all duration-100 -translate-x-full md:translate-x-0 ml-0 p-6 md:p-0 md:-ml-2 md:h-[calc(100vh-3.5rem)] w-5/6 md:w-full overflow-y-auto md:sticky"
-  :aria-hidden="!showSidebar" :class="{ 'translate-x-0': showSidebar }">
-  {%- else %}
-  <aside id="sidebar"
-    class="fixed inset-y-0 left-0 md:hidden z-50 bg-background transition-all duration-100 -translate-x-full ml-0 p-6 w-5/6 overflow-y-auto"
-    :aria-hidden="!showSidebar" :class="{ 'translate-x-0': showSidebar }">
-    {%- endif %}
-
-    <a href="{{ pathto(master_doc) }}" class="justify-start text-sm md:!hidden bg-background">
-      {%- if logo %}
-      <img height="16" class="mr-2" src="{{ pathto('_static/' + logo, 1) }}" alt="Logo" />
-      {%- endif -%}
-    </a>
-
-    <div class="relative overflow-hidden md:overflow-auto my-4 md:my-0">
-      <div class="overflow-y-auto h-full w-full relative pr-6">
-        {%- for section in sidebars %}
-        {%- include section %}
-        {%- endfor %}
-      </div>
+<aside id="sidebar" :aria-hidden="!showSidebar" :class="{ 'sidebar--open': showSidebar }">
+  <div class="sidebar__content">
+    <div class="content__wrapper">
+      <nav class="sidebar__navigation">
+        {%- if theme_globaltoc_includehidden|tobool %}
+        {{ toctree(titles_only=true, collapse=False, includehidden=true) }}
+        {%- else %}
+        {{ toctree(titles_only=true, collapse=False) }}
+        {%- endif %}
+      </nav>
     </div>
-    <button type="button" @click="showSidebar = false"
-      class="absolute md:hidden right-4 top-4 rounded-sm opacity-70 transition-opacity hover:opacity-100">
-      <svg xmlns="http://www.w3.org/2000/svg" height="24" width="24" viewBox="0 96 960 960" fill="currentColor"
-        stroke="none" class="h-4 w-4">
-        <path
-          d="M480 632 284 828q-11 11-28 11t-28-11q-11-11-11-28t11-28l196-196-196-196q-11-11-11-28t11-28q11-11 28-11t28 11l196 196 196-196q11-11 28-11t28 11q11 11 11 28t-11 28L536 576l196 196q11 11 11 28t-11 28q-11 11-28 11t-28-11L480 632Z" />
-      </svg>
-    </button>
-  </aside>
+  </div>
+  <button type="button" @click="showSidebar = false" class="sidebar__close">
+    <svg xmlns="http://www.w3.org/2000/svg" height="24" width="24" viewBox="0 96 960 960" fill="currentColor"
+      stroke="none">
+      <path
+        d="M480 632 284 828q-11 11-28 11t-28-11q-11-11-11-28t11-28l196-196-196-196q-11-11-11-28t11-28q11-11 28-11t28 11l196 196 196-196q11-11 28-11t28 11q11 11 11 28t-11 28L536 576l196 196q11 11 11 28t-11 28q-11 11-28 11t-28-11L480 632Z" />
+    </svg>
+  </button>
+</aside>

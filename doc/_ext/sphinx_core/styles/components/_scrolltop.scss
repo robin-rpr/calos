@@ -1,0 +1,28 @@
+.scrolltop {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    padding: 0.5rem;
+    z-index: var(--z-index-default);
+    border-radius: 0.125rem;
+    background: #374151;
+    font-size: 0.75rem;
+    color: white;
+    transition: all 1s ease;
+
+    &:hover,
+    &:focus {
+        background: #111827;
+    }
+
+    @media (max-width: 768px) {
+        bottom: 1rem;
+        right: 1rem;
+    }
+
+    .scrolltop__icon {
+        display: inline;
+        fill: currentColor;
+        margin-bottom: 2px;
+    }
+}

@@ -10,8 +10,14 @@
 @import "./components/_footnote";
 @import "./components/_headerlink";
 @import "./components/_tooltip";
+@import "./components/_navigation";
+@import "./components/_scrolltop";
+@import "./components/_footer";
+@import "./components/_search";
+@import "./components/_copy";
 
 /* Layout */
+@import "./layout/_header";
 @import "./layout/_sidebar";
 
 *,
@@ -19,6 +25,12 @@
 :before {
     box-sizing: border-box;
     border: 0 solid #ededed;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    :has(:target) {
+        scroll-behavior: smooth;
+    }
 }
 
 html {
@@ -35,17 +47,90 @@ html {
     tab-size: 4
 }
 
-@media (max-width: 640px) {
-    .container {
-        padding-left: 1rem;
-        padding-right: 1rem;
+body {
+    min-height: 100vh;
+    font-feature-settings: normal;
+    -webkit-font-smoothing: antialiased;
+    background: var(--background);
+    color: var(--foreground);
+    margin: 0;
+
+    &.body--sidebar-open {
+        overflow: hidden;
+    }
+
+    #skip {
+        position: absolute;
+        top: 0;
+        left: 0;
+        z-index: var(--z-index-topmost);
+        display: block;
+        background: var(--background);
+        padding: 1rem;
+        font-size: 1.25rem;
+        transition: all 0.2s ease;
+        transform: translateX(-100%);
+        opacity: 0;
+
+        &:focus {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+
+    #overlay {
+        position: fixed;
+        inset: 0;
+        z-index: var(--z-index-modal);
+        overflow: hidden;
+        background: rgba(0, 0, 0, 0.8);
+        backdrop-filter: blur(4px);
+    
+        @media (min-width: 768px) {
+            display: none;
+        }
+    }
+
+    #main {
+        display: flex;
+        position: relative;
+        flex-direction: column;
+        height: 100%;
+
+        @media (max-width: 768px) {
+            padding: 0 1rem;
+        }
+
+        #content {
+            display: grid;
+            grid-template-columns: 240px minmax(0, 1fr);
+            padding: 0 2rem;
+            max-width: 1240px;
+            margin: 0 auto;
+            gap: 1.5rem;
+            width: 100%;
+
+            &[orphan] {
+                display: unset;
+                grid-template-columns: unset;
+                gap: unset;
+            }
+
+            
+        }
     }
 }
 
-@media (prefers-reduced-motion: no-preference) {
-    :has(:target) {
-        scroll-behavior: smooth;
-    }
+h1, h2, h3, h4, h5, h6, blockquote,
+dd, dl, figure, hr, p, pre {
+    margin: 0;
+}
+
+button, a {
+    font-family: inherit !important;
+    text-decoration: none;
+    color: inherit;
+    outline: none;
 }
 
 svg {
@@ -79,16 +164,19 @@ h3 {
 }
 
 h4,
+/* Alternate .rubric */
 .rubric {
     margin-top: 2rem;
     font-size: 1.25rem;
     font-weight: 600;
 }
 
-section {
+section,
+/* Alternate .section */
+.section {
     scroll-margin-top: 5rem;
 
-    &>p {
+    & > p {
         margin-top: 1.5rem;
         line-height: 1.75;
 
@@ -156,10 +244,6 @@ dl {
     }
 }
 
-img {
-    margin-top: 1.5rem;
-}
-
 figure img {
     display: inline-block;
 }
@@ -187,11 +271,15 @@ blockquote {
     }
 }
 
-table {
-    margin-top: 1.5rem;
+table {            
+    border-collapse: collapse;
+    border-color: inherit;
+    font-size: .875rem;
+    line-height: 1.25rem;
     margin-bottom: 1.5rem;
+    margin-top: 1.5rem;
+    text-indent: 0;
     width: 100%;
-    font-size: 0.875rem;
 
     caption {
         margin-bottom: 1.5rem;
@@ -228,5 +316,4 @@ table {
             }
         }
     }
-
 }

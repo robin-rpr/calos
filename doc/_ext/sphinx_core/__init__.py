@@ -55,15 +55,6 @@ class ThemeOptions:
     show_prev_next: bool = True
     """If true, the theme includes links to the previous and next pages in the hierarchy."""
 
-    show_breadcrumbs: bool = True
-    """If true, the theme includes `breadcrumbs <https://en.wikipedia.org/wiki/Breadcrumb_navigation>`_ links on every page except the root page."""
-
-    breadcrumbs_separator: str = "/"
-    """The separator for the breadcrumbs links."""
-
-    awesome_headerlinks: bool = True
-    """If true, clicking a headerlink copies its URL to the clipboard."""
-
     show_scrolltop: bool = False
     """If true, the theme shows a button that scrolls to the top of the page when clicked."""
 
@@ -77,8 +68,8 @@ class ThemeOptions:
     The values are absolute or relative URLs.
     """
 
-    extra_header_link_icons: dict[str, LinkIcon] = field(default_factory=dict)
-    """A dictionary with extra icons to include on the right of the search bar.
+    extra_nav_links: dict[str, LinkIcon] = field(default_factory=dict)
+    """A dictionary with extra links to include in the site header.
 
     The keys are labels for the link's ``title`` attribute.
     The values are themselves :class:`LinkIcon`.

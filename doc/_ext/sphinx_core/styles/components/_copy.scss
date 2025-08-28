@@ -1,0 +1,51 @@
+.copy-button {
+    z-index: 20;
+    display: inline-flex;
+    height: 1.5rem;
+    width: 1.5rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.375rem;
+    border: 1px solid var(--border);
+    background: var(--background);
+    opacity: 0;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    position: absolute;
+    right: 0.5rem;
+    top: 0.5rem;
+
+    &:focus {
+        opacity: 1;
+    }
+
+    &:hover {
+        background: var(--muted);
+    }
+
+    .copy-icon,
+    .copy-success-icon {
+        height: 14px;
+        width: 14px;
+        transition: all 0.2s ease;
+        transform: translateZ(0);
+        position: absolute;
+    }
+
+    .copy-icon {
+        transform: scale(1);
+    }
+
+    .copy-success-icon {
+        transform: scale(0);
+    }
+
+    .copy-icon.scale-0 {
+        transform: scale(0);
+    }
+
+    .copy-success-icon.scale-100 {
+        transform: scale(1);
+    }
+}

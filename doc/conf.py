@@ -156,9 +156,9 @@ html_theme = 'sphinx_core'
 
 html_title = project
 html_last_updated_fmt = ""
-html_use_index = False # Don't create index.
-html_domain_indices = False # Don't need module indices.
-html_copy_source = False # Don't need sources.
+html_use_index = False
+html_domain_indices = False
+html_copy_source = False
 html_logo = "logo.svg"
 html_favicon = "favicon.svg"
 html_permalinks_icon = "<i class='fa-solid fa-link'></i>"
@@ -168,19 +168,18 @@ html_context = {
     "mode": "production",
 }
 
-html_sidebars: dict[str, list[str]] = {
-    "about": ["sidebar_main_nav_links.html"],
-    "changelog/*": ["sidebar_main_nav_links.html"],
-}
-
 # Default to console highlighting.
 highlight_language = 'console'
 
 theme_options = ThemeOptions(
     show_prev_next=True,
     awesome_external_links=True,
-    main_nav_links={"Docs": "/index", "About": "/about", "Changelog": "/changelog"},
-    extra_header_link_icons={
+    main_nav_links={
+        "Docs": "/install",
+        "About": "/about",
+        "Changelog": "/changelog",
+    },
+    extra_nav_links={
         "repository on GitHub": {
             "link": "https://github.com/kai687/sphinxawesome-theme",
             "icon": (
@@ -236,9 +235,6 @@ smartquotes_action = "qBD"   # quotes, en and em dashes, but not ellipses
 
 # If false, no module index is generated.
 html_domain_indices = False
-
-# If false, no index is generated.
-html_use_index = False
 
 # If true, the index is split into individual pages for each letter.
 #html_split_index = False

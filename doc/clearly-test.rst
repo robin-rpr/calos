@@ -132,14 +132,14 @@ Image format is specified with:
   :code:`--pack-fmt FMT`
     :code:`FMT` must be one of the following:
 
-    * :code:`squash-mount` or 🐘: SquashFS archive, run directly from the
+    * :code:`squash-mount`: SquashFS archive, run directly from the
       archive using :code:`clearly run`’s internal SquashFUSE functionality. In
       this mode, tests that require writing to the image are skipped.
 
-    * :code:`tar-unpack` or 📠: Tarball, and the images are unpacked before
+    * :code:`tar-unpack`: Tarball, and the images are unpacked before
       running.
 
-    * :code:`squash-unpack` or 🎃: SquashFS, and the images are unpacked
+    * :code:`squash-unpack`: SquashFS, and the images are unpacked
       before running.
 
     Default: :code:`$CLEARLY_TEST_PACK_FMT` if set. Otherwise, if

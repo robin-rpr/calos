@@ -1,9 +1,8 @@
-{#- Template for the footer. -#}
-<footer class="py-6 border-t border-border md:py-0">
+<footer id="footer">
   {%- block footer_before %}{%- endblock footer_before %}
-    <div class="container flex flex-col items-center justify-between gap-4 md:h-24 md:flex-row">
-      <div class="flex flex-col items-center gap-4 px-8 md:flex-row md:gap-2 md:px-0">
-        <p class="text-sm leading-loose text-center text-muted-foreground md:text-left">
+    <div class="container">
+      <div class="footer__content">
+        <p>
           {%- if show_copyright and copyright|length -%}
             {%- if hasdoc('copyright') -%}
               {%- trans path=pathto('copyright'), copyright=copyright|e -%}
@@ -22,13 +21,13 @@
     {%- endif -%}
     {%- if show_sphinx -%}
       {%- trans sphinx_version=sphinx_version|e -%}
-      Built with <a class="font-medium underline underline-offset-4"
+      Built with <a class="footer__link"
     href="https://www.sphinx-doc.org"
     rel="noreferrer">Sphinx {{ sphinx_version }}</a>
     {%- endtrans -%}
   {%- endif -%}
-</p>
-</div>
-</div>
+        </p>
+      </div>
+    </div>
 {%- block footer_after %}{%- endblock footer_after %}
 </footer>

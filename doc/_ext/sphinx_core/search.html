@@ -10,12 +10,9 @@
   <script src="{{ pathto('searchindex.js', 1) }}" defer></script>
 {% endblock scripts %}
 {% block body %}
-  <div class="w-full min-w-0 mx-auto">
-    {%- if pagename != master_doc and theme_show_breadcrumbs|tobool %}
-      {%- include "breadcrumbs.html" %}
-    {%- endif %}
+  <div class="search__container">
     <div id="content" role="main">
-      <div id="fallback" class="my-8 text-sm text-red-700">
+      <div id="fallback" class="search__fallback">
         <script>document.querySelector("#fallback").style.display = "none"</script>
         {%- trans %}Please activate Javascript to enable searching the documentation.{% endtrans -%}
       </div>
