@@ -38,6 +38,7 @@ clearly-test.rst \
 conf.py \
 faq.rst \
 favicon.ico \
+favicon.svg \
 index.rst \
 install.rst \
 install.sh \
