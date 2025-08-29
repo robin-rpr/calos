@@ -1,8 +1,8 @@
 :orphan:
 
 .. hero::
-   :title: From Notebook to Production in One Platform
-   :subtitle: The Platform for Building and Deploying AI Apps at scale in your Garage.
+   :title: From <img src="/_static/jupyter.svg"> Notebook to Production in One Platform
+   :subtitle: The Platform for Building and Deploying AI Apps at scale, in your Garage.
    :command: curl -fsSL https://clearly.run/install.sh | sh
 
 .. slider::

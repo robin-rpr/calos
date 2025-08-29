@@ -30,7 +30,7 @@ from sphinx.util.docfields import Field
 # Add custom extension and theme paths
 sys.path.insert(0, os.path.abspath('_ext'))
 
-from sphinx_core import ThemeOptions
+from theme import ThemeOptions
 
 # -- General configuration -----------------------------------------------------
 
@@ -48,9 +48,8 @@ extensions = [
     "sphinx.ext.mathjax",
     "sphinx.ext.viewcode",
     # Custom extensions
-    "sphinx_sitemap",
-    "sphinx_design",
-    "sphinx_core",
+    "sitemap",
+    "theme",
 ]
 todo_include_todos = True
 # Workaround for EPEL, which prohibits pip and doesn’t have
@@ -152,7 +151,7 @@ exclude_patterns += ["*_desc.rst", "_*.rst", "bugs.rst", "py_env.rst",
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-html_theme = 'sphinx_core'
+html_theme = 'theme'
 
 html_title = project
 html_last_updated_fmt = ""
@@ -218,7 +217,7 @@ sitemap_url_scheme = "{link}"
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-#html_static_path = ['_static']
+html_static_path = ['_static']
 
 # If true, SmartyPants will be used to convert quotes and dashes to
 # typographically correct entities.

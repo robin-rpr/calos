@@ -25,7 +25,6 @@ a.out
 /doc/html/
 /doc/man/*
 !/doc/man/README
-/doc/_static/
 /test/build/30_doctest-auto.bats
 /test/force-auto.bats
 /test/docs-sane

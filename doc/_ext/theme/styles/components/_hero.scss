@@ -14,6 +14,15 @@
         font-weight: 300;
         max-width: 54rem;
         margin-bottom: 1.25rem;
+
+        img {
+            width: 74px;
+            height: 74px;
+            border: 1px solid #dee1e4;
+            border-radius: 50%;
+            margin-bottom: -8px;
+            padding: 11px;
+        }
     }
 
     p {
@@ -27,12 +36,12 @@
 
     pre {
         border-radius: 2rem;
-        padding: 1rem 1.75rem;
+        padding: 1.125rem 2rem;
         
         code {
             line-height: 1.5rem;
             font-size: 0.95rem;
-            color: #3d3e40;
+            font-weight: 250;
         }
     }
 }

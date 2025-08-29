@@ -104,7 +104,7 @@ def setup(app: Sphinx) -> dict[str, Any]:
         HTMLBuilder.create_pygments_style_file
     )
 
-    app.add_html_theme(name="sphinx_core", theme_path=str(here))
+    app.add_html_theme(name="theme", theme_path=str(here))
     
     app.add_css_file("pygments.css", priority="900", condition=None)
     app.add_css_file("main.css", priority="900", condition=None)
@@ -150,7 +150,7 @@ def setup_sass(
 ) -> None:
     """Compile SCSS files to CSS."""
     # Only compile once per build
-    if hasattr(app.env, 'sphinx_core_css_compiled'):
+    if hasattr(app.env, 'theme_css_compiled'):
         return
     
     # Setup static path in output directory
@@ -166,4 +166,4 @@ def setup_sass(
     css_path.write_text(css_content, encoding='utf-8')
     
     # Mark as compiled to avoid recompiling on each page
-    app.env.sphinx_core_css_compiled = True
+    app.env.theme_css_compiled = True

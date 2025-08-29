@@ -55,9 +55,8 @@ code {
     padding-right: 0.3em;
     padding-top: 0.2em;
     padding-bottom: 0.2em;
-    font-family:
-        ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo,
-        monospace;
+    font-family: "JetBrains Mono", monospace;
+    font-optical-sizing: auto;
     font-size: 0.875rem;
 }
 
@@ -206,9 +205,8 @@ pre span.linenos {
     scroll-margin-top: 5rem;
     border-top: 1px solid var(--border);
     padding-top: 1.5rem;
-    font-family:
-        ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo,
-        monospace;
+    font-family: "JetBrains Mono", monospace;
+    font-optical-sizing: auto;
     font-weight: 700;
 }
 
