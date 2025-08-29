@@ -1,9 +1,3 @@
-"""Custom JSON Encoder.
-
-The theme uses custom jinja2 helper functions which are non-serializable by default.
-Hence the need to use a custom JSON serializer.
-"""
-
 from __future__ import annotations
 
 import json

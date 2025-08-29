@@ -1,15 +1,3 @@
-"""Extend Sphinx's code-block directive.
-
-New options:
-
-- ``:emphasize-added:``: highlight added lines
-- ``:emphasize-removed:``: highlight removed lines
-- ``:emphasize-text:``: highlight a single word, such as, a placeholder
-
-:copyright: Copyright Kai Welke.
-:license: MIT, see LICENSE for details.
-"""
-
 from __future__ import annotations
 
 from typing import Literal

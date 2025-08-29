@@ -41,16 +41,14 @@
     {%- endblock mobile_menu %}
 
     {%- block header_right %}
-    <div class="container__right">
+    <div class="container__right container__right--float-end">
       {%- block header_extra_nav %}
       <nav class="right__navigation">
         {%- if theme_extra_nav_links|tobool %}
         {%- for text,url in theme_extra_nav_links.items() %}
-        {%- if url is mapping %}
-        <a class="navigation__link" href="{{ url.link }}" title="Visit {{ text }}" rel="noopener nofollow">
-          {{ url.icon }}
+        <a class="navigation__link navigation__link--inverse" href="{{ url }}" rel="noopener nofollow">
+          {{ text }}
         </a>
-        {% endif %}
         {%- endfor %}
         {%- endif %}
       </nav>

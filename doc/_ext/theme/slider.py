@@ -1,11 +1,3 @@
-"""Image Slider directive for Sphinx.
-
-This directive allows embedding a Image Slider in documentation.
-
-:copyright: Copyright Kai Welke.
-:license: MIT, see LICENSE for details.
-"""
-
 from __future__ import annotations
 
 from docutils import nodes

@@ -1,9 +1,3 @@
-"""The Sphinx awesome theme as a Python package.
-
-:copyright: Copyright Kai Welke.
-:license: MIT, see LICENSE for details
-"""
-
 from __future__ import annotations
 
 import os
@@ -28,6 +22,7 @@ from .builder import HTMLBuilder
 from .code import CodeBlock
 from .hero import setup_hero
 from .slider import setup_slider
+from .calendar import setup_calendar
 
 logger = logging.getLogger(__name__)
 
@@ -95,6 +90,7 @@ def setup(app: Sphinx) -> dict[str, Any]:
     app.add_config_value("pygments_style_dark", None, "html", [str])
     
     # Setup directives
+    setup_calendar(app)
     setup_slider(app)
     setup_hero(app)
 

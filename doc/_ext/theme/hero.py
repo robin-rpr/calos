@@ -1,11 +1,3 @@
-"""Hero directive for Sphinx.
-
-This directive allows creating a hero section in documentation.
-
-:copyright: Copyright Kai Welke.
-:license: MIT, see LICENSE for details.
-"""
-
 from __future__ import annotations
 
 from docutils import nodes

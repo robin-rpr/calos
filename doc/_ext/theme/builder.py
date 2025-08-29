@@ -1,16 +1,3 @@
-"""Override code from the default HTML builder related to pygments CSS.
-
-This extension extends the default HTML builder by changing the way
-Pygments CSS is handled.
-
-- Add a ``pygments_style_dark`` configuration option.
-- Append dark mode styles to the main ``pygments.css`` file,
-  based on `prefers-color-scheme`.
-
-:copyright: Copyright Kai Welke.
-:license: MIT, see LICENSE for details.
-"""
-
 from __future__ import annotations
 
 from os import path

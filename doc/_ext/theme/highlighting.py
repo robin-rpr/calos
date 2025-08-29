@@ -1,20 +1,3 @@
-"""Add more highlighting options to Pygments.
-
-Provide a new Pygments HTML formatter ``AwesomeHtmlFormatter``.
-This handles formatting the lines for added or removed options.
-This changes the output compared to the default Sphinx implementation.
-For example, each line is wrapped in a ``<span>`` element,
-and the whole code block is wrapped in a ``<pre><code>..`` element.
-For highlighted lines, this extension uses ``<mark>``, ``<ins>``, and ``<del>`` elements.
-
-Define a new custom Pygments filter ``AwesomePlaceholders``,
-which wraps each encountered placeholder word in a ``Generic.Emphasized`` token,
-such that we can style placeholders by CSS.
-
-:copyright: Copyright Kai Welke.
-:license: MIT, see LICENSE for details.
-"""
-
 from __future__ import annotations
 
 import contextlib

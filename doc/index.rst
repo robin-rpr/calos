@@ -12,8 +12,10 @@
       - title: "Step 2"
         image: https://picsum.photos/200/300
 
+.. calendar::
+   :link: clearly-inc/demo
+
 .. toctree::
-   :numbered:
    :hidden:
 
    install
