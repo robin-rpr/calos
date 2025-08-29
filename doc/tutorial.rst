@@ -13,10 +13,6 @@ assumption isn’t true, you will just need to modify some paths.)
 If you want to use Docker to build images, see the :ref:`FAQ
 <faq_building-with-docker>`.
 
-.. contents::
-   :depth: 2
-   :local:
-
 .. note::
 
    Shell sessions throughout this documentation will use the prompt :code:`$`

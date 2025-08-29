@@ -5,9 +5,9 @@
     <div class="content__wrapper">
       <nav class="sidebar__navigation">
         {%- if theme_globaltoc_includehidden|tobool %}
-        {{ toctree(titles_only=true, collapse=False, includehidden=true) }}
+        {{ toctree(titles_only=false, maxdepth=2, collapse=False, includehidden=true) }}
         {%- else %}
-        {{ toctree(titles_only=true, collapse=False) }}
+        {{ toctree(titles_only=false, maxdepth=2, collapse=False) }}
         {%- endif %}
       </nav>
     </div>

@@ -1,11 +1,6 @@
 Frequently asked questions (FAQ)
 ********************************
 
-.. contents::
-   :depth: 3
-   :local:
-
-
 About the project
 =================
 

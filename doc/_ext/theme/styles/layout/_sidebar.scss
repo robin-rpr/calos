@@ -8,9 +8,7 @@
   transition: all 0.1s ease;
   transform: translateX(-100%);
   margin-left: 0;
-  padding: 1.5rem;
   width: 83.333333%;
-  overflow-y: auto;
 
   @media (min-width: 768px) {
     top: 82px;
@@ -41,12 +39,39 @@
 
     .content__wrapper {
       position: relative;
-      overflow-y: auto;
-      height: 100%;
-      width: 100%;
 
       .sidebar__navigation {
         width: 100%;
+
+        ul {
+            margin-left: 0;
+            margin-top: 0;
+            list-style-type: none;
+            padding-left: 1.25rem;
+
+            & > li,
+            & > p {
+                margin-top: 0.5rem;
+                font-weight: 300;
+                font-size: 17px;
+                color: #657380;
+
+                &.current {
+                    font-weight: 500;
+                    color: unset;
+
+                    ul {
+                        display: block;
+                    }
+                }
+            }
+
+            ul {
+                margin-top: 0;
+                padding-left: 2rem;
+                display: none;
+            }
+        }
       }
     }
 

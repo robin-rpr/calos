@@ -1,10 +1,6 @@
 Best practices
 **************
 
-.. contents::
-   :depth: 3
-   :local:
-
 Other best practices information
 ================================
 

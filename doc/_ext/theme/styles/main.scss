@@ -109,25 +109,29 @@ body {
             display: grid;
             grid-template-columns: 240px minmax(0, 1fr);
             padding: 0 2rem;
+            padding-top: 2rem;
             max-width: 1240px;
             margin: 0 auto;
             gap: 1.5rem;
             width: 100%;
-
+            
             &[orphan] {
                 display: unset;
                 grid-template-columns: unset;
+                padding-top: unset;
                 gap: unset;
-            }
-
-            
+            }            
         }
     }
 }
 
 h1, h2, h3, h4, h5, h6, blockquote,
-dd, dl, figure, hr, p, pre {
+dd, dl, figure, hr, p {
     margin: 0;
+}
+
+pre {
+    margin-top: 1.5rem;
 }
 
 button, a {
