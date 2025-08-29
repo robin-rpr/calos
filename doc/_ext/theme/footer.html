@@ -1,33 +1,9 @@
 <footer id="footer">
   {%- block footer_before %}{%- endblock footer_before %}
-    <div class="container">
-      <div class="footer__content">
+    <div class="footer__container">
         <p>
-          {%- if show_copyright and copyright|length -%}
-            {%- if hasdoc('copyright') -%}
-              {%- trans path=pathto('copyright'), copyright=copyright|e -%}
-              © <a href="{{ path }}">Copyright</a>{{ copyright }}
-            {%- endtrans -%}
-          {%- else -%}
-            {%- trans copyright=copyright|e -%}
-            © {{ copyright }}&nbsp;
-          {%- endtrans -%}
-        {%- endif -%}
-      {%- endif -%}
-      {%- if last_updated -%}
-        {%- trans last_updated=last_updated|e -%}
-        Last updated: {{ last_updated }}.&nbsp;
-      {%- endtrans -%}
-    {%- endif -%}
-    {%- if show_sphinx -%}
-      {%- trans sphinx_version=sphinx_version|e -%}
-      Built with <a class="footer__link"
-    href="https://www.sphinx-doc.org"
-    rel="noreferrer">Sphinx {{ sphinx_version }}</a>
-    {%- endtrans -%}
-  {%- endif -%}
+          © Clearly, Inc. 2025
         </p>
-      </div>
     </div>
 {%- block footer_after %}{%- endblock footer_after %}
 </footer>

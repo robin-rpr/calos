@@ -78,7 +78,7 @@ mounting SquashFS images with FUSE.
     :code:`FEAT` are:
 
        * :code:`extglob`: extended globs in :code:`--unset-env`
-       * :code:`seccomp`: :code:`--seccomp` available
+       * :code:`seccomp`: system calls intercepted by seccomp
        * :code:`squash`: internal SquashFUSE image mounts
        * :code:`overlayfs`: unprivileged overlayfs support
        * :code:`tmpfs-xattrs`: :code:`user` xattrs on tmpfs
@@ -147,12 +147,6 @@ mounting SquashFS images with FUSE.
   :code:`-s`, :code:`--storage=DIR`
     Set the storage directory. Equivalent to the same option for
     :code:`clearly image(1)`.
-
-  :code:`--seccomp`
-    Using seccomp, intercept some system calls that would fail due to lack of
-    privilege, do nothing, and return fake success to the calling program.
-    This is intended for use by :code:`clearly image(1)` when building images; see
-    that man page for a detailed discussion.
 
   :code:`--test=TEST`
     Run internal test :code:`TEST`. Valid values are :code:`log` and :code:`log-fail`.
