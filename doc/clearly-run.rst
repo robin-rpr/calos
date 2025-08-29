@@ -24,6 +24,9 @@ the image specified by :code:`IMAGE`, which can be: (1) a path to a directory,
 archive. :code:`clearly run` does not use any setuid or setcap helpers, even for
 mounting SquashFS images with FUSE.
 
+  :code:`-a`, :code:`--allow=DST`
+    Allow traffic to peer container :code:`DST`. Can be repeated.
+
   :code:`-b`, :code:`--bind=SRC[:DST]`
     Bind-mount :code:`SRC` at guest :code:`DST`. The default destination if
     not specified is to use the same path as the host; i.e., the default is
@@ -56,6 +59,15 @@ mounting SquashFS images with FUSE.
   :code:`-c`, :code:`--cd=DIR`
     Initial working directory in container.
 
+  :code:`--cpus=N`
+    Set the number of CPUs available to the container (0-1024).
+
+  :code:`--cpu-weight=WEIGHT`
+    Set CPU weight for the container (1-10000).
+
+  :code:`-d`, :code:`--detach`
+    Detach the container into the background. Requires :code:`--name` to be set.
+
   :code:`--env-no-expand`
     Don’t expand variables when using :code:`--env`.
 
@@ -74,10 +86,16 @@ mounting SquashFS images with FUSE.
   :code:`-g`, :code:`--gid=GID`
     Run as group :code:`GID` within container.
 
+  :code:`-h`, :code:`--host=SRC:DST`
+    Map :code:`SRC` at guest :code:`DST` (e.g. google.com:1.2.3.4). Can be repeated.
+
   :code:`--home`
     Bind-mount your host home directory (i.e., :code:`$HOME`) at guest
     :code:`/home/$USER`, hiding any existing image content at that path.
     Implies :code:`--write-fake` so the mount point can be created if needed.
+
+  :code:`-i`, :code:`--ip=IP`
+    Set a static IP address for the container.
 
   :code:`-j`, :code:`--join`
     Use the same container (namespaces) as peer :code:`clearly run` invocations.
@@ -93,10 +111,16 @@ mounting SquashFS images with FUSE.
     Label for :code:`clearly run` peer group (implies :code:`--join`; default: see
     below).
 
+  :code:`--memory-max=BYTES`
+    Set memory limit for the container in bytes (up to 1024G).
+
   :code:`-m`, :code:`--mount=DIR`
     Use :code:`DIR` for the SquashFS mount point, which must already exist. If
     not specified, the default is :code:`/var/lib/clearly/mount`, which *will*
     be created if needed.
+
+  :code:`--name=NAME`
+    Assign a name to the container. Required when using :code:`--detach`.
 
   :code:`--no-passwd`
     By default, temporary :code:`/etc/passwd` and :code:`/etc/group` files are
@@ -104,11 +128,23 @@ mounting SquashFS images with FUSE.
     bind-mounted into it. If this is specified, no such temporary files are
     created and the image’s files are exposed.
 
+  :code:`--passwd`
+    Bind-mount :code:`/etc/{passwd,group}` from the host into the container.
+
+  :code:`--pids-max=N`
+    Set maximum number of PIDs for the container (0-1024).
+
+  :code:`-p`, :code:`--publish=SRC:DST`
+    Forward host port :code:`SRC` to container port :code:`DST`. Can be repeated.
+
   :code:`-q`, :code:`--quiet`
     Be quieter; can be repeated. Incompatible with :code:`-v`. See the
     :ref:`faq_verbosity` for details.
 
-  :code:`-s`, :code:`--storage DIR`
+  :code:`-r`, :code:`--runtime=DIR`
+    Set :code:`DIR` as the runtime directory.
+
+  :code:`-s`, :code:`--storage=DIR`
     Set the storage directory. Equivalent to the same option for
     :code:`clearly image(1)`.
 
@@ -118,10 +154,17 @@ mounting SquashFS images with FUSE.
     This is intended for use by :code:`clearly image(1)` when building images; see
     that man page for a detailed discussion.
 
+  :code:`--test=TEST`
+    Run internal test :code:`TEST`. Valid values are :code:`log` and :code:`log-fail`.
+
   :code:`-t`, :code:`--private-tmp`
     By default, the host’s :code:`/tmp` (or :code:`$TMPDIR` if set) is
     bind-mounted at container :code:`/tmp`. If this is specified, a new
     :code:`tmpfs` is mounted on the container’s :code:`/tmp` instead.
+
+  :code:`-e`, :code:`--env=ARG`
+    Set environment variables per :code:`ARG` (newline-delimited). Can be
+    specified multiple times.
 
   :code:`--env`, :code:`--env=FILE`, :code:`--env=VAR=VALUE`
     Set environment variables with newline-separated file
@@ -145,14 +188,33 @@ mounting SquashFS images with FUSE.
     Print extra chatter; can be repeated. See the :ref:`FAQ entry on verbosity
     <faq_verbosity>` for details.
 
+  :code:`--warnings=NUM`
+    Log :code:`NUM` warnings and exit.
+
   :code:`-w`, :code:`--write`
     Mount image read-write. By default, the image is mounted read-only. *This
     option should be avoided for most use cases,* because (1) changing images
     live (as opposed to prescriptively with a Dockerfile) destroys their
     provenance and (2) SquashFS images, which is the best-practice format on
     parallel filesystems, must be read-only. It is better to use
-    :code:`--write-fake` (for disposable data) or bind-mount host directories
+    :code:`--overlay` (for disposable data) or bind-mount host directories
     (for retained data).
+
+  :code:`-o`, :code:`--overlay[=SIZE]`
+    Overlay a writeable tmpfs on top of the image. This makes the image
+    *appear* read-write, but it actually remains read-only and unchanged. All
+    data "written" to the image are discarded when the container exits.
+
+    The size of the writeable filesystem :code:`SIZE` is any size
+    specification acceptable to :code:`tmpfs`, e.g. :code:`4m` for 4MiB or
+    :code:`50%` for half of physical memory. If this option is specified
+    without :code:`SIZE`, the default is :code:`12%`. Note (1) this limit is a
+    maximum — only actually stored files consume virtual memory — and
+    (2) :code:`SIZE` larger than memory can be requested without error (the
+    failure happens later if the actual contents become too large).
+
+    This requires kernel support and there are some caveats. See section
+    ":ref:`clearly run_overlay`" below for details.
 
   :code:`-W`, :code:`--write-fake[=SIZE]`
     Overlay a writeable tmpfs on top of the image. This makes the image

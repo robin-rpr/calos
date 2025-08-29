@@ -25,6 +25,10 @@
    clearly-fromhost
    clearly-image
    clearly-run
+   clearly-stop
+   clearly-list
+   clearly-logs
    clearly-test
+   clearly-deploy
    best_practices
    faq
