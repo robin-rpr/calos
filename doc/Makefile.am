@@ -20,6 +20,7 @@
 
 EXTRA_DIST = \
 _ext \
+_static \
 _redirects \
 best_practices.rst \
 bugs.rst \
