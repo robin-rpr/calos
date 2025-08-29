@@ -120,6 +120,6 @@ Deploy a multi-service application:
   done
 
 For detailed usage instructions and examples, see the `INSTALL.rst` file
-and the full documentation at https://clearly.run/docs.
+and the full documentation at https://clearly.run.
 
 ..  LocalWords:  USENIX's CNA Meisam figshare

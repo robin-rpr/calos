@@ -21,7 +21,7 @@ clearly-stop(1),
 clearly-test(1),
 clearly-version(1),
 
-Full documentation at: https://clearly.run/docs
+Full documentation at: https://clearly.run
 
 
 Note

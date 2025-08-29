@@ -22,13 +22,13 @@
    tutorial
    clearly-check
    clearly-convert
+   clearly-deploy
    clearly-fromhost
    clearly-image
-   clearly-run
-   clearly-stop
    clearly-list
    clearly-logs
+   clearly-run
+   clearly-stop
    clearly-test
-   clearly-deploy
    best_practices
    faq

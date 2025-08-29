@@ -5,4 +5,4 @@
 
    clearly(7)
 
-   Full documentation at: <https://clearly.run/docs>
+   Full documentation at: <https://clearly.run>

@@ -19,7 +19,7 @@
 Name:          clearly
 Version:       @VERSION@
 Release:       @RELEASE@%{?dist}
-Summary:       One-stop platform for building and deploying apps at scale.
+Summary:       The Platform for Building and Deploying AI Apps at scale.
 License:       Proprietary
 URL:           https://clearly.run
 Source0:       https://clearly.run/releases/downloads/v%{version}/%{name}-%{version}.tar.gz
@@ -121,7 +121,7 @@ mkdir -p %{buildroot}%{_unitdir}
 cat > %{buildroot}%{_unitdir}/clearly.service <<EOF
 [Unit]
 Description=Clearly Daemon
-Documentation=https://clearly.run/docs
+Documentation=https://clearly.run
 After=network.target
 Wants=network.target
 
@@ -203,19 +203,24 @@ getent passwd clearly >/dev/null 2>&1 || useradd -r -g clearly -d /var/lib/clear
 %{_libexecdir}/%{name}/check
 %{_libexecdir}/%{name}/convert
 %{_libexecdir}/%{name}/daemon
+%{_libexecdir}/%{name}/deploy
 %{_libexecdir}/%{name}/fromhost
-%{_libexecdir}/%{name}/stop
+%{_libexecdir}/%{name}/image
 %{_libexecdir}/%{name}/list
 %{_libexecdir}/%{name}/logs
 %{_libexecdir}/%{name}/run
-%{_libexecdir}/%{name}/image
+%{_libexecdir}/%{name}/stop
 %{_libexecdir}/%{name}/version
 
 %{_mandir}/man1/clearly-check.1*
 %{_mandir}/man1/clearly-convert.1*
+%{_mandir}/man1/clearly-deploy.1*
 %{_mandir}/man1/clearly-fromhost.1*
-%{_mandir}/man1/clearly-run.1*
 %{_mandir}/man1/clearly-image.1*
+%{_mandir}/man1/clearly-list.1*
+%{_mandir}/man1/clearly-logs.1*
+%{_mandir}/man1/clearly-run.1*
+%{_mandir}/man1/clearly-stop.1*
 %{_mandir}/man7/clearly.7*
 
 %{_datadir}/%{name}/templates/

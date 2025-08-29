@@ -284,7 +284,7 @@ man_make_section_directory = False
 # (source start file, name, description, authors, manual section).
 man_pages = [
    ("clearly", "clearly",
-    "One-stop platform for building and deploying apps at scale.",
+    "The Platform for Building and Deploying AI Apps at scale.",
     [], 7),
    ("clearly-check", "clearly-check",
     'Check "clearly run" prerequisites, e.g., namespaces and "pivot_root(2)"',
@@ -292,14 +292,26 @@ man_pages = [
    ("clearly-convert", "clearly-convert",
     'Convert an image from one format to another',
     [], 1),
+   ("clearly-deploy", "clearly-deploy",
+    "Deploy a multi-service application",
+    [], 1),
    ("clearly-fromhost", "clearly-fromhost",
     "Inject files from the host into an image directory, with various magic",
     [], 1),
    ("clearly-image", "clearly-image",
     "Build and manage images; completely unprivileged",
     [], 1),
+   ("clearly-list", "clearly-list",
+    "List containers",
+    [], 1),
+   ("clearly-logs", "clearly-logs",
+    "Show logs for a container",
+    [], 1),
    ("clearly-run", "clearly-run",
     "Run a command in a Clearly container",
+    [], 1),
+   ("clearly-stop", "clearly-stop",
+    "Stop a container",
     [], 1),
    ("clearly-test", "clearly-test",
     "Run some or all of the Clearly test suite",
@@ -317,7 +329,7 @@ man_pages = [
 #  dir menu entry, description, category)
 texinfo_documents = [
   ('index', 'Clearly', u'Clearly Documentation',
-   u'Robin Röper', 'Clearly', 'One-stop platform for building and deploying apps at scale.',
+   u'Robin Röper', 'Clearly', 'The Platform for Building and Deploying AI Apps at scale.',
    'Miscellaneous'),
 ]
 

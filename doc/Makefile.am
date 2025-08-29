@@ -25,9 +25,13 @@ bugs.rst \
 clearly.rst \
 clearly-check.rst \
 clearly-convert.rst \
+clearly-deploy.rst \
 clearly-fromhost.rst \
 clearly-image.rst \
+clearly-list.rst \
+clearly-logs.rst \
 clearly-run.rst \
+clearly-stop.rst \
 clearly-test.rst \
 conf.py \
 faq.rst \
@@ -38,6 +42,7 @@ install.sh \
 logo.svg \
 man/README \
 py_env.rst \
+robots.txt \
 see_also.rst \
 tutorial.rst
 
@@ -46,29 +51,38 @@ man_MANS = \
 man/clearly.7 \
 man/clearly-check.1 \
 man/clearly-convert.1 \
+man/clearly-deploy.1 \
 man/clearly-fromhost.1 \
 man/clearly-image.1 \
+man/clearly-list.1 \
+man/clearly-logs.1 \
 man/clearly-run.1 \
+man/clearly-stop.1 \
 man/clearly-test.1
 endif
 
 if ENABLE_HTML
 nobase_html_DATA = \
-html/install.sh \
-html/searchindex.js \
+html/_redirects \
+html/.buildinfo \
 html/best_practices.html \
 html/clearly-check.html \
 html/clearly-convert.html \
+html/clearly-deploy.html \
 html/clearly-fromhost.html \
 html/clearly-image.html \
+html/clearly-list.html \
 html/clearly-run.html \
+html/clearly-stop.html \
 html/clearly-test.html \
-html/command-usage.html \
-html/dev.html \
 html/faq.html \
 html/index.html \
 html/install.html \
+html/install.sh \
+html/robots.txt \
 html/search.html \
+html/searchindex.js \
+html/sitemap.xml \
 html/tutorial.html
 endif
 
@@ -126,9 +140,6 @@ ALLSPHINXOPTS   = -d $(BUILDDIR)/doctrees $(SPHINXOPTS) .
 # [1]: https://www.gnu.org/software/make/manual/html_node/Multiple-Targets.html
 html-build: $(EXTRA_DIST)
 if ENABLE_HTML
-#       Create dummy file in case the redirect is disabled for EPEL.
-	mkdir -p html
-	touch html/command-usage.html
 #       Build.
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
 #       Copy non-linked files.
