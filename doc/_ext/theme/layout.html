@@ -19,10 +19,32 @@
       {{ metatags }}
 
       {%- block htmltitle %}
+      {%- if pagename == "index" -%}
+      <title>Clearly | The Platform for Building and Deploying AI Apps at scale</title>
+      <meta property="og:title" content="Clearly | The Platform for Building and Deploying AI Apps at scale" />
+      <meta name="twitter:title" content="Clearly | The Platform for Building and Deploying AI Apps at scale" />
+      {%- else -%}
       <title>{{ title|striptags|e if title else docstitle }}{{ titlesuffix }}</title>
       <meta property="og:title" content="{{ title|striptags|e if title else docstitle }}{{ titlesuffix }}" />
       <meta name="twitter:title" content="{{ title|striptags|e if title else docstitle }}{{ titlesuffix }}" />
+      {%- endif -%}
       {%- endblock htmltitle %}
+
+      <!-- Social Media Preview -->
+      <meta property="og:image" content="{{ pathto('_static/preview.png', 1)|e }}" />
+      <meta property="og:image:width" content="1200" />
+      <meta property="og:image:height" content="630" />
+      <meta property="og:image:alt" content="{{ title|striptags|e if title else docstitle }}{{ titlesuffix }}" />
+      <meta property="og:type" content="website" />
+      <meta property="og:url" content="{{ pageurl|e if pageurl else '' }}" />
+      <meta property="og:description" content="{{ meta.description|e if meta and meta.description else docstitle }}" />
+      
+      <meta name="twitter:card" content="summary_large_image" />
+      <meta name="twitter:image" content="{{ pathto('_static/preview.png', 1)|e }}" />
+      <meta name="twitter:image:alt" content="{{ title|striptags|e if title else docstitle }}{{ titlesuffix }}" />
+
+      <!-- Favicons -->
+      <link rel="icon" href="{{ pathto('_static/favicon.svg', 1)|e }}" sizes="any" type="image/svg+xml">
 
       <!-- CSS -->
       {%- for css in css_files %}

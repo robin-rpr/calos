@@ -73,6 +73,10 @@
                     &--inverse {
                         background: #292929;
                         color: #ffffff;
+
+                        &:hover {
+                            background: #292929 !important;
+                        }
                     }
                 }
             }

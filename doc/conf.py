@@ -179,7 +179,7 @@ theme_options = ThemeOptions(
         "Documentation": "/install",
     },
     extra_nav_links={
-        "Book a Demo": "https://cal.com/clearly/demo",
+        "Book a Demo": "/index.html#calendar",
     },
 )
 
