@@ -7,9 +7,9 @@
 #   $ VERSION=$(date +%Y-%m-%d)             # or other date as appropriate
 #   $ sudo docker login                     # if needed
 #   $ sudo docker build -t file-quirks -f Dockerfile.file-quirks .
-#   $ sudo docker tag file-quirks:latest charliecloud/file-quirks:$VERSION
+#   $ sudo docker tag file-quirks:latest clearly/file-quirks:$VERSION
 #   $ sudo docker images | fgrep file-quirks
-#   $ sudo docker push charliecloud/file-quirks:$VERSION
+#   $ sudo docker push clearly/file-quirks:$VERSION
 #
 # test-scope: skip
 

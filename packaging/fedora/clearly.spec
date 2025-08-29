@@ -100,8 +100,6 @@ Test fixtures for %{name}.
 %endif
 
 %build
-# Use old inlining behavior, see:
-# https://github.com/hpc/charliecloud/issues/735
 CFLAGS=${CFLAGS:-%optflags -fgnu89-inline}; export CFLAGS
 LDFLAGS="$(python3-config --ldflags --embed)"; export LDFLAGS
 %configure --docdir=%{_pkgdocdir} \

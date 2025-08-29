@@ -84,11 +84,11 @@ RUN source /spack/share/spack/setup-env.sh \
     && spack compiler list --scope=system \
     && spack compiler list --scope=user \
     && spack compilers \
-    && spack add charliecloud +docs +squashfuse ^py-sphinx-rtd-theme@0.4.3 \
+    && spack add clearly +docs +squashfuse ^py-sphinx-rtd-theme@0.4.3 \
     && spack concretize --fresh --force \
     && spack env depfile -o Makefile \
     && make -j $(nproc) SPACK_COLOR=always \
-    && spack load charliecloud \
+    && spack load clearly \
     && clearly run --version \
     && ldd $(which clearly)
 

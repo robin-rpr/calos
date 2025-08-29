@@ -30,7 +30,7 @@ conf=${HOME}/slurm-${SLURM_JOB_ID}.spark
 # Make Clearly available (varies by site)
 module purge
 module load friendly-testing
-module load charliecloud
+module load clearly
 
 # What IP address to use for master?
 if [[ -z $dev ]]; then

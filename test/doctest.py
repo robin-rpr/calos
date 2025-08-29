@@ -12,7 +12,7 @@ Usage:
 
   $ test/doctest MODULE [OBJECT_REGEX]
 
-Run doctests in Charliecloud Python MODULE (in lib/). If OBJECT_REGEX given,
+Run doctests in Clearly Python MODULE (in lib/). If OBJECT_REGEX given,
 only fun tests on objects with names (excluding the module name) matching that
 regular expression (default all objects). Exits unsuccessfully on first
 failure."""

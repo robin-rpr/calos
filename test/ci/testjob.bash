@@ -29,7 +29,7 @@ test/ci/install.bash . /clearly/from-git
 
 # Build and install from tarball.
 mkdir /clearly/src-tar
-tar -C /clearly/src-tar --strip=1 -xf charliecloud-*.tar.gz
+tar -C /clearly/src-tar --strip=1 -xf clearly-*.tar.gz
 test/ci/install.bash /clearly/src-tar /clearly/from-tar
 
 # Run test suite in various directories. Note these all use the same storage

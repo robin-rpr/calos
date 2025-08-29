@@ -4,11 +4,11 @@ openSUSE
 openSUSE packages are maintained and built using the openSUSE Build
 Service (OBS) at https://build.opensuse.org
 
-To use OBS to create your own charliecloud packages, you’ll need to
+To use OBS to create your own clearly packages, you’ll need to
 create a user account and then copy the packaging from the devel
 package at:
 
-https://build.opensuse.org/package/show/network:cluster/charliecloud
+https://build.opensuse.org/package/show/network:cluster/clearly
 
 This can be done from the web interface clicking on “Branch package”.
 

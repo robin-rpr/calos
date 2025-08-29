@@ -1,25 +1,6 @@
 Frequently asked questions (FAQ)
 ********************************
 
-About the project
-=================
-
-Where did the name Clearly come from?
-------------------------------------------
-
-*Charlie* — Charles F. McMillan was director of Los Alamos National Laboratory
-from June 2011 until December 2017, i.e., at the time Clearly was started
-in early 2014. He is universally referred to as “Charlie” here.
-
-*cloud* — Clearly provides cloud-like flexibility for HPC systems.
-
-How do you spell Clearly?
-------------------------------
-
-We try to be consistent with *Clearly* — one word, no camel case. That
-is, *Charlie Cloud* and *CharlieCloud* are both incorrect.
-
-
 Errors
 ======
 
@@ -75,8 +56,7 @@ to be machine-readable.
 
 Normally, :code:`clearly run` re-mounts the image directory read-only within the
 container. This fails if the image resides on certain filesystems, such as NFS
-(see `issue #9 <https://github.com/hpc/charliecloud/issues/9>`_). There are
-two solutions:
+There are two solutions:
 
 1. Unpack the image into a different filesystem, such as :code:`tmpfs` or
    local disk. Consult your local admins for a recommendation. Note that
@@ -128,9 +108,9 @@ it’s an empty directory, which is to protect against using common temporary
 directories like :code:`/tmp` or :code:`/var/tmp` as the storage directory.
 
 Let Clearly create the storage directory. For example, if you want to use
-:code:`/big/containers/$USER/charlie` for the storage directory (e.g., by
+:code:`/big/containers/$USER/clearly` for the storage directory (e.g., by
 setting :code:`CLEARLY_IMAGE_STORAGE`), ensure :code:`/big/containers/$USER` exists
-but do not create the final directory :code:`charlie`.
+but do not create the final directory :code:`clearly`.
 
 "Transport endpoint is not connected"
 -------------------------------------
@@ -140,9 +120,7 @@ killed and you’re attempting to access the mount location. This is most often
 seen when a parallel launcher like :code:`srun` is used to run the mount
 command. :code:`srun` will see that the mount command has exited successfully
 and clean up all child processes, including that of the active mount. A
-workaround is to use a tool like :code:`pdsh`. For more details see
-Clearly issue
-`#230 <https://github.com/hpc/charliecloud/issues/230>`_.
+workaround is to use a tool like :code:`pdsh`.
 
 "fatal: :code:`$HOME` not set" from Git, or similar
 ---------------------------------------------------
@@ -196,7 +174,7 @@ For example::
 But :code:`/bin/echo` *does* have execute permission::
 
   $ ls -lh /var/tmp/hello/bin/echo
-  -rwxr-xr-x 1 charlie charlie 51 Oct  8  2021 /var/tmp/hello/bin/echo
+  -rwxr-xr-x 1 clearly clearly 51 Oct  8  2021 /var/tmp/hello/bin/echo
 
 In this case, the error indicates the container image is on a filesystem
 mounted with :code:`noexec`. To verify this, you can use e.g.
@@ -437,9 +415,9 @@ MATLAB and some other programs want pseudo-TTY (PTY) files to be group-owned
 by :code:`tty`. If it’s not, Matlab will attempt to :code:`chown(2)` the file,
 which fails inside a container.
 
-The scenario in more detail is this. Assume you’re user :code:`charlie`
+The scenario in more detail is this. Assume you’re user :code:`clearly`
 (UID=1000), your primary group is :code:`nerds` (GID=1001), :code:`/dev/pts/0`
-is the PTY file in question, and its ownership is :code:`charlie:tty`
+is the PTY file in question, and its ownership is :code:`clearly:tty`
 (:code:`1000:5`), as it should be. What happens in the container by default
 is:
 
@@ -501,8 +479,7 @@ We’ve also seen cases where the Docker-reported size is an *under*\ estimate::
           "VirtualSize": 433812403,
 
 We think that this is because Docker is computing size based on the size of
-the layers rather than the unpacked image. We do not currently have a fix; see
-`issue #165 <https://github.com/hpc/charliecloud/issues/165>`_.
+the layers rather than the unpacked image. We do not currently have a fix;
 
 My password that contains digits doesn’t work in VirtualBox console
 -------------------------------------------------------------------
@@ -829,7 +806,7 @@ see image references like:
   * :code:`fedora/httpd`, which is tag :code:`latest` of :code:`fedora/httpd`
     from Docker Hub.
 
-See :code:`charliecloud.py` for a specific grammar that implements this.
+See :code:`clearly.py` for a specific grammar that implements this.
 
 Can I build or pull images using a tool Clearly doesn’t know about?
 ------------------------------------------------------------------------
@@ -883,10 +860,10 @@ and site-specific::
   $ echo $SSH_AUTH_SOCK
   /tmp/ssh-rHsFFqwwqh/agent.49041
   $ ssh-add
-  Enter passphrase for /home/charlie/.ssh/id_rsa:
-  Identity added: /home/charlie/.ssh/id_rsa (/home/charlie/.ssh/id_rsa)
+  Enter passphrase for /home/clearly/.ssh/id_rsa:
+  Identity added: /home/clearly/.ssh/id_rsa (/home/clearly/.ssh/id_rsa)
   $ ssh-add -l
-  4096 SHA256:aN4n2JeMah2ekwhyHnb0Ug9bYMASmY+5uGg6MrieaQ /home/charlie/.ssh/id_rsa (RSA)
+  4096 SHA256:aN4n2JeMah2ekwhyHnb0Ug9bYMASmY+5uGg6MrieaQ /home/clearly/.ssh/id_rsa (RSA)
   $ cat ./Dockerfile
   FROM alpine:latest
   RUN apk add openssh
@@ -898,7 +875,7 @@ and site-specific::
     /tmp/ssh-rHsFFqwwqh/agent.49041
     4 RUN ['/bin/sh', '-c', 'ssh git@github.com']
   [...]
-  Hi charlie! You’ve successfully authenticated, but GitHub does not provide shell access.
+  Hi clearly! You’ve successfully authenticated, but GitHub does not provide shell access.
 
 Note this example is rather contrived — bare SSH sessions in a Dockerfile
 rarely make sense. In practice, SSH is used as a transport to fetch something,
@@ -914,14 +891,14 @@ This often occurs during an SSH-based Git clone. For example:
 
   FROM alpine:latest
   RUN apk add git openssh
-  RUN git clone git@github.com:hpc/charliecloud.git
+  RUN git clone git@github.com:example/example.git
 
 .. code-block:: console
 
   $ clearly image build -t foo -f ./Dockerfile .
   [...]
-  3 RUN ['/bin/sh', '-c', 'git clone git@github.com:hpc/charliecloud.git']
-  Cloning into 'charliecloud'...
+  3 RUN ['/bin/sh', '-c', 'git clone git@github.com:example/example.git']
+  Cloning into 'example'...
   The authenticity of host 'github.com (140.82.113.3)' can’t be established.
   RSA key fingerprint is SHA256:nThbg6kXUpJWGl7E1IGOCspRomTxdCARLviKw6E5SY8.
   Are you sure you want to continue connecting (yes/no/[fingerprint])?
@@ -942,7 +919,7 @@ Solutions include:
 
        FROM alpine:latest
        RUN apk add git
-       RUN git clone https://github.com/hpc/charliecloud.git
+       RUN git clone https://github.com/example/example.git
 
   2. Approve the connection interactively by typing :code:`yes`. Note this
      will record details of the connection within the image, including IP
@@ -960,7 +937,7 @@ Solutions include:
        RUN apk add git openssh
        RUN printf 'StrictHostKeyChecking=no\nUserKnownHostsFile=/dev/null\n' \
            >> /etc/ssh/ssh_config
-       RUN git clone git@github.com:hpc/charliecloud.git
+       RUN git clone git@github.com:example/example.git
 
      Check your institutional policy on whether this is permissible, though
      it’s worth noting that users `almost never
@@ -978,7 +955,7 @@ Solutions include:
        FROM alpine:latest
        RUN apk add git openssh
        ARG GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
-       RUN git clone git@github.com:hpc/charliecloud.git
+       RUN git clone git@github.com:example/example.git
 
   5. Add the remote host to the system known hosts file, e.g.:
 
@@ -987,7 +964,7 @@ Solutions include:
        FROM alpine:latest
        RUN apk add git openssh
        RUN echo 'github.com,140.82.112.4 ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAq2A7hRGmdnm9tUDbO9IDSwBK6TbQa+PXYPCPy6rbTrTtw7PHkccKrpp0yVhp5HdEIcKr6pLlVDBfOLX9QUsyCOV0wzfjIJNlGEYsdlLJizHhbn2mUjvSAHQqZETYP81eFzLQNnPHt4EVVUh7VfDESU84KezmD5QlWpXLmvU31/yMf+Se8xhHTvKSCZIFImWwoG6mbUoWf9nzpIoaSjB+weqqUUmpaaasXVal72J+UX2B+2RPW3RcT0eOzQgqlJL3RKrTJvdsjE3JEAvGq3lGHSZXy28G3skua2SmVi/w4yCE6gbODqnTWlg7+wC604ydGXA8VJiS5ap43JXiUFFAaQ==' >> /etc/ssh/ssh_known_hosts
-       RUN git clone git@github.com:hpc/charliecloud.git
+       RUN git clone git@github.com:example/example.git
 
      This records connection details in both the Dockerfile and the image.
 

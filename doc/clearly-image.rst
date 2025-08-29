@@ -207,10 +207,7 @@ environment variable :code:`$CLEARLY_IMAGE_AUTH=yes`. The exception is
 :code:`push`, which always runs in authenticated mode. Even for pulling public
 images, it can be useful to authenticate for registries that have per-user
 rate limits, such as `Docker Hub
-<https://docs.docker.com/docker-hub/download-rate-limit/>`_. (Older versions
-of Clearly started with anonymous access, then tried to upgrade to
-authenticated if it seemed necessary. However, this turned out to be brittle;
-see issue `#1318 <https://github.com/hpc/charliecloud/issues/1318>`_.)
+<https://docs.docker.com/docker-hub/download-rate-limit/>`_.
 
 The username and password are remembered for the life of the process and
 silently re-offered to the registry if needed. One case when this happens is
@@ -871,10 +868,7 @@ interpreters, though as an independent implementation, it is not
 bug-compatible.
 
 The following subsections describe differences from the Dockerfile reference
-that we expect to be approximately permanent. For not-yet-implemented features
-and bugs in this area, see `related issues
-<https://github.com/hpc/charliecloud/issues?q=is%3Aissue+is%3Aopen+sort%3Aupdated-desc+label%3Aimage>`_
-on GitHub.
+that we expect to be approximately permanent.
 
 None of these are set in stone. We are very interested in feedback on our
 assessments and open questions. This helps us prioritize new features and
@@ -954,7 +948,6 @@ serves the same purpose as the :code:`ARG` instruction. It can be repeated.
 
 The :code:`LABEL` instruction accepts :code:`key=value` pairs to
 add metadata for an image. Unlike Docker, multiline values are not supported;
-see issue `#1512 <https://github.com/hpc/charliecloud/issues/1512>`_.
 Can be repeated.
 
 :code:`COPY`

@@ -6,20 +6,20 @@
 #
 #   1. Man page consistency.
 #
-#      a. man/charliecloud.7 exists.
+#      a. man/clearly.7 exists.
 #
 #      b. The correct files FOO in bin have:
 #
 #           - doc/FOO.rst
 #           - doc/man/FOO.N
-#           - an entry under “See also” in charliecloud.7
+#           - an entry under “See also” in clearly.7
 #
 #         Where “N” is the appropriate man section number (e.g. 1 for
 #         executables). Currently, the “correct” files in bin are:
 #
 #           - All executables
 #
-#      c. There aren’t any unexpcected .rst files, man files, or charliecloud.7
+#      c. There aren’t any unexpcected .rst files, man files, or clearly.7
 #         “See also” entries.
 #
 #      d. Synopsis in “FOO --help” (if applicable) matches FOO.rst and conf.py.
@@ -103,12 +103,12 @@ def check_man():
                    and summary_unrest(s) != man_targets[p]["synopsis"])
                    and "deprecated" not in s.lower() })
 
-   # Check for “see also” entries in charliecloud.rst.
+   # Check for “see also” entries in clearly.rst.
    sees = { m[0] for m in re.finditer(r"clearly-[a-z0-9-.]+\([1-8]\)",
-                                      open("charliecloud.rst").read()) }
-   sees_expected = { i + "(%d)" % (man_targets[i]["sec"]) for i in man_targets } - {"charliecloud(7)"}
-   lose_lots("unexpected see-also in charliecloud.rst", sees - sees_expected)
-   lose_lots("missing see-also in charliecloud.rst",    sees_expected - sees)
+                                      open("clearly.rst").read()) }
+   sees_expected = { i + "(%d)" % (man_targets[i]["sec"]) for i in man_targets } - {"clearly(7)"}
+   lose_lots("unexpected see-also in clearly.rst", sees - sees_expected)
+   lose_lots("missing see-also in clearly.rst",    sees_expected - sees)
 
    # Check for consistency with “conf.py”
    conf = {}
@@ -118,7 +118,7 @@ def check_man():
          lose("conf.py: startdocname != name: %s != %s" % (docname, name))
       if (len(authors) != 0):
          lose("conf.py: bad authors: %s: %s" % (name, authors))
-      if (name != "charliecloud"):
+      if (name != "clearly"):
          if (section != man_targets[name]["sec"]):
             lose("conf.py: bad section: %s: %s != %d" % (name, section, man_targets[name]["sec"]))
          if (name not in man_targets):

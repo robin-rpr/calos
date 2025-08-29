@@ -161,9 +161,6 @@ Additional arguments
      inferred shared library destination: /var/tmp/bullseye//usr/local/lib
      /usr/local/lib
 
-   See `issue #732 <https://github.com/hpc/charliecloud/issues/732>`_ for an
-   example of how this was confusing for users.
-
 
 When to use :code:`clearly fromhost`
 ====================================
@@ -201,14 +198,14 @@ experimental and has a couple quirks.
 1. Containers must have the following software installed:
 
    a. libfabric (https://ofiwg.github.io/libfabric/). See
-      :code:`charliecloud/examples/Dockerfile.libfabric`.
+      :code:`clearly/examples/Dockerfile.libfabric`.
 
    b. Corresponding open source MPI implementation configured and built against
       the container libfabric, e.g.,
       - `MPICH <https://www.mpich.org/>`_, or
       - `OpenMPI <https://www.open-mpi.org/>`_.
-      See :code:`charliecloud/examples/Dockerfile.mpich` and
-      :code:`charliecloud/examples/Dockerfile.openmpi`.
+      See :code:`clearly/examples/Dockerfile.mpich` and
+      :code:`clearly/examples/Dockerfile.openmpi`.
 
 2. At run time, a libfabric provider can be specified with the variable
    :code:`FI_PROVIDER`. The path to search for shared providers can be specified
@@ -293,8 +290,7 @@ Bugs
 File paths may not contain colons or newlines.
 
 :code:`ldconfig` tends to print :code:`stat` errors; these are typically
-non-fatal and occur when trying to probe common library paths. See `issue #732
-<https://github.com/hpc/charliecloud/issues/732>`_.
+non-fatal and occur when trying to probe common library paths.
 
 
 Examples

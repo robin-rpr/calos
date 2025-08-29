@@ -1,74 +1,125 @@
 What is Clearly?
----------------------
+================
 
-Clearly provides user-defined software stacks (UDSS) for high-performance
-computing (HPC) centers. This "bring your own software stack" functionality
-addresses needs such as:
+Clearly is a containerization and orchestration platform that provides
+comprehensive tools for building, running, and deploying applications in
+isolated environments. The platform operates entirely in user space without
+requiring privileged operations, making it suitable for deployment in various
+environments from development workstations to production clusters.
 
-* software dependencies that are numerous, complex, unusual, differently
-  configured, or simply newer/older than what the center provides;
+Clearly addresses application deployment needs such as:
 
-* build-time requirements unavailable within the center, such as relatively
-  unfettered internet access;
+* **Application Isolation**: Run applications in isolated containers with
+  controlled access to system resources and filesystems.
 
-* validated software stacks and configuration to meet the standards of a
-  particular field of inquiry;
+* **Resource Management**: Fine-grained control over CPU, memory, network
+  resources, and process limits for containerized applications.
 
-* portability of environments between resources, including workstations and
-  other test and development system not managed by the center;
+* **Multi-Service Deployment**: Orchestrate complex applications consisting
+  of multiple services using Docker Compose syntax and cluster deployment.
 
-* consistent environments, even archivally so, that can be easily, reliably,
-  and verifiably reproduced in the future; and/or
+* **Development Consistency**: Create reproducible development environments
+  that can be easily shared and deployed across different systems.
 
-* usability and comprehensibility.
+* **Network Configuration**: Configure container networking with static IP
+  addresses, port forwarding, and inter-container communication.
 
-How does it work?
------------------
+* **Image Management**: Build, convert, and manage container images in
+  multiple formats including directories, SquashFS archives, and
+  Docker-compatible images.
 
-Clearly uses Linux user namespaces to run containers with no privileged
-operations or daemons and minimal configuration changes on center resources.
-This simple approach avoids most security risks while maintaining access to
-the performance and functionality already on offer.
+Core Components
+===============
 
-Container images can be built using Docker or anything else that can generate
-a standard Linux filesystem tree.
+The Clearly platform consists of several command-line tools that provide
+different aspects of container management:
 
-Quick Installation
-------------------
+* **:code:`clearly run`**: Execute commands in isolated containers with
+  comprehensive resource and network control.
 
-To build from source:
+* **:code:`clearly image`**: Build and manage container images from
+  Dockerfiles or existing images, with support for multiple output formats.
 
-1. Generate build system: ``./autogen.sh``
-2. Configure: ``./configure``
-3. Build and install: ``make && sudo make install``
+* **:code:`clearly deploy`**: Deploy multi-service applications to clusters
+  using Docker Compose configuration files.
 
-For more, see the `INSTALL.rst` file.
+* **:code:`clearly list`**: Display information about running containers
+  including their status, IP addresses, and resource usage.
 
-How do I learn more?
---------------------
+* **:code:`clearly logs`**: Access and monitor application output from
+  running containers in real-time.
 
-* Documentation: https://hpc.github.io/charliecloud
+* **:code:`clearly stop`**: Gracefully terminate running containers with
+  proper signal handling and cleanup.
 
-* GitLab repository: https://gitlab.com/charliecloud/main
+* **:code:`clearly daemon`**: Cluster orchestration service that manages
+  container deployment and lifecycle across multiple nodes.
 
-* Mailing lists: https://lists.charliecloud.io
+* **:code:`clearly convert`**: Convert container images between different
+  formats for deployment in various environments.
 
-* We wrote an article for USENIX's magazine *;login:* that explains in more
-  detail the motivation for Clearly and the technology upon which it is
-  based: https://www.usenix.org/publications/login/fall2017/priedhorsky
+* **:code:`clearly check`**: Verify system prerequisites and configuration
+  for running Clearly containers.
 
-* For technical papers about Clearly, refer to the *Technical
-  publications* section below.
+Technical Approach
+==================
 
-License and intellectual property
----------------------------------
+Clearly uses Linux user namespaces to provide container isolation without
+requiring privileged operations or system daemons. This approach ensures:
 
-Clearly is open source software; you can redistribute it and/or modify it
-under the terms of the Apache License, Version 2.0. A copy is included in file
-LICENSE. You may not use this software except in compliance with the license.
+* **Security**: No privileged operations, setuid binaries, or root access
+  required for container execution.
 
-Copyrights and patents are retained by contributors. No copyright assignment
-is required to contribute to Clearly.
+* **Portability**: Works on any Linux system with user namespace support,
+  including development workstations and production servers.
 
+* **Performance**: Minimal overhead with direct access to host resources
+  while maintaining proper isolation boundaries.
+
+* **Simplicity**: Straightforward deployment and management without complex
+  infrastructure requirements or configuration changes.
+
+The platform includes a daemon service that provides cluster orchestration
+capabilities, allowing deployment of applications across multiple nodes
+using familiar Docker Compose syntax. The daemon manages container lifecycle,
+resource allocation, and inter-container communication within the cluster.
+
+Installation
+============
+
+To install Clearly from source:
+
+1. Generate build system: :code:`./autogen.sh`
+2. Configure: :code:`./configure`
+3. Build and install: :code:`make && sudo make install`
+
+For binary installation, use the provided installation script:
+
+::
+
+  $ curl -fsSL https://clearly.run/install.sh | sh
+
+Quick Start
+===========
+
+Build and run a simple application:
+
+::
+
+  $ clearly image build .
+  inferred image name: myapp
+  grown in 3 instructions: myapp
+  $ clearly run myapp -- python app.py
+  Hello from Clearly container
+
+Deploy a multi-service application:
+
+::
+
+  $ clearly deploy myapp
+  done
+
+For detailed usage instructions and examples, see the `INSTALL.rst` file
+and the full documentation at https://clearly.run/docs.
 
 ..  LocalWords:  USENIX's CNA Meisam figshare

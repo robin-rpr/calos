@@ -148,7 +148,7 @@ def parse_tree_traverse(tree, image_ct_, cli_):
    # FIXME: remove when we’re done encouraging people to use the build cache.
    if (isinstance(_build_cache.cache, _build_cache.Disabled_Cache)):
       _clearly.INFO("build slow? consider enabling the build cache",
-              "https://hpc.github.io/charliecloud/command-usage.html#build-cache")
+              "https://clearly.run/clearly-image.html#build-cache")
 
 def unescape(sl):
    # FIXME: This is also ugly and should go in the grammar.

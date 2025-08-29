@@ -160,7 +160,7 @@ test 7 b
 --force=seccomp: modified 0 RUN instructions
 grown in 16 instructions: tmpimg
 build slow? consider enabling the build cache
-hint: https://hpc.github.io/charliecloud/command-usage.html#build-cache
+hint: https://clearly.run/clearly-image.html#build-cache
 warning: reprinting 1 warning(s)
 warning: not yet supported, ignored: issue #777: .dockerignore file
 EOF
@@ -308,14 +308,14 @@ EOF
 
     # URL (Git repo) contexts
     run clearly image build -t not-yet-supported -f - \
-        git@github.com:hpc/charliecloud.git <<'EOF'
+        git@github.com:example/example.git <<'EOF'
 FROM alpine:3.17
 EOF
     echo "$output"
     [[ $status -eq 1 ]]
     [[ $output = *'error: not yet supported: issue #773: URL context'* ]]
     run clearly image build -t tmpimg -f - \
-        https://github.com/hpc/charliecloud.git <<'EOF'
+        https://github.com/example/example.git <<'EOF'
 FROM alpine:3.17
 EOF
     echo "$output"

@@ -258,12 +258,12 @@ Once the image is built, we can see the results. (Install the image into
 
   $ clearly run /var/tmp/mpihello-openmpi.sqfs -- ls -lh /hello
   total 32K
-  -rw-rw---- 1 charlie charlie  908 Oct  4 15:52 Dockerfile
-  -rw-rw---- 1 charlie charlie  157 Aug  5 22:37 Makefile
-  -rw-rw---- 1 charlie charlie 1.2K Aug  5 22:37 README
-  -rwxr-x--- 1 charlie charlie 9.5K Oct  4 15:58 hello
-  -rw-rw---- 1 charlie charlie 1.4K Aug  5 22:37 hello.c
-  -rwxrwx--- 1 charlie charlie  441 Aug  5 22:37 test.sh
+  -rw-rw---- 1 clearly clearly  908 Oct  4 15:52 Dockerfile
+  -rw-rw---- 1 clearly clearly  157 Aug  5 22:37 Makefile
+  -rw-rw---- 1 clearly clearly 1.2K Aug  5 22:37 README
+  -rwxr-x--- 1 clearly clearly 9.5K Oct  4 15:58 hello
+  -rw-rw---- 1 clearly clearly 1.4K Aug  5 22:37 hello.c
+  -rwxrwx--- 1 clearly clearly  441 Aug  5 22:37 test.sh
 
 Your software stored on the host
 --------------------------------
@@ -281,19 +281,19 @@ demonstrate this.
   $ cd examples/mpihello
   $ ls -l
   total 20
-  -rw-rw---- 1 charlie charlie  908 Oct  4 09:52 Dockerfile
-  -rw-rw---- 1 charlie charlie 1431 Aug  5 16:37 hello.c
-  -rw-rw---- 1 charlie charlie  157 Aug  5 16:37 Makefile
-  -rw-rw---- 1 charlie charlie 1172 Aug  5 16:37 README
+  -rw-rw---- 1 clearly clearly  908 Oct  4 09:52 Dockerfile
+  -rw-rw---- 1 clearly clearly 1431 Aug  5 16:37 hello.c
+  -rw-rw---- 1 clearly clearly  157 Aug  5 16:37 Makefile
+  -rw-rw---- 1 clearly clearly 1172 Aug  5 16:37 README
   $ clearly run -b .:/mnt/0 --cd /mnt/0 /var/tmp/mpihello.sqfs -- \
     make mpicc -std=gnu11 -Wall hello.c -o hello
   $ ls -l
   total 32
-  -rw-rw---- 1 charlie charlie  908 Oct  4 09:52 Dockerfile
-  -rwxrwx--- 1 charlie charlie 9632 Oct  4 10:43 hello
-  -rw-rw---- 1 charlie charlie 1431 Aug  5 16:37 hello.c
-  -rw-rw---- 1 charlie charlie  157 Aug  5 16:37 Makefile
-  -rw-rw---- 1 charlie charlie 1172 Aug  5 16:37 README
+  -rw-rw---- 1 clearly clearly  908 Oct  4 09:52 Dockerfile
+  -rwxrwx--- 1 clearly clearly 9632 Oct  4 10:43 hello
+  -rw-rw---- 1 clearly clearly 1431 Aug  5 16:37 hello.c
+  -rw-rw---- 1 clearly clearly  157 Aug  5 16:37 Makefile
+  -rw-rw---- 1 clearly clearly 1172 Aug  5 16:37 README
 
 A common use case is to leave a container shell open in one terminal for
 building, and then run using a separate container invoked from a different
@@ -414,8 +414,7 @@ brittle but usually effective way to give containers access to the Cray
 libfabric Slingshot provider :code:`cxi`.
 
 In Clearly, both of these injection operations are currently done with
-:code:`clearly fromhost`, though see `issue #1861
-<https://github.com/hpc/charliecloud/issues/1861>`_.
+:code:`clearly fromhost`.
 
 Choose a compatible PMI
 -----------------------

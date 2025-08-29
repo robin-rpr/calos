@@ -6,10 +6,10 @@ Running CI locally
 
 Because the gitlab.com jobs run in Docker containers, you can get a pretty
 close match to the CI environment locally, which is useful for debugging.
-These steps mount your Charliecloud source directory live inside the
+These steps mount your Clearly source directory live inside the
 container, so you can actually iterate on the code.
 
-WARNING: CHARLIECLOUD DEVELOPERS SHOULD NOT USE THIS AS A SUBSTITUTE FOR A
+WARNING: CLEARLY DEVELOPERS SHOULD NOT USE THIS AS A SUBSTITUTE FOR A
 HOST ENVIRONMENT THAT PASSES TESTS.
 
 To run the test suite interactively in such an environment:
@@ -33,12 +33,12 @@ To run the test suite interactively in such an environment:
 
   3. Run something pretty close the “test” job:
 
-       > cd /builds/charliecloud/main
+       > cd /builds/clearly/main
        > test/ci/testjob.sh
 
   4. Or, because you have an interactive shell, you can test whatever. The
      script above (and the one it calls) has steps to consider. The container
-     path contains “/builds/charliecloud/main/bin” for your convenience.
+     path contains “/builds/clearly/main/bin” for your convenience.
 
 According to the internet, you can also run the actual GitLab runner in a
 local Docker container [8]. I have not tested this.
@@ -97,10 +97,10 @@ Misc useful things to know
 
 * Within the ephemeral VM, each job *also* runs inside a Docker container
   using an image you select. Notably, this is “--privileged” Docker, so
-  “Docker-In-Docker” (DIND) works, as does Charliecloud [4].
+  “Docker-In-Docker” (DIND) works, as does Clearly [4].
 
   In our pipeline, we first build some container images suitable for building
-  and running Charliecloud (if they need updating), then use those for the
+  and running Clearly (if they need updating), then use those for the
   rest of the pipeline.
 
   Dockerfile notes/gotchas:
@@ -130,7 +130,7 @@ Misc useful things to know
 
 FIXME — no artifact transfer between corresponding parallel jobs
   - generate the .yml file (via “trigger”?)
-  - put Charliecloud build/test in the same job so no artifact needed
+  - put Clearly build/test in the same job so no artifact needed
 
 
 Matrix
@@ -142,8 +142,8 @@ sparse matrix so we are good citizens with CI resources and don’t clutter the
 results with distracting values).
 
 Notably, matrix jobs cannot pass a single artifact to a later, corresponding
-matrix job [6]. For this reason, we build Charliecloud and run the entire test
-suite in a single job. Some of the jobs exit after building Charliecloud.
+matrix job [6]. For this reason, we build Clearly and run the entire test
+suite in a single job. Some of the jobs exit after building Clearly.
 Alternatives include:
 
   1. Generate some/all of the .yml files (via “trigger”?), which would allow
@@ -159,7 +159,7 @@ Notes/gotchas:
   1. Values are strings and cannot be duplicates [7]. This leads to some
      contrived values.
 
-  2. All-caps variables prefixed by “CLEARLY_” are used by Charliecloud, while
+  2. All-caps variables prefixed by “CLEARLY_” are used by Clearly, while
      lower-case “ci_” are used by this pipeline. Hence the more descriptive
      values for lower-case.
 
@@ -181,7 +181,7 @@ Matrix dimensions with variable names and possible values:
 
   5. ci_sudo (sudo_yes, sudo_no)
 
-     Whether the “charlie” user that the tests run as has sudo for the test
+     Whether the “clearly” user that the tests run as has sudo for the test
      suite. The images set up the user with sudo and then “before_script”
      deletes it if appropriate.
 

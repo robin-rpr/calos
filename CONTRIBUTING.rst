@@ -1,7 +1,7 @@
 Contributor’s guide
 *******************
 
-This section is notes on contributing to Charliecloud development. Currently,
+This section is notes on contributing to Clearly's development. Currently,
 it is messy and incomplete. Patches welcome!
 
 It documents public stuff only. If you are on the core team at LANL, also
@@ -170,15 +170,15 @@ then fast-forward merged after the tests pass. (Note we no longer do this.)
 **Branch naming convention.** Name the branch with a *brief* summary of the
 issue being fixed — just a couple words — with words separated by hyphens,
 then an underscore and the issue number being addressed. For example, issue
-`#1773 <https://github.com/hpc/charliecloud/issues/1773>`_ is titled
+`#1773 <https://github.com/clearly-inc/clearly/issues/1773>`_ is titled
 “:code:`clearly image build`: :code:`--force=fakeroot` outputs to stderr despite
 :code:`-q`”; the corresponding branch (for `PR #1812
-<https://github.com/hpc/charliecloud/pull/1812>`_) is called
+<https://github.com/clearly-inc/clearly/pull/1812>`_) is called
 :code:`fakeroot-quiet-rhel_1773`. Something even shorter, such as
 :code:`fakeroot_1773`, would have been fine too.
 
 Stand-alone PRs do the same, just without an issue number. For example, `PR
-#1804 <https://github.com/hpc/charliecloud/pull/1804>`_ is titled “add tab
+#1804 <https://github.com/clearly-inc/clearly/pull/1804>`_ is titled “add tab
 completion to :code:`clearly convert`” and the branch is
 :code:`convert-completion`.
 
@@ -258,7 +258,7 @@ stand-alone PR) should have label(s) from each category, with the exception of
 disposition which only applies to closed issues. Labels are periodically
 validated using a script.
 
-Charliecloud team members should label their own issues. The general public
+Clearly team members should label their own issues. The general public
 are more than welcome to label their issues if they like, but in practice this
 is rare, which is fine. Whoever triages the incoming issue should add or
 adjust labels as needed.
@@ -285,7 +285,7 @@ Choose *one type* from:
   often helpful.
 
 :code:`refactor`
-  Change that will improve Charliecloud but does not materially affect
+  Change that will improve Clearly but does not materially affect
   user-visible behavior. Note this doesn’t mean “invisible to the user”; even
   user-facing documentation or logging changes could feasibly be this, if they
   are more cleanup-oriented.
@@ -317,7 +317,7 @@ Priority is indeed required, though it can be tricky because the levels are
 fuzzy. Do not hesitate to ask for advice. Considerations include: is customer
 or development work blocked by the issue; how valuable is the issue for
 customers; does the issue affect key customers; how many customers are
-affected; how much of Charliecloud is affected; what is the workaround like,
+affected; how much of Clearly is affected; what is the workaround like,
 if any. Difficulty of the issue is not a factor in priority, i.e., here we are
 trying to express benefit, not cost/benefit ratio. Perhaps the `Debian bug
 severity levels <https://www.debian.org/Bugs/Developer#severities>`_ provide
@@ -329,7 +329,7 @@ i.e., we do work on lower-priority issues while higher-priority ones are still
 open. Related to this, issues do often move between priority levels. In
 particular, if you think we picked the wrong priority level, please say so.
 
-What part of Charliecloud is affected?
+What part of Clearly is affected?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Choose *one or more components* from:
@@ -347,7 +347,7 @@ Choose *one or more components* from:
   another builder) together. Largely shell scripts in :code:`bin`.
 
 :code:`install`
-  Charliecloud build & install system, packaging, etc. (Not to be confused
+  Clearly build & install system, packaging, etc. (Not to be confused
   with image building.)
 
 :code:`doc`
@@ -378,7 +378,7 @@ Choose *one or more extras* from:
   needed.
 
 :code:`usability`
-  Affects usability of any part of Charliecloud, including documentation and
+  Affects usability of any part of Clearly, including documentation and
   project organization.
 
 Why was it closed?
@@ -458,13 +458,13 @@ Note: a skipped test isn’t free; I see ~0.15 seconds to do a skip.
 :code:`clearly test` complains about inconsistent versions
 ----------------------------------------------------------
 
-There are multiple ways to ask Charliecloud for its version number. These
+There are multiple ways to ask Clearly for its version number. These
 should all give the same result. If they don’t, :code:`clearly test` will fail.
 Typically, something needs to be rebuilt. Recall that :code:`configure`
 contains the version number as a constant, so a common way to get into this
 situation is to change Git branches without rebuilding it.
 
-Charliecloud is small enough to just rebuild everything with::
+Clearly is small enough to just rebuild everything with::
 
   $ ./autogen.sh && ./configure && make clean && make
 
@@ -480,7 +480,7 @@ Writing a test image using the standard workflow
 Summary
 ~~~~~~~
 
-The Charliecloud test suite has a workflow that can build images by two
+The Clearly test suite has a workflow that can build images by two
 methods:
 
 1. From a Dockerfile, using :code:`clearly image` or another builder (see
@@ -590,16 +590,16 @@ Other requirements:
     current working directory. Everything written to the parent directory of
     :code:`$2` must have a name starting with :code:`$(basename $2)`.
 
-  * The first entry in :code:`$PATH` will be the Charliecloud under test,
+  * The first entry in :code:`$PATH` will be the Clearly under test,
     i.e., bare :code:`ch-*` commands will be the right ones.
 
-  * Any programming language is permitted. To be included in the Charliecloud
+  * Any programming language is permitted. To be included in the Clearly
     source code, a language already in the test suite dependencies is
     required.
 
   * The script must test for its dependencies and fail with appropriate error
     message and exit code if something is missing. To be included in the
-    Charliecloud source code, all dependencies must be something we are
+    Clearly source code, all dependencies must be something we are
     willing to install and test.
 
   * Exit codes:
@@ -615,7 +615,7 @@ Building RPMs
 =============
 
 We maintain :code:`.spec` files and infrastructure for building RPMs in the
-Charliecloud source code. This is for two purposes:
+Clearly source code. This is for two purposes:
 
   1. We maintain our own Fedora RPMs (see `packaging guidelines
      <https://docs.fedoraproject.org/en-US/packaging-guidelines/>`_).
@@ -654,13 +654,13 @@ Dependencies
 :code:`rpmbuild` wrapper script
 -------------------------------
 
-While building the Charliecloud RPMs is not too weird, we provide a script to
+While building the Clearly RPMs is not too weird, we provide a script to
 streamline it. The purpose is to (a) make it easy to build versions not
 matching the working directory, (b) use an arbitrary :code:`rpmbuild`
-directory, and (c) build in a Charliecloud container for non-RPM-based
+directory, and (c) build in a Clearly container for non-RPM-based
 environments.
 
-The script must be run from the root of a Charliecloud Git working directory.
+The script must be run from the root of a Clearly Git working directory.
 
 Usage::
 
@@ -700,7 +700,7 @@ of :code:`VERSION.full` for that commit, including Git gobbledygook, and the
 RPM release will be :code:`0`. Note that such RPMs cannot be reliably upgraded
 because their version numbers are unordered.
 
-Otherwise, :code:`VERSION` should be a released Charliecloud version followed
+Otherwise, :code:`VERSION` should be a released Clearly version followed
 by a hyphen and the desired RPM release, e.g. :code:`0.9.7-3`.
 
 Other values of :code:`VERSION` (e.g., a branch name) may work but are not
@@ -711,7 +711,7 @@ Packaged source code and RPM build config come from different commits
 
 The spec file, :code:`build` script, :code:`.rpmlintrc`, etc. come from the
 working directory, but the package source is from the specified commit. This
-is what enables us to make additional RPM releases for a given Charliecloud
+is what enables us to make additional RPM releases for a given Clearly
 release (e.g. 0.9.7-2).
 
 Corollaries of this policy are that RPM build configuration can be any or no
@@ -721,13 +721,13 @@ Changelog maintenance
 ~~~~~~~~~~~~~~~~~~~~~
 
 The spec file contains a manually maintained changelog. Add a new entry for
-each new RPM release; do not include the Charliecloud release notes.
+each new RPM release; do not include the Clearly release notes.
 
 For released versions, :code:`build` verifies that the most recent changelog
 entry matches the given :code:`VERSION` argument. The timestamp is not
 automatically verified.
 
-For other Charliecloud versions, :code:`build` adds a generic changelog entry
+For other Clearly versions, :code:`build` adds a generic changelog entry
 with the appropriate version stating that it’s a pre-release RPM.
 
 
@@ -791,8 +791,8 @@ Generally
 
 All dependencies must be stated and justified in the documentation.
 
-We want Charliecloud to run on as many systems as practical, so we work hard
-to keep dependencies minimal. However, because Charliecloud depends on new-ish
+We want Clearly to run on as many systems as practical, so we work hard
+to keep dependencies minimal. However, because Clearly depends on new-ish
 kernel features, we do depend on standards of similar vintage.
 
 Core functionality should be available even on small systems with basic Linux
@@ -810,10 +810,10 @@ essentials. Exceptions, to be used judiciously:
 The test suite is tricky, because we need a test framework and to set up
 complex test fixtures. We have not yet figured out how to do this at
 reasonable expense with dependencies as tight as run- and build-time, so there
-are systems that do support Charliecloud but cannot run the test suite.
+are systems that do support Clearly but cannot run the test suite.
 
 Building the RPMs should work on RPM-based distributions with a kernel new
-enough to support Charliecloud. You might need to install additional packages
+enough to support Clearly. You might need to install additional packages
 (but not from third-party repositories).
 
 
@@ -892,8 +892,8 @@ Within each section, statements occur in the following order.
 
      #. standard library
      #. external imports not in the standard library
-     #. :code:`import charliecloud`
-     #. other Charliecloud imports
+     #. :code:`import clearly`
+     #. other Clearly imports
 
   #. assignments
 
@@ -936,7 +936,7 @@ C code
 ~~~~~~~~~~~~~
 
 The :code:`const` keyword is used to indicate that variables are read-only. It
-has a variety of uses; in Charliecloud, we use it for `function pointer
+has a variety of uses; in Clearly, we use it for `function pointer
 arguments <https://softwareengineering.stackexchange.com/a/204720>`_ to state
 whether or not the object pointed to will be altered by the function. For
 example:
@@ -1088,7 +1088,7 @@ pull
 
 Images pulled from registries come with OCI metadata, i.e. a "config blob".
 This is stored verbatim in :code:`/clearly/config.pulled.json` for debugging.
-Charliecloud metadata, which includes a translated subset of the OCI config,
+Clearly metadata, which includes a translated subset of the OCI config,
 is kept up to date in :code:`/clearly/metadata.json`.
 
 push
@@ -1102,7 +1102,7 @@ OCI runtime and image specification information.
   * https://github.com/opencontainers/runtime-spec/blob/master/config.md
   * https://github.com/opencontainers/image-spec/blob/master/config.md
 
-Since various OCI features are unsupported by Charliecloud we push only what is
+Since various OCI features are unsupported by Clearly we push only what is
 necessary to satisfy general image registry requirements.
 
 The pushed config is created on the fly, referencing the image’s metadata
@@ -1112,8 +1112,8 @@ and layer tar hash. For example, including commentary:
 
     {
       "architecture": "amd64",
-      "charliecloud_version": "0.26",
-      "comment": "pushed with Charliecloud",
+      "clearly_version": "0.26",
+      "comment": "pushed with Clearly",
       "config": {},
       "container_config": {},
       "created": "2021-12-10T20:39:56Z",
@@ -1127,7 +1127,7 @@ and layer tar hash. For example, including commentary:
       "weirdal": "yankovic"
 
 The fields above are expected by the registry at push time, with the exception
-of :code:`charliecloud_version` and :code:`weirdal`, which are Charliecloud
+of :code:`clearly_version` and :code:`weirdal`, which are Clearly
 extensions.
 
 .. code-block:: javascript

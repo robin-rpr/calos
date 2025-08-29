@@ -12,7 +12,7 @@
 ### Prologue #################################################################
 
 AC_INIT([clearly], [m4_esyscmd_s([misc/version])],
-        [https://github.com/hpc/charliecloud])
+        [https://github.com/clearly-inc/clearly])
 AC_PREREQ([2.69])
 AC_CONFIG_SRCDIR([cmd/run.c])
 AC_CONFIG_AUX_DIR([build-aux])
@@ -585,7 +585,7 @@ AS_IF([   test -n "$SQUASHFUSE" \
 ### image #################################################################
 
 # Python
-vmin_python=3.6  # NOTE: Keep in sync with lib/charliecloud.py
+vmin_python=3.6
 AS_CASE([$python],
   [/*], [PYTHON="$python"],                              # absolute
   [*],  [AC_CHECK_PROG([PYTHON], [$python], [$python])]  # verify it's in $PATH
@@ -673,7 +673,7 @@ AC_CHECK_PROG([GIT2DOT], [git2dot.py], [git2dot.py])
 CLEARLY_CHECK_VERSION([GIT2DOT], [$vmin_git2dot], [--version | cut -d' ' -f3])
 
 # rsync
-vmin_rsync=3.1.0  # NOTE: keep in sync with lib/charliecloud.py
+vmin_rsync=3.1.0
 AC_CHECK_PROG([RSYNC], [rsync], [rsync])
 CLEARLY_CHECK_VERSION([RSYNC], [$vmin_rsync],
   [--version | sed -En 's/rsync +version (@<:@0-9@:>@+\.@<:@0-9@:>@+\.@<:@0-9@:>@+).*$/\1/p'])

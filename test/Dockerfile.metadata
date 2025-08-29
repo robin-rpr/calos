@@ -23,12 +23,12 @@ ENV clearly_foo=foo-ev clearly_bar=bar-ev
 EXPOSE 867 5309/udp
 HEALTHCHECK --interval=60s --timeout=5s CMD ["/bin/true"]
 LABEL clearly-foo=foo-label clearly-bar=bar-label
-MAINTAINER charlie@example.com
+MAINTAINER clearly@example.com
 ONBUILD RUN echo hello
 RUN echo hello
 RUN ["/bin/echo", "world"]
 SHELL ["/bin/ash", "-c"]
 STOPSIGNAL SIGWINCH
-USER charlie:chargrp
+USER clearly:chargrp
 WORKDIR /mnt
 VOLUME /mnt/foo /mnt/bar /mnt/foo

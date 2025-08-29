@@ -23,13 +23,13 @@
 #   $ version=2020-01-09  # use today's date
 #   $ sudo docker login   # if needed
 #   $ ./whiteout | sudo docker build -t whiteout -f - .
-#   $ sudo docker tag whiteout:latest charliecloud/whiteout:$version
+#   $ sudo docker tag whiteout:latest clearly/whiteout:$version
 #   $ sudo docker images | fgrep whiteout
-#   $ sudo docker push charliecloud/whiteout:$version
+#   $ sudo docker push clearly/whiteout:$version
 #
 # Then your new image will be at:
 #
-#   https://hub.docker.com/repository/docker/charliecloud/whiteout
+#   https://hub.docker.com/repository/docker/clearly/whiteout
 
 
 import sys

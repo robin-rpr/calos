@@ -83,7 +83,7 @@ class Reference:
          class_.parser = lark.Lark(_grammar.GRAMMAR_IMAGE_REF, parser="earley",
                                    propagate_positions=True, tree_class=Tree)
       s = s.translate(str.maketrans("%+", "/:", "&"))
-      hint="https://hpc.github.io/charliecloud/faq.html#how-do-i-specify-an-image-reference"
+      hint="https://clearly.run/faq.html#how-do-i-specify-an-image-reference"
       s = _clearly.variables_sub(s, variables)
       if "$" in s:
          _clearly.FATAL("image reference contains an undefined variable: %s" % s)

@@ -54,7 +54,7 @@ STDLIB_MODULES = (  {     m.name
 
 CLEARLY_MODULES = {     f.removesuffix(".py")
                for f in os.listdir(os.path.dirname(path))
-               if  (f.endswith(".py") and f != "charliecloud.py") }
+               if  (f.endswith(".py") and f != "clearly.py") }
 
 text = open(path).read()
 lines = ["# DUMMY LINE TO MAKE IT 1-INDEXED"] + text.splitlines()
@@ -180,13 +180,13 @@ def sort_key(stmt):
    ret.append(CLASS_ORDER[stmt.__class__])
    if (isinstance(stmt, ast.Import)):
       name = stmt.name.split(".")[0]
-      if (name == "charliecloud"):
+      if (name == "clearly"):
          ret.append(3)
       elif (name in STDLIB_MODULES):
          ret.append(1)
       elif (name in CLEARLY_MODULES):
          ret.append(4)
-      else:  # neither standard library nor Charliecloud
+      else:  # neither standard library nor Clearly
          ret.append(2)
       ret.append(stmt.name)
    elif (isinstance(stmt, ast.Assign)):

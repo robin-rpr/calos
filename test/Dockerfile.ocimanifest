@@ -14,11 +14,11 @@
 # To build and push:
 #
 #   $ VERSION=$(date +%Y-%m-%d)
-#   $ podman build -t charliecloud/ocimanifest:$VERSION \
+#   $ podman build -t clearly/ocimanifest:$VERSION \
 #                  -f Dockerfile.ocimanifest .
 #   $ podman images | fgrep ocimanifest
 #   $ podman login
-#   $ podman push charliecloud/ocimanifest:$VERSION
+#   $ podman push clearly/ocimanifest:$VERSION
 #
 
 FROM alpine:3.17

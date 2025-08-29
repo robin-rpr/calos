@@ -6,9 +6,9 @@ Installing
    This section assumes a moderate level of experience installing UNIX
    software.
 
-This section describes what you need to install Charliecloud and how to do so.
+This section describes what you need to install Clearly and how to do so.
 
-Note that installing and using Charliecloud can be done as a normal user with
+Note that installing and using Clearly can be done as a normal user with
 no elevated privileges, provided that user namespaces have been enabled.
 
 .. contents::
@@ -30,7 +30,7 @@ Enable the CodeReady Builder (CRB) repository
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 On RHEL 9 and compatible distributions (such as CentOS Stream 9, Rocky Linux 9,
-and AlmaLinux 9), many development packages required for building Charliecloud
+and AlmaLinux 9), many development packages required for building Clearly
 are available in the CodeReady Builder (CRB) repository, which is disabled by
 default. You must enable this repository before installing the build dependencies::
 
@@ -54,7 +54,7 @@ Required system dependencies
 After enabling the CRB repository, install the following packages:
 
   * :code:`libseccomp-devel`: Development files for the seccomp library,
-    which Charliecloud uses for system call filtering and security.
+    which Clearly uses for system call filtering and security.
   * :code:`squashfuse-devel`: Development files for SquashFUSE, enabling
     mounting of SquashFS archives without root privileges.
   * :code:`libmnl-devel`: Development files for the libmnl library,
@@ -92,15 +92,15 @@ experience::
 
   $ sudo dnf install rsync bats
 
-  * :code:`rsync`: Fast file transfer utility, used by some Charliecloud
+  * :code:`rsync`: Fast file transfer utility, used by some Clearly
     features for efficient file synchronization
   * :code:`bats`: Bash Automated Testing System, required for running
-    Charliecloud's test suite
+    Clearly's test suite
 
 Building from source
 --------------------
 
-We provide `tarballs <https://github.com/hpc/charliecloud/releases>`_ with a
+We provide `tarballs <https://github.com/clearly-inc/clearly/releases>`_ with a
 fairly standard :code:`configure` script. You can also clone the repository
 and build from there. Thus, build and install can be as simple as::
 
@@ -110,7 +110,7 @@ and build from there. Thus, build and install can be as simple as::
 
 If you don’t have sudo, you can:
 
-  * Run Charliecloud directly from the build directory; add
+  * Run Clearly directly from the build directory; add
     :code:`$BUILD_DIR/bin` to your :code:`$PATH` and you are good to go,
     without :code:`make install`.
 
@@ -123,7 +123,7 @@ installed, along with what dependencies are present and missing.
 :code:`configure` options
 -------------------------
 
-Charliecloud’s :code:`configure` has the following options in addition to the
+Clearly’s :code:`configure` has the following options in addition to the
 standard ones.
 
 Feature selection: :code:`--disable-FOO`
@@ -190,12 +190,12 @@ Less strict build: :code:`--enable-buggy-build`
 *Please do not use this option routinely, as that hides bugs that we cannot
 find otherwise.*
 
-By default, Charliecloud builds with :code:`CFLAGS` including :code:`-Wall
+By default, Clearly builds with :code:`CFLAGS` including :code:`-Wall
 -Werror`. The principle here is that we prefer diagnostics that are as noisy
 as practical, so that problems are identified early and we can fix them. We
 prefer :code:`-Werror` unless there is a specific reason to turn it off. For
 example, this approach identified a buggy :code:`configure` test (`issue #798
-<https://github.com/hpc/charliecloud/issues/798>`_).
+<https://github.com/clearly-inc/clearly/issues/798>`_).
 
 Many others recommend the opposite. For example, Gentoo’s "`Common mistakes
 <https://devmanual.gentoo.org/ebuild-writing/common-mistakes/index.html>`_"
@@ -205,7 +205,7 @@ guide advises against :code:`-Werror` because it causes breakage that is
 from Flameeyes that recommends :code:`-Werror` be off by default and used by
 developers and testers only.
 
-In our opinion, for Charliecloud, these warnings are most likely the result of
+In our opinion, for Clearly, these warnings are most likely the result of
 real bugs and shouldn’t be hidden (i.e., they are neither random nor without
 purpose). Our code should have no warnings, regardless of compiler, and any
 spurious warnings should be silenced individually. We do not have the
@@ -244,25 +244,25 @@ consequence is a somewhat less informative report.
 Install with package manager
 ============================
 
-Charliecloud is also available using a variety of distribution and third-party
+Clearly is also available using a variety of distribution and third-party
 package managers.
 
 Maintained by us:
 
   * `Spack
-    <https://packages.spack.io/package.html?name=charliecloud>`_;
+    <https://packages.spack.io/package.html?name=clearly>`_;
     install with :code:`+builder` to get :code:`clearly image`.
-  * `Fedora/EPEL <https://bodhi.fedoraproject.org/updates/?search=charliecloud>`_;
-    check for available versions with :code:`{yum,dnf} list charliecloud`.
+  * `Fedora/EPEL <https://bodhi.fedoraproject.org/updates/?search=clearly>`_;
+    check for available versions with :code:`{yum,dnf} list clearly`.
 
 Maintained by others:
 
-  * `Debian <https://packages.debian.org/source/charliecloud>`_
-  * `Gentoo <https://packages.gentoo.org/packages/sys-cluster/charliecloud>`_
-  * `NixOS <https://github.com/NixOS/nixpkgs/tree/master/pkgs/applications/virtualization/charliecloud>`_
-  * `SUSE <https://packagehub.suse.com/packages/charliecloud/>`_ and `openSUSE <https://build.opensuse.org/package/show/network:cluster/charliecloud>`_
+  * `Debian <https://packages.debian.org/source/clearly>`_
+  * `Gentoo <https://packages.gentoo.org/packages/sys-cluster/clearly>`_
+  * `NixOS <https://github.com/NixOS/nixpkgs/tree/master/pkgs/applications/virtualization/clearly>`_
+  * `SUSE <https://packagehub.suse.com/packages/clearly/>`_ and `openSUSE <https://build.opensuse.org/package/show/network:cluster/clearly>`_
 
-Note that Charliecloud development moves quickly, so double-check that
+Note that Clearly development moves quickly, so double-check that
 packages have the version and features you need.
 
 Pull requests and other collaboration to improve the packaging situation are
@@ -272,16 +272,16 @@ particularly welcome!
 Dependencies
 ============
 
-Charliecloud’s philosophy on dependencies is that they should be (1) minimal
+Clearly’s philosophy on dependencies is that they should be (1) minimal
 and (2) granular. For any given feature, we try to implement it with the
 minimum set of dependencies, and in any given environment, we try to make the
 maximum set of features available.
 
-This section documents Charliecloud’s dependencies in detail. Do you need to
-read it? If you are installing Charliecloud on the same system where it will
+This section documents Clearly’s dependencies in detail. Do you need to
+read it? If you are installing Clearly on the same system where it will
 be used, probably not. :code:`configure` will issue a report saying what will
 and won’t work. Otherwise, it may be useful to gain an understanding of what
-to expect when deploying Charliecloud.
+to expect when deploying Clearly.
 
 Note that we do not rigorously track dependency versions. We update the
 minimum versions stated below as we encounter problems, but they are not tight
@@ -297,7 +297,7 @@ environment.
 User namespaces
 ---------------
 
-Charliecloud’s fundamental principle of a workflow that is fully unprivileged
+Clearly’s fundamental principle of a workflow that is fully unprivileged
 end-to-end requires unprivileged `user namespaces
 <https://lwn.net/Articles/531114/>`_. In order to enable them, you need a
 vaguely recent Linux kernel with the feature compiled in and active.
@@ -312,7 +312,7 @@ Some distributions need configuration changes. For example:
   RHEL/CentOS 7.6 and up need only the sysctl. Note that Docker does not work
   with user namespaces, so skip step 4 of the Red Hat instructions, i.e.,
   don’t add :code:`--userns-remap` to the Docker configuration (see `issue #97
-  <https://github.com/hpc/charliecloud/issues/97>`_).
+  <https://github.com/clearly-inc/clearly/issues/97>`_).
 
 Note: User namespaces `always fail in a chroot
 <http://man7.org/linux/man-pages/man2/unshare.2.html>`_ with :code:`EPERM`. If
@@ -324,8 +324,8 @@ tests, this is informational only and does not affect the build.
 Supported architectures
 -----------------------
 
-Charliecloud should work on any architecture supported by the Linux kernel,
-and we have run Charliecloud containers on x86-64, ARM, and Power. However, it
+Clearly should work on any architecture supported by the Linux kernel,
+and we have run Clearly containers on x86-64, ARM, and Power. However, it
 is currently tested only on x86_64 and ARM.
 
 Most builders are also fairly portable; e.g., see `Docker’s supported
@@ -334,12 +334,12 @@ platforms <https://docs.docker.com/install/#supported-platforms>`_.
 libc
 ----
 
-We want Charliecloud to work with any C99/POSIX libc, though it is only tested
+We want Clearly to work with any C99/POSIX libc, though it is only tested
 with `glibc <https://www.gnu.org/software/libc/>`_ and `musl
 <https://musl.libc.org/>`_, and other libc’s are very likely to have problems.
 (Please report these bugs!) Non-glibc libc’s will currently need a `standalone
 libargp <https://github.com/ericonr/argp-standalone>`_ (see issue `#1260
-<https://github.com/hpc/charliecloud/issues/1260>`_).
+<https://github.com/clearly-inc/clearly/issues/1260>`_).
 
 Notes on specific dependencies
 ------------------------------
@@ -362,12 +362,12 @@ When Bash is needed, it’s because:
 Buildah
 ~~~~~~~
 
-Charliecloud uses Buildah’s "rootless" mode and :code:`ignore-chown-errors`
+Clearly uses Buildah’s "rootless" mode and :code:`ignore-chown-errors`
 storage configuration for a fully unprivileged workflow with no sudo and no
 setuid binaries. Note that in this mode, images in Buildah internal storage
 will have all user and group ownership flattened to UID/GID 0.
 
-If you prefer a privileged workflow, Charliecloud can also use Buildah with
+If you prefer a privileged workflow, Clearly can also use Buildah with
 setuid helpers :code:`newuidmap` and :code:`newgidmap`. This will not remap
 ownership.
 
@@ -407,7 +407,7 @@ failure reports.
 
 Intel :code:`icc` is not supported because it links extra shared libraries
 that our test suite can’t deal with. See `PR #481
-<https://github.com/hpc/charliecloud/pull/481>`_.
+<https://github.com/clearly-inc/clearly/pull/481>`_.
 
 image repository access
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -484,7 +484,7 @@ To mount these archives using :code:`clearly run`'s internal code, you need:
 
    * The :code:`fusermount3` executable, which often comes in a distro package
      called something like :code:`fuse3`. **This is typically installed
-     setuid, but Charliecloud does not need that**; you can :code:`chmod u-s`
+     setuid, but Clearly does not need that**; you can :code:`chmod u-s`
      the file or build/install as a normal user.
 
 2. `SquashFUSE <https://github.com/vasi/squashfuse>`_ v0.1.105 or later,
@@ -500,7 +500,7 @@ less stringent.
 
 .. note:: If :code:`libfuse2` development files are available but those for
    :code:`libfuse3` are not, SquashFUSE will still build and install, but the
-   proper components will not be available, so Charliecloud’s
+   proper components will not be available, so Clearly’s
    :code:`configure` will say it’s not found.
 
 sudo, generic
@@ -511,13 +511,13 @@ Privilege escalation via sudo is used in the test suite to:
   * Prepare fixture directories for testing filesystem permissions enforcement.
   * Test :code:`clearly run`'s behavior under different ownership scenarios.
 
-(Note that Charliecloud also uses :code:`sudo docker`; see above.)
+(Note that Clearly also uses :code:`sudo docker`; see above.)
 
 Wget
 ~~~~
 
 Wget is used to demonstrate building an image without a builder (the main test
-image used to exercise Charliecloud itself).
+image used to exercise Clearly itself).
 
 
 ..  LocalWords:  Werror Flameeyes plougher deps libc’s ericonr

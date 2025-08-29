@@ -360,7 +360,7 @@ EOF
     [[ $output = *'archs available:     n/a'* ]]
 
     # name does not exist remotely, not in library
-    run clearly image list charliecloud/doesnotexist:latest
+    run clearly image list clearly/doesnotexist:latest
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = *'in local storage:    no'* ]]
@@ -608,55 +608,55 @@ EOF
       "empty_layer": true
     },
     {
-      "author": "charlie@example.com",
+      "author": "clearly@example.com",
       "created": "2021-01-16T00:12:10.919558634Z",
-      "created_by": "/bin/sh -c #(nop)  MAINTAINER charlie@example.com",
+      "created_by": "/bin/sh -c #(nop)  MAINTAINER clearly@example.com",
       "empty_layer": true
     },
     {
-      "author": "charlie@example.com",
+      "author": "clearly@example.com",
       "created": "2021-01-16T00:12:11.080200702Z",
       "created_by": "/bin/sh -c #(nop)  ONBUILD RUN echo hello",
       "empty_layer": true
     },
     {
-      "author": "charlie@example.com",
+      "author": "clearly@example.com",
       "created": "2021-01-16T00:12:11.900757214Z",
       "created_by": "/bin/sh -c echo hello",
       "empty_layer": true
     },
     {
-      "author": "charlie@example.com",
+      "author": "clearly@example.com",
       "created": "2021-01-16T00:12:12.868439691Z",
       "created_by": "/bin/echo world",
       "empty_layer": true
     },
     {
-      "author": "charlie@example.com",
+      "author": "clearly@example.com",
       "created": "2021-01-16T00:12:13.055783024Z",
       "created_by": "/bin/ash -c #(nop)  SHELL [/bin/ash -c]",
       "empty_layer": true
     },
     {
-      "author": "charlie@example.com",
+      "author": "clearly@example.com",
       "created": "2021-01-16T00:12:13.473299627Z",
       "created_by": "/bin/ash -c #(nop)  STOPSIGNAL SIGWINCH",
       "empty_layer": true
     },
     {
-      "author": "charlie@example.com",
+      "author": "clearly@example.com",
       "created": "2021-01-16T00:12:13.644005108Z",
-      "created_by": "/bin/ash -c #(nop)  USER charlie:chargrp",
+      "created_by": "/bin/ash -c #(nop)  USER clearly:chargrp",
       "empty_layer": true
     },
     {
-      "author": "charlie@example.com",
+      "author": "clearly@example.com",
       "created": "2021-01-16T00:12:13.83546594Z",
       "created_by": "/bin/ash -c #(nop) WORKDIR /mnt",
       "empty_layer": true
     },
     {
-      "author": "charlie@example.com",
+      "author": "clearly@example.com",
       "created": "2021-01-16T00:12:14.042791834Z",
       "created_by": "/bin/ash -c #(nop)  VOLUME [/mnt/foo /mnt/bar /mnt/foo]",
       "empty_layer": true

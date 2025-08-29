@@ -32,11 +32,11 @@ tidy_run () {
 }
 
 binds=${CLEARLY_TEST_LUSTREDIR}:/mnt/0
-work_dir=/mnt/0/charliecloud_test
+work_dir=/mnt/0/clearly_test
 
 @test "${clearly_tag}/start clean" {
-    clean_dir "${CLEARLY_TEST_LUSTREDIR}/charliecloud_test" || true
-    mkdir "${CLEARLY_TEST_LUSTREDIR}/charliecloud_test"  # fail if not cleaned up
+    clean_dir "${CLEARLY_TEST_LUSTREDIR}/clearly_test" || true
+    mkdir "${CLEARLY_TEST_LUSTREDIR}/clearly_test"  # fail if not cleaned up
 }
 
 @test "${clearly_tag}/create directory" {
@@ -82,5 +82,5 @@ EOF
 }
 
 @test "${clearly_tag}/clean up" {
-    clean_dir "${CLEARLY_TEST_LUSTREDIR}/charliecloud_test"
+    clean_dir "${CLEARLY_TEST_LUSTREDIR}/clearly_test"
 }

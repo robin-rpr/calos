@@ -317,8 +317,7 @@ without error or warning if not.
 
   * :code:`/etc/machine-id`. Provides a unique ID for the OS installation;
     matching the host works for most situations. Needed to support D-Bus, some
-    software licensing situations, and likely other use cases. See also `issue
-    #1050 <https://github.com/hpc/charliecloud/issues/1050>`_.
+    software licensing situations, and likely other use cases.
 
   * :code:`/var/lib/hugetlbfs` at guest :code:`/var/opt/cray/hugetlbfs`, and
     :code:`/var/opt/cray/alps/spool`. These support Cray MPI.

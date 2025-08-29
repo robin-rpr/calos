@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Build the Charliecloud source code in $1, install it to prefix $2, and do
+# Build the Clearly source code in $1, install it to prefix $2, and do
 # some basic validations.
 
 
@@ -52,9 +52,9 @@ ldd cmd/run
 cmd/run --version
 
 # Make tarball.
-rm -f charliecloud-*.tar.gz
+rm -f clearly-*.tar.gz
 make dist
-ls -lh charliecloud-*.tar.gz
+ls -lh clearly-*.tar.gz
 
 # Install.
 sudo make install

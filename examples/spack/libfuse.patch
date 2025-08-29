@@ -1,6 +1,6 @@
 index 0e8f983545..b85ef9958a 100644
---- spack/var/spack/repos/builtin/packages/charliecloud/package.py
-+++ spack/var/spack/repos/builtin/packages/charliecloud/package.py
+--- spack/var/spack/repos/builtin/packages/clearly/package.py
++++ spack/var/spack/repos/builtin/packages/clearly/package.py
 @@ -152,5 +152,7 @@ def configure_args(self):
          if "+squashfuse" in self.spec:
              squashfuse_prefix = "{0}".format(self.spec["squashfuse"].prefix)

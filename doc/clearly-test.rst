@@ -229,7 +229,7 @@ filesystem permissions tests::
 
   clearly run: 0.12 /usr/local/libexec/run
   bats:   0.4.0 /usr/bin/bats
-  tests:  /usr/local/libexec/charliecloud/test
+  tests:  /usr/local/libexec/clearly/test
 
   phase:                build run examples
   scope:                standard (default)

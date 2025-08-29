@@ -174,37 +174,37 @@ EOF
     # invalid character in image name
     cat <<'EOF' | image_ref_parse 'name*' 1
 error: image ref syntax, char 5: name*
-hint: https://hpc.github.io/charliecloud/faq.html#how-do-i-specify-an-image-reference
+hint: https://clearly.run/faq.html#how-do-i-specify-an-image-reference
 EOF
 
     # missing port number
     cat <<'EOF' | image_ref_parse 'example.com:/path1/name' 1
 error: image ref syntax, char 13: example.com:/path1/name
-hint: https://hpc.github.io/charliecloud/faq.html#how-do-i-specify-an-image-reference
+hint: https://clearly.run/faq.html#how-do-i-specify-an-image-reference
 EOF
 
     # path with leading slash
     cat <<'EOF' | image_ref_parse '/path1/name' 1
 error: image ref syntax, char 1: /path1/name
-hint: https://hpc.github.io/charliecloud/faq.html#how-do-i-specify-an-image-reference
+hint: https://clearly.run/faq.html#how-do-i-specify-an-image-reference
 EOF
 
     # path but no name
     cat <<'EOF' | image_ref_parse 'path1/' 1
 error: image ref syntax, at end: path1/
-hint: https://hpc.github.io/charliecloud/faq.html#how-do-i-specify-an-image-reference
+hint: https://clearly.run/faq.html#how-do-i-specify-an-image-reference
 EOF
 
     # bad digest algorithm
     cat <<'EOF' | image_ref_parse 'name@sha512:feeddad' 1
 error: image ref syntax, char 5: name@sha512:feeddad
-hint: https://hpc.github.io/charliecloud/faq.html#how-do-i-specify-an-image-reference
+hint: https://clearly.run/faq.html#how-do-i-specify-an-image-reference
 EOF
 
     # both tag and digest
     cat <<'EOF' | image_ref_parse 'name:tag@sha512:feeddad' 1
 error: image ref syntax, char 9: name:tag@sha512:feeddad
-hint: https://hpc.github.io/charliecloud/faq.html#how-do-i-specify-an-image-reference
+hint: https://clearly.run/faq.html#how-do-i-specify-an-image-reference
 EOF
 }
 
@@ -215,8 +215,8 @@ EOF
     # test/Dockerfile.symlink and issues #819 & #825.
 
     CLEARLY_IMAGE_STORAGE=$BATS_TMPDIR/pull-quirks
-    img="${CLEARLY_IMAGE_STORAGE}/img/charliecloud%file-quirks+2020-10-21"
-    clearly image pull charliecloud/file-quirks:2020-10-21
+    img="${CLEARLY_IMAGE_STORAGE}/img/clearly%file-quirks+2020-10-21"
+    clearly image pull clearly/file-quirks:2020-10-21
     ls -lh "${img}/test"
 
     output_expected=$(cat <<'EOF'
@@ -260,7 +260,7 @@ EOF
     CLEARLY_IMAGE_STORAGE=$storage
 
     # OCI manifest; see issue #1184.
-    img=charliecloud/ocimanifest:2021-10-12
+    img=clearly/ocimanifest:2021-10-12
     clearly image pull "$img"
 
     # Manifest schema version one (v1); see issue #814. Use debian:squeeze
@@ -345,7 +345,7 @@ EOF
     arch_exclude ppc64le  # test image not available
     tag=latest
     name=robinrpr/clearly:$tag
-    img=$CLEARLY_IMAGE_STORAGE/img/charliecloud%metadata+$tag
+    img=$CLEARLY_IMAGE_STORAGE/img/clearly%metadata+$tag
 
     clearly image pull "$name"
 
@@ -422,55 +422,55 @@ EOF
       "empty_layer": true
     },
     {
-      "author": "charlie@example.com",
+      "author": "clearly@example.com",
       "created": "2021-01-16T00:12:10.919558634Z",
-      "created_by": "/bin/sh -c #(nop)  MAINTAINER charlie@example.com",
+      "created_by": "/bin/sh -c #(nop)  MAINTAINER clearly@example.com",
       "empty_layer": true
     },
     {
-      "author": "charlie@example.com",
+      "author": "clearly@example.com",
       "created": "2021-01-16T00:12:11.080200702Z",
       "created_by": "/bin/sh -c #(nop)  ONBUILD RUN echo hello",
       "empty_layer": true
     },
     {
-      "author": "charlie@example.com",
+      "author": "clearly@example.com",
       "created": "2021-01-16T00:12:11.900757214Z",
       "created_by": "/bin/sh -c echo hello",
       "empty_layer": true
     },
     {
-      "author": "charlie@example.com",
+      "author": "clearly@example.com",
       "created": "2021-01-16T00:12:12.868439691Z",
       "created_by": "/bin/echo world",
       "empty_layer": true
     },
     {
-      "author": "charlie@example.com",
+      "author": "clearly@example.com",
       "created": "2021-01-16T00:12:13.055783024Z",
       "created_by": "/bin/ash -c #(nop)  SHELL [/bin/ash -c]",
       "empty_layer": true
     },
     {
-      "author": "charlie@example.com",
+      "author": "clearly@example.com",
       "created": "2021-01-16T00:12:13.473299627Z",
       "created_by": "/bin/ash -c #(nop)  STOPSIGNAL SIGWINCH",
       "empty_layer": true
     },
     {
-      "author": "charlie@example.com",
+      "author": "clearly@example.com",
       "created": "2021-01-16T00:12:13.644005108Z",
-      "created_by": "/bin/ash -c #(nop)  USER charlie:chargrp",
+      "created_by": "/bin/ash -c #(nop)  USER clearly:chargrp",
       "empty_layer": true
     },
     {
-      "author": "charlie@example.com",
+      "author": "clearly@example.com",
       "created": "2021-01-16T00:12:13.83546594Z",
       "created_by": "/bin/ash -c #(nop) WORKDIR /mnt",
       "empty_layer": true
     },
     {
-      "author": "charlie@example.com",
+      "author": "clearly@example.com",
       "created": "2021-01-16T00:12:14.042791834Z",
       "created_by": "/bin/ash -c #(nop)  VOLUME [/mnt/foo /mnt/bar /mnt/foo]",
       "empty_layer": true
@@ -544,10 +544,10 @@ EOF
     [[ $output = *'registry-1.docker.io:443/library/alpine:doesnotexist'* ]]
 
     # name does not exist remotely, not in library
-    run clearly image pull charliecloud/doesnotexist:latest
+    run clearly image pull clearly/doesnotexist:latest
     echo "$output"
     [[ $status -eq 1 ]]
-    [[ $output = *'registry-1.docker.io:443/charliecloud/doesnotexist:latest'* ]]
+    [[ $output = *'registry-1.docker.io:443/clearly/doesnotexist:latest'* ]]
 
     # tag does not exist remotely, not in library
     run clearly image pull robinrpr/clearly:doesnotexist

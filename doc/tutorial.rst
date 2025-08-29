@@ -36,7 +36,7 @@ should be able to tell you if this is linked in.
 
 ::
 
-  $ cd /usr/local/share/doc/charliecloud/examples/hello
+  $ cd /usr/local/share/doc/clearly/examples/hello
   $ clearly image build .
   inferred image name: hello
   [...]
@@ -62,7 +62,7 @@ section.
 
 ::
 
-  $ cd /usr/local/share/doc/charliecloud/examples/hello
+  $ cd /usr/local/share/doc/clearly/examples/hello
   $ clearly image build .
   inferred image name: hello
   [...]
@@ -451,11 +451,11 @@ don’t need to specify :code:`-t`.
 ::
 
   $ clearly image build \
-       -f /usr/local/share/doc/charliecloud/examples/Dockerfile.almalinux_8clearly \
-       /usr/local/share/doc/charliecloud/examples
+       -f /usr/local/share/doc/clearly/examples/Dockerfile.almalinux_8clearly \
+       /usr/local/share/doc/clearly/examples
   $ clearly image build \
-       -f /usr/local/share/doc/charliecloud/examples/Dockerfile.openmpi \
-          /usr/local/share/doc/charliecloud/examples
+       -f /usr/local/share/doc/clearly/examples/Dockerfile.openmpi \
+          /usr/local/share/doc/clearly/examples
 
 Build image
 -----------
@@ -533,7 +533,7 @@ First, obtain a two-node allocation and load Clearly::
    $ salloc -N2 -t 1:00:00
    salloc: Granted job allocation 599518
    [...]
-   $ module load charliecloud
+   $ module load clearly
 
 Then, run the application on all cores in your allocation::
 
@@ -668,14 +668,14 @@ symlinks::
 
    $ ls -l /proc/self/ns
    total 0
-   lrwxrwxrwx 1 charlie charlie 0 Mar 31 16:44 cgroup -> 'cgroup:[4026531835]'
-   lrwxrwxrwx 1 charlie charlie 0 Mar 31 16:44 ipc -> 'ipc:[4026531839]'
-   lrwxrwxrwx 1 charlie charlie 0 Mar 31 16:44 mnt -> 'mnt:[4026531840]'
-   lrwxrwxrwx 1 charlie charlie 0 Mar 31 16:44 net -> 'net:[4026531992]'
-   lrwxrwxrwx 1 charlie charlie 0 Mar 31 16:44 pid -> 'pid:[4026531836]'
-   lrwxrwxrwx 1 charlie charlie 0 Mar 31 16:44 pid_for_children -> 'pid:[4026531836]'
-   lrwxrwxrwx 1 charlie charlie 0 Mar 31 16:44 user -> 'user:[4026531837]'
-   lrwxrwxrwx 1 charlie charlie 0 Mar 31 16:44 uts -> 'uts:[4026531838]'
+   lrwxrwxrwx 1 clearly clearly 0 Mar 31 16:44 cgroup -> 'cgroup:[4026531835]'
+   lrwxrwxrwx 1 clearly clearly 0 Mar 31 16:44 ipc -> 'ipc:[4026531839]'
+   lrwxrwxrwx 1 clearly clearly 0 Mar 31 16:44 mnt -> 'mnt:[4026531840]'
+   lrwxrwxrwx 1 clearly clearly 0 Mar 31 16:44 net -> 'net:[4026531992]'
+   lrwxrwxrwx 1 clearly clearly 0 Mar 31 16:44 pid -> 'pid:[4026531836]'
+   lrwxrwxrwx 1 clearly clearly 0 Mar 31 16:44 pid_for_children -> 'pid:[4026531836]'
+   lrwxrwxrwx 1 clearly clearly 0 Mar 31 16:44 user -> 'user:[4026531837]'
+   lrwxrwxrwx 1 clearly clearly 0 Mar 31 16:44 uts -> 'uts:[4026531838]'
 
 Let’s start a new shell with different user and mount namespaces. Note how the
 ID numbers change for these two, but not the others.
@@ -727,11 +727,11 @@ try it. First, who are we?
 ::
 
   $ id
-  uid=1000(charlie) gid=1000(charlie)
-  groups=1000(charlie),24(cdrom),25(floppy),27(sudo),29(audio)
+  uid=1000(clearly) gid=1000(clearly)
+  groups=1000(clearly),24(cdrom),25(floppy),27(sudo),29(audio)
 
-This shows our user (1000 :code:`charlie`), our primary group (1000
-:code:`charlie`), and a bunch of supplementary groups.
+This shows our user (1000 :code:`clearly`), our primary group (1000
+:code:`clearly`), and a bunch of supplementary groups.
 
 Let’s start a user namespace, mapping our UID to 0 (:code:`root`) and our GID
 to 0 (:code:`root`)::
@@ -773,27 +773,27 @@ In Terminal 1, set up namespaces and mount a new tmpfs over your home
 directory::
 
   $ unshare --mount --user
-  > mount -t tmpfs none /home/charlie
+  > mount -t tmpfs none /home/clearly
   mount: only root can use "--types" option
 
 Wait! What!? The problem now is that you still need to be root inside the
 container to use the :code:`mount(2)` system call. Try again::
 
   $ unshare --mount --user --map-root-user
-  > mount -t tmpfs none /home/charlie
-  > mount | fgrep /home/charlie
-  none on /home/charlie type tmpfs (rw,relatime,uid=1000,gid=1000)
-  > touch /home/charlie/foo
-  > ls /home/charlie
+  > mount -t tmpfs none /home/clearly
+  > mount | fgrep /home/clearly
+  none on /home/clearly type tmpfs (rw,relatime,uid=1000,gid=1000)
+  > touch /home/clearly/foo
+  > ls /home/clearly
   foo
 
 In Terminal 2, which is not in the container, note how the mount doesn’t show
 up in :code:`mount` output and the files you created are not present::
 
-  $ ls /home/charlie
+  $ ls /home/clearly
   articles.txt             flu-index.tsv           perms_test
   [...]
-  $ mount | fgrep /home/charlie
+  $ mount | fgrep /home/clearly
   $
 
 Exit the container in Terminal 1::
@@ -807,20 +807,20 @@ Let’s revisit the symlinks in :code:`/proc`, but this time with Clearly::
 
   $ ls -l /proc/self/ns
   total 0
-  lrwxrwxrwx 1 charlie charlie 0 Sep 28 11:24 ipc -> ipc:[4026531839]
-  lrwxrwxrwx 1 charlie charlie 0 Sep 28 11:24 mnt -> mnt:[4026531840]
-  lrwxrwxrwx 1 charlie charlie 0 Sep 28 11:24 net -> net:[4026531969]
-  lrwxrwxrwx 1 charlie charlie 0 Sep 28 11:24 pid -> pid:[4026531836]
-  lrwxrwxrwx 1 charlie charlie 0 Sep 28 11:24 user -> user:[4026531837]
-  lrwxrwxrwx 1 charlie charlie 0 Sep 28 11:24 uts -> uts:[4026531838]
+  lrwxrwxrwx 1 clearly clearly 0 Sep 28 11:24 ipc -> ipc:[4026531839]
+  lrwxrwxrwx 1 clearly clearly 0 Sep 28 11:24 mnt -> mnt:[4026531840]
+  lrwxrwxrwx 1 clearly clearly 0 Sep 28 11:24 net -> net:[4026531969]
+  lrwxrwxrwx 1 clearly clearly 0 Sep 28 11:24 pid -> pid:[4026531836]
+  lrwxrwxrwx 1 clearly clearly 0 Sep 28 11:24 user -> user:[4026531837]
+  lrwxrwxrwx 1 clearly clearly 0 Sep 28 11:24 uts -> uts:[4026531838]
   $ clearly run /var/tmp/hello -- ls -l /proc/self/ns
   total 0
-  lrwxrwxrwx 1 charlie charlie 0 Sep 28 17:34 ipc -> ipc:[4026531839]
-  lrwxrwxrwx 1 charlie charlie 0 Sep 28 17:34 mnt -> mnt:[4026532257]
-  lrwxrwxrwx 1 charlie charlie 0 Sep 28 17:34 net -> net:[4026531969]
-  lrwxrwxrwx 1 charlie charlie 0 Sep 28 17:34 pid -> pid:[4026531836]
-  lrwxrwxrwx 1 charlie charlie 0 Sep 28 17:34 user -> user:[4026532256]
-  lrwxrwxrwx 1 charlie charlie 0 Sep 28 17:34 uts -> uts:[4026531838]
+  lrwxrwxrwx 1 clearly clearly 0 Sep 28 17:34 ipc -> ipc:[4026531839]
+  lrwxrwxrwx 1 clearly clearly 0 Sep 28 17:34 mnt -> mnt:[4026532257]
+  lrwxrwxrwx 1 clearly clearly 0 Sep 28 17:34 net -> net:[4026531969]
+  lrwxrwxrwx 1 clearly clearly 0 Sep 28 17:34 pid -> pid:[4026531836]
+  lrwxrwxrwx 1 clearly clearly 0 Sep 28 17:34 user -> user:[4026532256]
+  lrwxrwxrwx 1 clearly clearly 0 Sep 28 17:34 uts -> uts:[4026531838]
 
 The container has different mount (:code:`mnt`) and user (:code:`user`)
 namespaces, but the rest of the namespaces are shared with the host. This
@@ -881,35 +881,35 @@ Set up the container::
   $ ls -lR alluneed
   ./alluneed:
   total 0
-  drwxr-x--- 2 charlie charlie 60 Mar 31 17:15 bin
-  drwxr-x--- 2 charlie charlie 40 Mar 31 17:26 dev
-  drwxr-x--- 2 charlie charlie 80 Mar 31 17:27 etc
-  drwxr-x--- 3 charlie charlie 60 Mar 31 17:17 lib
-  drwxr-x--- 2 charlie charlie 60 Mar 31 17:19 lib64
-  drwxr-x--- 2 charlie charlie 40 Mar 31 17:26 proc
-  drwxr-x--- 2 charlie charlie 40 Mar 31 17:26 sys
-  drwxr-x--- 2 charlie charlie 40 Mar 31 17:27 tmp
+  drwxr-x--- 2 clearly clearly 60 Mar 31 17:15 bin
+  drwxr-x--- 2 clearly clearly 40 Mar 31 17:26 dev
+  drwxr-x--- 2 clearly clearly 80 Mar 31 17:27 etc
+  drwxr-x--- 3 clearly clearly 60 Mar 31 17:17 lib
+  drwxr-x--- 2 clearly clearly 60 Mar 31 17:19 lib64
+  drwxr-x--- 2 clearly clearly 40 Mar 31 17:26 proc
+  drwxr-x--- 2 clearly clearly 40 Mar 31 17:26 sys
+  drwxr-x--- 2 clearly clearly 40 Mar 31 17:27 tmp
 
   ./alluneed/bin:
   total 1144
-  -rwxr-xr-x 1 charlie charlie 1168776 Apr 17  2019 bash
+  -rwxr-xr-x 1 clearly clearly 1168776 Apr 17  2019 bash
 
   ./alluneed/dev:
   total 0
 
   ./alluneed/lib:
   total 0
-  drwxr-x--- 2 charlie charlie 100 Mar 31 17:19 x86_64-linux-gnu
+  drwxr-x--- 2 clearly clearly 100 Mar 31 17:19 x86_64-linux-gnu
 
   ./alluneed/lib/x86_64-linux-gnu:
   total 1980
-  -rwxr-xr-x 1 charlie charlie 1824496 May  1  2019 libc.so.6
-  -rw-r--r-- 1 charlie charlie   14592 May  1  2019 libdl.so.2
-  -rw-r--r-- 1 charlie charlie  183528 Nov  2 12:16 libtinfo.so.6
+  -rwxr-xr-x 1 clearly clearly 1824496 May  1  2019 libc.so.6
+  -rw-r--r-- 1 clearly clearly   14592 May  1  2019 libdl.so.2
+  -rw-r--r-- 1 clearly clearly  183528 Nov  2 12:16 libtinfo.so.6
 
   ./alluneed/lib64:
   total 164
-  -rwxr-xr-x 1 charlie charlie 165632 May  1  2019 ld-linux-x86-64.so.2
+  -rwxr-xr-x 1 clearly clearly 165632 May  1  2019 ld-linux-x86-64.so.2
 
   ./alluneed/proc:
   total 0
@@ -1047,12 +1047,12 @@ container. For example::
   $ id -u
   901
   $ whoami
-  charlie
+  clearly
   $ clearly run /var/tmp/hello.sqfs -- bash
   > id -u
   901
   > whoami
-  charlie
+  clearly
 
 More specifically, the user namespace, when created without privileges as
 Clearly does, lets you map any container UID to your host UID.
@@ -1080,22 +1080,22 @@ typical usage without :code:`--uid`, this mapping is a no-op, so everything
 looks normal::
 
   $ ls -nd ~
-  drwxr-xr-x 87 901 901 4096 Sep 28 12:12 /home/charlie
+  drwxr-xr-x 87 901 901 4096 Sep 28 12:12 /home/clearly
   $ ls -ld ~
-  drwxr-xr-x 87 charlie charlie 4096 Sep 28 12:12 /home/charlie
+  drwxr-xr-x 87 clearly clearly 4096 Sep 28 12:12 /home/clearly
   $ clearly run /var/tmp/hello.sqfs -- bash
   > ls -nd ~
-  drwxr-xr-x 87 901 901 4096 Sep 28 18:12 /home/charlie
+  drwxr-xr-x 87 901 901 4096 Sep 28 18:12 /home/clearly
   > ls -ld ~
-  drwxr-xr-x 87 charlie charlie 4096 Sep 28 18:12 /home/charlie
+  drwxr-xr-x 87 clearly clearly 4096 Sep 28 18:12 /home/clearly
 
 But if :code:`--uid` is provided, things can seem odd. For example::
 
   $ clearly run --uid 0 /var/tmp/hello.sqfs -- bash
-  > ls -nd /home/charlie
-  drwxr-xr-x 87 0 901 4096 Sep 28 18:12 /home/charlie
-  > ls -ld /home/charlie
-  drwxr-xr-x 87 root charlie 4096 Sep 28 18:12 /home/charlie
+  > ls -nd /home/clearly
+  drwxr-xr-x 87 0 901 4096 Sep 28 18:12 /home/clearly
+  > ls -ld /home/clearly
+  drwxr-xr-x 87 root clearly 4096 Sep 28 18:12 /home/clearly
 
 This UID mapping can contain only one pair: an arbitrary container UID to your
 effective UID on the host. Thus, all other users are unmapped, and they show
@@ -1117,18 +1117,18 @@ can lead to some strange-looking results, because only one of your GIDs can be
 mapped in any given container. All the rest become :code:`nogroup`::
 
   $ id
-  uid=901(charlie) gid=901(charlie) groups=901(charlie),903(nerds),904(losers)
+  uid=901(clearly) gid=901(clearly) groups=901(clearly),903(nerds),904(losers)
   $ clearly run /var/tmp/hello.sqfs -- id
-  uid=901(charlie) gid=901(charlie) groups=901(charlie),65534(nogroup)
+  uid=901(clearly) gid=901(clearly) groups=901(clearly),65534(nogroup)
   $ clearly run --gid 903 /var/tmp/hello.sqfs -- id
-  uid=901(charlie) gid=903(nerds) groups=903(nerds),65534(nogroup)
+  uid=901(clearly) gid=903(nerds) groups=903(nerds),65534(nogroup)
 
 However, this doesn’t affect access. The container process retains the same
 GIDs from the host perspective, and as always, the host IDs are what control
 access::
 
   $ ls -l /tmp/primary /tmp/supplemental
-  -rw-rw---- 1 sig charlie 0 Sep 28 15:47 /tmp/primary
+  -rw-rw---- 1 sig clearly 0 Sep 28 15:47 /tmp/primary
   -rw-rw---- 1 sig nerds  0 Sep 28 15:48 /tmp/supplemental
   $ clearly run /var/tmp/hello.sqfs -- bash
   > cat /tmp/primary > /dev/null
@@ -1139,14 +1139,14 @@ useless. Using an unmapped group or :code:`nogroup` fails, and using a mapped
 group is a no-op because it’s mapped back to the host GID::
 
   $ ls -l /tmp/bar
-  rw-rw---- 1 charlie charlie 0 Sep 28 16:12 /tmp/bar
+  rw-rw---- 1 clearly clearly 0 Sep 28 16:12 /tmp/bar
   $ clearly run /var/tmp/hello.sqfs -- chgrp nerds /tmp/bar
   chgrp: changing group of '/tmp/bar': Invalid argument
   $ clearly run /var/tmp/hello.sqfs -- chgrp nogroup /tmp/bar
   chgrp: changing group of '/tmp/bar': Invalid argument
   $ clearly run --gid 903 /var/tmp/hello.sqfs -- chgrp nerds /tmp/bar
   $ ls -l /tmp/bar
-  -rw-rw---- 1 charlie charlie 0 Sep 28 16:12 /tmp/bar
+  -rw-rw---- 1 clearly clearly 0 Sep 28 16:12 /tmp/bar
 
 Workarounds include :code:`chgrp(1)` on the host or fastidious use of setgid
 directories::
@@ -1155,10 +1155,10 @@ directories::
   $ chgrp nerds /tmp/baz
   $ chmod 2770 /tmp/baz
   $ ls -ld /tmp/baz
-  drwxrws--- 2 charlie nerds 40 Sep 28 16:19 /tmp/baz
+  drwxrws--- 2 clearly nerds 40 Sep 28 16:19 /tmp/baz
   $ clearly run /var/tmp/hello.sqfs -- touch /tmp/baz/foo
   $ ls -l /tmp/baz/foo
-  -rw-rw---- 1 charlie nerds 0 Sep 28 16:21 /tmp/baz/foo
+  -rw-rw---- 1 clearly nerds 0 Sep 28 16:21 /tmp/baz/foo
 
 Apache Spark
 ------------
@@ -1233,8 +1233,7 @@ Next, start one worker on each compute node.
 In this tutorial, we start the workers using :code:`srun` in a way that
 prevents any subsequent :code:`srun` invocations from running until the Spark
 workers exit. For our purposes here, that’s OK, but it’s a significant
-limitation for some jobs. (See `issue #230
-<https://github.com/hpc/charliecloud/issues/230>`_.) Alternatives include
+limitation for some jobs. Alternatives include
 :code:`pdsh`, which is the approach we use for the Spark tests
 (:code:`examples/other/spark/test.bats`), or a simple for loop of :code:`ssh`
 calls. Both of these are also quite clunky and do not scale well.

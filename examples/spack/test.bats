@@ -24,8 +24,8 @@ setup() {
 }
 
 @test "${clearly_tag}/find" {
-    run clearly run --home "$clearly_img" -- spack find charliecloud
+    run clearly run --home "$clearly_img" -- spack find clearly
     echo "$output"
     [[ $status -eq 0 ]]
-    [[ $output = *'charliecloud@'* ]]
+    [[ $output = *'clearly@'* ]]
 }

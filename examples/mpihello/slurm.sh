@@ -24,7 +24,7 @@ printf 'image:     %s\n' "$img"
 # Make Clearly available (varies by site).
 module purge
 module load friendly-testing
-module load charliecloud
+module load clearly
 
 # Unpack image.
 srun clearly convert -o dir "$tar" "$imgdir"
