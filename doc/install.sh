@@ -81,7 +81,7 @@ main() {
 	fi
 
 	#
-	# Step 4: Install the 'clearly' and 'epel-release' packages
+	# Step 4: Install the 'clearly' package
 	#
 
 	# The URL of our Gemfury RPM repository.
@@ -104,7 +104,7 @@ gpgcheck=0"
 
 	# Install the package using the detected package manager.
 	# The '-y' flag automatically answers 'yes' to any prompts.
-	$SUDO $PACKAGEMANAGER install -y epel-release clearly
+	$SUDO $PACKAGEMANAGER install -y clearly
 
 	# Stop printing executed commands.
 	set +x
