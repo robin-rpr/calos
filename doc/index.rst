@@ -1,8 +1,8 @@
 :orphan:
 
 .. hero::
-   :title: From Code Editor to Production in One Platform
-   :subtitle: The All-in-One Platform to Build, Package, and Deploy AI at Any Scale
+   :title: From EDA, Training, to Production in One Platform
+   :subtitle: The All-in-One Platform to Build, Package, and Deploy AI at Any Scale — Clearly is self-hosted and secure.
    :buttons: |
       [
         {"text": "Book a Demo", "link": "/index.html#calendar"},

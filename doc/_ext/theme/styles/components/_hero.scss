@@ -10,7 +10,7 @@
         );
     justify-content: center;
     text-align: center;
-    margin-top: -2.5rem;
+    margin-top: -3rem;
     height: 35rem;
 
     h1 {
@@ -30,11 +30,12 @@
 
     p {
         font-size: 1.25rem;
-        line-height: 1.75rem;
+        line-height: 2rem;
         letter-spacing: 0;
         font-weight: 300;
         color: #707070;
         margin-bottom: 2.75rem;
+        max-width: 39rem;
     }
 
     nav {
@@ -42,7 +43,8 @@
         column-gap: 1.25rem;
 
         a {
-            box-shadow: 0 0 0 1px rgb(224, 224, 224);
+            box-shadow: rgba(64, 64, 64, 0.24) 0px 0px 0px 1px inset;
+            transition: background 0.15s cubic-bezier(0,0,.2,1);
             padding: 0.75rem 1rem;
             line-height: 1.25rem;
             border-radius: 2rem;
@@ -52,6 +54,10 @@
             font-weight: 500;
             cursor: pointer;
             display: flex;
+
+            &:hover {
+                background: rgba(64, 64, 64, 0.06);
+            }
 
             &:first-child {
                 background: rgb(20, 20, 20);

@@ -52,6 +52,7 @@
 
                         &:last-child {
                             transform: translateY(0) !important;
+                            pointer-events: auto !important;
                             opacity: 1 !important;
                         }
                     }
@@ -81,6 +82,7 @@
                     &:last-child {
                         background: rgb(20, 20, 20);
                         transform: translateY(0.5rem);
+                        pointer-events: none;
                         position: absolute;
                         font-weight: 400;
                         color: #ffffff;
