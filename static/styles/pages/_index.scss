@@ -10,7 +10,6 @@
         .header__title {
             font-weight: 350;
             line-height: 1;
-            color: #575b5f;
             font-size: 1.5rem;
             margin: 0;
         }
@@ -21,7 +20,6 @@
         margin-left: auto;
         max-width: 99rem;
         margin-bottom: 1.5rem;
-        border-bottom-width: 1px;
 
         .tabs__container {
             display: flex;
@@ -34,7 +32,6 @@
             .container__tabs {
                 display: flex;
                 flex-direction: row;
-                column-gap: 0.25rem;
                 align-items: center;
                 position: relative;
                 margin-left: -1rem;
@@ -43,13 +40,13 @@
                     padding: 0.5rem 1rem;
                     border-radius: 2rem;
                     display: flex;
-                    color: #657380;
+                    color: #707070;
                     position: relative;
-                    font-weight: 350;
+                    font-weight: 450;
                     cursor: pointer;
     
                     &:hover {
-                        background: #f2f6f9;
+                        background: rgba(237, 237, 237, 0.52);
                     }
 
                     &:after {
@@ -60,7 +57,7 @@
                         background: transparent;
                         border-radius: 4px;
                         position: absolute;
-                        bottom: -10px;
+                        bottom: -8px;
                         left: 1rem;
                     }
 
