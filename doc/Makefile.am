@@ -28,7 +28,7 @@ clearly.rst \
 clearly-check.rst \
 clearly-convert.rst \
 clearly-deploy.rst \
-clearly-fromhost.rst \
+clearly-equip.rst \
 clearly-image.rst \
 clearly-list.rst \
 clearly-logs.rst \
@@ -55,7 +55,7 @@ man/clearly.7 \
 man/clearly-check.1 \
 man/clearly-convert.1 \
 man/clearly-deploy.1 \
-man/clearly-fromhost.1 \
+man/clearly-equip.1 \
 man/clearly-image.1 \
 man/clearly-list.1 \
 man/clearly-logs.1 \
@@ -72,7 +72,7 @@ html/best_practices.html \
 html/clearly-check.html \
 html/clearly-convert.html \
 html/clearly-deploy.html \
-html/clearly-fromhost.html \
+html/clearly-equip.html \
 html/clearly-image.html \
 html/clearly-list.html \
 html/clearly-run.html \

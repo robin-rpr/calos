@@ -12,7 +12,7 @@ See also
 
 clearly-check(1),
 clearly-convert(1),
-clearly-fromhost(1),
+clearly-equip(1),
 clearly-image(1),
 clearly-list(1),
 clearly-logs(1),

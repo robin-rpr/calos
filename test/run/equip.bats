@@ -6,7 +6,7 @@ setup () {
     fi_provider_path=$FI_PROVIDER_PATH
 }
 
-fromhost_clean () {
+equip_clean () {
     [[ $1 ]]
     # We used to delete only specific paths, but this turned into an unwieldy
     # mess of wildcards that obscured the original specificity purpose.
@@ -22,18 +22,18 @@ fromhost_clean () {
       -o -name sotest.c          \
     \) -print -delete
     clearly run -w "$1" -- /sbin/ldconfig  # restore default cache
-    fromhost_clean_p "$1"
+    equip_clean_p "$1"
 }
 
-fromhost_clean_p () {
+equip_clean_p () {
     clearly run "$1" -- /sbin/ldconfig -p | grep -F libsotest && return 1
-    run fromhost_ls "$1"
+    run equip_ls "$1"
     echo "$output"
     [[ $status -eq 0 ]]
     [[ -z $output ]]
 }
 
-fromhost_ls () {
+equip_ls () {
     find "$1" -xdev -name '*sotest*' -ls
 }
 
@@ -52,7 +52,7 @@ glibc_version_ok () {
     fi
 }
 
-@test 'clearly fromhost (CentOS)' {
+@test 'clearly equip (CentOS)' {
     scope standard
     prerequisites_ok almalinux_8clearly
     img=${clearly_imgdir}/almalinux_8clearly
@@ -60,13 +60,13 @@ glibc_version_ok () {
     # check glibc version compatibility.
     glibc_version_ok "$img"
 
-    libpath=$(clearly fromhost --print-lib "$img")
+    libpath=$(clearly equip --print-lib "$img")
     echo "libpath: ${libpath}"
 
     # --file
-    fromhost_clean "$img"
-    clearly fromhost -v --file sotest/files_inferrable.txt "$img"
-    fromhost_ls "$img"
+    equip_clean "$img"
+    clearly equip -v --file sotest/files_inferrable.txt "$img"
+    equip_ls "$img"
     test -f "${img}/usr/bin/sotest"
     test -f "${img}${libpath}/libsotest.so.1.0"
     test -L "${img}${libpath}/libsotest.so.1"
@@ -76,42 +76,42 @@ glibc_version_ok () {
     rm "${img}${libpath}/libsotest.so.1.0"
     rm "${img}${libpath}/libsotest.so.1"
     clearly run -w "$img" -- /sbin/ldconfig
-    fromhost_clean_p "$img"
+    equip_clean_p "$img"
 
     # --cmd
-    clearly fromhost -v --cmd 'cat sotest/files_inferrable.txt' "$img"
+    clearly equip -v --cmd 'cat sotest/files_inferrable.txt' "$img"
     clearly run "$img" -- sotest
 
     # --path
-    clearly fromhost -v --path sotest/bin/sotest \
+    clearly equip -v --path sotest/bin/sotest \
                    --path sotest/lib/libsotest.so.1.0 \
                    "$img"
     clearly run "$img" -- sotest
-    fromhost_clean "$img"
+    equip_clean "$img"
 
     # --cmd and --file
-    clearly fromhost -v --cmd 'cat sotest/files_inferrable.txt' \
+    clearly equip -v --cmd 'cat sotest/files_inferrable.txt' \
                    --file sotest/files_inferrable.txt "$img"
     clearly run "$img" -- sotest
-    fromhost_clean "$img"
+    equip_clean "$img"
 
     # --dest
-    clearly fromhost -v --file sotest/files_inferrable.txt \
+    clearly equip -v --file sotest/files_inferrable.txt \
                    --dest /mnt "$img" \
                    --path sotest/sotest.c
     clearly run "$img" -- sotest
     clearly run "$img" -- test -f /mnt/sotest.c
-    fromhost_clean "$img"
+    equip_clean "$img"
 
     # --dest overrides inference, but ldconfig still run
-    clearly fromhost -v --dest /lib \
+    clearly equip -v --dest /lib \
                    --file sotest/files_inferrable.txt \
                    "$img"
     clearly run "$img" -- /lib/sotest
-    fromhost_clean "$img"
+    equip_clean "$img"
 
     # --no-ldconfig
-    clearly fromhost -v --no-ldconfig --file sotest/files_inferrable.txt "$img"
+    clearly equip -v --no-ldconfig --file sotest/files_inferrable.txt "$img"
     [[   -f "${img}/usr/bin/sotest" ]]
     [[   -f "${img}${libpath}/libsotest.so.1.0" ]]
     [[ ! -L "${img}${libpath}/libsotest.so.1" ]]
@@ -120,22 +120,22 @@ glibc_version_ok () {
     echo "$output"
     [[ $status -eq 127 ]]
     [[ $output = *'libsotest.so.1: cannot open shared object file'* ]]
-    fromhost_clean "$img"
+    equip_clean "$img"
 
     # no --verbose
-    clearly fromhost --file sotest/files_inferrable.txt "$img"
+    clearly equip --file sotest/files_inferrable.txt "$img"
     clearly run "$img" -- sotest
-    fromhost_clean "$img"
+    equip_clean "$img"
 
     # destination directory not writeable (#323)
     chmod -v u-w "${img}/mnt"
-    clearly fromhost --dest /mnt --path sotest/sotest.c "$img"
+    clearly equip --dest /mnt --path sotest/sotest.c "$img"
     test -w "${img}/mnt"
     test -f "${img}/mnt/sotest.c"
-    fromhost_clean "$img"
+    equip_clean "$img"
 }
 
-@test 'clearly fromhost (Debian)' {
+@test 'clearly equip (Debian)' {
     scope full
     prerequisites_ok debian_9ch
     img=${clearly_imgdir}/debian_9ch
@@ -143,12 +143,12 @@ glibc_version_ok () {
     # check glibc version compatibility.
     glibc_version_ok "$img"
 
-    libpath=$(clearly fromhost --print-lib "$img")
+    libpath=$(clearly equip --print-lib "$img")
     echo "libpath: ${libpath}"
 
-    fromhost_clean "$img"
-    clearly fromhost -v --file sotest/files_inferrable.txt "$img"
-    fromhost_ls "$img"
+    equip_clean "$img"
+    clearly equip -v --file sotest/files_inferrable.txt "$img"
+    equip_ls "$img"
     test -f "${img}/usr/bin/sotest"
     test -f "${img}/${libpath}/libsotest.so.1.0"
     test -L "${img}/${libpath}/libsotest.so.1"
@@ -158,152 +158,152 @@ glibc_version_ok () {
     rm "${img}/${libpath}/libsotest.so.1.0"
     rm "${img}/${libpath}/libsotest.so.1"
     rm "${img}/etc/ld.so.cache"
-    fromhost_clean_p "$img"
+    equip_clean_p "$img"
 }
 
-@test 'clearly fromhost errors' {
+@test 'clearly equip errors' {
     scope standard
     prerequisites_ok almalinux_8clearly
     img=${clearly_imgdir}/almalinux_8clearly
 
     # no image
-    run clearly fromhost --path sotest/sotest.c
+    run clearly equip --path sotest/sotest.c
     echo "$output"
     [[ $status -eq 1 ]]
     [[ $output = *'no image specified'* ]]
-    fromhost_clean_p "$img"
+    equip_clean_p "$img"
 
     # image is not a directory
-    run clearly fromhost --path sotest/sotest.c /etc/motd
+    run clearly equip --path sotest/sotest.c /etc/motd
     echo "$output"
     [[ $status -eq 1 ]]
     [[ $output = *'image not a directory: /etc/motd'* ]]
-    fromhost_clean_p "$img"
+    equip_clean_p "$img"
 
     # two image arguments
-    run clearly fromhost --path sotest/sotest.c "$img" foo
+    run clearly equip --path sotest/sotest.c "$img" foo
     echo "$output"
     [[ $status -eq 1 ]]
     [[ $output = *'duplicate image: foo'* ]]
-    fromhost_clean_p "$img"
+    equip_clean_p "$img"
 
     # no files argument
-    run clearly fromhost "$img"
+    run clearly equip "$img"
     echo "$output"
     [[ $status -eq 1 ]]
     [[ $output = *'empty file list'* ]]
-    fromhost_clean_p "$img"
+    equip_clean_p "$img"
 
     # file that needs --dest but not specified
-    run clearly fromhost -v --path sotest/sotest.c "$img"
+    run clearly equip -v --path sotest/sotest.c "$img"
     echo "$output"
     [[ $status -eq 1 ]]
     [[ $output = *'no destination for: sotest/sotest.c'* ]]
-    fromhost_clean_p "$img"
+    equip_clean_p "$img"
 
     # file with colon in name
-    run clearly fromhost -v --path 'foo:bar' "$img"
+    run clearly equip -v --path 'foo:bar' "$img"
     echo "$output"
     [[ $status -eq 1 ]]
     [[ $output = *"paths can't contain colon: foo:bar"* ]]
-    fromhost_clean_p "$img"
+    equip_clean_p "$img"
     # file with newlines in name
-    run clearly fromhost -v --path $'foo\nbar' "$img"
+    run clearly equip -v --path $'foo\nbar' "$img"
     echo "$output"
     [[ $status -eq 1 ]]
     [[ $output = *"no destination for: foo"* ]]
-    fromhost_clean_p "$img"
+    equip_clean_p "$img"
 
     # --cmd no argument
-    run clearly fromhost "$img" --cmd
+    run clearly equip "$img" --cmd
     echo "$output"
     [[ $status -eq 1 ]]
     [[ $output = *'--cmd must not be empty'* ]]
-    fromhost_clean_p "$img"
+    equip_clean_p "$img"
     # --cmd empty
-    run clearly fromhost --cmd true "$img"
+    run clearly equip --cmd true "$img"
     echo "$output"
     [[ $status -eq 1 ]]
     [[ $output = *'empty file list'* ]]
-    fromhost_clean_p "$img"
+    equip_clean_p "$img"
     # --cmd fails
-    run clearly fromhost --cmd false "$img"
+    run clearly equip --cmd false "$img"
     echo "$output"
     [[ $status -eq 1 ]]
     [[ $output = *'command failed: false'* ]]
-    fromhost_clean_p "$img"
+    equip_clean_p "$img"
 
     # --file no argument
-    run clearly fromhost "$img" --file
+    run clearly equip "$img" --file
     echo "$output"
     [[ $status -eq 1 ]]
     [[ $output = *'--file must not be empty'* ]]
-    fromhost_clean_p "$img"
+    equip_clean_p "$img"
     # --file empty
-    run clearly fromhost --file /dev/null "$img"
+    run clearly equip --file /dev/null "$img"
     echo "$output"
     [[ $status -eq 1 ]]
     [[ $output = *'empty file list'* ]]
-    fromhost_clean_p "$img"
+    equip_clean_p "$img"
     # --file does not exist
-    run clearly fromhost --file /doesnotexist "$img"
+    run clearly equip --file /doesnotexist "$img"
     echo "$output"
     [[ $status -eq 1 ]]
     [[ $output = *'/doesnotexist: No such file or directory'* ]]
     [[ $output = *'cannot read file: /doesnotexist'* ]]
-    fromhost_clean_p "$img"
+    equip_clean_p "$img"
 
     # --path no argument
-    run clearly fromhost "$img" --path
+    run clearly equip "$img" --path
     echo "$output"
     [[ $status -eq 1 ]]
     [[ $output = *'--path must not be empty'* ]]
-    fromhost_clean_p "$img"
+    equip_clean_p "$img"
     # --path does not exist
-    run clearly fromhost --dest /mnt --path /doesnotexist "$img"
+    run clearly equip --dest /mnt --path /doesnotexist "$img"
     echo "$output"
     [[ $status -eq 1 ]]
     [[ $output = *'No such file or directory'* ]]
     [[ $output = *'cannot inject: /doesnotexist'* ]]
-    fromhost_clean_p "$img"
+    equip_clean_p "$img"
 
     # --dest no argument
-    run clearly fromhost "$img" --dest
+    run clearly equip "$img" --dest
     echo "$output"
     [[ $status -eq 1 ]]
     [[ $output = *'--dest must not be empty'* ]]
-    fromhost_clean_p "$img"
+    equip_clean_p "$img"
     # --dest not an absolute path
-    run clearly fromhost --dest relative --path sotest/sotest.c "$img"
+    run clearly equip --dest relative --path sotest/sotest.c "$img"
     echo "$output"
     [[ $status -eq 1 ]]
     [[ $output = *'not an absolute path: relative'* ]]
-    fromhost_clean_p "$img"
+    equip_clean_p "$img"
     # --dest does not exist
-    run clearly fromhost --dest /doesnotexist --path sotest/sotest.c "$img"
+    run clearly equip --dest /doesnotexist --path sotest/sotest.c "$img"
     echo "$output"
     [[ $status -eq 1 ]]
     [[ $output = *'not a directory:'* ]]
-    fromhost_clean_p "$img"
+    equip_clean_p "$img"
     # --dest is not a directory
-    run clearly fromhost --dest /bin/sh --file sotest/sotest.c "$img"
+    run clearly equip --dest /bin/sh --file sotest/sotest.c "$img"
     echo "$output"
     [[ $status -eq 1 ]]
     [[ $output = *'not a directory:'* ]]
-    fromhost_clean_p "$img"
+    equip_clean_p "$img"
 
     # image does not exist
-    run clearly fromhost --file sotest/files_inferrable.txt /doesnotexist
+    run clearly equip --file sotest/files_inferrable.txt /doesnotexist
     echo "$output"
     [[ $status -eq 1 ]]
     [[ $output = *'image not a directory: /doesnotexist'* ]]
-    fromhost_clean_p "$img"
+    equip_clean_p "$img"
     # image specified twice
-    run clearly fromhost --file sotest/files_inferrable.txt "$img" "$img"
+    run clearly equip --file sotest/files_inferrable.txt "$img" "$img"
     echo "$output"
     [[ $status -eq 1 ]]
     [[ $output = *'duplicate image'* ]]
-    fromhost_clean_p "$img"
+    equip_clean_p "$img"
 
     # ldconfig gives no shared library path (#324)
     #
@@ -311,49 +311,49 @@ glibc_version_ok () {
     # couldn’t come up with anything better. E.g., bad ld.so.conf or broken
     # .so’s seem to produce only warnings.)
     mv "${img}/sbin/ldconfig" "${img}/sbin/ldconfig.foo"
-    run clearly fromhost --print-lib "$img"
+    run clearly equip --print-lib "$img"
     mv "${img}/sbin/ldconfig.foo" "${img}/sbin/ldconfig"
     echo "$output"
     [[ $status -eq 1 ]]
     [[ $output = *'empty path from ldconfig'* ]]
-    fromhost_clean_p "$img"
+    equip_clean_p "$img"
 }
 
-@test 'clearly fromhost --path with libfabric' {
+@test 'clearly equip --path with libfabric' {
     scope full
     prerequisites_ok openmpi
     img=${clearly_imgdir}/openmpi
     unset FI_PROVIDER_PATH
 
-    ofidest=$(clearly fromhost --print-fi "$img")
+    ofidest=$(clearly equip --print-fi "$img")
     echo "provider dest: ${ofidest}"
 
-    # The libsotest-fi.so is a dummy provider intended to exercise clearly fromhost
-    # script logic. Succeed if clearly fromhost finds the container libfabric.so and
+    # The libsotest-fi.so is a dummy provider intended to exercise clearly equip
+    # script logic. Succeed if clearly equip finds the container libfabric.so and
     # injects the libfabric-fi.so dummy executable in the directory /libfabric
     # where libfabric.so is found.
     #
     # Inferred dest from image libfabric.so.
     img=${clearly_imgdir}/openmpi
     ofi=${TEST_DIR}/sotest/lib/libfabric/libsotest-fi.so
-    run clearly fromhost -p "${ofi}" "$img"
+    run clearly equip -p "${ofi}" "$img"
     echo "$output"
     [[ $status -eq 0 ]]
     test -f "${img}/${ofidest}/libsotest-fi.so"
-    fromhost_clean "$img"
+    equip_clean "$img"
 
     # host FI_PROVIDER_PATH with --dest
     export FI_PROVIDER_PATH=/usr/lib
-    run clearly fromhost "$img" -d /usr/lib -p "$ofi" -v
+    run clearly equip "$img" -d /usr/lib -p "$ofi" -v
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output = *'warn'*'FI_PROVIDER_PATH'* ]]
     test -f "${img}/usr/lib/libsotest-fi.so"
-    fromhost_clean "$img"
+    equip_clean "$img"
     export FI_PROVIDER_PATH=$fi_provider_path
 }
 
-@test 'clearly fromhost --nvidia with GPU' {
+@test 'clearly equip --nvidia with GPU' {
     scope full
     prerequisites_ok nvidia
     command -v nvidia-container-cli >/dev/null 2>&1 \
@@ -374,7 +374,7 @@ glibc_version_ok () {
     fi
 
     # --nvidia
-    clearly fromhost -v --nvidia "$img"
+    clearly equip -v --nvidia "$img"
 
     # nvidia-smi runs in guest
     clearly run "$img" -- nvidia-smi -L
@@ -389,34 +389,34 @@ glibc_version_ok () {
     cmp <(echo "$host") <(echo "$guest")
 
     # --nvidia and --cmd
-    fromhost_clean "$img"
-    clearly fromhost --nvidia --file sotest/files_inferrable.txt "$img"
+    equip_clean "$img"
+    clearly equip --nvidia --file sotest/files_inferrable.txt "$img"
     clearly run "$img" -- nvidia-smi -L
     clearly run "$img" -- sotest
     # --nvidia and --file
-    fromhost_clean "$img"
-    clearly fromhost --nvidia --cmd 'cat sotest/files_inferrable.txt' "$img"
+    equip_clean "$img"
+    clearly equip --nvidia --cmd 'cat sotest/files_inferrable.txt' "$img"
     clearly run "$img" -- nvidia-smi -L
     clearly run "$img" -- sotest
 
     # CUDA sample
     sample=/matrixMulCUBLAS
-    # should fail without clearly fromhost --nvidia
-    fromhost_clean "$img"
+    # should fail without clearly equip --nvidia
+    equip_clean "$img"
     run clearly run "$img" -- "$sample"
     echo "$output"
     [[ $status -eq 1 ]]
     [[ $output = *'CUDA error at'* ]]
     # should succeed with it
-    fromhost_clean_p "$img"
-    clearly fromhost --nvidia "$img"
+    equip_clean_p "$img"
+    clearly equip --nvidia "$img"
     run clearly run "$img" -- "$sample"
     echo "$output"
     [[ $status -eq 0 ]]
     [[ $output =~ 'Comparing CUBLAS Matrix Multiply with CPU results: PASS' ]]
 }
 
-@test 'clearly fromhost --nvidia without GPU' {
+@test 'clearly equip --nvidia without GPU' {
     scope full
     prerequisites_ok nvidia
     img=${clearly_imgdir}/nvidia
@@ -433,14 +433,14 @@ glibc_version_ok () {
         else
             [[ $status -eq 1 ]]
             [[ $output = *'cuda error'* ]]
-            run clearly fromhost -v --nvidia "$img"
+            run clearly equip -v --nvidia "$img"
             echo "$output"
             [[ $status -eq 1 ]]
             [[ $output = *'does this host have GPUs'* ]]
         fi
     else
         # nvidia-container-cli not in $PATH
-        run clearly fromhost -v --nvidia "$img"
+        run clearly equip -v --nvidia "$img"
         echo "$output"
         [[ $status -eq 1 ]]
         r="nvidia-container-cli: (command )?not found"

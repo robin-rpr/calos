@@ -1,4 +1,4 @@
-:code:`clearly fromhost`
+:code:`clearly equip`
 ++++++++++++++++++++++++
 
 .. only:: not man
@@ -11,7 +11,7 @@ Synopsis
 
 ::
 
-  $ clearly fromhost [OPTION ...] [FILE_OPTION ...] IMGDIR
+  $ clearly equip [OPTION ...] [FILE_OPTION ...] IMGDIR
 
 
 Description
@@ -93,13 +93,13 @@ To specify which files to inject
 
   :code:`--cray-cxi`
     Inject cray-libfabric for slingshot. This is equivalent to
-    :code:`--path $CLEARLY_FROMHOST_OFI_CXI`, where :code:`$CLEARLY_FROMHOST_OFI_CXI` is
+    :code:`--path $CLEARLY_EQUIP_OFI_CXI`, where :code:`$CLEARLY_EQUIP_OFI_CXI` is
     the path to the Cray host libfabric :code:`libfabric.so`.
 
   :code:`--cray-gni`
     Inject cray gemini/aries GNI libfabric provider :code:`libgnix-fi.so`. This
-    is equivalent to :code:`--fi-provider $CLEARLY_FROMHOST_OFI_GNI`, where
-    :code:`CLEARLY_FROMHOST_OFI_GNI` is the path to the Cray host ugni provider
+    is equivalent to :code:`--fi-provider $CLEARLY_EQUIP_OFI_GNI`, where
+    :code:`CLEARLY_EQUIP_OFI_GNI` is the path to the Cray host ugni provider
     :code:`libgnix-fi.so`.
 
   :code:`--nvidia`
@@ -146,13 +146,13 @@ Additional arguments
    everything is going well. By default, we suppress these, but you can see
    them with sufficient verbosity. For example::
 
-     $ clearly fromhost --print-lib /var/tmp/bullseye
+     $ clearly equip --print-lib /var/tmp/bullseye
      /usr/local/lib
-     $ clearly fromhost -v --print-lib /var/tmp/bullseye
+     $ clearly equip -v --print-lib /var/tmp/bullseye
      asking ldconfig for inferred shared library destination
      inferred shared library destination: /var/tmp/bullseye//usr/local/lib
      /usr/local/lib
-     $ clearly fromhost -v -v --print-lib /var/tmp/bullseye
+     $ clearly equip -v -v --print-lib /var/tmp/bullseye
      asking ldconfig for inferred shared library destination
      /sbin/ldconfig: Can't stat /usr/local/lib/x86_64-linux-gnu: No such file or directory
      /sbin/ldconfig: Path `/lib/x86_64-linux-gnu' given more than once
@@ -162,7 +162,7 @@ Additional arguments
      /usr/local/lib
 
 
-When to use :code:`clearly fromhost`
+When to use :code:`clearly equip`
 ====================================
 
 This command does a lot of heuristic magic; while it *can* copy arbitrary
@@ -183,7 +183,7 @@ some use cases and the recommended approach:
 
 3. *I have some shared libraries that I need in the image for functionality or
    performance, and they aren't available in a place where I can use*
-   :code:`COPY`. This is the intended use case of :code:`clearly fromhost`. You can
+   :code:`COPY`. This is the intended use case of :code:`clearly equip`. You can
    use :code:`--cmd`, :code:`--file`, :code:`--ofi`, and/or :code:`--path` to
    put together a custom solution. But, please consider filing an issue so we
    can package your functionality with a tidy option like :code:`--nvidia`.
@@ -306,7 +306,7 @@ libfabric at host path :code:`/opt/cray-libfabric/lib64/libfabric.so`.
 
 ::
 
-  $ clearly fromhost -v --path /opt/cray-libfabric/lib64/libfabric.so /tmp/ompi
+  $ clearly equip -v --path /opt/cray-libfabric/lib64/libfabric.so /tmp/ompi
   [ debug ] queueing files
   [ debug ]    cray libfabric: /opt/cray-libfabric/lib64/libfabric.so
   [ debug ] searching image for inferred libfabric destination
@@ -350,7 +350,7 @@ provider access.
 
 ::
 
-  $ clearly fromhost -v --path /opt/cray/libfabric/1.15.0.0/lib64/libfabric.so \
+  $ clearly equip -v --path /opt/cray/libfabric/1.15.0.0/lib64/libfabric.so \
                 -d /usr/local/bin \
                 --path /opt/cray/libfabric/1.15.0.0/lib64/libfabric.so \
                 /tmp/ompi
@@ -370,7 +370,7 @@ with :code:`fi_info`.
 
 ::
 
-  $ clearly fromhost -v --path /home/ofi/libgnix-fi.so /tmp/ompi
+  $ clearly equip -v --path /home/ofi/libgnix-fi.so /tmp/ompi
   [ debug ] queueing files
   [ debug ]    libfabric shared provider: /home/ofi/libgnix-fi.so
   [ debug ] searching /tmp/ompi for libfabric shared provider destination
@@ -421,30 +421,30 @@ update the :code:`ld.so` cache.
   $ cat qux.txt
   /bin/bar
   /usr/lib64/libfoo.so
-  $ clearly fromhost --file qux.txt /var/tmp/baz
+  $ clearly equip --file qux.txt /var/tmp/baz
 
 Same as above::
 
-  $ clearly fromhost --cmd 'cat qux.txt' /var/tmp/baz
+  $ clearly equip --cmd 'cat qux.txt' /var/tmp/baz
 
 Same as above::
 
-  $ clearly fromhost --path /bin/bar --path /usr/lib64/libfoo.so /var/tmp/baz
+  $ clearly equip --path /bin/bar --path /usr/lib64/libfoo.so /var/tmp/baz
 
 Same as above, but place the files into :code:`/corge` instead (and the shared
 library will not be found by :code:`ldconfig`)::
 
-  $ clearly fromhost --dest /corge --file qux.txt /var/tmp/baz
+  $ clearly equip --dest /corge --file qux.txt /var/tmp/baz
 
 Same as above, and also place file :code:`/etc/quux` at :code:`/etc/quux`
 within the container::
 
-  $ clearly fromhost --file qux.txt --dest /etc --path /etc/quux /var/tmp/baz
+  $ clearly equip --file qux.txt --dest /etc --path /etc/quux /var/tmp/baz
 
 Inject the executables and libraries recommended by nVidia into the image, and
 then run :code:`ldconfig`::
 
-  $ clearly fromhost --nvidia /var/tmp/baz
+  $ clearly equip --nvidia /var/tmp/baz
   asking ldconfig for shared library destination
   /sbin/ldconfig: Can’t stat /libx32: No such file or directory
   /sbin/ldconfig: Can’t stat /usr/libx32: No such file or directory
@@ -461,19 +461,6 @@ then run :code:`ldconfig`::
     /usr/lib64/libGLESv2_nvidia.so.460.32.03 -> /usr/lib64//bind9-export (inferred)
     /usr/lib64/libGLESv1_CM_nvidia.so.460.32.03 -> /usr/lib64//bind9-export (inferred)
   running ldconfig
-
-Acknowledgements
-================
-
-This command was inspired by the similar `Shifter
-<http://www.nersc.gov/research-and-development/user-defined-images/>`_ feature
-that allows Shifter containers to use the Cray Aries network. We particularly
-appreciate the help provided by Shane Canon and Doug Jacobsen during our
-implementation of :code:`--cray-mpi`.
-
-We appreciate the advice of Ryan Olson at nVidia on implementing
-:code:`--nvidia`.
-
 
 .. include:: ./bugs.rst
 .. include:: ./see_also.rst

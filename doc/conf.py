@@ -173,14 +173,6 @@ highlight_language = 'console'
 theme_options = ThemeOptions(
     show_prev_next=True,
     awesome_external_links=True,
-    main_nav_links={
-        "Home": "/index",
-        "About": "/about",
-        "Documentation": "/install",
-    },
-    extra_nav_links={
-        "Book a Demo": "/index.html#calendar",
-    },
 )
 
 html_theme_options = asdict(theme_options)
@@ -295,7 +287,7 @@ man_pages = [
    ("clearly-deploy", "clearly-deploy",
     "Deploy a multi-service application",
     [], 1),
-   ("clearly-fromhost", "clearly-fromhost",
+   ("clearly-equip", "clearly-equip",
     "Inject files from the host into an image directory, with various magic",
     [], 1),
    ("clearly-image", "clearly-image",

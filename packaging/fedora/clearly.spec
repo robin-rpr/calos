@@ -204,7 +204,7 @@ getent passwd clearly >/dev/null 2>&1 || useradd -r -g clearly -d /var/lib/clear
 %{_libexecdir}/%{name}/convert
 %{_libexecdir}/%{name}/daemon
 %{_libexecdir}/%{name}/deploy
-%{_libexecdir}/%{name}/fromhost
+%{_libexecdir}/%{name}/equip
 %{_libexecdir}/%{name}/image
 %{_libexecdir}/%{name}/list
 %{_libexecdir}/%{name}/logs
@@ -215,7 +215,7 @@ getent passwd clearly >/dev/null 2>&1 || useradd -r -g clearly -d /var/lib/clear
 %{_mandir}/man1/clearly-check.1*
 %{_mandir}/man1/clearly-convert.1*
 %{_mandir}/man1/clearly-deploy.1*
-%{_mandir}/man1/clearly-fromhost.1*
+%{_mandir}/man1/clearly-equip.1*
 %{_mandir}/man1/clearly-image.1*
 %{_mandir}/man1/clearly-list.1*
 %{_mandir}/man1/clearly-logs.1*

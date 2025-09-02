@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ast
 from docutils import nodes
 from docutils.parsers.rst import directives
 from sphinx.util.docutils import SphinxDirective
@@ -20,7 +21,12 @@ class HeroDirective(SphinxDirective):
     Usage:
         .. hero::
            :title: From Notebook to Production in One Platform
-           :subtitle: Clearly is a platform for building and deploying apps at scale.
+           :subtitle: The All-in-One Platform to Build, Package, and Deploy AI at Any Scale
+           :buttons: |
+              [ 
+                {"text": "Book a Demo", "link": "index.html#calendar"},
+                {"text": "Install", "link": "/install"}
+              ]
     """
 
     name = "hero"
@@ -33,7 +39,7 @@ class HeroDirective(SphinxDirective):
     option_spec = {
         "title": directives.unchanged,
         "subtitle": directives.unchanged,
-        "command": directives.unchanged,
+        "buttons": directives.unchanged,
     }
 
     def run(self) -> list[nodes.Node]:
@@ -47,7 +53,7 @@ class HeroDirective(SphinxDirective):
         # Set attributes from options
         node["title"] = self.options["title"]
         node["subtitle"] = self.options.get("subtitle", "")
-        node["command"] = self.options.get("command", "")
+        node["buttons"] = self.options.get("buttons", "")
 
         return [node]
 
@@ -55,11 +61,14 @@ class HeroDirective(SphinxDirective):
 def visit_hero_node(self, node: HeroNode) -> None:
     """Visit a Hero node and generate HTML."""
     # Generate the HTML for the Hero section
+    buttons = ast.literal_eval(node['buttons'].strip()[1:])
     html = f"""
     <div class="hero">
         <h1>{node['title']}</h1>
         <p>{node['subtitle']}</p>
-        {f"<pre><code>{node['command']}</code></pre>" if node['command'] else ""}
+        <nav>
+            {''.join(f"<a href='{button['link']}'>{button['text']}</a>" for button in buttons)}
+        </nav>
     </div>
     """
     

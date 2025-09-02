@@ -21,11 +21,11 @@ class SliderDirective(SphinxDirective):
 
     Usage:
         .. slider::
-           :steps:
-              - title: "Step 1"
-                image: https://picsum.photos/200/300
-              - title: "Step 2"
-                image: https://picsum.photos/200/300
+           :steps: |
+              [
+                {"title": "Step 1", "image": "https://picsum.photos/200/300"},
+                {"title": "Step 2", "image": "https://picsum.photos/200/300"},
+              ]
     """
 
     name = "slider"

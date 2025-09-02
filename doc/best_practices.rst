@@ -414,7 +414,7 @@ brittle but usually effective way to give containers access to the Cray
 libfabric Slingshot provider :code:`cxi`.
 
 In Clearly, both of these injection operations are currently done with
-:code:`clearly fromhost`.
+:code:`clearly equip`.
 
 Choose a compatible PMI
 -----------------------

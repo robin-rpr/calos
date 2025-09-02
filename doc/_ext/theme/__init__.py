@@ -58,20 +58,6 @@ class ThemeOptions:
     awesome_external_links: bool = False
     """If true, the theme includes an icon after external links and adds ``rel="nofollow noopener"`` to the links' attributes."""
 
-    main_nav_links: dict[str, str] = field(default_factory=dict)
-    """A dictionary with links to include in the site header.
-
-    The keys of this dictionary are the labels for the links.
-    The values are absolute or relative URLs.
-    """
-
-    extra_nav_links: dict[str, LinkIcon] = field(default_factory=dict)
-    """A dictionary with extra links to include in the site header.
-
-    The keys are labels for the link's ``title`` attribute.
-    The values are themselves :class:`LinkIcon`.
-    """
-
     globaltoc_includehidden: bool = True
     """If true, the theme includes entries from *hidden*
     :sphinxdocs:`toctree <usage/restructuredtext/directives.html#directive-toctree>` directives in the sidebar.

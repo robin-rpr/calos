@@ -61,7 +61,7 @@ FROM almalinux_8clearly
 #   c : requires cray interconnect and libraries
 #   d : shm enables applications using OFI to be run over shared memory.
 #   f : Requires access to hardware specific libraries at build time; these
-#       providers need to be injected at run-time. See clearly fromhost man page.
+#       providers need to be injected at run-time. See clearly equip man page.
 #
 # The full list of OFI providers can be seen here:
 #

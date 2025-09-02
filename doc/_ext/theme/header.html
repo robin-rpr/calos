@@ -1,61 +1,26 @@
 <header id="header">
-  {%- block header_before %}
-  {% endblock header_before -%}
-
   <div class="header__container">
-    {%- block header_left %}
-    <div class="container__left">
-      {%- block header_logo %}
-      <a href="{{ pathto(master_doc) }}" class="left__logo">
-        {%- if logo %}
-        <img height="26" src="{{ pathto('_static/' + logo, 1) }}" alt="Logo" />
-        {%- endif -%}
+    <div class="container__desktop-menu">
+      {%- if logo %}
+      <a href="{{ pathto(master_doc) }}" class="desktop-menu__logo">
+        <img height="26" width="110" src="{{ pathto('_static/' + logo, 1) }}" alt="Logo" />
       </a>
-      {%- endblock header_logo %}
+      {%- endif -%}
 
-      {%- block header_main_nav %}
-      {%- if theme_main_nav_links|tobool -%}
-      <nav class="left__navigation">
-        {%- for text,url in theme_main_nav_links.items() %}
-        {%- set _active = "navigation__link--active" if pagename in url else "" -%}
-        {%- if url.startswith("http") %}
-        <a href="{{ url }}" class="navigation__link {{ _active }}" rel="noopener nofollow">{{ text }}</a>
-        {%- else %}
-        <a href="{{ pathto(url) }}" class="navigation__link {{ _active }}">{{ text }}</a>
-        {%- endif %}
-        {%- endfor %}
+      <nav class="desktop-menu__navigation"
+           x-data="{ showHidden: false }"
+           :class="{ 'desktop-menu__navigation--show-hidden': showHidden }"
+           @scroll.window="showHidden = pageYOffset > 530">
+        <a href="/install.html" class="navigation__link">Install</a>
+        <a href="/tutorial.html" class="navigation__link">Docs</a>
+        <a href="/index.html#calendar" class="navigation__link">Book a Demo</a>
       </nav>
-      {%- endif %}
-      {%- endblock header_main_nav -%}
     </div>
-    {%- endblock header_left %}
 
-    {%- block mobile_menu %}
-    {%- if sidebars|length >0 -%}
     <div class="container__mobile-menu">
       <button class="mobile-menu__button" type="button" @click="showSidebar = true">
         <i class="fa-sharp fa-light fa-bars"></i>
       </button>
     </div>
-    {%- endif -%}
-    {%- endblock mobile_menu %}
-
-    {%- block header_right %}
-    <div class="container__right container__right--float-end">
-      {%- block header_extra_nav %}
-      <nav class="right__navigation">
-        {%- if theme_extra_nav_links|tobool %}
-        {%- for text,url in theme_extra_nav_links.items() %}
-        <a class="navigation__link navigation__link--inverse" href="{{ url }}" rel="noopener nofollow">
-          {{ text }}
-        </a>
-        {%- endfor %}
-        {%- endif %}
-      </nav>
-      {%- endblock header_extra_nav %}
-    </div>
   </div>
-  
-  {%- endblock header_right %}
-  {%- block header_after %}{%- endblock header_after %}
 </header>

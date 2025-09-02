@@ -6,7 +6,7 @@
 
 cmddir = $(pkglibexecdir)
 cmd_PROGRAMS = check run
-EXTRA_DIST = convert deploy fromhost test list stop logs version
+EXTRA_DIST = convert deploy equip test list stop logs version
 
 run_SOURCES = run.c core.h core.c net.h net.c misc.h misc.c
 if HAVE_LIBSQUASHFUSE
@@ -19,7 +19,7 @@ check_SOURCES = check.c misc.h misc.c
 
 ## Shell scripts - distributed as-is
 
-cmd_SCRIPTS = convert deploy fromhost test list stop logs version
+cmd_SCRIPTS = convert deploy equip test list stop logs version
 
 # Python modules to compile via Cython
 cython_modules = image daemon

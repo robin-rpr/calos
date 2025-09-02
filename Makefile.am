@@ -10,7 +10,7 @@ EXTRA_DIST = LICENSE README.rst VERSION autogen.sh
 install-exec-hook:
 	@echo '### re-writing embedded paths ###'
 	for i in $(DESTDIR)@libexecdir@/clearly/convert \
-	         $(DESTDIR)@libexecdir@/clearly/fromhost \
+	         $(DESTDIR)@libexecdir@/clearly/equip \
 			 $(DESTDIR)@libexecdir@/clearly/deploy \
 	         $(DESTDIR)@libexecdir@/clearly/test \
 			 $(DESTDIR)@libexecdir@/clearly/list \

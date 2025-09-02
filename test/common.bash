@@ -126,17 +126,17 @@ cray_ofi_or_skip () {
         [[ -n "$CLEARLY_TEST_OFI_PATH" ]] || skip 'CLEARLY_TEST_OFI_PATH not set'
         [[ -z "$FI_PROVIDER_PATH" ]] || skip 'host FI_PROVIDER_PATH set'
         if [[ $cray_prov == 'gni' ]]; then
-            export CLEARLY_FROMHOST_OFI_GNI=$CLEARLY_TEST_OFI_PATH
-            $clearly_mpirun_node clearly fromhost -v --cray-gni "$1"
+            export CLEARLY_EQUIP_OFI_GNI=$CLEARLY_TEST_OFI_PATH
+            $clearly_mpirun_node clearly equip -v --cray-gni "$1"
         fi
         if [[ $cray_prov == 'cxi' ]]; then
-            export CLEARLY_FROMHOST_OFI_CXI=$CLEARLY_TEST_OFI_PATH
-            $clearly_mpirun_node clearly fromhost --cray-cxi "$1"
+            export CLEARLY_EQUIP_OFI_CXI=$CLEARLY_TEST_OFI_PATH
+            $clearly_mpirun_node clearly equip --cray-cxi "$1"
             # Examples use libfabric's fi_info to ensure injection works; when
             # replacing libfabric we also need to replace this binary.
             fi_info="$(dirname "$(dirname "$CLEARLY_TEST_OFI_PATH")")/bin/fi_info"
             [[ -x "$fi_info" ]]
-            $clearly_mpirun_node clearly fromhost -v -d /usr/local/bin \
+            $clearly_mpirun_node clearly equip -v -d /usr/local/bin \
                                            -p "$fi_info" \
                                               "$1"
         fi

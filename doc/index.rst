@@ -1,9 +1,13 @@
 :orphan:
 
 .. hero::
-   :title: From <img src="/_static/jupyter.svg"> Notebook to Production in One Platform
-   :subtitle: The Platform for Building and Deploying AI Apps at scale, in your Garage.
-   :command: curl -fsSL https://clearly.run/install.sh | sh
+   :title: From Code Editor to Production in One Platform
+   :subtitle: The All-in-One Platform to Build, Package, and Deploy AI at Any Scale
+   :buttons: |
+      [
+        {"text": "Book a Demo", "link": "/index.html#calendar"},
+        {"text": "Get Started <i class=\"fa-kit fa-arrow-right\"></i>", "link": "/install.html"}
+      ]
 
 .. slider::
    :steps:
@@ -23,7 +27,7 @@
    clearly-check
    clearly-convert
    clearly-deploy
-   clearly-fromhost
+   clearly-equip
    clearly-image
    clearly-list
    clearly-logs
