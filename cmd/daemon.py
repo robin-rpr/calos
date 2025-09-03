@@ -46,8 +46,16 @@ runtime = _runtime.Runtime()
 
 # Webserver
 webserver = _http.WebServer(
-    host='127.0.0.1',
-    port=8080,
+    host=(lambda: next(
+        (sys.argv[i+1] for i, v in enumerate(sys.argv)
+         if v == '--host' and i+1 < len(sys.argv)),
+        '127.0.0.1'
+    ))(),
+    port=(lambda: int(next(
+        (sys.argv[i+1] for i, v in enumerate(sys.argv)
+         if v == '--port' and i+1 < len(sys.argv)),
+        8080
+    )))(),
     static_dir=STATIC_DIR,
     template_dir=TEMPLATE_DIR,
 )
