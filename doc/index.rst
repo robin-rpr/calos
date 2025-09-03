@@ -10,11 +10,11 @@
       ]
 
 .. slider::
-   :steps:
-      - title: "Step 1"
-        image: https://picsum.photos/200/300
-      - title: "Step 2"
-        image: https://picsum.photos/200/300
+   :steps: |
+      [
+        {"title": "Step 1", "image": "/_static/screenshot.png"},
+        {"title": "Step 2", "image": "/_static/screenshot.png"}
+      ]
 
 .. calendar::
    :link: clearly-inc/demo

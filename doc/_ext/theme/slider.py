@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+import ast
+import random
+
 from docutils import nodes
 from docutils.parsers.rst import directives
 from sphinx.util.docutils import SphinxDirective
 from sphinx.util import logging
-
-import ast
 
 logger = logging.getLogger(__name__)
 
@@ -56,69 +57,40 @@ class SliderDirective(SphinxDirective):
 def visit_slider_node(self, node: SliderNode) -> None:
     """Visit a Slider node and generate HTML."""
 
-    # Parse the steps string into a Python list of dicts
-    try:
-        steps = ast.literal_eval(node['steps'])
-    except Exception:
-        steps = []
-
     # Generate the slider HTML and JS
-    slider_id = f"slider-{id(node)}"
+    id = "slider-" + str(random.randint(1000, 9999))
+    
+    steps = ast.literal_eval(node['steps'].strip()[1:])
     steps_titles = [step.get("title", f"Step {i+1}") for i, step in enumerate(steps)]
     steps_images = [step.get("image", "") for step in steps]
-
-    # Build the step selectors
-    selectors_html = ""
-    for idx, title in enumerate(steps_titles):
-        selectors_html += (
-            f'<button type="button" class="slider__selector" '
-            f'data-step="{idx}" aria-label="Select {title}">'
-            f'{title}</button>'
-        )
 
     # Build the slides
     slides_html = ""
     for idx, (title, image) in enumerate(zip(steps_titles, steps_images)):
         slides_html += (
-            f'<div class="slider__slide" data-step="{idx}" style="display:{"block" if idx==0 else "none"}">'
+            f'<div class="slider__item" data-step="{idx}" style="display:{"block" if idx==0 else "none"}">'
             f'<img src="{image}" alt="{title}" />'
             f'<div class="slider__caption">{title}</div>'
             f'</div>'
         )
 
     html = f"""
-    <div class="slider" id="{slider_id}">
-        <div class="slider__slides">
-            {slides_html}
-        </div>
-        <div class="slider__steps">
-            {selectors_html}
-        </div>
+    <div class="slider" id="{id}">
+        {slides_html}
     </div>
     <script>
     (function() {{
-        var slider = document.getElementById("{slider_id}");
+        var slider = document.getElementById("{id}");
         if (!slider) return;
-        var slides = slider.querySelectorAll('.slider__slide');
-        var selectors = slider.querySelectorAll('.slider__selector');
+        var slides = slider.querySelectorAll('.slider__item');
         var current = 0;
         var timer = null;
         function showSlide(idx) {{
             slides.forEach(function(slide, i) {{
                 slide.style.display = (i === idx) ? "block" : "none";
             }});
-            selectors.forEach(function(btn, i) {{
-                btn.classList.toggle("active", i === idx);
-            }});
             current = idx;
         }}
-        selectors.forEach(function(btn, idx) {{
-            btn.addEventListener("click", function() {{
-                clearInterval(timer);
-                showSlide(idx);
-                autoAdvance();
-            }});
-        }});
         function autoAdvance() {{
             timer = setInterval(function() {{
                 var next = (current + 1) % slides.length;

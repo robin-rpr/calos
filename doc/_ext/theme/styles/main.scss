@@ -13,7 +13,6 @@
 @import "./components/_tooltip";
 @import "./components/_navigation";
 @import "./components/_scrolltop";
-@import "./components/_footer";
 @import "./components/_search";
 @import "./components/_copy";
 @import "./components/_slider";
@@ -109,7 +108,6 @@ body {
             grid-template-columns: 240px minmax(0, 1fr);
             padding: 0 2rem;
             padding-top: 2rem;
-            max-width: 1294px;
             margin: 0 auto;
             gap: 1.5rem;
             width: 100%;
@@ -251,8 +249,8 @@ dl {
     }
 }
 
-figure img {
-    display: inline-block;
+figure, img {
+    display: block;
 }
 
 figcaption {
