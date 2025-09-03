@@ -23,6 +23,13 @@ int main(int argc, char *argv[])
 		exit(EXIT_FAILURE);
 	}
 
+	/* Handle --version flag */
+	if (strcmp(argv[1], "--version") == 0) {
+		subcommand = "version";
+	} else {
+		subcommand = argv[1];
+	}
+
 	/* Ensure the network bridge exists. */
 	if (!is_bridge_exists("clearly0")) {
 		srand((unsigned int)getpid() ^ (unsigned int)time(NULL));
@@ -44,7 +51,6 @@ int main(int argc, char *argv[])
 	}
 
 	/* Execute the subcommand. */
-	subcommand = argv[1];
 	if (asprintf(&exec_path, "%s/%s", CMDDIR, subcommand) < 0) {
 		perror("asprintf");
 		exit(EXIT_FAILURE);
