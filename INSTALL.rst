@@ -71,7 +71,6 @@ After enabling the CRB repository, install the following packages:
   * :code:`python3-lark-parser`: Python 3 Lark parser library, used for parsing
     and processing Dockerfile as well as docker-compose.yml files.
   * :code:`python3-sphinx`: Python 3 Sphinx library, used for building the documentation.
-  * :code:`python3-sphinx_rtd_theme`: Python 3 Sphinx RTD theme library, used for building the documentation.
   * :code:`python3-libsass`: Python 3 LibSass library, used for CSS preprocessing.
   * :code:`python3-jinja2`: Python 3 Jinja2 library, used for templating.
   * :code:`python3-requests`: Python 3 Requests library, used for HTTP requests.
@@ -450,8 +449,7 @@ pre-compiled `static binaries
 Sphinx
 ~~~~~~
 
-We use Sphinx to build the documentation; the theme is
-`sphinx-rtd-theme <https://sphinx-rtd-theme.readthedocs.io/en/stable/>`_.
+We use Sphinx to build the documentation;
 
 Minimum versions are listed above. Note that while anything greater than the
 minimum should yield readable documentation, we don’t test quality with

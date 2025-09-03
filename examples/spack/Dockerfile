@@ -72,10 +72,6 @@ COPY libfuse.patch /
 RUN patch -p 0 < libfuse.patch
 
 # Test some basic commands and install Clearly.
-# Kludge: here we specify an older python sphinx rtd_theme version because
-# newer default version, 0.5.0, introduces a dependency on node-js which doesn’t
-# appear to build on gcc 4.8 or gcc 8.3
-# (see: https://github.com/spack/spack/issues/19310).
 RUN source /spack/share/spack/setup-env.sh \
     && spack --version \
     && spack env create clearly \
@@ -84,7 +80,7 @@ RUN source /spack/share/spack/setup-env.sh \
     && spack compiler list --scope=system \
     && spack compiler list --scope=user \
     && spack compilers \
-    && spack add clearly +docs +squashfuse ^py-sphinx-rtd-theme@0.4.3 \
+    && spack add clearly +docs +squashfuse \
     && spack concretize --fresh --force \
     && spack env depfile -o Makefile \
     && make -j $(nproc) SPACK_COLOR=always \

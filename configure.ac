@@ -711,29 +711,9 @@ AS_IF([test -n "$SPHINX"], [
                    [-c 'import docutils; print(docutils.__version__)'])
 ], [DOCUTILS_VERSION_NOTE='moot b/c no sphinx-build'])
 
-# “sphinx-rtd-theme” module
-vmin_rtd=0.2.4
-AS_IF([test -n "$SPHINX"], [
-  AC_MSG_CHECKING([for sphinx_rtd_theme module])
-  cat <<EOF | $sphinx_python
-import sys
-try:
-   import sphinx_rtd_theme
-except ImportError:
-   sys.exit(1)
-EOF
-  AS_IF([test $? -eq 0],
-    [RTD=$sphinx_python; have_rtd=yes],
-    [RTD=;               have_rtd=no])
-  AC_MSG_RESULT([$have_rtd])
-  CLEARLY_CHECK_VERSION([RTD], [$vmin_rtd],
-    [-c 'import sphinx_rtd_theme; print(sphinx_rtd_theme.__version__)'])
-], [RTD_VERSION_NOTE='moot b/c no sphinx-build'])
-
 # What should we build?
 AS_IF([   test -n "$SPHINX" \
        && test -n "$DOCUTILS" \
-       && test -n "$RTD" \
        && (test "$enable_man" = yes || test "$enable_html" = yes)],
        [have_docs=yes],
        [have_docs=no])
@@ -1034,7 +1014,6 @@ Building Clearly
     sphinx-build(1) ≥ $vmin_sphinx ... ${SPHINX_VERSION_NOTE}
     sphinx-build(1) Python ... ${sphinx_python:-n/a}
     "docutils" module ≥ $vmin_docutils ... ${DOCUTILS_VERSION_NOTE}
-    "sphinx-rtd-theme" module ≥ $vmin_rtd ... ${RTD_VERSION_NOTE}
 
 Building images
 ~~~~~~~~~~~~~~~

@@ -19,7 +19,6 @@ RUN yum install -y epel-release \
                 python36-lark-parser \
                 python36-requests \
                 python36-sphinx \
-                python36-sphinx_rtd_theme \
                 rpm-build \
                 rpmlint \
                 rsync \

@@ -43,7 +43,6 @@ jobs:
             python3-setuptools \
             python3-lark-parser \
             python3-sphinx \
-            python3-sphinx_rtd_theme \
             python3-libsass \
             python3-requests \
             python3-pyyaml \

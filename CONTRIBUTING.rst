@@ -645,7 +645,6 @@ Dependencies
       * make
       * python36
       * python36-sphinx
-      * python36-sphinx_rtd_theme
       * rpm-build
       * rpmlint
       * rsync
@@ -1248,4 +1247,4 @@ What to do in each location should either be obvious or commented.
 
 ..  LocalWords:  milestoned gh nv cht Chacon’s scottchacon mis cantfix tmpimg
 ..  LocalWords:  rootfs cbd cae ce bafb bc weirdal yankovic nop cb fbe adb fd
-..  LocalWords:  abd bbf LOGFILE logfile rtd Enums WIP rpmlintrc rhel ILLERI
+..  LocalWords:  abd bbf LOGFILE logfile sass Enums WIP rpmlintrc rhel ILLERI

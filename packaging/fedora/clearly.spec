@@ -76,9 +76,8 @@ Summary:        Clearly html documentation
 License:        Proprietary
 BuildArch:      noarch
 Obsoletes:      %{name}-doc < %{version}-%{release}
+BuildRequires:  python3-libsass
 BuildRequires:  python3-sphinx
-BuildRequires:  python3-sphinx_rtd_theme
-Requires:       python3-sphinx_rtd_theme
 
 %description doc
 Html and man page documentation for %{name}.
