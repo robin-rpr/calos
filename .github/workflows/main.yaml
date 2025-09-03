@@ -122,15 +122,13 @@ jobs:
           docker cp builder:/root/clearly/doc/html ./html
 
       - name: Build Container Image
-        run: |
-          # Ensure the rpms directory exists and contains RPMs
-          ls -la ./rpms/
-          
+        run: |          
           cat > Dockerfile << 'EOF'
           FROM fedora:34
           
           # Install the RPMs
-          COPY rpms/*.rpm /tmp/
+          COPY rpms/noarch/*.rpm /tmp/
+          COPY rpms/x86_64/*.rpm /tmp/
           RUN dnf install -y /tmp/*.rpm && \
               dnf clean all && \
               rm -rf /tmp/*.rpm
