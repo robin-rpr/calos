@@ -188,7 +188,8 @@ jobs:
           set -Eeuo pipefail
           set -x
 
-          ip a
+          # Print the network interface configuration.
+          cat /proc/net/dev
 
           # Run the test suite in directory $1 if conditions are right (see below). Be
           # aware of build cache populated by prior runs.
