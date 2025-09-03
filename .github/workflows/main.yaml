@@ -184,7 +184,11 @@ jobs:
       - name: Create Test Script
         run: |
           cat > test.bash << 'EOF'
-          #!/bin/bash -xe
+          #!/usr/bin/env bash
+          set -Eeuo pipefail
+          set -x
+
+          ip a
 
           # Run the test suite in directory $1 if conditions are right (see below). Be
           # aware of build cache populated by prior runs.
@@ -222,6 +226,7 @@ jobs:
               [[ $(cat "/tmp/clearly-test.tmp.$(id -un)/rootemu") = yes ]]
           fi
           EOF
+          chmod +x test.bash
 
       - name: Execute Test
         run: |
