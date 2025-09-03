@@ -138,7 +138,7 @@ jobs:
           ENTRYPOINT ["/bin/bash"]
 
           # Start the daemon
-          COMMAND ["-c", "clearly daemon"]
+          CMD ["-c", "clearly daemon"]
           EOF
 
           mkdir -p ./container
@@ -259,6 +259,10 @@ jobs:
         contents: read
 
     steps:
+      - name: Set version from tag
+        id: version
+        run: echo "version=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+
       - name: Log in to Registry
         uses: docker/login-action@v3
         with:
