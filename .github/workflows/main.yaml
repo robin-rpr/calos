@@ -133,7 +133,7 @@ jobs:
               rm -rf /tmp/*.rpm
           
           # Set the default entrypoint
-          ENTRYPOINT ["clearly"]
+          ENTRYPOINT ["/bin/bash"]
           EOF
 
           docker build -t \
