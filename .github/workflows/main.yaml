@@ -123,11 +123,14 @@ jobs:
 
       - name: Build Container Image
         run: |
+          # Ensure the rpms directory exists and contains RPMs
+          ls -la ./rpms/
+          
           cat > Dockerfile << 'EOF'
           FROM fedora:34
           
           # Install the RPMs
-          COPY ./rpms/*.rpm /tmp/
+          COPY rpms/*.rpm /tmp/
           RUN dnf install -y /tmp/*.rpm && \
               dnf clean all && \
               rm -rf /tmp/*.rpm
