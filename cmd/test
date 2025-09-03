@@ -90,11 +90,11 @@ bats_vmin=1.2.0  # FIXME: get from configure somehow?
 ### Functions
 
 builder_check () {
-    printf 'checking builder ...\n'
+    printf 'checking clearly ...\n'
     case $CLEARLY_TEST_BUILDER in
     image)
         if ! "${clearly_bin}/clearly image" --dependencies; then
-            fatal 'builder: image: missing dependencies'
+            fatal 'clearly: image: missing dependencies'
         fi
         bl=$(readlink -f "${clearly_bin}/clearly")
         bv=$("$bl" --version)
@@ -105,7 +105,7 @@ builder_check () {
         ;&
     buildah-setuid)
         if ! command -v buildah > /dev/null 2>&1; then
-            fatal 'builder: buildah: not installed.'
+            fatal 'clearly: buildah: not installed.'
         fi
         bl=$(command -v buildah)
         bv=$(buildah --version | awk '{print $3}')
@@ -113,7 +113,7 @@ builder_check () {
         ;;
     docker)
         if ! command -v docker > /dev/null 2>&1; then
-            fatal 'builder: docker: not installed'
+            fatal 'clearly: docker: not installed'
         fi
         bl=$(command -v docker)
         bv=$(docker_ --version | awk '{print $3}' | sed -e 's/,$//')
@@ -123,11 +123,11 @@ builder_check () {
         bv=
         ;;
     *)
-        fatal "builder: $CLEARLY_TEST_BUILDER: not supported"
+        fatal "clearly: $CLEARLY_TEST_BUILDER: not supported"
         ;;
     esac
     printf 'found: %s %s\n\n' "$bl" "$bv"
-    version_check 'builder' "$min" "$bv"
+    version_check 'clearly' "$min" "$bv"
 }
 
 builder_set () {
@@ -141,7 +141,7 @@ builder_set () {
         CLEARLY_TEST_BUILDER=image
         method='default'
     fi
-    printf "%-*s %s (%s)\n" "$width" 'builder:' "$CLEARLY_TEST_BUILDER" "$method"
+    printf "%-*s %s (%s)\n" "$width" 'clearly:' "$CLEARLY_TEST_BUILDER" "$method"
     if [[ $CLEARLY_TEST_BUILDER == image ]]; then
         vset CLEARLY_IMAGE_STORAGE '' "$CLEARLY_IMAGE_STORAGE" "/var/lib/clearly/images" \
                               "$width" 'image storage'
@@ -708,13 +708,13 @@ win () {
 ### Body of script
 
 # Set $USER. Do this unconditionally to have the same username-finding logic
-# as the main programs. See #1162.
+# as the main programs.
 USER=$(id -un)
 export USER
 
-# Ensure run has been compiled (issue #329).
+# Ensure clearly has been compiled.
 if ! "${clearly_bin}/clearly" --version > /dev/null 2>&1; then
-    fatal "no working run found in $clearly_bin"
+    fatal "no working clearly found in $clearly_bin"
 fi
 
 # Some tests have specific libc requirements.
