@@ -141,7 +141,7 @@ jobs:
             .
 
           mkdir -p ./container
-          
+
           docker save \
             ghcr.io/${{ github.repository_owner }}/clearly:latest \
             -o ./container/clearly.tar
@@ -238,7 +238,7 @@ jobs:
             ./test.bash /clearly
 
       - name: Upload Report Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: report
           path: ./clearly
