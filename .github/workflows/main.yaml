@@ -140,9 +140,10 @@ jobs:
             ghcr.io/${{ github.repository_owner }}/clearly:latest \
             .
 
+          mkdir -p ./container
           docker save \
             ghcr.io/${{ github.repository_owner }}/clearly:latest \
-            -o ./container/container.tar
+            -o ./container/clearly.tar
 
       - name: Upload Container Image
         uses: actions/upload-artifact@v4
@@ -223,7 +224,7 @@ jobs:
 
       - name: Execute Test
         run: |
-          docker load -i ./container/container.tar
+          docker load -i ./container/clearly.tar
 
           docker run \
             -v /mnt:/mnt \
@@ -281,7 +282,7 @@ jobs:
 
       - name: Publish to Registry
         run: |
-          docker load -i ./container/container.tar
+          docker load -i ./container/clearly.tar
 
           docker tag ghcr.io/${{ github.repository_owner }}/clearly:latest \
             ghcr.io/${{ github.repository_owner }}/clearly:${{ steps.version.outputs.version }}

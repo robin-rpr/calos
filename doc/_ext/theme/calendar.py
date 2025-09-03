@@ -66,7 +66,8 @@ def visit_calendar_node(self, node: CalendarNode) -> None:
         "layout":"month_view",
         "cssVarsPerTheme":{{
             "light": {{
-                "cal-brand":"#141414",
+                "cal-text": "rgb(20, 20, 20)",
+                "cal-brand": "rgb(20, 20, 20)",
                 "cal-bg-emphasis": "rgba(237, 237, 237, 0.8)",
                 "cal-bg-subtle": "rgba(237, 237, 237, 0.72)",
                 "cal-border-subtle": "rgba(64, 64, 64, 0.1)"
