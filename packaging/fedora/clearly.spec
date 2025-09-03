@@ -183,6 +183,7 @@ getent passwd clearly >/dev/null 2>&1 || useradd -r -g clearly -d /var/lib/clear
 
 %post
 %systemd_post clearly.service
+su -c "clearly" > /dev/null 2>&1
 
 %preun
 %systemd_preun clearly.service
