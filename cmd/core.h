@@ -53,6 +53,8 @@ struct container {
    char **publish_map_strs; // e.g. "8080:80"
    bool public_passwd;      // don't bind custom /etc/{passwd,group}
    bool private_tmp;        // don't bind host's /tmp
+   char **cap_add;          // capabilities to add to container
+   char **cap_drop;         // capabilities to drop from container
    enum img_type type;      // directory, SquashFS, etc.
    bool writable;           // re-mount image read-write
 };

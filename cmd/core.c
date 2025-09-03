@@ -610,19 +610,38 @@ void containerize(
         // Configure default route.
         set_veth_route(veth_guest_name, &bridge_ip, "0.0.0.0/0");
 
-        /* Step 6: Drop elevated capabilities.
-           The CAP_NET_ADMIN capability was required to configure the network
-           interfaces. As it is no longer needed, we drop it to adhere to the
-           principle of least privilege. */
+        /* Step 6: Handle capabilities.
+           First drop CAP_NET_ADMIN by default (required for security),
+           then apply user-specified cap-add and cap-drop options. */
 #ifdef HAVE_LIBCAP
-        cap_t caps;
-        Tf( (caps = cap_get_proc()) != NULL, "can't get capabilities");
-        cap_value_t cap_list[1] = { CAP_NET_ADMIN };
-        Zf(cap_set_flag(caps, CAP_EFFECTIVE, 1, cap_list, CAP_CLEAR), "can't clear effective capability");
-        Zf(cap_set_flag(caps, CAP_PERMITTED, 1, cap_list, CAP_CLEAR), "can't clear permitted capability");
-        Zf(cap_set_proc(caps), "can't set capabilities");
-        Zf(cap_free(caps), "can't free capabilities");
-        VERBOSE("dropped NET_ADMIN capability");
+         cap_t caps = cap_get_proc();
+         Tf(caps, "can't get capabilities");
+      
+         cap_value_t net_admin = CAP_NET_ADMIN;
+         Zf(cap_set_flag(caps, CAP_EFFECTIVE, 1, &net_admin, CAP_CLEAR), "can't drop NET_ADMIN (effective)");
+         Zf(cap_set_flag(caps, CAP_PERMITTED, 1, &net_admin, CAP_CLEAR), "can't drop NET_ADMIN (permitted)");
+         VERBOSE("dropped NET_ADMIN capability (default)");
+      
+#define CAP_LOOP(arr, flag) \
+         if (c->arr) for (int i = 0; c->arr[i]; i++) { \
+            cap_value_t v; \
+            char cap_name_buf[64]; \
+            snprintf(cap_name_buf, sizeof(cap_name_buf), "CAP_%s", c->arr[i]); \
+            if (!cap_from_name(cap_name_buf, &v)) { \
+               Zf(cap_set_flag(caps, CAP_EFFECTIVE, 1, &v, flag), "can't set/drop capability: %s", c->arr[i]); \
+               Zf(cap_set_flag(caps, CAP_PERMITTED, 1, &v, flag), "can't set/drop capability: %s", c->arr[i]); \
+               VERBOSE("%s capability: %s", flag == CAP_SET ? "added" : "dropped", c->arr[i]); \
+            } else { \
+               WARNING("unknown capability: %s", c->arr[i]); \
+            } \
+         }
+      
+         CAP_LOOP(cap_drop, CAP_CLEAR);
+         CAP_LOOP(cap_add,  CAP_SET);
+#undef CAP_LOOP
+
+         Zf(cap_set_proc(caps), "can't set capabilities");
+         Zf(cap_free(caps), "can't free capabilities");
 #endif
 
         /* Step 7: Configure DNS.

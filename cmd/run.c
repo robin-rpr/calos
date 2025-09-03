@@ -55,40 +55,42 @@ const struct argp_option options[] = {
    { "allow",         'a', "DST",              0, "allow traffic to peer container DST" },
    { "bind",          'b', "SRC:DST",          0, "mount SRC at guest DST (default: same as SRC)" },
    { "cd",            'c', "DIR",              0, "initial working directory in container" },
+   { "cap-add",       -4, "CAP",               0, "add system capability to container" },
+   { "cap-drop",      -5, "CAP",               0, "drop system capability from container" },
+   { "cpu-weight",    -6, "WEIGHT",            0, "set CPU weight limitation (1-10000)" },
+   { "cpus",          -7, "N",                 0, "set number of CPUs limitation (0-1024)" },
    { "detach",        'd', 0,                  0, "detach the container into the background" },
    { "env-no-expand", -8,  0,                  0, "don't expand $ in --env input" },
+   { "env",           'e', "ARG",              0,
+      "set env. variables per ARG (newline-delimited)" },
    { "feature",       -9, "FEAT",              0, "exit successfully if FEAT is enabled" },
    { "gid",           'g', "GID",              0, "run as GID within container" },
    { "home",          -10, 0,                  0, "mount host $HOME at guest /home/$USER" },
    { "host",          'h', "SRC:DST",          0, "map SRC at guest DST (e.g. google.com:1.2.3.4)" },
    { "ip",            'i', "IP",               0, "set a static IP address for container" },
    { "join",          'j', 0,                  0, "use same container as peer clearly run" },
-   { "join-pid",       -5, "PID",              0, "join a namespace using a PID" },
-   { "join-ct",        -3, "N",                0, "number of join peers (implies --join)" },
-   { "join-tag",       -4, "TAG",              0, "label for peer group (implies --join)" },
-   { "test",          -13, "TEST",             0, "do 'clearly test' TEST" },
+   { "join-ct",       -11, "N",                0, "number of join peers (implies --join)" },
+   { "join-pid",      -12, "PID",               0, "join a namespace using a PID" },
+   { "join-tag",      -13, "TAG",               0, "label for peer group (implies --join)" },
+   { "memory-max",    -14, "BYTES",            0, "set maximum bytes of memory (0-1024G)" },
    { "mount",         'm', "DIR",              0, "overwrite SquashFS mount point" },
-   { "name",          -18, "NAME",             0, "assign a name to the container" },
-   { "passwd",         -7, 0,                  0, "bind-mount /etc/{passwd,group}" },
+   { "name",          -15, "NAME",             0, "assign a name to the container" },
    { "overlay",       'o', "SIZE", OPTION_ARG_OPTIONAL,
                            "overlay read-write tmpfs size on top of image" },
+   { "passwd",        -16, 0,                  0, "bind-mount /etc/{passwd,group}" },
+   { "pids-max",      -17, "N",                0, "maximum number of PIDs (0-1024)" },
+   { "private-tmp",   't', 0,                  0, "use container-private /tmp" },
    { "publish",       'p', "SRC:DST",          0,
                            "forward host port SRC to container port DST" },
-   { "pids-max",      -14, "N",                0, "maximum number of PIDs (0-1024)" },
-   { "cpu-weight",    -15, "WEIGHT",           0, "set CPU weight (1-10000)" },
-   { "memory-max",    -16, "BYTES",            0, "set memory limit (bytes, up to 1024G)" },
-   { "cpus",          -17, "N",                0, "set number of CPUs (0-1024)" },
-   { "private-tmp",   't', 0,                  0, "use container-private /tmp" },
    { "quiet",         'q', 0,                  0, "print less output (can be repeated)" },
-   { "env",           'e', "ARG",              0,
-                           "set env. variables per ARG (newline-delimited)" },
    { "runtime",       'r', "DIR",              0, "set DIR as runtime directory" },
    { "storage",       's', "DIR",              0, "set DIR as storage directory" },
+   { "test",          -18, "TEST",             0, "do 'clearly test' TEST" },
    { "uid",           'u', "UID",              0, "run as UID within container" },
-   { "unsafe",        -11, 0,                  0, "do unsafe things (internal use only)" },
-   { "unset-env",      -6, "GLOB",             0, "unset environment variable(s)" },
+   { "unsafe",        -19, 0,                  0, "do unsafe things (internal use only)" },
+   { "unset-env",     -20, "GLOB",             0, "unset environment variable(s)" },
    { "verbose",       'v', 0,                  0, "be more verbose (can be repeated)" },
-   { "warnings",      -12, "NUM",              0, "log NUM warnings and exit" },
+   { "warnings",      -21, "NUM",              0, "log NUM warnings and exit" },
    { "write",         'w', 0,                  0, "mount image read-write (avoid)"},
    { 0 }
 };
@@ -202,6 +204,8 @@ int main(int argc, char *argv[])
                                .publish_map_strs = list_new(sizeof(char *), 0),
                                .public_passwd = false,
                                .private_tmp = false,
+                               .cap_add = list_new(sizeof(char *), 0),
+                               .cap_drop = list_new(sizeof(char *), 0),
                                .type = IMG_NONE,
                                .writable = false },
       .pulled_config = json_object_new_object(),
@@ -554,26 +558,19 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state)
    int i;
 
    switch (key) {
-   case -3: // --join-ct
-      args->c.join = true;
-      args->c.join_ct = parse_int(arg, false, "--join-ct");
+   case -4: // --cap-add
+      Ze(arg[0] == '\0', "capability name can't be empty string");
+      list_append((void **)&(args->c.cap_add), &arg, sizeof(char *));
       break;
-   case -4: // --join-tag
-      args->c.join = true;
-      args->c.join_tag = arg;
+   case -5: // --cap-drop
+      Ze(arg[0] == '\0', "capability name can't be empty string");
+      list_append((void **)&(args->c.cap_drop), &arg, sizeof(char *));
       break;
-   case -5: // --join-pid
-      args->c.join_pid = parse_int(arg, false, "--join-pid");
+   case -6: // --cpu-weight
+      args->c.cgroup_cpu_weight = arg;
       break;
-   case -6: { // --unset-env
-        struct env_delta ed;
-        Te (strlen(arg) > 0, "--unset-env: GLOB must have non-zero length");
-        ed.action = ENV_UNSET_GLOB;
-        ed.arg.glob = arg;
-        list_append((void **)&(args->env_deltas), &ed, sizeof(ed));
-      } break;
-   case -7: // --passwd
-      args->c.public_passwd = true;
+   case -7: // --cpus
+      args->c.cgroup_cpu_max = arg;
       break;
    case -8: // --env-no-expand
       args->c.env_expand = false;
@@ -616,15 +613,30 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state)
    case -10: // --home
       Tf (args->c.host_home = getenv("HOME"), "--home failed: $HOME not set");
       break;
-   case -11: // --unsafe
-      args->unsafe = true;
+   case -11: // --join-ct
+      args->c.join = true;
+      args->c.join_ct = parse_int(arg, false, "--join-ct");
       break;
-   case -12: // --warnings
-      for (int i = 1; i <= parse_int(arg, false, "--warnings"); i++)
-         WARNING("this is warning %d!", i);
-      exit(0);
+   case -12: // --join-pid
+      args->c.join_pid = parse_int(arg, false, "--join-pid");
       break;
-   case -13: // --test
+   case -13: // --join-tag
+      args->c.join = true;
+      args->c.join_tag = arg;
+      break;
+   case -14: // --memory-max
+      args->c.cgroup_memory_max = arg;
+      break;
+   case -15: // --name
+      args->c.name = arg;
+      break;
+   case -16: // --passwd
+      args->c.public_passwd = true;
+      break;
+   case -17: // --pids-max
+      args->c.cgroup_pids_max = parse_int(arg, false, "--pids-max");
+      break;
+   case -18: // --test
       if (!strcmp(arg, "log"))
          test_logging(false);
       else if (!strcmp(arg, "log-fail"))
@@ -632,20 +644,20 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state)
       else
          FATAL(0, "invalid --test argument: %s; see source code", arg);
       break;
-   case -14: // --pids-max
-      args->c.cgroup_pids_max = parse_int(arg, false, "--pids-max");
+   case -19: // --unsafe
+      args->unsafe = true;
       break;
-   case -15: // --cpu-weight
-      args->c.cgroup_cpu_weight = arg;
-      break;
-   case -16: // --memory-max
-      args->c.cgroup_memory_max = arg;
-      break;
-   case -17: // --cpus
-      args->c.cgroup_cpu_max = arg;
-      break;
-   case -18: // --name
-      args->c.name = arg;
+   case -20: // --unset-env
+      { struct env_delta ed;
+        Te (strlen(arg) > 0, "--unset-env: GLOB must have non-zero length");
+        ed.action = ENV_UNSET_GLOB;
+        ed.arg.glob = arg;
+        list_append((void **)&(args->env_deltas), &ed, sizeof(ed));
+      } break;
+   case -21: // --warnings
+      for (int i = 1; i <= parse_int(arg, false, "--warnings"); i++)
+         WARNING("this is warning %d!", i);
+      exit(0);
       break;
    case 'a': // --allow
       Ze(arg[0] == '\0', "allow mapping can't be empty string");
@@ -706,6 +718,19 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state)
       if (!path_exists(arg, NULL, false))
          WARNING("mount directory not found: %s", arg);
       break;
+   case 'o':  // --overlay
+      Ze(arg[0] == '\0', "overlay size can't be empty string");
+      args->c.overlay_size = arg;
+      break;
+   case 'p':  // --publish
+      Ze(arg[0] == '\0', "publish mapping can't be empty string");
+      list_append((void **)&(args->c.publish_map_strs), &arg, sizeof(char *));
+      break;
+   case 'q':  // --quiet
+      Te(verbose <= 0, "--quiet incompatible with --verbose");
+      verbose--;
+      Te(verbose >= -3, "--quiet can be specified at most trice");
+      break;
    case 'r':  // --runtime
       args->runtime_dir = arg;
       if (!path_exists(arg, NULL, false))
@@ -715,11 +740,6 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state)
       args->storage_dir = arg;
       if (!path_exists(arg, NULL, false))
          WARNING("storage directory not found: %s", arg);
-      break;
-   case 'q':  // --quiet
-      Te(verbose <= 0, "--quiet incompatible with --verbose");
-      verbose--;
-      Te(verbose >= -3, "--quiet can be specified at most trice");
       break;
    case 't':  // --private-tmp
       args->c.private_tmp = true;
@@ -736,14 +756,6 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state)
       break;
    case 'w':  // --write
       args->c.writable = true;
-      break;
-   case 'o':  // --overlay
-      Ze(arg[0] == '\0', "overlay size can't be empty string");
-      args->c.overlay_size = arg;
-      break;
-   case 'p':  // --publish
-      Ze(arg[0] == '\0', "publish mapping can't be empty string");
-      list_append((void **)&(args->c.publish_map_strs), &arg, sizeof(char *));
       break;
    case ARGP_KEY_NO_ARGS:
       argp_state_help(state, stderr, (  ARGP_HELP_SHORT_USAGE

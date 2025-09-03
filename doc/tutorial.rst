@@ -920,13 +920,11 @@ Set up the container::
   ./alluneed/tmp:
   total 0
 
-Next, start a container and run :code:`/bin/bash` within it. Option
-:code:`--no-passwd` turns off some convenience features that this image isn’t
-prepared for.
+Next, start a container and run :code:`/bin/bash` within it.
 
 ::
 
-  $ clearly run --no-passwd ./alluneed -- /bin/bash
+  $ clearly run ./alluneed -- /bin/bash
   > pwd
   /
   > echo "hello world"

@@ -59,6 +59,17 @@ mounting SquashFS images with FUSE.
   :code:`-c`, :code:`--cd=DIR`
     Initial working directory in container.
 
+  :code:`--cap-add=CAP`
+    Add system capability :code:`CAP` to the container. Can be repeated.
+    The capability is added to both effective and permitted capability sets.
+
+  :code:`--cap-drop=CAP`
+    Drop system capability :code:`CAP` from the container. Can be repeated.
+    The capability is removed from both effective and permitted capability sets.
+    Note that :code:`CAP_NET_ADMIN` is automatically dropped by default
+    for security reasons after network setup is complete, unless it is
+    explicitly requested with :code:`--cap-add=NET_ADMIN`.
+
   :code:`--cpus=N`
     Set the number of CPUs available to the container (0-1024).
 
@@ -121,12 +132,6 @@ mounting SquashFS images with FUSE.
 
   :code:`--name=NAME`
     Assign a name to the container. Required when using :code:`--detach`.
-
-  :code:`--no-passwd`
-    By default, temporary :code:`/etc/passwd` and :code:`/etc/group` files are
-    created according to the UID and GID maps for the container and
-    bind-mounted into it. If this is specified, no such temporary files are
-    created and the image’s files are exposed.
 
   :code:`--passwd`
     Bind-mount :code:`/etc/{passwd,group}` from the host into the container.

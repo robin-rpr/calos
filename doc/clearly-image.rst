@@ -690,7 +690,7 @@ Options:
 
     If no colon present in the name, append :code:`:latest`.
 
-Uses :code:`clearly run -w -u0 -g0 --no-passwd --unsafe` to execute :code:`RUN`
+Uses :code:`clearly run -w -u0 -g0 --unsafe` to execute :code:`RUN`
 instructions.
 
 Privilege model
