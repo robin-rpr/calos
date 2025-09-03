@@ -84,13 +84,14 @@ const struct argp_option options[] = {
                            "forward host port SRC to container port DST" },
    { "quiet",         'q', 0,                  0, "print less output (can be repeated)" },
    { "runtime",       'r', "DIR",              0, "set DIR as runtime directory" },
+   { "sysctl",        -18, "KEY=VALUE",        0, "set kernel parameter KEY to VALUE" },
    { "storage",       's', "DIR",              0, "set DIR as storage directory" },
-   { "test",          -18, "TEST",             0, "do 'clearly test' TEST" },
+   { "test",          -19, "TEST",             0, "do 'clearly test' TEST" },
    { "uid",           'u', "UID",              0, "run as UID within container" },
-   { "unsafe",        -19, 0,                  0, "do unsafe things (internal use only)" },
-   { "unset-env",     -20, "GLOB",             0, "unset environment variable(s)" },
+   { "unsafe",        -20, 0,                  0, "do unsafe things (internal use only)" },
+   { "unset-env",     -21, "GLOB",             0, "unset environment variable(s)" },
    { "verbose",       'v', 0,                  0, "be more verbose (can be repeated)" },
-   { "warnings",      -21, "NUM",              0, "log NUM warnings and exit" },
+   { "warnings",      -22, "NUM",              0, "log NUM warnings and exit" },
    { "write",         'w', 0,                  0, "mount image read-write (avoid)"},
    { 0 }
 };
@@ -206,6 +207,7 @@ int main(int argc, char *argv[])
                                .private_tmp = false,
                                .cap_add = list_new(sizeof(char *), 0),
                                .cap_drop = list_new(sizeof(char *), 0),
+                               .sysctls = list_new(sizeof(char *), 0),
                                .type = IMG_NONE,
                                .writable = false },
       .pulled_config = json_object_new_object(),
@@ -636,7 +638,15 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state)
    case -17: // --pids-max
       args->c.cgroup_pids_max = parse_int(arg, false, "--pids-max");
       break;
-   case -18: // --test
+   case -18: // --sysctl
+      Ze(arg[0] == '\0', "sysctl parameter can't be empty string");
+      // Validate format: must contain '='
+      if (strchr(arg, '=') == NULL) {
+         FATAL(0, "--sysctl: invalid format, must be KEY=VALUE");
+      }
+      list_append((void **)&(args->c.sysctls), &arg, sizeof(char *));
+      break;
+   case -19: // --test
       if (!strcmp(arg, "log"))
          test_logging(false);
       else if (!strcmp(arg, "log-fail"))
@@ -644,17 +654,17 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state)
       else
          FATAL(0, "invalid --test argument: %s; see source code", arg);
       break;
-   case -19: // --unsafe
+   case -20: // --unsafe
       args->unsafe = true;
       break;
-   case -20: // --unset-env
+   case -21: // --unset-env
       { struct env_delta ed;
         Te (strlen(arg) > 0, "--unset-env: GLOB must have non-zero length");
         ed.action = ENV_UNSET_GLOB;
         ed.arg.glob = arg;
         list_append((void **)&(args->env_deltas), &ed, sizeof(ed));
       } break;
-   case -21: // --warnings
+   case -22: // --warnings
       for (int i = 1; i <= parse_int(arg, false, "--warnings"); i++)
          WARNING("this is warning %d!", i);
       exit(0);

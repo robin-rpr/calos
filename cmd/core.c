@@ -439,12 +439,12 @@ void containerize(
         // Ignore SIGHUP.
         signal(SIGHUP, SIG_IGN);
 
-        /* Step 9: Wait for child to exit.
+        /* Step 10: Wait for child to exit.
            We wait for the child to exit so we can perform cleanup. */
         int status;
         waitpid(child_pid, &status, 0);
 
-        /* Step 10: Cleanup.
+        /* Step 11: Cleanup.
            Various cleanup tasks to leave the system in a clean state.
            Without this, the system will be left in a dirty state where the
            child process is still thought to exist and the parent process has
@@ -644,7 +644,61 @@ void containerize(
          Zf(cap_free(caps), "can't free capabilities");
 #endif
 
-        /* Step 7: Configure DNS.
+        /* Step 7: Apply sysctl parameters.
+           Set kernel parameters specified by the user. */
+        if (c->sysctls && c->sysctls[0] != NULL) {
+           for (int i = 0; c->sysctls[i] != NULL; i++) {
+              char *key, *value;
+              char *sysctl_str = strdup(c->sysctls[i]);
+              char *key_copy = NULL;
+              
+              // Parse KEY=VALUE format
+              char *equals_pos = strchr(sysctl_str, '=');
+              if (equals_pos) {
+                 *equals_pos = '\0';  // Split the string
+                 key = sysctl_str;
+                 value = equals_pos + 1;
+                 
+                 // Make a copy of the key for the path conversion
+                 key_copy = strdup(key);
+                 
+                 if (key[0] != '\0' && value[0] != '\0') {
+                    // Convert key from dot notation to /proc/sys path
+                    char *proc_path = NULL;
+                    T_ (1 <= asprintf(&proc_path, "/proc/sys/%s", key_copy));
+                    
+                    // Replace dots with slashes
+                    for (char *p = proc_path + 10; *p; p++) {
+                       if (*p == '.') *p = '/';
+                    }
+                    
+                    // Write the value to the sysctl file
+                    int fd = open(proc_path, O_WRONLY);
+                    if (fd >= 0) {
+                       if (write(fd, value, strlen(value)) == (ssize_t)strlen(value)) {
+                          VERBOSE("set sysctl %s = %s", key, value);
+                       } else {
+                          WARNING("failed to set sysctl %s = %s", key, value);
+                       }
+                       close(fd);
+                    } else {
+                       WARNING("can't open sysctl file %s: %s", proc_path, strerror(errno));
+                    }
+                    
+                    free(proc_path);
+                 } else {
+                    WARNING("invalid sysctl format: %s", c->sysctls[i]);
+                 }
+              } else {
+                 WARNING("invalid sysctl format: %s", c->sysctls[i]);
+              }
+              
+              free(sysctl_str);
+              if (key_copy) free(key_copy);
+           }
+        }
+
+        /* Step 8: Configure DNS.
            We add two nameservers to /etc/resolv.conf: Google's DNS and Cloudflare's DNS.
            This provides a basic DNS resolution mechanism for the container. */
         FILE *resolv_conf = fopen("/etc/resolv.conf", "w");
@@ -654,7 +708,7 @@ void containerize(
             fclose(resolv_conf);
         }
 
-        /* Step 8: Configure /etc/hosts.
+        /* Step 9: Configure /etc/hosts.
            We add hostname entries to /etc/hosts to enable basic hostname
            resolution within the container. This is a simple mechanism to
            allow containers to resolve hostnames to IP addresses. */

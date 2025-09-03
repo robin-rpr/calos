@@ -153,6 +153,10 @@ mounting SquashFS images with FUSE.
     Set the storage directory. Equivalent to the same option for
     :code:`clearly image(1)`.
 
+  :code:`--sysctl=KEY=VALUE`
+    Set kernel parameter :code:`KEY` to :code:`VALUE`. Can be repeated.
+    The parameter is written to the corresponding file in :code:`/proc/sys/`.
+
   :code:`--test=TEST`
     Run internal test :code:`TEST`. Valid values are :code:`log` and :code:`log-fail`.
 

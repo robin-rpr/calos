@@ -55,6 +55,7 @@ struct container {
    bool private_tmp;        // don't bind host's /tmp
    char **cap_add;          // capabilities to add to container
    char **cap_drop;         // capabilities to drop from container
+   char **sysctls;          // kernel parameters to set (KEY=VALUE format)
    enum img_type type;      // directory, SquashFS, etc.
    bool writable;           // re-mount image read-write
 };
