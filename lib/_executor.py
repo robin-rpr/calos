@@ -125,7 +125,7 @@ class StudioExecutor(Executor):
                 "name": "vscode",
                 "image": "codercom/code-server:4.101.2-39",
                 "command": ["/usr/bin/entrypoint.sh", "--bind-addr", "0.0.0.0:8080", ".", "--auth", "none"],
-                "proxy": { "0": "8080" }
+                "publish": { "8080": "8080" }
             },
             {
                 "name": "jupyter",
@@ -138,7 +138,7 @@ class StudioExecutor(Executor):
                     "--ServerApp.disable_check_xsrf=True",
                     "--ServerApp.tornado_settings={\"headers\":{\"Content-Security-Policy\":\"frame-ancestors *\"}}"
                 ],
-                "proxy": { "0": "8888" }
+                "publish": { "8888": "8888" }
             }
         ]
         
