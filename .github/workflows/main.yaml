@@ -255,6 +255,7 @@ jobs:
     
     permissions:
         pages: write
+        packages: write
         id-token: write
         contents: read
 
