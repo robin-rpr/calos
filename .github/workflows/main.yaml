@@ -233,6 +233,7 @@ jobs:
           docker load -i ./container/clearly.tar
 
           docker run \
+            -w /clearly \
             -v /mnt:/mnt \
             -v $(pwd):/clearly \
             -e CLEARLY_TEST_BUILDER=image \
