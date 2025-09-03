@@ -86,7 +86,7 @@ Html and man page documentation for %{name}.
 %package    test
 Summary:    Clearly test suite
 License:    Proprietary
-Requires:   %{name} bats-core
+Requires:   %{name} bats
 Obsoletes:  %{name}-test < %{version}-%{release}
 
 %description test
