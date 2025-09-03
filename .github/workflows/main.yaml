@@ -125,22 +125,27 @@ jobs:
           cat > Dockerfile << 'EOF'
           FROM fedora:34
           
-          # Install the RPMs
+          # Copy the RPMs
           COPY rpms/noarch/*.rpm /tmp/
           COPY rpms/x86_64/*.rpm /tmp/
+
+          # Install the RPMs
           RUN dnf install -y /tmp/*.rpm && \
               dnf clean all && \
               rm -rf /tmp/*.rpm
           
-          # Set the default entrypoint
+          # Set the entrypoint
           ENTRYPOINT ["/bin/bash"]
+
+          # Start the daemon
+          COMMAND ["-c", "clearly daemon"]
           EOF
+
+          mkdir -p ./container
 
           docker build -t \
             ghcr.io/${{ github.repository_owner }}/clearly:latest \
             .
-
-          mkdir -p ./container
 
           docker save \
             ghcr.io/${{ github.repository_owner }}/clearly:latest \
