@@ -141,6 +141,7 @@ jobs:
             .
 
           mkdir -p ./container
+          
           docker save \
             ghcr.io/${{ github.repository_owner }}/clearly:latest \
             -o ./container/clearly.tar
