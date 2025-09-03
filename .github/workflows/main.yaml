@@ -235,14 +235,19 @@ jobs:
 
           docker run \
             -w /clearly \
+            --name tester \
             -v /mnt:/mnt \
             -v $(pwd):/clearly \
+            --cap-add NET_ADMIN \
+            --sysctl net.ipv4.ip_forward=1 \
             -e CLEARLY_TEST_BUILDER=image \
             -e CLEARLY_IMAGE_CACHE=enabled \
             -e CLEARLY_SUDO_YES=${{ matrix.CLEARLY_SUDO_YES }} \
             -e CLEARLY_TEST_PACK_FMT=${{ matrix.CLEARLY_TEST_PACK_FMT }} \
             ghcr.io/${{ github.repository_owner }}/clearly:latest \
             ./test.bash /clearly
+
+          docker cp tester:/clearly ./clearly
 
       - name: Upload Report Artifact
         uses: actions/upload-artifact@v4
