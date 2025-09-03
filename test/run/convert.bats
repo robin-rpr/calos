@@ -40,20 +40,6 @@ load ../common
 # The outer loop is unrolled into four separate tests to avoid having one test
 # that runs for two minutes.
 
-
-# This is a little goofy, because several of the tests need *all* the
-# builders. Thus, we (a) run only for builder image but (b)
-# pedantic-require Docker to also be installed.
-setup () {
-    skip 'omitted for now (see test/ci/README)'
-    scope standard
-    [[ $CLEARLY_TEST_BUILDER = image ]] || skip 'image only'
-    [[ $CLEARLY_TEST_PACK_FMT = *-unpack ]] || skip 'needs directory images'
-    if ! command -v docker > /dev/null 2>&1; then
-        pedantic_fail 'docker not found'  # FIXME: WHAT ABOUT PODMAN?
-    fi
-}
-
 # Return success if directories $1 and $2 are recursively the same, failure
 # otherwise. This compares only metadata. False positives are possible if a
 # file’s content changes but the size and all other metadata stays the same;
