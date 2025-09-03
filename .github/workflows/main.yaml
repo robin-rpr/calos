@@ -194,17 +194,6 @@ jobs:
           # Run the test suite in directory $1 if conditions are right (see below). Be
           # aware of build cache populated by prior runs.
 
-          prefox=$1
-          export PATH=$prefox/bin:$PATH
-
-          # Test outside Git WD only if image with cache enabled. If cache disabled,
-          # it’s too slow, and other builders we don’t need to test that hard.
-          if [[ ! (   -e $prefox/.git
-                  && $CLEARLY_TEST_BUILDER = image
-                  && $CLEARLY_IMAGE_CACHE = enabled ) ]]; then
-              exit 0
-          fi
-
           # Validate configuration.
           clearly test --is-pedantic all
           if [[ -n $CLEARLY_SUDO_YES ]]; then
@@ -252,7 +241,7 @@ jobs:
       - name: Upload Report Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: report
+          name: report-${{ matrix.CLEARLY_SUDO_YES }}-${{ matrix.CLEARLY_TEST_PACK_FMT }}
           path: ./clearly
           retention-days: 7
 
