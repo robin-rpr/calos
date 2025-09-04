@@ -172,7 +172,7 @@ def start_container(payload):
                 cmd.extend(["--allow", str(peer_ip)])
 
         if payload.get("publish"):
-            if isinstance(publish, dict):
+            if isinstance(payload.get("publish"), dict):
                 for key, value in payload.get("publish").items():
                     cmd.extend(["--publish", f"{key}:{value}"])
             elif isinstance(payload.get("publish"), list):

@@ -1,16 +1,17 @@
 from collections import deque
+import subprocess
 import threading
 import requests
+import hashlib
+import logging
+import random
 import socket
 import struct
-import hashlib
+import fcntl
 import zlib
-import logging
 import time
 import json
 import os
-import random
-import fcntl
 
 
 ## Constants ##
@@ -462,12 +463,13 @@ class Runtime():
             
             # Get current state snapshot.
             try:
-                snapshot = json.loads(subprocess.run(
+                result = subprocess.run(
                     ["clearly", "list", "--json"],
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE,
                     text=True, check=True
-                )).stdout
+                )
+                snapshot = json.loads(result.stdout)
             except Exception as e:
                 logger.warning(f"Snapshot failed: {e}")
                 continue
@@ -476,7 +478,7 @@ class Runtime():
             changes = []
             with self.lock:
                 # Check for new/updated containers
-                containers = {c.get('id'): c for c in snapshot.get("containers", [])}
+                containers = {c.get('id'): c for c in snapshot}
                 for container_id, container_info in containers.items():
                     old_info = self.local.get(container_id, {})
                     new_state = {
