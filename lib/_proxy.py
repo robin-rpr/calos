@@ -1,3 +1,4 @@
+import time
 import socket
 import threading
 
@@ -16,12 +17,17 @@ class Proxy:
             return str(self.socket.getsockname()[1])
         return str(self.listen[1])
 
-    def start(self):
+    def start(self, timeout=120):
         if self.thread is not None:
             return
-        
-        self.thread = threading.Thread(target=self._listen, daemon=True)
+
+        # Calculate timeout.
+        timeout = time.time() + timeout
+
+        self.thread = threading.Thread(target=self._serve, args=(timeout,), daemon=True)
         self.thread.start()
+
+        return timeout
 
     def stop(self):
         if self.socket:
@@ -47,6 +53,24 @@ class Proxy:
             threading.Thread(target=self._pipe, args=(backend, client_sock)).start()
         except: 
             client_sock.close()
+
+    def _serve(self, timeout):
+            self.socket = socket.socket()
+            self.socket.bind(self.listen)
+            self.socket.listen()
+            self.socket.settimeout(1)
+            while time.time() < timeout:
+                try:
+                    client, _ = self.socket.accept()
+                    threading.Thread(target=self._handle, args=(client,), daemon=True).start()
+                except socket.timeout:
+                    continue
+                except Exception:
+                    break
+            try:
+                self.socket.close()
+            except Exception:
+                pass
 
     def _pipe(self, src, dst):
         try:

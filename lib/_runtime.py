@@ -1,5 +1,6 @@
 from collections import deque
 import threading
+import requests
 import socket
 import struct
 import hashlib
@@ -10,8 +11,6 @@ import json
 import os
 import random
 import fcntl
-
-import _executor as _executor
 
 
 ## Constants ##
@@ -44,7 +43,8 @@ class Runtime():
         
     """
     def __init__(self, multicast_addr: str = '239.0.0.2', multicast_port: int = 4242,
-                 machine_id: str = open('/etc/machine-id').read().strip(), bridge: str = "clearly0"):
+                 machine_id: str = open('/etc/machine-id').read().strip(), bridge: str = "clearly0",
+                 api_host: str = "localhost", api_port: int = 8080):
         """
         Initialize the Runtime.
         
@@ -53,6 +53,8 @@ class Runtime():
             multicast_port: UDP port for cluster communication.
             machine_id: Unique identifier for this node.
             bridge: Bridge interface name.
+            api_host: API host address.
+            api_port: API port.
         """
 
         self.multicast_addr = multicast_addr
@@ -63,7 +65,6 @@ class Runtime():
         # Runtime state.
         self.interface = Runtime._ifname()
         self.address = Runtime._ipaddr()
-        self.executor = _executor.Executor()
         self.lock = threading.RLock()
         self.seq = 0
         self.local = {}
@@ -460,8 +461,15 @@ class Runtime():
             time.sleep(GOSSIP_INTERVAL)
             
             # Get current state snapshot.
-            snapshot = self.executor.list_containers()
-            if "error" in snapshot:
+            try:
+                snapshot = json.loads(subprocess.run(
+                    ["clearly", "list", "--json"],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True, check=True
+                )).stdout
+            except Exception as e:
+                logger.warning(f"Snapshot failed: {e}")
                 continue
             
             # Detect incremental changes in container state.
@@ -741,14 +749,14 @@ class Runtime():
                                 "ip": spec_plan.get("ip"),
                                 "name": spec_plan.get("name") or (name if len(replicas) == 1 else f"{name}-{i}")
                             }
-                            rows.append((owner, name, spec))
+                            rows.append((owner, spec))
 
             # Start containers.
-            for owner, name, spec in rows:
+            for owner, spec in rows:
                 if owner == self.machine_id:
-                    cname = f"{spec.get('id')}_{spec.get('name')}"
-                    want_here.add(cname)
-                    if cname not in self.local or self.local.get(cname, {}).get("status") == "stopped":
+                    name = f"{spec.get('id')}_{spec.get('name')}"
+                    want_here.add(name)
+                    if name not in self.local or self.local.get(name, {}).get("status") == "stopped":
                         plan = None
                         allow = []
 
@@ -764,15 +772,11 @@ class Runtime():
                                     allow.append(ip)
 
                         # Start container.
-                        self.executor.start_container(
-                            name=cname,
-                            image=spec.get("image"),
-                            command=spec.get("command", []),
-                            publish=spec.get("publish", []),
-                            environment=spec.get("environment", {}),
-                            ip=spec.get("ip"),
-                            allow=allow
-                        )
+                        requests.post(f"{self.api_host}:{self.api_port}/api/containers", json={
+                            "name": name,
+                            "allow": allow,
+                            **spec
+                        })
 
             # Only stop containers that are part of deployments but shouldn't be here
             # Don't stop manually started containers that aren't part of any deployment
@@ -794,8 +798,8 @@ class Runtime():
             # Only stop containers that are part of deployments but not wanted here
             containers_to_stop = (current & deployment_containers) - want_here
             
-            for cname in containers_to_stop:
-                self.executor.stop_container(cname)
+            for name in containers_to_stop:
+                requests.delete(f"{self.api_host}:{self.api_port}/api/containers/{name}")
 
     """ Main """
 

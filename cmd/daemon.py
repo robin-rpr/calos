@@ -24,6 +24,7 @@ except NameError:
     sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../lib'))
 
 import _runtime as _runtime
+import _proxy as _proxy
 import _http as _http
 
 
@@ -91,13 +92,14 @@ def deploy(payload=None, name=None):
         return { "error": str(e) }
 
 @webserver.get('/api/containers')
-def list_containers(payload=None):
+def list_containers(payload=None, type=None):
     """List all containers."""
     try:
         now = time.time();
         containers = {}
         with runtime.lock:
             for k, v in runtime.local.items():
+                if type and v.get("type") != type: continue
                 if v.get("status") != "removed": 
                     container_info = {
                         "node": runtime.machine_id,
@@ -109,6 +111,7 @@ def list_containers(payload=None):
             for nid, m in runtime.cluster.items():
                 if now - m["ts"] > PEER_TTL: continue
                 for k, v in m["containers"].items():
+                    if type and v.get("type") != type: continue
                     if v.get("status") != "removed":
                         container_info = {
                             "node": nid,
@@ -126,59 +129,105 @@ def list_containers(payload=None):
 @webserver.get('/api/containers/<container_id>')
 def get_container(container_id, payload=None):
     """Get container details by ID."""
-    return runtime.get_container(container_id)
+    return None
 
 @webserver.get('/api/containers/<container_id>/logs')
 def get_container_logs(container_id, payload=None):
     """Get container logs by ID."""
-    return runtime.get_container_logs(container_id)
+    try:
+        cmd = ["clearly", "logs", container_id]
+
+        # Execute command and capture output.
+        result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True)
+        
+        return {"success": True, "stdout": result.stdout, "stderr": result.stderr}
+            
+    except Exception as e:
+        logger.error(f"Failed to get logs for container {container_id}: {e}")
+        return {"error": str(e)}
+
+@webserver.get('/api/containers/<container_id>/proxy/<port>')
+def get_container_proxy(container_id, port, payload=None):
+    """Get container proxy by ID."""
+    proxy = _proxy.Proxy("10.0.0.2", int(port), "0.0.0.0", int(0))
+    timeout =proxy.start(timeout=300)
+    return {"success": True, "proxy": proxy.listen[1], "timeout": timeout}
 
 @webserver.post('/api/containers')
 def start_container(payload):
     """Start a new container."""
-    return runtime.start_container(
-        payload.get('name', str(uuid.uuid4())[:8]),
-        payload.get('image', 'ubuntu:latest'),
-        payload.get('command', []),
-        payload.get('publish', {}),
-        payload.get('environment', {})
-    )
+    try:
+        cmd = [
+            "clearly", "run", payload.get("image", "ubuntu:latest"),
+            "--name", payload.get("name", str(uuid.uuid4())[:8]), "--detach"
+        ]
+
+        # (Optional) static IP.
+        if payload.get("ip"):
+            cmd.extend(["--ip", payload.get("ip")])
+
+        # (Optional) per-peer allow list.
+        if payload.get("allow"):
+            for peer_ip in payload.get("allow"):
+                cmd.extend(["--allow", str(peer_ip)])
+
+        if payload.get("publish"):
+            if isinstance(publish, dict):
+                for key, value in payload.get("publish").items():
+                    cmd.extend(["--publish", f"{key}:{value}"])
+            elif isinstance(payload.get("publish"), list):
+                for entry in payload.get("publish"):
+                    cmd.extend(["--publish", str(entry)])
+        
+        if payload.get("environment"):
+            if isinstance(payload.get("environment"), dict):
+                for key, value in payload.get("environment").items():
+                    cmd.extend(["--env", f"{key}={value}"])
+            elif isinstance(payload.get("environment"), list):
+                for entry in payload.get("environment"):
+                    cmd.extend(["--env", str(entry)])
+        
+        if payload.get("command"):
+            cmd.extend(["--"] + payload.get("command"))
+
+        # Execute command.
+        process = subprocess.Popen(
+            cmd,
+            stdin=subprocess.DEVNULL,
+            stdout=None,
+            stderr=None,
+            start_new_session=True
+        )
+
+        process.wait()
+        if process.returncode != 0:
+            raise subprocess.CalledProcessError(process.returncode, cmd)
+
+        return {"success": True}
+            
+    except Exception as e:
+        logger.error(f"Failed to start container {payload.get('name')}: {e}")
+        return {"error": str(e)}
 
 @webserver.delete('/api/containers/<container_id>')
 def stop_container(container_id, payload=None):
     """Stop a container by ID."""
-    return runtime.stop_container(container_id)
+    try:
+        cmd = ["clearly", "stop", container_id]
+
+        # Execute command.
+        subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, text=True, check=True)
+        
+        return {"success": True}
+            
+    except Exception as e:
+        logger.error(f"Failed to stop container {container_id}: {e}")
+        return {"error": str(e)}
 
 @webserver.get('/api/machines')
 def list_machines(payload=None):
     """List all discovered machines."""
     return runtime.cluster
-
-# @webserver.get('/api/studios')
-# def list_studios(payload=None):
-#     """List all studios."""
-#     return studio_executor.list_studios()
-# 
-# @webserver.get('/api/studios/<studio_id>')
-# def get_studio(studio_id, payload=None):
-#     """Get studio details by ID."""
-#     return studio_executor.get_studio(studio_id)
-# 
-# @webserver.get('/api/studios/<studio_id>/logs')
-# def get_studio_logs(studio_id, payload=None):
-#     """Get studio logs by ID."""
-#     return studio_executor.get_studio_logs(studio_id)
-# 
-# @webserver.post('/api/studios')
-# def start_studio(payload):
-#     """Start a new studio."""
-#     name = payload.get('name', str(uuid.uuid4())[:8])
-#     return studio_executor.start_studio(name)
-# 
-# @webserver.delete('/api/studios/<studio_id>')
-# def stop_studio(studio_id, payload=None):
-#     """Stop a studio by ID."""
-#     return studio_executor.stop_studio(studio_id)
 
 
 ## Pages ##
@@ -190,11 +239,11 @@ def serve_index(payload=None):
     html = template.render()
     return {'type': 'text/html', 'content': html}
 
-@webserver.get('/studio/<studio_id>')
-def serve_studio(studio_id, payload=None):
-    """Serve a studio page by ID."""
+@webserver.get('/studio/<container_id>')
+def serve_studio(container_id, payload=None):
+    """Serve a studio page by container ID."""
     template = webserver.jinja_env.get_template('pages/studio.html')
-    html = template.render(id=studio_id)
+    html = template.render(id=container_id)
     return {'type': 'text/html', 'content': html}
 
 

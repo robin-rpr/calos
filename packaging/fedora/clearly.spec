@@ -254,7 +254,6 @@ su -c "clearly --version" > /dev/null 2>&1
 %{_prefix}/lib/%{name}/_build_cache.*.so
 %{_prefix}/lib/%{name}/_build.*.so
 %{_prefix}/lib/%{name}/_clearly.*.so
-%{_prefix}/lib/%{name}/_executor.*.so
 %{_prefix}/lib/%{name}/_filesystem.*.so
 %{_prefix}/lib/%{name}/_force.*.so
 %{_prefix}/lib/%{name}/_grammar.*.so
