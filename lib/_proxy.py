@@ -12,11 +12,6 @@ class Proxy:
         self.thread = None
         self.socket = None
 
-    def __repr__(self):
-        if self.socket:
-            return str(self.socket.getsockname()[1])
-        return str(self.listen[1])
-
     def start(self, timeout=120):
         if self.thread is not None:
             return
@@ -24,8 +19,11 @@ class Proxy:
         # Calculate timeout.
         timeout = time.time() + timeout
 
-        self.thread = threading.Thread(target=self._serve, args=(timeout,), daemon=True)
+        self.thread = threading.Thread(target=self._listen, args=(timeout,), daemon=True)
         self.thread.start()
+
+        while self.socket is None:
+            time.sleep(0.1)
 
         return timeout
 
@@ -35,17 +33,6 @@ class Proxy:
         if self.thread:
             self.thread.join(timeout=1)
 
-    def _listen(self):
-        self.socket = socket.socket()
-        self.socket.bind(self.listen)
-        self.socket.listen()
-        while True:
-            try:
-                client, _ = self.socket.accept()
-                threading.Thread(target=self._handle, args=(client,), daemon=True).start()
-            except (OSError, ConnectionError):
-                break  # Socket was closed
-
     def _handle(self, client_sock):
         try:
             backend = socket.create_connection(self.target)
@@ -54,23 +41,22 @@ class Proxy:
         except: 
             client_sock.close()
 
-    def _serve(self, timeout):
-            self.socket = socket.socket()
-            self.socket.bind(self.listen)
-            self.socket.listen()
-            self.socket.settimeout(1)
-            while time.time() < timeout:
-                try:
-                    client, _ = self.socket.accept()
-                    threading.Thread(target=self._handle, args=(client,), daemon=True).start()
-                except socket.timeout:
-                    continue
-                except Exception:
-                    break
+    def _listen(self, timeout):
+        self.socket = socket.socket()
+        self.socket.bind(self.listen)
+        self.socket.listen()
+
+        while time.time() < timeout:
             try:
-                self.socket.close()
-            except Exception:
-                pass
+                client, _ = self.socket.accept()
+                threading.Thread(target=self._handle, args=(client,), daemon=True).start()
+            except (OSError, ConnectionError):
+                break # Socket was closed
+
+        try:
+            self.socket.close()
+        except Exception:
+            pass
 
     def _pipe(self, src, dst):
         try:

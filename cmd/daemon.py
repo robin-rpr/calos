@@ -141,7 +141,6 @@ def get_container_logs(container_id, payload=None):
         result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True)
         
         return {"success": True, "stdout": result.stdout, "stderr": result.stderr}
-            
     except Exception as e:
         logger.error(f"Failed to get logs for container {container_id}: {e}")
         return {"error": str(e)}
@@ -149,12 +148,21 @@ def get_container_logs(container_id, payload=None):
 @webserver.get('/api/containers/<container_id>/proxy/<port>')
 def get_container_proxy(container_id, port, payload=None):
     """Get container proxy by ID."""
-    proxy = _proxy.Proxy("10.0.0.2", int(port), "0.0.0.0", int(0))
-    timeout =proxy.start(timeout=300)
-    return {"success": True, "proxy": proxy.listen[1], "timeout": timeout}
+    try:
+        ip_address = runtime.local[container_id].get("ip_address")
+        if not ip_address:
+            raise Exception("Couldn't connect to container")
+        
+        proxy = _proxy.Proxy(ip_address, int(port), "0.0.0.0", int(0))
+        timeout = proxy.start(timeout=300)
+
+        return {"success": True, "proxy": proxy.socket.getsockname()[1], "timeout": timeout}
+    except Exception as e:
+        logger.error(f"Failed to get proxy for container {container_id}: {e}")
+        return {"error": str(e)}
 
 @webserver.post('/api/containers')
-def start_container(payload):
+def start_container(payload=None):
     """Start a new container."""
     try:
         cmd = [
@@ -162,15 +170,31 @@ def start_container(payload):
             "--name", payload.get("name", str(uuid.uuid4())[:8]), "--detach"
         ]
 
-        # (Optional) static IP.
+        # (Optional) Static IP.
         if payload.get("ip"):
             cmd.extend(["--ip", payload.get("ip")])
 
-        # (Optional) per-peer allow list.
+        # (Optional) Per-peer allow list.
         if payload.get("allow"):
             for peer_ip in payload.get("allow"):
                 cmd.extend(["--allow", str(peer_ip)])
 
+        # (Optional) Sysctl parameters list.
+        if payload.get("sysctl"):
+            for key, value in payload.get("sysctl").items():
+                cmd.extend(["--sysctl", f"{key}={value}"])
+
+        # (Optional) Capability add list.
+        if payload.get("cap_add"):
+            for cap in payload.get("cap_add"):
+                cmd.extend(["--cap-add", str(cap)])
+
+        # (Optional) Capability drop list.
+        if payload.get("cap_drop"):
+            for cap in payload.get("cap_drop"):
+                cmd.extend(["--cap-drop", str(cap)])
+
+        # (Optional) Publish list.
         if payload.get("publish"):
             if isinstance(payload.get("publish"), dict):
                 for key, value in payload.get("publish").items():
@@ -179,6 +203,7 @@ def start_container(payload):
                 for entry in payload.get("publish"):
                     cmd.extend(["--publish", str(entry)])
         
+        # (Optional) Environment list.
         if payload.get("environment"):
             if isinstance(payload.get("environment"), dict):
                 for key, value in payload.get("environment").items():
@@ -187,6 +212,7 @@ def start_container(payload):
                 for entry in payload.get("environment"):
                     cmd.extend(["--env", str(entry)])
         
+        # (Optional) Command list.
         if payload.get("command"):
             cmd.extend(["--"] + payload.get("command"))
 
@@ -204,7 +230,6 @@ def start_container(payload):
             raise subprocess.CalledProcessError(process.returncode, cmd)
 
         return {"success": True}
-            
     except Exception as e:
         logger.error(f"Failed to start container {payload.get('name')}: {e}")
         return {"error": str(e)}
@@ -218,8 +243,7 @@ def stop_container(container_id, payload=None):
         # Execute command.
         subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, text=True, check=True)
         
-        return {"success": True}
-            
+        return {"success": True}    
     except Exception as e:
         logger.error(f"Failed to stop container {container_id}: {e}")
         return {"error": str(e)}
