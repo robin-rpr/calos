@@ -103,9 +103,7 @@ def list_containers(payload=None, type=None):
                 if v.get("status") != "removed": 
                     container_info = {
                         "node": runtime.machine_id,
-                        "status": v.get("status"),
-                        "ip_address": v.get("ip_address", None),
-                        "id": v.get("id", None)
+                        **v
                     }
                     containers[k] = container_info
             for nid, m in runtime.cluster.items():
@@ -115,9 +113,7 @@ def list_containers(payload=None, type=None):
                     if v.get("status") != "removed":
                         container_info = {
                             "node": nid,
-                            "status": v.get("status"),
-                            "ip_address": v.get("ip_address", None),
-                            "id": v.get("id", None)
+                            **v
                         }
                         containers.setdefault(k, container_info)
 
@@ -149,11 +145,11 @@ def get_container_logs(container_id, payload=None):
 def get_container_proxy(container_id, port, payload=None):
     """Get container proxy by ID."""
     try:
-        ip_address = runtime.local[container_id].get("ip_address")
-        if not ip_address:
+        ip = runtime.local[container_id].get("ip")
+        if not ip:
             raise Exception("Couldn't connect to container")
         
-        proxy = _proxy.Proxy(ip_address, int(port), "0.0.0.0", int(0))
+        proxy = _proxy.Proxy(ip, int(port), "0.0.0.0", int(0))
         timeout = proxy.start(timeout=300)
 
         return {"success": True, "proxy": proxy.socket.getsockname()[1], "timeout": timeout}
@@ -167,43 +163,52 @@ def start_container(payload=None):
     try:
         cmd = [
             "clearly", "run", payload.get("image", "ubuntu:latest"),
-            "--name", payload.get("name", str(uuid.uuid4())[:8]), "--detach"
+            "--name", payload.get("id", str(uuid.uuid4())[:8]), "--detach"
         ]
 
-        # (Optional) Static IP.
+        # Parse Static IP.
         if payload.get("ip"):
             cmd.extend(["--ip", payload.get("ip")])
 
-        # (Optional) Per-peer allow list.
+        # Parse Per-peer allow list.
         if payload.get("allow"):
             for peer_ip in payload.get("allow"):
                 cmd.extend(["--allow", str(peer_ip)])
 
-        # (Optional) Sysctl parameters list.
+        # Parse Sysctl parameters list.
         if payload.get("sysctl"):
             for key, value in payload.get("sysctl").items():
                 cmd.extend(["--sysctl", f"{key}={value}"])
 
-        # (Optional) Capability add list.
+        # Parse Capability add list.
         if payload.get("cap_add"):
             for cap in payload.get("cap_add"):
                 cmd.extend(["--cap-add", str(cap)])
 
-        # (Optional) Capability drop list.
+        # Parse Capability drop list.
         if payload.get("cap_drop"):
             for cap in payload.get("cap_drop"):
                 cmd.extend(["--cap-drop", str(cap)])
 
-        # (Optional) Publish list.
-        if payload.get("publish"):
-            if isinstance(payload.get("publish"), dict):
-                for key, value in payload.get("publish").items():
-                    cmd.extend(["--publish", f"{key}:{value}"])
-            elif isinstance(payload.get("publish"), list):
-                for entry in payload.get("publish"):
-                    cmd.extend(["--publish", str(entry)])
+        # Parse Label list.
+        if payload.get("label"):
+            if isinstance(payload.get("label"), dict):
+                for key, value in payload.get("label").items():
+                    cmd.extend(["--label", f"{key}={value}"])
+            elif isinstance(payload.get("label"), list):
+                for entry in payload.get("label"):
+                    cmd.extend(["--label", str(entry)])
+
+        # Parse Publish list.
+        if payload.get("port"):
+            if isinstance(payload.get("port"), dict):
+                for key, value in payload.get("port").items():
+                    cmd.extend(["--port", f"{key}:{value}"])
+            elif isinstance(payload.get("port"), list):
+                for entry in payload.get("port"):
+                    cmd.extend(["--port", str(entry)])
         
-        # (Optional) Environment list.
+        # Parse Environment list.
         if payload.get("environment"):
             if isinstance(payload.get("environment"), dict):
                 for key, value in payload.get("environment").items():
@@ -212,7 +217,7 @@ def start_container(payload=None):
                 for entry in payload.get("environment"):
                     cmd.extend(["--env", str(entry)])
         
-        # (Optional) Command list.
+        # Parse Command list.
         if payload.get("command"):
             cmd.extend(["--"] + payload.get("command"))
 

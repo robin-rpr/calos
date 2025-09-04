@@ -122,6 +122,9 @@ mounting SquashFS images with FUSE.
     Label for :code:`clearly run` peer group (implies :code:`--join`; default: see
     below).
 
+  :code:`--label=KEY=VALUE`
+    Set container label :code:`KEY` to :code:`VALUE`. Can be repeated.
+
   :code:`--memory-max=BYTES`
     Set memory limit for the container in bytes (up to 1024G).
 
@@ -139,7 +142,7 @@ mounting SquashFS images with FUSE.
   :code:`--pids-max=N`
     Set maximum number of PIDs for the container (0-1024).
 
-  :code:`-p`, :code:`--publish=SRC:DST`
+  :code:`-p`, :code:`--port=SRC:DST`
     Forward host port :code:`SRC` to container port :code:`DST`. Can be repeated.
 
   :code:`-q`, :code:`--quiet`

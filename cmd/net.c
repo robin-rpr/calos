@@ -1540,10 +1540,10 @@ void flush_nft_forward(const struct in_addr *guest_ip, const char *protocol) {
         Zf(mnl_socket_sendto(sock, mnl_nlmsg_batch_head(del_batch), mnl_nlmsg_batch_size(del_batch)) < 0,
            "kernel rejected delete batch");
 
-        VERBOSE("flushed %d %s publish rule(s) for guest %s",
+        VERBOSE("flushed %d %s port rule(s) for guest %s",
                 delete_count, protocol, inet_ntoa(*guest_ip));
     } else {
-        VERBOSE("no %s publish rules found for guest %s to flush",
+        VERBOSE("no %s port rules found for guest %s to flush",
                 protocol, inet_ntoa(*guest_ip));
     }
 

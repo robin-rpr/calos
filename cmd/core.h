@@ -42,20 +42,21 @@ struct container {
    bool env_expand;         // expand variables in --env
    char **argv;             // override command to run in container
    char *host_home;         // if --home, host path to user homedir, else NULL
-   char **host_map_strs;    // e.g. "google.com:127.0.0.1"
-   char *image;           // image description from command line
+   char **host_map_strs;    // hosts file mapping (HOSTNAME:IP_ADDRESS format)
+   char *image;             // image description from command line
    char *ip;                // IP address to use in container
    bool join;               // is this a synchronized join?
    int join_ct;             // number of peers in a synchronized join
    pid_t join_pid;          // process in existing namespace to join
    char *join_tag;          // identifier for synchronized join
    char *overlay_size;      // size of overlaid tmpfs (NULL for no overlay)
-   char **publish_map_strs; // e.g. "8080:80"
+   char **port_map_strs;    // container ports to publish (HOST:GUEST format)
    bool public_passwd;      // don't bind custom /etc/{passwd,group}
    bool private_tmp;        // don't bind host's /tmp
    char **cap_add;          // capabilities to add to container
    char **cap_drop;         // capabilities to drop from container
-   char **sysctls;          // kernel parameters to set (KEY=VALUE format)
+   char **sysctl_map_strs;  // kernel parameters to set (KEY=VALUE format)
+   char **label_map_strs;   // container labels (KEY=VALUE format)
    enum img_type type;      // directory, SquashFS, etc.
    bool writable;           // re-mount image read-write
 };

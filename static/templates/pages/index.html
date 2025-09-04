@@ -38,12 +38,7 @@ Clearly
         <div class="content__container">
             <div class="container__content">
                 <div class="content__panel" id="resources" aria-labelledby="tab-resources">
-                    <!-- Studios -->
-                    <div class="panel__title">Studios</div>
-                    <div class="panel__list" id="studios-list"></div>
-                    <!-- Containers -->
-                    <div class="panel__title">Containers</div>
-                    <div class="panel__list" id="containers-list"></div>
+                    
                 </div>
             </div>
         </div>
@@ -81,14 +76,14 @@ Clearly
 <script>
     // Studios
     Promise.all([
-        fetch(`/api/studios`).then(r => r.json())
-    ]).then(([studios]) => {
-        if (!studios.success) {
-            console.error(studios.error);
+        fetch(`/api/containers?filter=type:studio`).then(r => r.json())
+    ]).then(([response]) => {
+        if (!response.success) {
+            console.error(response.error);
             return;
         }
 
-        document.getElementById('studios-list').innerHTML = studios.studios.map(studio => `
+        document.getElementById('studios-list').innerHTML = Object.entries(response.studios).map(([id, studio]) => `
             <a class="list__item" href="/studio/${studio.id}">
                 <div class="item__status item__status--${studio.status}"></div>
                 <div class="item__icon item__icon--enlarged">
@@ -105,30 +100,30 @@ Clearly
 <script>
     // Containers
     Promise.all([
-        fetch(`/api/containers`).then(r => r.json())
-    ]).then(([containers]) => {
-        if (!containers.success) {
-            console.error(containers.error);
+        fetch(`/api/containers?filter=type:`).then(r => r.json())
+    ]).then(([response]) => {
+        if (!response.success) {
+            console.error(response.error);
             return;
         }
 
-        document.getElementById('containers-list').innerHTML = containers.containers.map(container => `
+        document.getElementById('containers-list').innerHTML = Object.entries(response.containers).map(([id, container]) => `
             <a class="list__item" href="/container/${container.id}">
                 <div class="item__status item__status--${container.status}"></div>
                 <div class="item__icon">
                     <i class="fa-kit fa-container"></i>
                 </div>
                 <div class="item__name">${container.id}</div>
-                <div class="item__ip-address">${container.ip}</div>
+                <div class="item__ip-address">${container.ip_address}</div>
                 <div class="item__ports">
-                    ${Object.entries(container.publish).map(([host, container]) => `
+                    ${Object.entries(container.ports || {}).map(([host, container]) => `
                     <button class="ports__item" onclick="event.preventDefault(); window.open('${window.location.protocol}//${window.location.hostname}:${host}', '_blank')">
                         <i class="fa-kit fa-arrow-up-right-from-square"></i>
                         ${host}:${container}
                     </button>
                     `).join('')}
                 </div>
-                <div class="item__image">${container.image}</div>
+                <div class="item__image">${container.image || ''}</div>
                 <button class="item__more">
                     <i class="fa-sharp fa-light fa-ellipsis"></i>
                 </button>

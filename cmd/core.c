@@ -222,7 +222,9 @@ void iw(struct sock_fprog *p, int i,
 #endif
 void parse_host_map(const char* map_str, char** hostname, struct in_addr* ip_addr);
 void parse_allow_map(const char* map_str, struct in_addr* ip_addr);
-void parse_publish_map(const char* map_str, int* host_port, int* container_port, char** protocol);
+void parse_port_map(const char* map_str, int* host_port, int* container_port, char** protocol);
+void parse_sysctl_map(const char* map_str, char** key, char** value);
+void parse_label_map(const char* map_str, char** key, char** value);
 void join_begin(const char *join_tag);
 void join_namespace(pid_t pid, const char *ns);
 void join_namespaces(pid_t pid);
@@ -410,10 +412,10 @@ void containerize(
         }
 
         // Ensure DNAT (Destination NAT) Forward.
-        for (int i = 0; c->publish_map_strs[i] != NULL; i++) {
+        for (int i = 0; c->port_map_strs[i] != NULL; i++) {
             int host_port, guest_port;
             char* protocol;
-            parse_publish_map(c->publish_map_strs[i], &host_port, &guest_port, &protocol);
+            parse_port_map(c->port_map_strs[i], &host_port, &guest_port, &protocol);
             create_nft_forward(&guest_ip, host_port, guest_port, protocol);
             free(protocol);
         }
@@ -480,13 +482,14 @@ void containerize(
         if (c->detached) {
          char container_path[PATH_CHARS];
          char relative_path[PATH_CHARS];
+         char command_path[PATH_CHARS];
+         char sysctl_path[PATH_CHARS];
+         char image_path[PATH_CHARS];
+         char label_path[PATH_CHARS];
+         char port_path[PATH_CHARS];
          char log_path[PATH_CHARS];
-         char net_path[PATH_CHARS];
          char pid_path[PATH_CHARS];
-         char img_path[PATH_CHARS];
-         char tcp_path[PATH_CHARS];
-         char udp_path[PATH_CHARS];
-         char cmd_path[PATH_CHARS];
+         char ip_path[PATH_CHARS];
 
          // The 'path' argument to mkdirs must begin with a '/', representing the path
          // to be created *within* the base directory (runtime_dir).
@@ -501,13 +504,14 @@ void containerize(
      
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-truncation"
+         snprintf(command_path, sizeof(command_path), "%s/command", container_path);
+         snprintf(sysctl_path, sizeof(sysctl_path), "%s/sysctl", container_path);
+         snprintf(image_path, sizeof(image_path), "%s/image", container_path);
+         snprintf(label_path, sizeof(label_path), "%s/label", container_path);
+         snprintf(port_path, sizeof(port_path), "%s/port", container_path);
          snprintf(log_path, sizeof(log_path), "%s/log", container_path);
-         snprintf(net_path, sizeof(net_path), "%s/net", container_path);
          snprintf(pid_path, sizeof(pid_path), "%s/pid", container_path);
-         snprintf(img_path, sizeof(img_path), "%s/img", container_path);
-         snprintf(tcp_path, sizeof(tcp_path), "%s/tcp", container_path);
-         snprintf(udp_path, sizeof(udp_path), "%s/udp", container_path);
-         snprintf(cmd_path, sizeof(cmd_path), "%s/cmd", container_path);
+         snprintf(ip_path, sizeof(ip_path), "%s/ip", container_path);
 #pragma GCC diagnostic pop
      
          // Redirect stdout and stderr to the log file.
@@ -515,33 +519,50 @@ void containerize(
          T_ (1 <= dup2(open(log_path, O_WRONLY | O_CREAT | O_TRUNC, 0644), STDERR_FILENO));
      
          // Write IP to file.
-         T_ (1 <= dprintf(open(net_path, O_WRONLY | O_CREAT | O_TRUNC, 0644), "%s", inet_ntoa(guest_ip)));
+         T_ (1 <= dprintf(open(ip_path, O_WRONLY | O_CREAT | O_TRUNC, 0644), "%s", inet_ntoa(guest_ip)));
      
          // Write PID to file.
          T_ (1 <= dprintf(open(pid_path, O_WRONLY | O_CREAT | O_TRUNC, 0644), "%d", getpid()));
 
          // Write image to file.
-         T_ (1 <= dprintf(open(img_path, O_WRONLY | O_CREAT | O_TRUNC, 0644), "%s", c->image));
+         T_ (1 <= dprintf(open(image_path, O_WRONLY | O_CREAT | O_TRUNC, 0644), "%s", c->image));
 
-         // Write TCP and UDP ports to files.
-         for (int i = 0; c->publish_map_strs[i] != NULL; i++) {
+         // Write ports to file.
+         for (int i = 0; c->port_map_strs[i] != NULL; i++) {
              int host_port, guest_port;
              char* protocol;
-             parse_publish_map(c->publish_map_strs[i], &host_port, &guest_port, &protocol);
-             char* path = strcmp(protocol, "tcp") == 0 ? tcp_path : udp_path;
-             T_ (1 <= dprintf(open(path, O_WRONLY | O_CREAT | O_APPEND, 0644), "%d->%d\n", host_port, guest_port));
+             parse_port_map(c->port_map_strs[i], &host_port, &guest_port, &protocol);
+             T_ (1 <= dprintf(open(port_path, O_WRONLY | O_CREAT | O_APPEND, 0644), "%d->%d/%s\n", host_port, guest_port, protocol));
              free(protocol);
+         }
+
+         // Write sysctls to file.
+         for (int i = 0; c->sysctl_map_strs[i] != NULL; i++) {
+            int key, value;
+            char* path;
+            parse_sysctl_map(c->sysctl_map_strs[i], &key, &value, &path);
+            T_ (1 <= dprintf(open(sysctl_path, O_WRONLY | O_CREAT | O_APPEND, 0644), "%s=%s\n", key, value));
+            free(path);
          }
 
          // Write command to file.
          if (c->command != NULL) {
-             int fd = open(cmd_path, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+             int fd = open(command_path, O_WRONLY | O_CREAT | O_TRUNC, 0644);
              T_ (fd >= 0);
              for (int i = 0; c->command[i] != NULL; i++) {
                  T_ (1 <= dprintf(fd, "%s%s", c->command[i], c->command[i+1] != NULL ? " " : ""));
              }
              close(fd);
          }
+
+         // Write labels to file.
+         for (int i = 0; c->label_map_strs[i] != NULL; i++) {
+            int key, value;
+            char* protocol;
+            parse_label_map(c->label_map_strs[i], &key, &value, &protocol);
+            T_ (1 <= dprintf(open(label_path, O_WRONLY | O_CREAT | O_APPEND, 0644), "%s=%s\n", key, value));
+            free(protocol);
+        }
      }
 
         // Initialize cgroup.
@@ -646,57 +667,23 @@ void containerize(
 
         /* Step 7: Apply sysctl parameters.
            Set kernel parameters specified by the user. */
-        if (c->sysctls && c->sysctls[0] != NULL) {
-           for (int i = 0; c->sysctls[i] != NULL; i++) {
-              char *key, *value;
-              char *sysctl_str = strdup(c->sysctls[i]);
-              char *key_copy = NULL;
-              
-              // Parse KEY=VALUE format
-              char *equals_pos = strchr(sysctl_str, '=');
-              if (equals_pos) {
-                 *equals_pos = '\0';  // Split the string
-                 key = sysctl_str;
-                 value = equals_pos + 1;
-                 
-                 // Make a copy of the key for the path conversion
-                 key_copy = strdup(key);
-                 
-                 if (key[0] != '\0' && value[0] != '\0') {
-                    // Convert key from dot notation to /proc/sys path
-                    char *proc_path = NULL;
-                    T_ (1 <= asprintf(&proc_path, "/proc/sys/%s", key_copy));
-                    
-                    // Replace dots with slashes
-                    for (char *p = proc_path + 10; *p; p++) {
-                       if (*p == '.') *p = '/';
-                    }
-                    
-                    // Write the value to the sysctl file
-                    int fd = open(proc_path, O_WRONLY);
-                    if (fd >= 0) {
-                       if (write(fd, value, strlen(value)) == (ssize_t)strlen(value)) {
-                          VERBOSE("set sysctl %s = %s", key, value);
-                       } else {
-                          WARNING("failed to set sysctl %s = %s", key, value);
-                       }
-                       close(fd);
-                    } else {
-                       WARNING("can't open sysctl file %s: %s", proc_path, strerror(errno));
-                    }
-                    
-                    free(proc_path);
-                 } else {
-                    WARNING("invalid sysctl format: %s", c->sysctls[i]);
-                 }
-              } else {
-                 WARNING("invalid sysctl format: %s", c->sysctls[i]);
-              }
-              
-              free(sysctl_str);
-              if (key_copy) free(key_copy);
-           }
-        }
+        for (int i = 0; c->sysctl_map_strs[i] != NULL; i++) {
+            int key, value;
+            char* path;
+            parse_sysctl_map(c->sysctl_map_strs[i], &key, &value, &path);
+            int fd = open(proc_path, O_WRONLY);
+            if (fd >= 0) {
+               if (write(fd, value, strlen(value)) == (ssize_t)strlen(value)) {
+                  VERBOSE("set sysctl %s = %s", key, value);
+               } else {
+                  WARNING("failed to set sysctl %s = %s", key, value);
+               }
+               close(fd);
+            } else {
+               WARNING("can't open sysctl file %s: %s", proc_path, strerror(errno));
+            }
+            free(path);
+         }
 
         /* Step 8: Configure DNS.
            We add two nameservers to /etc/resolv.conf: Google's DNS and Cloudflare's DNS.
@@ -913,7 +900,7 @@ void parse_allow_map(const char* map_str, struct in_addr* ip_addr) {
 }
 
 /* Helper function to parse "HOST_PORT:CONTAINER_PORT[/PROTOCOL]" string. */
-void parse_publish_map(const char* map_str, int* host_port, int* container_port, char** protocol) {
+void parse_port_map(const char* map_str, int* host_port, int* container_port, char** protocol) {
     char* str = strdup(map_str);
     char* colon = strchr(str, ':');
     Tf(colon != NULL, "invalid port entry format. Expected HOST_PORT:CONTAINER_PORT[/PROTOCOL]");
@@ -925,6 +912,32 @@ void parse_publish_map(const char* map_str, int* host_port, int* container_port,
     
     char* slash = strchr(colon + 1, '/');
     *protocol = slash ? strdup(slash + 1) : strdup("tcp");
+    free(str);
+}
+
+/* Helper function to parse "KEY=VALUE" string. */
+void parse_sysctl_map(const char* map_str, char** key, char** value, char** path) {
+   char* str = strdup(map_str);
+   char* equal = strchr(str, '=');
+   Tf(equal != NULL, "invalid sysctl entry format. Expected KEY=VALUE");
+   *equal = '\0';
+   *key = strdup(str);
+   *value = strdup(equal + 1);
+   T_ (1 <= asprintf(&path, "/proc/sys/%s", key));
+   for (char *p = path + 10; *p; p++) {
+      if (*p == '.') *p = '/';
+   }
+   free(str);
+}
+
+/* Helper function to parse "KEY=VALUE" string. */
+void parse_label_map(const char* map_str, char** key, char** value) {
+    char* str = strdup(map_str);
+    char* equal = strchr(str, '=');
+    Tf(equal != NULL, "invalid label entry format. Expected KEY=VALUE");
+    *equal = '\0';
+    *key = strdup(str);
+    *value = strdup(equal + 1);
     free(str);
 }
 

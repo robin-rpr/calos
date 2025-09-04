@@ -482,16 +482,16 @@ class Runtime():
                 for container_id, container_info in containers.items():
                     old_info = self.local.get(container_id, {})
                     new_state = {
-                        "status": container_info.get('status'),
-                        "ip_address": container_info.get('ip_address'),
-                        "id": container_id,
+                        **container_info,
                         "ver": self.seq + 1
                     }
-                    
-                    if (old_info.get('status') != new_state['status'] or 
-                        old_info.get('ip_address') != new_state['ip_address']):
-                        changes.append(('update', container_id, new_state))
-                        self.seq += 1
+
+                    for key, value in new_state.items():
+                        if key == 'ver': continue # Version is not part of the state.
+                        if old_info.get(key) != value:
+                            changes.append(('update', container_id, new_state))
+                            self.seq += 1
+                            break
                 
                 # Check for removed containers
                 current_ids = set(containers.keys())
@@ -730,28 +730,28 @@ class Runtime():
         # Build a local plan for each deployment.
         with self.lock:
             for id, deployment in self.deploys.items():
-                    services = deployment.get("services", {})
-                    plan = deployment.get("plan")
-                    if plan is None:
-                        # Fallback: Construct a local plan (not broadcasted).
-                        plan = self._get_plan({"id": id, "services": services})
-                        deployment["plan"] = plan
+                services = deployment.get("services", {})
+                plan = deployment.get("plan")
+                if plan is None:
+                    # Fallback: Construct a local plan (not broadcasted).
+                    plan = self._get_plan({"id": id, "services": services})
+                    deployment["plan"] = plan
 
-                    for name, replicas in plan.items():
-                        service = services.get(name, {})
-                        for i, spec_plan in replicas.items():
-                            owner = spec_plan.get("node")
-                            spec = {
-                                "id": id,
-                                "replica": i,
-                                "image": service.get("image"),
-                                "command": service.get("command", []),
-                                "publish": service.get("ports", []),
-                                "environment": service.get("environment", {}),
-                                "ip": spec_plan.get("ip"),
-                                "name": spec_plan.get("name") or (name if len(replicas) == 1 else f"{name}-{i}")
-                            }
-                            rows.append((owner, spec))
+                for name, replicas in plan.items():
+                    service = services.get(name, {})
+                    for i, spec_plan in replicas.items():
+                        owner = spec_plan.get("node")
+                        spec = {
+                            "id": id,
+                            "replica": i,
+                            "image": service.get("image"),
+                            "command": service.get("command", []),
+                            "ports": service.get("ports", []),
+                            "environment": service.get("environment", {}),
+                            "ip": spec_plan.get("ip"),
+                            "name": spec_plan.get("name") or (name if len(replicas) == 1 else f"{name}-{i}")
+                        }
+                        rows.append((owner, spec))
 
             # Start containers.
             for owner, spec in rows:

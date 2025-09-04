@@ -62,7 +62,7 @@ const struct argp_option options[] = {
    { "detach",        'd', 0,                  0, "detach the container into the background" },
    { "env-no-expand", -8,  0,                  0, "don't expand $ in --env input" },
    { "env",           'e', "ARG",              0,
-      "set env. variables per ARG (newline-delimited)" },
+                           "set env. variables per ARG (newline-delimited)" },
    { "feature",       -9, "FEAT",              0, "exit successfully if FEAT is enabled" },
    { "gid",           'g', "GID",              0, "run as GID within container" },
    { "home",          -10, 0,                  0, "mount host $HOME at guest /home/$USER" },
@@ -70,28 +70,29 @@ const struct argp_option options[] = {
    { "ip",            'i', "IP",               0, "set a static IP address for container" },
    { "join",          'j', 0,                  0, "use same container as peer clearly run" },
    { "join-ct",       -11, "N",                0, "number of join peers (implies --join)" },
-   { "join-pid",      -12, "PID",               0, "join a namespace using a PID" },
-   { "join-tag",      -13, "TAG",               0, "label for peer group (implies --join)" },
-   { "memory-max",    -14, "BYTES",            0, "set maximum bytes of memory (0-1024G)" },
+   { "join-pid",      -12, "PID",              0, "join a namespace using a PID" },
+   { "join-tag",      -13, "TAG",              0, "label for peer group (implies --join)" },
+   { "label",         -14, "KEY=VALUE",        0, "set container label (e.g. com.example=true)" },
+   { "memory-max",    -15, "BYTES",            0, "set maximum bytes of memory (0-1024G)" },
    { "mount",         'm', "DIR",              0, "overwrite SquashFS mount point" },
-   { "name",          -15, "NAME",             0, "assign a name to the container" },
+   { "name",          -16, "NAME",             0, "assign a name to the container" },
    { "overlay",       'o', "SIZE", OPTION_ARG_OPTIONAL,
                            "overlay read-write tmpfs size on top of image" },
-   { "passwd",        -16, 0,                  0, "bind-mount /etc/{passwd,group}" },
-   { "pids-max",      -17, "N",                0, "maximum number of PIDs (0-1024)" },
+   { "passwd",        -17, 0,                  0, "bind-mount /etc/{passwd,group}" },
+   { "pids-max",      -18, "N",                0, "maximum number of PIDs (0-1024)" },
    { "private-tmp",   't', 0,                  0, "use container-private /tmp" },
-   { "publish",       'p', "SRC:DST",          0,
+   { "port",          'p', "SRC:DST",          0,
                            "forward host port SRC to container port DST" },
    { "quiet",         'q', 0,                  0, "print less output (can be repeated)" },
    { "runtime",       'r', "DIR",              0, "set DIR as runtime directory" },
-   { "sysctl",        -18, "KEY=VALUE",        0, "set kernel parameter KEY to VALUE" },
+   { "sysctl",        -19, "KEY=VALUE",        0, "set kernel parameter KEY to VALUE" },
    { "storage",       's', "DIR",              0, "set DIR as storage directory" },
-   { "test",          -19, "TEST",             0, "do 'clearly test' TEST" },
+   { "test",          -20, "TEST",             0, "do 'clearly test' TEST" },
    { "uid",           'u', "UID",              0, "run as UID within container" },
-   { "unsafe",        -20, 0,                  0, "do unsafe things (internal use only)" },
-   { "unset-env",     -21, "GLOB",             0, "unset environment variable(s)" },
+   { "unsafe",        -21, 0,                  0, "do unsafe things (internal use only)" },
+   { "unset-env",     -22, "GLOB",             0, "unset environment variable(s)" },
    { "verbose",       'v', 0,                  0, "be more verbose (can be repeated)" },
-   { "warnings",      -22, "NUM",              0, "log NUM warnings and exit" },
+   { "warnings",      -23, "NUM",              0, "log NUM warnings and exit" },
    { "write",         'w', 0,                  0, "mount image read-write (avoid)"},
    { 0 }
 };
@@ -202,12 +203,13 @@ int main(int argc, char *argv[])
                                .join_pid = 0,
                                .join_tag = NULL,
                                .overlay_size = WRITE_FAKE_DEFAULT,
-                               .publish_map_strs = list_new(sizeof(char *), 0),
+                               .port_map_strs = list_new(sizeof(char *), 0),
                                .public_passwd = false,
                                .private_tmp = false,
                                .cap_add = list_new(sizeof(char *), 0),
                                .cap_drop = list_new(sizeof(char *), 0),
-                               .sysctls = list_new(sizeof(char *), 0),
+                               .sysctl_map_strs = list_new(sizeof(char *), 0),
+                               .label_map_strs = list_new(sizeof(char *), 0),
                                .type = IMG_NONE,
                                .writable = false },
       .pulled_config = json_object_new_object(),
@@ -626,27 +628,27 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state)
       args->c.join = true;
       args->c.join_tag = arg;
       break;
-   case -14: // --memory-max
+   case -14: // --label
+      Ze(arg[0] == '\0', "label mapping can't be empty string");
+      list_append((void **)&(args->c.label_map_strs), &arg, sizeof(char *));
+      break;
+   case -15: // --memory-max
       args->c.cgroup_memory_max = arg;
       break;
-   case -15: // --name
+   case -16: // --name
       args->c.name = arg;
       break;
-   case -16: // --passwd
+   case -17: // --passwd
       args->c.public_passwd = true;
       break;
-   case -17: // --pids-max
+   case -18: // --pids-max
       args->c.cgroup_pids_max = parse_int(arg, false, "--pids-max");
       break;
-   case -18: // --sysctl
-      Ze(arg[0] == '\0', "sysctl parameter can't be empty string");
-      // Validate format: must contain '='
-      if (strchr(arg, '=') == NULL) {
-         FATAL(0, "--sysctl: invalid format, must be KEY=VALUE");
-      }
-      list_append((void **)&(args->c.sysctls), &arg, sizeof(char *));
+   case -19: // --sysctl
+      Ze(arg[0] == '\0', "sysctl mapping can't be empty string");
+      list_append((void **)&(args->c.sysctl_map_strs), &arg, sizeof(char *));
       break;
-   case -19: // --test
+   case -20: // --test
       if (!strcmp(arg, "log"))
          test_logging(false);
       else if (!strcmp(arg, "log-fail"))
@@ -654,17 +656,17 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state)
       else
          FATAL(0, "invalid --test argument: %s; see source code", arg);
       break;
-   case -20: // --unsafe
+   case -21: // --unsafe
       args->unsafe = true;
       break;
-   case -21: // --unset-env
+   case -22: // --unset-env
       { struct env_delta ed;
         Te (strlen(arg) > 0, "--unset-env: GLOB must have non-zero length");
         ed.action = ENV_UNSET_GLOB;
         ed.arg.glob = arg;
         list_append((void **)&(args->env_deltas), &ed, sizeof(ed));
       } break;
-   case -22: // --warnings
+   case -23: // --warnings
       for (int i = 1; i <= parse_int(arg, false, "--warnings"); i++)
          WARNING("this is warning %d!", i);
       exit(0);
@@ -732,9 +734,9 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state)
       Ze(arg[0] == '\0', "overlay size can't be empty string");
       args->c.overlay_size = arg;
       break;
-   case 'p':  // --publish
-      Ze(arg[0] == '\0', "publish mapping can't be empty string");
-      list_append((void **)&(args->c.publish_map_strs), &arg, sizeof(char *));
+   case 'p':  // --port
+      Ze(arg[0] == '\0', "port mapping can't be empty string");
+      list_append((void **)&(args->c.port_map_strs), &arg, sizeof(char *));
       break;
    case 'q':  // --quiet
       Te(verbose <= 0, "--quiet incompatible with --verbose");

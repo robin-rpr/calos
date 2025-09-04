@@ -55,7 +55,7 @@ if [[ ! -d "$clearly_runtime" ]]; then
   if [[ "$json_output" == "--json" ]]; then
     printf '[]\n'
   else
-    printf '%-20s\t%-20s\t%-20s\t%-10s\t%s\n' "CONTAINER ID" "IMAGE" "IP ADDRESS" "STATUS" "PORTS"
+    printf '%-20s\t%-20s\t%-20s\t%-10s\t%-20s\t%s\n' "CONTAINER ID" "IMAGE" "IP ADDRESS" "STATUS" "LABELS" "PORTS"
   fi
   exit 0
 fi
@@ -63,14 +63,14 @@ fi
 space=20 # Minimum width.
 shopt -s nullglob
 for dir in "$clearly_runtime"/*/; do
-  img=$(<"${dir}img")
-  (( w = ${#img} + 2, w > space )) && space=$w
+  image=$(<"${dir}image")
+  (( w = ${#image} + 2, w > space )) && space=$w
 done
 
 if [[ "$json_output" == "--json" ]]; then
   printf '[\n'
 else
-  printf '%-20s\t%-*s\t%-20s\t%-10s\t%s\n' "CONTAINER ID" "$space" "IMAGE" "IP ADDRESS" "STATUS" "PORTS"
+  printf '%-20s\t%-*s\t%-20s\t%-10s\t%-20s\t%s\n' "CONTAINER ID" "$space" "IMAGE" "IP ADDRESS" "STATUS" "PORTS" "LABELS"
 fi
 
 first_item=1
@@ -80,42 +80,99 @@ for dir in "$clearly_runtime"/*/; do
 
   id="${dir%/}"; id="${id##*/}"
 
+  ip=$(<"${dir}ip")
   pid=$(<"${dir}pid")
-  net=$(<"${dir}net")
-  img=$(<"${dir}img")
+  image=$(<"${dir}image")
 
-  ports=""
-  # Determine ports from both tcp and udp files
-  for proto in tcp udp; do
-    file="${dir}${proto}"
-    if [[ -f "$file" && -s "$file" ]]; then
+  port=""
+  port_json="{}"
+  # Read ports from port file
+  if [[ -f "${dir}port" && -s "${dir}port" ]]; then
+    if [[ "$json_output" == "--json" ]]; then
+      # Build JSON object for ports
+      port_json="{"
+      first_port=1
       while IFS= read -r line; do
-        [[ $line ]] && ports+="${ports:+, }${line}/$proto"
-      done < "$file"
+        if [[ $line ]]; then
+          if (( first_port == 0 )); then
+            port_json+=","
+          fi
+          # Parse port mapping (e.g., "80:8080/tcp" -> "80":"8080/tcp")
+          if [[ $line == *":"* ]]; then
+            host_port="${line%%:*}"
+            container_port="${line#*:}"
+            port_json+="\"$host_port\":\"$container_port\""
+          else
+            port_json+="\"$line\":\"\""
+          fi
+          first_port=0
+        fi
+      done < "${dir}port"
+      port_json+="}"
+    else
+      # Build comma-separated string for table output
+      while IFS= read -r line; do
+        [[ $line ]] && port+="${port:+, }${line}"
+      done < "${dir}port"
     fi
-  done
+  fi
+
+  label=""
+  label_json="{}"
+  # Read labels from label file
+  if [[ -f "${dir}label" && -s "${dir}label" ]]; then
+    if [[ "$json_output" == "--json" ]]; then
+      # Build JSON object for labels
+      label_json="{"
+      first_label=1
+      while IFS= read -r line; do
+        if [[ $line ]]; then
+          if (( first_label == 0 )); then
+            label_json+=","
+          fi
+          # Parse label (e.g., "key=value" -> "key":"value")
+          if [[ $line == *"="* ]]; then
+            key="${line%%=*}"
+            value="${line#*=}"
+            label_json+="\"$key\":\"$value\""
+          else
+            label_json+="\"$line\":\"\""
+          fi
+          first_label=0
+        fi
+      done < "${dir}label"
+      label_json+="}"
+    else
+      # Build comma-separated string for table output
+      while IFS= read -r line; do
+        [[ $line ]] && label+="${label:+, }${line}"
+      done < "${dir}label"
+    fi
+  fi
 
   # Determine status (Running / Stopped / Unknown)
   if kill -0 "$pid" 2>/dev/null; then
     status="Running"
   elif [[ ! -e "/proc/$pid" ]]; then
     status="Stopped"
-    ports=""
-    net=""
+    port_json="{}"
+    port=""
+    ip=""
   else
     status="Unknown"
-    ports=""
-    net=""
+    port_json="{}"
+    port=""
+    ip=""
   fi
 
   if [[ "$json_output" == "--json" ]]; then
     if (( first_item == 0 )); then
       printf ',\n'
     fi
-    printf '  {"id": "%s", "image": "%s", "ip_address": "%s", "status": "%s", "ports": "%s"}' "$id" "$img" "$net" "$status" "$ports"
+    printf '  {"id": "%s", "image": "%s", "ip": "%s", "status": "%s", "labels": %s, "ports": %s}' "$id" "$image" "$ip" "$status" "$port_json" "$label_json"
     first_item=0
   else
-    printf '%-20s\t%-*s\t%-20s\t%-10s\t%s\n' "$id" "$space" "$img" "${net:--}" "$status" "${ports:--}"
+    printf '%-20s\t%-*s\t%-20s\t%-10s\t%-20s\t%s\n' "$id" "$space" "$image" "${ip:--}" "$status" "${port:--}" "${label:--}" 
   fi
 done
 
