@@ -55,7 +55,7 @@ if [[ ! -d "$clearly_runtime" ]]; then
   if [[ "$json_output" == "--json" ]]; then
     printf '[]\n'
   else
-    printf '%-20s\t%-20s\t%-20s\t%-10s\t%-20s\t%s\n' "CONTAINER ID" "IMAGE" "IP ADDRESS" "STATUS" "LABELS" "PORTS"
+    printf '%-20s\t%-20s\t%-20s\t%-10s\t%-15s\t%s\n' "CONTAINER ID" "IMAGE" "IP ADDRESS" "STATUS" "LABELS" "PORTS"
   fi
   exit 0
 fi
@@ -70,7 +70,7 @@ done
 if [[ "$json_output" == "--json" ]]; then
   printf '[\n'
 else
-  printf '%-20s\t%-*s\t%-20s\t%-10s\t%-20s\t%s\n' "CONTAINER ID" "$space" "IMAGE" "IP ADDRESS" "STATUS" "PORTS" "LABELS"
+  printf '%-20s\t%-*s\t%-20s\t%-10s\t%-15s\t%s\n' "CONTAINER ID" "$space" "IMAGE" "IP ADDRESS" "STATUS" "PORTS" "LABELS"
 fi
 
 first_item=1
@@ -169,10 +169,10 @@ for dir in "$clearly_runtime"/*/; do
     if (( first_item == 0 )); then
       printf ',\n'
     fi
-    printf '  {"id": "%s", "image": "%s", "ip": "%s", "status": "%s", "labels": %s, "ports": %s}' "$id" "$image" "$ip" "$status" "$port_json" "$label_json"
+    printf '  {"id": "%s", "image": "%s", "ip": "%s", "status": "%s", "ports": %s, "labels": %s}' "$id" "$image" "$ip" "$status" "$port_json" "$label_json"
     first_item=0
   else
-    printf '%-20s\t%-*s\t%-20s\t%-10s\t%-20s\t%s\n' "$id" "$space" "$image" "${ip:--}" "$status" "${port:--}" "${label:--}" 
+    printf '%-20s\t%-*s\t%-20s\t%-10s\t%-15s\t%s\n' "$id" "$space" "$image" "${ip:--}" "$status" "${port:--}" "${label:--}"
   fi
 done
 

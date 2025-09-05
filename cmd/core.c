@@ -223,7 +223,7 @@ void iw(struct sock_fprog *p, int i,
 void parse_host_map(const char* map_str, char** hostname, struct in_addr* ip_addr);
 void parse_allow_map(const char* map_str, struct in_addr* ip_addr);
 void parse_port_map(const char* map_str, int* host_port, int* container_port, char** protocol);
-void parse_sysctl_map(const char* map_str, char** key, char** value);
+void parse_sysctl_map(const char* map_str, char** key, char** value, char** path);
 void parse_label_map(const char* map_str, char** key, char** value);
 void join_begin(const char *join_tag);
 void join_namespace(pid_t pid, const char *ns);
@@ -538,10 +538,11 @@ void containerize(
 
          // Write sysctls to file.
          for (int i = 0; c->sysctl_map_strs[i] != NULL; i++) {
-            int key, value;
-            char* path;
+            char* key, *value, *path;
             parse_sysctl_map(c->sysctl_map_strs[i], &key, &value, &path);
             T_ (1 <= dprintf(open(sysctl_path, O_WRONLY | O_CREAT | O_APPEND, 0644), "%s=%s\n", key, value));
+            free(key);
+            free(value);
             free(path);
          }
 
@@ -557,11 +558,11 @@ void containerize(
 
          // Write labels to file.
          for (int i = 0; c->label_map_strs[i] != NULL; i++) {
-            int key, value;
-            char* protocol;
-            parse_label_map(c->label_map_strs[i], &key, &value, &protocol);
+            char* key, *value;
+            parse_label_map(c->label_map_strs[i], &key, &value);
             T_ (1 <= dprintf(open(label_path, O_WRONLY | O_CREAT | O_APPEND, 0644), "%s=%s\n", key, value));
-            free(protocol);
+            free(key);
+            free(value);
         }
      }
 
@@ -668,10 +669,9 @@ void containerize(
         /* Step 7: Apply sysctl parameters.
            Set kernel parameters specified by the user. */
         for (int i = 0; c->sysctl_map_strs[i] != NULL; i++) {
-            int key, value;
-            char* path;
+            char* key, *value, *path;
             parse_sysctl_map(c->sysctl_map_strs[i], &key, &value, &path);
-            int fd = open(proc_path, O_WRONLY);
+            int fd = open(path, O_WRONLY);
             if (fd >= 0) {
                if (write(fd, value, strlen(value)) == (ssize_t)strlen(value)) {
                   VERBOSE("set sysctl %s = %s", key, value);
@@ -680,8 +680,10 @@ void containerize(
                }
                close(fd);
             } else {
-               WARNING("can't open sysctl file %s: %s", proc_path, strerror(errno));
+               WARNING("can't open sysctl file %s: %s", path, strerror(errno));
             }
+            free(key);
+            free(value);
             free(path);
          }
 
@@ -923,8 +925,8 @@ void parse_sysctl_map(const char* map_str, char** key, char** value, char** path
    *equal = '\0';
    *key = strdup(str);
    *value = strdup(equal + 1);
-   T_ (1 <= asprintf(&path, "/proc/sys/%s", key));
-   for (char *p = path + 10; *p; p++) {
+   T_ (1 <= asprintf(path, "/proc/sys/%s", *key));
+   for (char *p = *path + 10; *p; p++) {
       if (*p == '.') *p = '/';
    }
    free(str);

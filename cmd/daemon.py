@@ -13,6 +13,7 @@ import struct
 import yaml
 from time import sleep
 from pathlib import Path
+from functools import reduce
 
 try:
     # Cython provides PKGLIBDIR.
@@ -92,15 +93,18 @@ def deploy(payload=None, name=None):
         return { "error": str(e) }
 
 @webserver.get('/api/containers')
-def list_containers(payload=None, type=None):
+def list_containers(payload=None, filter=None):
     """List all containers."""
     try:
-        now = time.time();
         containers = {}
+        now = time.time()
+        filter = filter.split(':') if filter else None
         with runtime.lock:
             for k, v in runtime.local.items():
-                if type and v.get("type") != type: continue
-                if v.get("status") != "removed": 
+                if filter:
+                    nested = reduce(lambda x, y: x.get(y) if isinstance(x, dict) else None, filter[:-1], v)
+                    if (filter[-1] and nested != filter[-1]) or (not filter[-1] and nested not in ("", None)): continue
+                if v.get("status") != "removed":
                     container_info = {
                         "node": runtime.machine_id,
                         **v
@@ -175,9 +179,9 @@ def start_container(payload=None):
             for peer_ip in payload.get("allow"):
                 cmd.extend(["--allow", str(peer_ip)])
 
-        # Parse Sysctl parameters list.
-        if payload.get("sysctl"):
-            for key, value in payload.get("sysctl").items():
+        # Parse Sysctls list.
+        if payload.get("sysctls"):
+            for key, value in payload.get("sysctls").items():
                 cmd.extend(["--sysctl", f"{key}={value}"])
 
         # Parse Capability add list.
@@ -190,22 +194,22 @@ def start_container(payload=None):
             for cap in payload.get("cap_drop"):
                 cmd.extend(["--cap-drop", str(cap)])
 
-        # Parse Label list.
-        if payload.get("label"):
-            if isinstance(payload.get("label"), dict):
-                for key, value in payload.get("label").items():
+        # Parse Labels list.
+        if payload.get("labels"):
+            if isinstance(payload.get("labels"), dict):
+                for key, value in payload.get("labels").items():
                     cmd.extend(["--label", f"{key}={value}"])
-            elif isinstance(payload.get("label"), list):
-                for entry in payload.get("label"):
+            elif isinstance(payload.get("labels"), list):
+                for entry in payload.get("labels"):
                     cmd.extend(["--label", str(entry)])
 
-        # Parse Publish list.
-        if payload.get("port"):
-            if isinstance(payload.get("port"), dict):
-                for key, value in payload.get("port").items():
+        # Parse Ports list.
+        if payload.get("ports"):
+            if isinstance(payload.get("ports"), dict):
+                for key, value in payload.get("ports").items():
                     cmd.extend(["--port", f"{key}:{value}"])
-            elif isinstance(payload.get("port"), list):
-                for entry in payload.get("port"):
+            elif isinstance(payload.get("ports"), list):
+                for entry in payload.get("ports"):
                     cmd.extend(["--port", str(entry)])
         
         # Parse Environment list.

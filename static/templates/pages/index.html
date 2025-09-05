@@ -38,7 +38,12 @@ Clearly
         <div class="content__container">
             <div class="container__content">
                 <div class="content__panel" id="resources" aria-labelledby="tab-resources">
-                    
+                    <!-- Studios -->
+                    <div class="panel__title">Studios</div>
+                    <div class="panel__list" id="studios-list"></div>
+                    <!-- Containers -->
+                    <div class="panel__title">Containers</div>
+                    <div class="panel__list" id="containers-list"></div>
                 </div>
             </div>
         </div>
@@ -76,20 +81,21 @@ Clearly
 <script>
     // Studios
     Promise.all([
-        fetch(`/api/containers?filter=type:studio`).then(r => r.json())
+        fetch(`/api/containers?filter=labels:type:studio`).then(r => r.json())
     ]).then(([response]) => {
         if (!response.success) {
             console.error(response.error);
             return;
         }
 
-        document.getElementById('studios-list').innerHTML = Object.entries(response.studios).map(([id, studio]) => `
-            <a class="list__item" href="/studio/${studio.id}">
-                <div class="item__status item__status--${studio.status}"></div>
+        document.getElementById('studios-list').innerHTML = Object.entries(response.containers)
+            .map(([id, container]) => `
+            <a class="list__item" href="/studio/${container.id}">
+                <div class="item__status item__status--${container.status}"></div>
                 <div class="item__icon item__icon--enlarged">
                     <i class="fa-kit fa-studio"></i>
                 </div>
-                <div class="item__name">${studio.id}</div>
+                <div class="item__name">${container.id}</div>
                 <button class="item__more">
                     <i class="fa-sharp fa-light fa-ellipsis"></i>
                 </button>
@@ -100,14 +106,15 @@ Clearly
 <script>
     // Containers
     Promise.all([
-        fetch(`/api/containers?filter=type:`).then(r => r.json())
+        fetch(`/api/containers?filter=labels:type:`).then(r => r.json())
     ]).then(([response]) => {
         if (!response.success) {
             console.error(response.error);
             return;
         }
 
-        document.getElementById('containers-list').innerHTML = Object.entries(response.containers).map(([id, container]) => `
+        document.getElementById('containers-list').innerHTML = Object.entries(response.containers)
+            .map(([id, container]) => `
             <a class="list__item" href="/container/${container.id}">
                 <div class="item__status item__status--${container.status}"></div>
                 <div class="item__icon">
