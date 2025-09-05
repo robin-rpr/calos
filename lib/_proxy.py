@@ -1,6 +1,7 @@
 import time
 import socket
 import threading
+import re
 
 
 ## Classes ##
@@ -12,20 +13,15 @@ class Proxy:
         self.thread = None
         self.socket = None
 
-    def start(self, timeout=120):
+    def start(self):
         if self.thread is not None:
             return
 
-        # Calculate timeout.
-        timeout = time.time() + timeout
-
-        self.thread = threading.Thread(target=self._listen, args=(timeout,), daemon=True)
+        self.thread = threading.Thread(target=self._listen, daemon=True)
         self.thread.start()
 
         while self.socket is None:
             time.sleep(0.1)
-
-        return timeout
 
     def stop(self):
         if self.socket:
@@ -36,17 +32,40 @@ class Proxy:
     def _handle(self, client_sock):
         try:
             backend = socket.create_connection(self.target)
-            threading.Thread(target=self._pipe, args=(client_sock, backend)).start()
-            threading.Thread(target=self._pipe, args=(backend, client_sock)).start()
+            threading.Thread(target=self._pipe, args=(client_sock, backend, False)).start()
+            threading.Thread(target=self._pipe, args=(backend, client_sock, True)).start()
         except: 
             client_sock.close()
 
-    def _listen(self, timeout):
+    def _add_cors_header(self, data):
+        try:
+            response = data.decode('utf-8', errors='ignore')
+            if not response.startswith('HTTP/'):
+                return data
+            
+            header_end = response.find('\r\n\r\n')
+            if header_end == -1:
+                return data
+            
+            headers = response[:header_end]
+            body = response[header_end + 4:]
+            
+            # Add or replace CORS header
+            if 'Access-Control-Allow-Origin:' in headers:
+                headers = re.sub(r'Access-Control-Allow-Origin: [^\r\n]*', 'Access-Control-Allow-Origin: *', headers)
+            else:
+                headers += '\r\nAccess-Control-Allow-Origin: *'
+            
+            return (headers + '\r\n\r\n' + body).encode('utf-8')
+        except:
+            return data
+
+    def _listen(self):
         self.socket = socket.socket()
         self.socket.bind(self.listen)
         self.socket.listen()
 
-        while time.time() < timeout:
+        while True:
             try:
                 client, _ = self.socket.accept()
                 threading.Thread(target=self._handle, args=(client,), daemon=True).start()
@@ -58,12 +77,16 @@ class Proxy:
         except Exception:
             pass
 
-    def _pipe(self, src, dst):
+    def _pipe(self, src, dst, is_response):
         try:
             while True:
                 data = src.recv(4096)
                 if not data:
                     break
+                
+                if is_response:
+                    data = self._add_cors_header(data)
+                
                 dst.sendall(data)
         except:
             pass

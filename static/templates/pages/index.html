@@ -91,14 +91,67 @@ Clearly
         document.getElementById('studios-list').innerHTML = Object.entries(response.containers)
             .map(([id, container]) => `
             <a class="list__item" href="/studio/${container.id}">
-                <div class="item__status item__status--${container.status}"></div>
-                <div class="item__icon item__icon--enlarged">
-                    <i class="fa-kit fa-studio"></i>
+                <div class="item__header">
+                    <div class="header__icon">
+                        <i class="fa-kit fa-studio"></i>
+                    </div>
+                    <div class="header__name">${container.id}</div>
                 </div>
-                <div class="item__name">${container.id}</div>
-                <button class="item__more">
-                    <i class="fa-sharp fa-light fa-ellipsis"></i>
-                </button>
+                <div class="item__content" id="containers-${container.id}">
+                    <script async>
+                        try {
+                            // Open WebSocket proxy
+                            const secure = window.location.protocol == 'https:';
+                            const ws = new WebSocket(
+                                \`\${secure ? 'wss' : 'ws'}://\${window.location.host}/api/containers/${container.id}/proxy/8080\`
+                            );
+                            
+                            ws.onmessage = (event) => {
+                                const data = JSON.parse(event.data);
+                                if (data.success) {
+                                    // Use the proxy port to fetch containers
+                                    fetch(\`\${secure ? 'https' : 'http'}://\${window.location.hostname}:\${data.proxy}/api/containers\`)
+                                        .then(r => r.json())
+                                        .then(data => {
+                                            console.log(data);
+                                            const containers = (data.containers || []).map(c => {
+                                                let img = 'favicon.svg';
+                                                switch (c.image.split(':')[0]) {
+                                                    case 'codercom/code-server': img = 'vscode.svg'; break;
+                                                    case 'jupyter/minimal-notebook': img = 'jupyter.svg'; break;
+                                                    case 'tensorflow/tensorflow': img = 'tensorflow.svg'; break;
+                                                }
+                                                return '<img src="/static/images/' + img + '"></img>';
+                                            }).join(' ');
+                                            document.getElementById('containers-${container.id}').innerHTML = containers;
+                                            
+                                            // Close WebSocket after getting result
+                                            ws.close();
+                                        })
+                                        .catch(() => {
+                                            console.warn("Couldn't load containers");
+                                            ws.close();
+                                        });
+                                } else {
+                                    console.error("Proxy error:", data.error);
+                                    ws.close();
+                                }
+                            };
+                            
+                            ws.onerror = () => {
+                                console.warn("Couldn't connect to proxy");
+                            };
+                        } catch (e) {
+                            console.warn("Couldn't load containers");
+                        }
+                    <\/script>
+                </div>
+                <div class="item__footer">
+                    <div class="footer__status">
+                        <div class="status__icon status__icon--${container.status.toLowerCase()}"></div>
+                        <div class="status__name">${container.status}</div>
+                    </div>
+                </div>
             </a>
         `).join('');
     });
@@ -116,12 +169,12 @@ Clearly
         document.getElementById('containers-list').innerHTML = Object.entries(response.containers)
             .map(([id, container]) => `
             <a class="list__item" href="/container/${container.id}">
-                <div class="item__status item__status--${container.status}"></div>
+                <div class="item__status item__status--${container.status.toLowerCase()}"></div>
                 <div class="item__icon">
                     <i class="fa-kit fa-container"></i>
                 </div>
                 <div class="item__name">${container.id}</div>
-                <div class="item__ip-address">${container.ip_address}</div>
+                <div class="item__ip">${container.ip}</div>
                 <div class="item__ports">
                     ${Object.entries(container.ports || {}).map(([host, container]) => `
                     <button class="ports__item" onclick="event.preventDefault(); window.open('${window.location.protocol}//${window.location.hostname}:${host}', '_blank')">

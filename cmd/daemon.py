@@ -11,6 +11,7 @@ import threading
 import fcntl
 import struct
 import yaml
+import json
 from time import sleep
 from pathlib import Path
 from functools import reduce
@@ -145,21 +146,39 @@ def get_container_logs(container_id, payload=None):
         logger.error(f"Failed to get logs for container {container_id}: {e}")
         return {"error": str(e)}
 
-@webserver.get('/api/containers/<container_id>/proxy/<port>')
-def get_container_proxy(container_id, port, payload=None):
+@webserver.websocket('/api/containers/<container_id>/proxy/<port>')
+def get_container_proxy(ws, container_id, port):
     """Get container proxy by ID."""
     try:
         ip = runtime.local[container_id].get("ip")
         if not ip:
-            raise Exception("Couldn't connect to container")
+            raise Exception("Container is not running")
         
-        proxy = _proxy.Proxy(ip, int(port), "0.0.0.0", int(0))
-        timeout = proxy.start(timeout=300)
-
-        return {"success": True, "proxy": proxy.socket.getsockname()[1], "timeout": timeout}
+        # Create and start proxy
+        proxy = _proxy.Proxy(ip, int(port), "0.0.0.0", 0)
+        proxy.start()
+        
+        # Send proxy information to client
+        ws._send_message(json.dumps({
+            "success": True,
+            "proxy": proxy.socket.getsockname()[1]
+        }))
+        
+        try:
+            # Keep alive.
+            while True:
+                message = ws._receive_message()
+                if message is None: # Connection closed
+                    break
+        finally:
+            proxy.stop()
+            
     except Exception as e:
-        logger.error(f"Failed to get proxy for container {container_id}: {e}")
-        return {"error": str(e)}
+        logger.error(f"Failed to get proxy for {container_id}: {e}")
+        try:
+            ws._send_message(json.dumps({"error": str(e)}))
+        except:
+            pass
 
 @webserver.post('/api/containers')
 def start_container(payload=None):

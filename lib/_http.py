@@ -14,6 +14,9 @@ import uuid
 import functools
 import logging
 import yaml
+import base64
+import hashlib
+import struct
 
 
 ## Constants ##
@@ -54,6 +57,7 @@ class WebServer:
         self.static_dir = static_dir
         self.template_dir = template_dir
         self.routes: Dict[str, Dict[str, Callable]] = {}
+        self.routes_websocket: Dict[str, Callable] = {}
         self.jinja_env = Environment(loader=FileSystemLoader(template_dir), autoescape=True)
     
     def route(self, path: str, methods: List[str] = None):
@@ -94,6 +98,13 @@ class WebServer:
     def delete(self, path: str):
         """Decorator for DELETE routes."""
         return self.route(path, ['DELETE'])
+    
+    def websocket(self, path: str):
+        """Decorator for WebSocket routes."""
+        def decorator(func):
+            self.routes_websocket[path] = func
+            return func
+        return decorator
     
     def put(self, path: str):
         """Decorator for PUT routes."""
@@ -157,12 +168,43 @@ class WebServer:
         
         return None, {}
     
+    def _match_route_websocket(self, path):
+        """Match WebSocket route and extract parameters."""
+        import re
+        
+        for route_path, handler in self.routes_websocket.items():
+            # Convert route pattern to regex (same logic as HTTP routes)
+            pattern = route_path
+            param_names = []
+            
+            # Find all <param> patterns
+            param_matches = re.findall(r'<([^>]+)>', pattern)
+            for param_name in param_matches:
+                param_names.append(param_name)
+                pattern = pattern.replace(f'<{param_name}>', '([^/]+)')
+            
+            # Match the pattern
+            match = re.match(f'^{pattern}$', path)
+            if match:
+                # Extract path parameters
+                params = {}
+                for i, param_name in enumerate(param_names):
+                    if i < len(match.groups()):
+                        params[param_name] = match.group(i + 1)
+                
+                return handler, params
+        
+        return None, {}
+    
     def _handler_class(self):
         """Create the HTTP handler class with all registered routes."""
         
         class HTTPHandler(BaseHTTPRequestHandler):
             def do_GET(self):
-                self._handle_request('GET')
+                if self.headers.get('Upgrade') == 'websocket':
+                    self._handle_websocket()
+                else:
+                    self._handle_request('GET')
             
             def do_POST(self):
                 self._handle_request('POST')
@@ -223,6 +265,40 @@ class WebServer:
                     logger.error(f"Error handling {method} request {self.path}: {e}", exc_info=True)
                     self.send_error(500, "Internal Server Error")
             
+            def _handle_websocket(self):
+                try:
+                    # Find matching WebSocket route and extract parameters
+                    handler, params = self.server._match_route_websocket(self.path)
+                    
+                    if not handler:
+                        self.send_error(404, "WebSocket route not found")
+                        return
+                    
+                    # Perform WebSocket handshake
+                    key = self.headers.get('Sec-WebSocket-Key')
+                    if not key:
+                        self.send_error(400, "Missing Sec-WebSocket-Key")
+                        return False
+                    
+                    # Generate accept key
+                    accept_key = base64.b64encode(
+                        hashlib.sha1((key + '258EAFA5-E914-47DA-95CA-C5AB0DC85B11').encode()).digest()
+                    ).decode()
+                    
+                    # Send upgrade response
+                    self.send_response(101, 'Switching Protocols')
+                    self.send_header('Upgrade', 'websocket')
+                    self.send_header('Connection', 'Upgrade')
+                    self.send_header('Sec-WebSocket-Accept', accept_key)
+                    self.end_headers()
+                
+                    # Call the WebSocket handler with parameters
+                    handler(self, **params)
+                    
+                except Exception as e:
+                    logger.error(f"WebSocket error: {e}")
+                    self.send_error(500, "WebSocket error")
+            
             def _serve_css(self):
                 """Compile and serve SCSS to CSS."""
                 styles = sass.compile(filename=os.path.join(self.server.static_dir, 'styles', 'main.scss'))
@@ -265,6 +341,45 @@ class WebServer:
                 self.end_headers()
                 self.wfile.write(response.encode('utf-8'))
             
+            def _send_message(self, message):
+                """Send a WebSocket message."""
+                try:
+                    if isinstance(message, str):
+                        message = message.encode('utf-8')
+                    
+                    # Simple WebSocket frame (text message, no masking)
+                    header = struct.pack('!BB', 0x81, len(message))
+                    self.connection.send(header + message)
+                except:
+                    pass
+            
+            def _receive_message(self):
+                """Receive a WebSocket message."""
+                try:
+                    # Read frame header
+                    header = self.connection.recv(2)
+                    if len(header) < 2:
+                        return None
+                    
+                    opcode = header[0] & 0x0F
+                    if opcode == 0x8:  # Close frame
+                        return None
+                    
+                    payload_len = header[1] & 0x7F
+                    if payload_len == 126:
+                        payload_len = struct.unpack('!H', self.connection.recv(2))[0]
+                    elif payload_len == 127:
+                        payload_len = struct.unpack('!Q', self.connection.recv(8))[0]
+                    
+                    # Skip mask if present (client messages are masked)
+                    if header[1] & 0x80:
+                        self.connection.recv(4)  # Skip mask
+                    
+                    payload = self.connection.recv(payload_len)
+                    return payload.decode('utf-8') if payload else None
+                except:
+                    return None
+            
             def log_message(self, format, *args):
                 """Redirect server logging to the main logger."""
                 logger.info(f"{self.address_string()} - {args[0]} {args[1]}")
@@ -278,5 +393,7 @@ class WebServer:
         server.static_dir = self.static_dir
         server.template_dir = self.template_dir
         server._match_route = self._match_route
+        server._match_route_websocket = self._match_route_websocket
+        server.webserver = self
 
         threading.Thread(target=server.serve_forever, daemon=True).start()
