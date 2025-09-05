@@ -154,6 +154,13 @@ Clearly
                 </div>
             </a>
         `).join('');
+        
+        // Execute all scripts asynchronously after injection
+        document.querySelectorAll('#studios-list script[async]').forEach(script => {
+            setTimeout(() => {
+                eval(script.textContent);
+            }, 0);
+        });
     });
 </script>
 <script>
