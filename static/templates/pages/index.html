@@ -92,9 +92,6 @@ Clearly
             .map(([id, container]) => `
             <a class="list__item" href="/studio/${container.id}">
                 <div class="item__header">
-                    <div class="header__icon">
-                        <i class="fa-kit fa-studio"></i>
-                    </div>
                     <div class="header__name">${container.id}</div>
                 </div>
                 <div class="item__content" id="containers-${container.id}">
@@ -114,6 +111,23 @@ Clearly
                                         .then(r => r.json())
                                         .then(data => {
                                             console.log(data);
+                                            data.containers = [
+                                                {
+                                                    id: 'vscode',
+                                                    image: 'codercom/code-server:latest',
+                                                    status: 'Running'
+                                                },
+                                                {
+                                                    id: 'jupyter',
+                                                    image: 'jupyter/minimal-notebook:latest',
+                                                    status: 'Running'
+                                                },
+                                                {
+                                                    id: 'tensorflow',
+                                                    image: 'tensorflow/tensorflow:latest',
+                                                    status: 'Running'
+                                                }
+                                            ]
                                             const containers = (data.containers || []).map(c => {
                                                 let img = 'favicon.svg';
                                                 switch (c.image.split(':')[0]) {
