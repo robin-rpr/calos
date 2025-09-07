@@ -158,8 +158,8 @@
                             width: 11rem;
                         }
                         
-                        .item__cpu,
-                        .item__gpu {
+                        .item__gpu,
+                        .item__cpu {
                             display: flex;
                             font-weight: 300;
                             min-width: fit-content;
@@ -193,11 +193,12 @@
                             }
 
                             &--stopped:before {
-                                background: #707070;
+                                background: rgb(199, 199, 199);
                             }
                         }
 
                         .item__date {
+                            width: 6.75rem;
                             color: #707070;
                             font-weight: 300;
                         }
