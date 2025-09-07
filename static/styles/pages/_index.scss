@@ -30,7 +30,7 @@
             row-gap: 0.25rem;
 
             .item__title {
-                font-weight: 350;
+                font-weight: 400;
             }
 
             .item__value {
@@ -153,17 +153,32 @@
                         }
 
                         .item__name {
-                            font-weight: 350;
+                            font-weight: 400;
                             flex-grow: 1;
                             width: 11rem;
                         }
+                        
+                        .item__cpu,
+                        .item__gpu {
+                            display: flex;
+                            color: #707070;
+                            font-weight: 300;
+                            min-width: fit-content;
+                            column-gap: 0.5rem;
+                            margin-right: 1rem;
+                            align-items: center;
+
+                            i {
+                                font-size: 0.875rem;
+                            }
+                        }
 
                         .item__status {
-                            width: 6rem;
+                            width: 5.75rem;
                             display: flex;
                             column-gap: 0.5rem;
                             align-items: center;
-                            font-weight: 350;
+                            font-weight: 400;
                             line-height: 1;
 
                             &:before {
@@ -182,24 +197,10 @@
                                 background: #707070;
                             }
                         }
-                        
-                        .item__cpu,
-                        .item__gpu {
-                            display: flex;
-                            font-weight: 350;
-                            min-width: fit-content;
-                            column-gap: 0.5rem;
-                            margin-right: 1rem;
-                            align-items: center;
-
-                            i {
-                                font-size: 0.875rem;
-                            }
-                        }
 
                         .item__date {
                             color: #707070;
-                            font-weight: 250;
+                            font-weight: 300;
                         }
                     }
                 }
