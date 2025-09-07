@@ -61,10 +61,6 @@
             &:active {
                 background: rgba(64, 64, 64, 0.06);
                 color: inherit !important;
-
-                i {
-                    color: #707070 !important;
-                }
             }
 
             &:hover:not(.list__link--active) {
