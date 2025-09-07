@@ -19,17 +19,24 @@ Clearly
             <h1 class="header__title">Dashboard</h1>
         </div>
     </div>
+    <div class="index__status">
+        <div class="status__item">
+            <div class="item__title">Active Studios</div>
+            <div class="item__value">1</div>
+        </div>
+        <div class="status__item">
+            <div class="item__title">Machines</div>
+            <div class="item__value">2</div>
+        </div>
+    </div>
     <div class="index__tabs">
         <div class="tabs__container">
             <div class="container__tabs" id="tabs">
-                <div class="tab__item tab__item--active" target="resources">
-                    Resources
+                <div class="tab__item tab__item--active" target="recent">
+                    Recent
                 </div>
-                <div class="tab__item" target="activity">
-                    Activity
-                </div>
-                <div class="tab__item" target="settings">
-                    Settings
+                <div class="tab__item" target="favourite">
+                    Favourite
                 </div>
             </div>
         </div>
@@ -37,13 +44,7 @@ Clearly
     <div class="index__content">
         <div class="content__container">
             <div class="container__content">
-                <div class="content__panel" id="resources" aria-labelledby="tab-resources">
-                    <!-- Studios -->
-                    <div class="panel__title">Studios</div>
-                    <div class="panel__list" id="studios-list"></div>
-                    <!-- Containers -->
-                    <div class="panel__title">Containers</div>
-                    <div class="panel__list" id="containers-list"></div>
+                <div class="content__panel" id="recent" aria-labelledby="tab-recent">
                 </div>
             </div>
         </div>
@@ -51,11 +52,12 @@ Clearly
 </div>
 <script>
     /* Tabs */
+    const tab = 'recent';
     const tabs = document.querySelectorAll('.tab__item');
     const panels = document.querySelectorAll('.content__panel');
 
     function switchTab(targetId) {
-        if (targetId !== 'resources') {
+        if (targetId !== tab) {
             history.replaceState(null, null, `#${targetId}`);
         } else {
             history.replaceState(null, null, window.location.pathname);
@@ -74,12 +76,12 @@ Clearly
         tab.addEventListener('click', () => switchTab(tab.getAttribute('target')));
     });
 
-    const handleHashChange = () => switchTab(window.location.hash.slice(1) || 'resources');
+    const handleHashChange = () => switchTab(window.location.hash.slice(1) || tab);
     window.addEventListener('hashchange', handleHashChange);
     handleHashChange();
 </script>
 <script>
-    // Studios
+    /* Fetch */
     Promise.all([
         fetch(`/api/containers?filter=labels:type:studio`).then(r => r.json())
     ]).then(([response]) => {
@@ -88,83 +90,27 @@ Clearly
             return;
         }
 
-        document.getElementById('studios-list').innerHTML = Object.entries(response.containers)
+        document.getElementById('recent').innerHTML = Object.entries(response.containers)
             .map(([id, container]) => `
-            <a class="list__item" href="/studio/${container.id}">
-                <div class="item__header">
-                    <div class="header__name">${container.id}</div>
+            <a class="panel__item" href="/studio/${container.id}">
+                <button class="item__more">
+                    <i class="fa-sharp fa-light fa-ellipsis"></i>
+                </button>
+                <div style="font-size: 0.875rem;" class="item__icon">
+                    <i class="fa-kit fa-studio"></i>
                 </div>
-                <div class="item__content" id="containers-${container.id}">
-                    <script async>
-                        try {
-                            // Open WebSocket proxy
-                            const secure = window.location.protocol == 'https:';
-                            const ws = new WebSocket(
-                                \`\${secure ? 'wss' : 'ws'}://\${window.location.host}/api/containers/${container.id}/proxy/8080\`
-                            );
-                            
-                            ws.onmessage = (event) => {
-                                const data = JSON.parse(event.data);
-                                if (data.success) {
-                                    // Use the proxy port to fetch containers
-                                    fetch(\`\${secure ? 'https' : 'http'}://\${window.location.hostname}:\${data.proxy}/api/containers\`)
-                                        .then(r => r.json())
-                                        .then(data => {
-                                            console.log(data);
-                                            data.containers = [
-                                                {
-                                                    id: 'vscode',
-                                                    image: 'codercom/code-server:latest',
-                                                    status: 'Running'
-                                                },
-                                                {
-                                                    id: 'jupyter',
-                                                    image: 'jupyter/minimal-notebook:latest',
-                                                    status: 'Running'
-                                                },
-                                                {
-                                                    id: 'tensorflow',
-                                                    image: 'tensorflow/tensorflow:latest',
-                                                    status: 'Running'
-                                                }
-                                            ]
-                                            const containers = (data.containers || []).map(c => {
-                                                let img = 'favicon.svg';
-                                                switch (c.image.split(':')[0]) {
-                                                    case 'codercom/code-server': img = 'vscode.svg'; break;
-                                                    case 'jupyter/minimal-notebook': img = 'jupyter.svg'; break;
-                                                    case 'tensorflow/tensorflow': img = 'tensorflow.svg'; break;
-                                                }
-                                                return '<img src="/static/images/' + img + '"></img>';
-                                            }).join(' ');
-                                            document.getElementById('containers-${container.id}').innerHTML = containers;
-                                            
-                                            // Close WebSocket after getting result
-                                            ws.close();
-                                        })
-                                        .catch(() => {
-                                            console.warn("Couldn't load containers");
-                                            ws.close();
-                                        });
-                                } else {
-                                    console.error("Proxy error:", data.error);
-                                    ws.close();
-                                }
-                            };
-                            
-                            ws.onerror = () => {
-                                console.warn("Couldn't connect to proxy");
-                            };
-                        } catch (e) {
-                            console.warn("Couldn't load containers");
-                        }
-                    <\/script>
+                <div class="item__name">${container.id}</div>
+                <div class="item__status item__status--${container.status.toLowerCase()}">
+                    ${container.status}
                 </div>
-                <div class="item__footer">
-                    <div class="footer__status">
-                        <div class="status__icon status__icon--${container.status.toLowerCase()}"></div>
-                        <div class="status__name">${container.status}</div>
-                    </div>
+                <div class="item__cpu">
+                    <i class="fa-kit fa-cpu"></i>4 vCPU
+                </div>
+                <div class="item__gpu">
+                    <i class="fa-kit fa-nvidia"></i>RTX 3090
+                </div>
+                <div class="item__date">
+                    34 Minutes Ago
                 </div>
             </a>
         `).join('');
@@ -175,41 +121,6 @@ Clearly
                 eval(script.textContent);
             }, 0);
         });
-    });
-</script>
-<script>
-    // Containers
-    Promise.all([
-        fetch(`/api/containers?filter=labels:type:`).then(r => r.json())
-    ]).then(([response]) => {
-        if (!response.success) {
-            console.error(response.error);
-            return;
-        }
-
-        document.getElementById('containers-list').innerHTML = Object.entries(response.containers)
-            .map(([id, container]) => `
-            <a class="list__item" href="/container/${container.id}">
-                <div class="item__status item__status--${container.status.toLowerCase()}"></div>
-                <div class="item__icon">
-                    <i class="fa-kit fa-container"></i>
-                </div>
-                <div class="item__name">${container.id}</div>
-                <div class="item__ip">${container.ip}</div>
-                <div class="item__ports">
-                    ${Object.entries(container.ports || {}).map(([host, container]) => `
-                    <button class="ports__item" onclick="event.preventDefault(); window.open('${window.location.protocol}//${window.location.hostname}:${host}', '_blank')">
-                        <i class="fa-kit fa-arrow-up-right-from-square"></i>
-                        ${host}:${container}
-                    </button>
-                    `).join('')}
-                </div>
-                <div class="item__image">${container.image || ''}</div>
-                <button class="item__more">
-                    <i class="fa-sharp fa-light fa-ellipsis"></i>
-                </button>
-            </a>
-        `).join('');
     });
 </script>
 {% endblock %}
