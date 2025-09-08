@@ -1,51 +1,43 @@
 #header {
-    padding: 0.75rem 0.875rem;
     display: flex;
+    flex-shrink: 0;
+    height: 4.5rem;
+    padding: 0 0.25rem 0 1.5rem;
+    column-gap: 1.5rem;
     align-items: center;
-    column-gap: 1rem;
 
     & ~ #main {
         padding-top: unset;
     }
 
-    .header__breadcrumbs {
-        font-size: 0.938rem;
-        background: #fff;
-        box-shadow: rgba(0, 0, 0, 0.1) 0px 1px 3px 0px, rgba(0, 0, 0, 0.1) 0px 1px 2px -1px;
-        padding: 3px 13px;
-        border-radius: 8px;
-        font-weight: 300;
-        display: flex;
-        align-items: center;
-        column-gap: 0.5rem;
-
-        .breadcrumbs__item {
-            text-decoration: none;
-            color: inherit;
-        }
-
-        .breadcrumbs__separator {
-            width: 1px;
-            height: 12px;
-            background: #8f8f8f;
-            transform: rotate(10deg);
-        }
+    .header__menu {
+        font-size: 1.25rem;
+        background: none;
+        cursor: pointer;
+        border-radius: 50%;
+        width: 2rem;
+        height: 2rem;
     }
 
-    .header__settings {
-        display: flex;
-        margin-left: auto;
-        column-gap: 0.5rem;
+    .header__delimiter {
+        width: 1px;
+        height: 1.5rem;
+        background: rgba(64, 64, 64, 0.2);
+    }
 
-        .settings__item {
-            font-size: 0.813rem;
-            background: #0000000f;
-            padding: 4.5px 12px;
-            border-radius: 8px;
-            font-weight: 300;
-            display: flex;
-            align-items: center;
-            column-gap: 0.25rem;
-        }
+    .header__logo {
+        display: flex;
+        align-items: center;
+        column-gap: 1rem;
+        font-weight: 400;
+        font-size: 1.25rem;
+        text-decoration: none;
+        color: inherit;
+    }
+
+    .header__name {
+        flex-grow: 1;
+        font-weight: 300;
+        color: #707070;
     }
 }

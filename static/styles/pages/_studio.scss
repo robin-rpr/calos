@@ -1,9 +1,18 @@
 .content__studio {
     height: 100%;
-    background: #f8f8f8;
+    padding: 0 1rem 1rem;
 
     .studio__content {
+        opacity: 0;
         height: 100%;
         overflow: hidden;
+        border-radius: 1.25rem;
+        background: rgba(64, 64, 64, 0.06);
+        animation: fadein 2s cubic-bezier(0,0,.2,1) forwards;
+
+        @keyframes fadein {
+            from { opacity: 0 }
+            to { opacity: 1 }
+        }
     }
 }

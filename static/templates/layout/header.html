@@ -1,16 +1,14 @@
 <header id="header">
-    <img class="header__logo" src="/static/images/favicon.svg" draggable="false" width="29" height="29">
-    <div class="header__breadcrumbs">
-        <a class="breadcrumbs__item" href="/">Stratum</a>
-        <div class="breadcrumbs__separator"></div>
-        <a class="breadcrumbs__item" href="/">{{id}}</a>
-    </div>
-    <div class="header__settings">
-        <div class="settings__item">
-            CPU<i class="fa-kit fa-cpu"></i>11 Cores
-        </div>
-        <div class="settings__item">
-            GPU<i class="fa-kit fa-nvidia" style="color: #22c55e;font-size: 0.625rem;margin-right: 2px;"></i>RTX A4000
-        </div>
+    <button class="header__menu">
+        <i class="fa-kit fa-menu"></i>
+    </button>
+    <div class="header__delimiter"></div>
+    <a class="header__logo" href="/">
+        <img src="/static/images/favicon.svg" width="30" height="30">
+        Studio
+    </a>
+    <div class="header__delimiter"></div>
+    <div class="header__name">
+        {{ id }}
     </div>
 </header>

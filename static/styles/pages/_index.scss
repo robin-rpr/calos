@@ -172,7 +172,7 @@
                             i {
                                 font-size: 0.75rem;
 
-                                &:not(:last-child) {
+                                &:not(:first-child) {
                                     margin-left: 0.125rem;
                                 }
                             }

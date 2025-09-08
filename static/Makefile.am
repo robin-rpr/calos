@@ -23,7 +23,6 @@ nobase_styles_DATA = \
 nobase_templates_DATA = \
   templates/layout/header.html \
   templates/layout/navigation.html \
-  templates/layout/sidebar.html \
   templates/pages/index.html \
   templates/pages/studio.html \
   templates/main.html
