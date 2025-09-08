@@ -146,14 +146,14 @@
                             height: 45px;
                             display: flex;
                             font-size: 0.875rem;
-                            background: rgba(64, 64, 64, 0.06);
+                            background: rgba(64, 64, 64, 0.065);
                             border-radius: 50%;
                             align-items: center;
                             justify-content: center;            
                         }
 
                         .item__name {
-                            font-weight: 400;
+                            font-weight: 350;
                             flex-grow: 1;
                             width: 11rem;
                         }
@@ -180,28 +180,11 @@
                         }
 
                         .item__status {
-                            width: 5.75rem;
+                            width: 6.25rem;
                             display: flex;
-                            column-gap: 0.5rem;
+                            column-gap: 0.75rem;
                             align-items: center;
-                            font-weight: 400;
-                            line-height: 1;
-
-                            &:before {
-                                content: "";
-                                display: block;
-                                width: 8px;
-                                height: 8px;
-                                border-radius: 50%;
-                            }
-
-                            &--running:before {
-                                background: rgb(52, 211, 153);
-                            }
-
-                            &--stopped:before {
-                                background: rgb(199, 199, 199);
-                            }
+                            font-weight: 350;
                         }
 
                         .item__date {
