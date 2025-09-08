@@ -158,17 +158,24 @@
                             width: 11rem;
                         }
                         
-                        .item__gpu,
-                        .item__cpu {
+                        .item__config {
                             display: flex;
-                            font-weight: 300;
+                            font-weight: 350;
                             min-width: fit-content;
                             column-gap: 0.5rem;
                             margin-right: 1rem;
                             align-items: center;
+                            padding: 0.25rem 0.75rem;
+                            font-size: 0.85rem;
+                            background: rgba(64, 64, 64, 0.06);
+                            border-radius: 1rem;
 
                             i {
-                                font-size: 0.875rem;
+                                font-size: 0.75rem;
+
+                                &:not(:last-child) {
+                                    margin-left: 0.125rem;
+                                }
                             }
                         }
 
