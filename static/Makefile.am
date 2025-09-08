@@ -5,10 +5,7 @@ templatesdir = $(pkgdatadir)
 nobase_images_DATA = \
   images/favicon-32x32.png \
   images/favicon-256x256.png \
-  images/favicon.svg \
-  images/jupyter.svg \
-  images/tensorflow.svg \
-  images/vscode.svg
+  images/favicon.svg
 
 nobase_styles_DATA = \
   styles/base/_mixins.scss \

@@ -1,0 +1,15 @@
+<div id="sidebar" aria-label="Sidebar">
+    <button class="sidebar__item sidebar__item--selected" onclick="document.getElementById('iframe').src = 
+                    `http://${window.location.hostname}:${studio.containers[0].proxy['8080']}`;">
+        <i class="fa-kit fa-vscode"></i>
+    </button>
+    <button class="sidebar__item" onclick="document.getElementById('iframe').src = 
+                    `http://${window.location.hostname}:${studio.containers[1].proxy['8888']}`;">
+        <i class="fa-kit fa-jupyter"></i>
+    </button>
+    <button class="sidebar__item" onclick="document.getElementById('iframe').src = 
+                    `http://${window.location.hostname}:${studio.containers[2].proxy['8888']}`;">
+        <i class="fa-kit fa-tensorflow"></i>
+    </button>
+    
+</div>
