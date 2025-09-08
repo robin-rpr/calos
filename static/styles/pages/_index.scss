@@ -120,6 +120,7 @@
                         display: flex;
                         color: inherit;
                         cursor: pointer;
+                        font-weight: 350;
                         margin-bottom: 1rem;
                         font-size: 0.925rem;
                         align-items: center;
@@ -153,14 +154,12 @@
                         }
 
                         .item__name {
-                            font-weight: 350;
                             flex-grow: 1;
                             width: 11rem;
                         }
                         
                         .item__config {
                             display: flex;
-                            font-weight: 350;
                             min-width: fit-content;
                             column-gap: 0.5rem;
                             margin-right: 1rem;
@@ -184,13 +183,11 @@
                             display: flex;
                             column-gap: 0.75rem;
                             align-items: center;
-                            font-weight: 350;
                         }
 
                         .item__date {
                             width: 6.75rem;
                             color: #707070;
-                            font-weight: 300;
                         }
                     }
                 }
