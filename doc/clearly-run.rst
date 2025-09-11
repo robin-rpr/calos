@@ -33,14 +33,13 @@ mounting SquashFS images with FUSE.
     :code:`--bind=SRC:SRC`. Can be repeated.
 
     With a read-only image (the default), :code:`DST` must exist. However, if
-    :code:`--write` or :code:`--write-fake` are given, :code:`DST` will be
+    :code:`--write` or :code:`--overlay` are given, :code:`DST` will be
     created as an empty directory (possibly with the tmpfs overmount trick
     described in :ref:`faq_mkdir-ro`). In this case, :code:`DST` must be
     entirely within the image itself, i.e., :code:`DST` cannot enter a
     previous bind mount. For example, :code:`--bind /foo:/tmp/foo` will fail
-    because :code:`/tmp` is shared with the host via bind-mount (unless
-    :code:`$TMPDIR` is set to something else or :code:`--private-tmp` is
-    given).
+    if :code:`/tmp` is already bind-mounted by :code:`--tmp`, since you cannot
+    create a new directory inside a destination that is itself a bind mount.
 
     Most images have ten directories :code:`/mnt/[0-9]` already available as
     mount points.
@@ -103,7 +102,7 @@ mounting SquashFS images with FUSE.
   :code:`--home`
     Bind-mount your host home directory (i.e., :code:`$HOME`) at guest
     :code:`/home/$USER`, hiding any existing image content at that path.
-    Implies :code:`--write-fake` so the mount point can be created if needed.
+    Implies :code:`--overlay` so the mount point can be created if needed.
 
   :code:`-i`, :code:`--ip=IP`
     Set a static IP address for the container.
@@ -163,10 +162,10 @@ mounting SquashFS images with FUSE.
   :code:`--test=TEST`
     Run internal test :code:`TEST`. Valid values are :code:`log` and :code:`log-fail`.
 
-  :code:`-t`, :code:`--private-tmp`
-    By default, the host’s :code:`/tmp` (or :code:`$TMPDIR` if set) is
-    bind-mounted at container :code:`/tmp`. If this is specified, a new
-    :code:`tmpfs` is mounted on the container’s :code:`/tmp` instead.
+  :code:`-t`, :code:`--tmp`
+    By default, a new :code:`tmpfs` is mounted on the container’s :code:`/tmp`.
+    If this is specified, the host’s :code:`/tmp` (or :code:`$TMPDIR` if set) is
+    bind-mounted at container :code:`/tmp` instead.
 
   :code:`-e`, :code:`--env=ARG`
     Set environment variables per :code:`ARG` (newline-delimited). Can be
@@ -222,7 +221,7 @@ mounting SquashFS images with FUSE.
     This requires kernel support and there are some caveats. See section
     ":ref:`clearly run_overlay`" below for details.
 
-  :code:`-W`, :code:`--write-fake[=SIZE]`
+  :code:`-W`, :code:`--overlay[=SIZE]`
     Overlay a writeable tmpfs on top of the image. This makes the image
     *appear* read-write, but it actually remains read-only and unchanged. All
     data “written” to the image are discarded when the container exits.
@@ -411,11 +410,11 @@ Caveats:
 
 .. _clearly run_overlay:
 
-Writeable overlay with :code:`--write-fake`
+Writeable overlay with :code:`--overlay`
 ===========================================
 
 If you need the image to stay read-only but appear writeable, you may be able
-to use :code:`--write-fake` to overlay a writeable tmpfs atop the image. This
+to use :code:`--overlay` to overlay a writeable tmpfs atop the image. This
 requires kernel support. Specifically:
 
 1. To use the feature at all, you need unprivileged overlayfs support. This is
@@ -498,7 +497,7 @@ By default, :code:`clearly run` makes the following environment variable changes
 
 :code:`$TMPDIR`
   Unset, because this is almost certainly a host path, and that host path is
-  made available in the guest at :code:`/tmp` unless :code:`--private-tmp` is
+  made available in the guest at :code:`/tmp` in case :code:`--tmp` is
   given.
 
 Setting variables with :code:`--env` or :code:`--env0`

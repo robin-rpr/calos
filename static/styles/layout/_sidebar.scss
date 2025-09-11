@@ -3,13 +3,13 @@
     flex-shrink: 0;
     flex-direction: column;
     row-gap: 0.5rem;
-    height: fit-content;
-    margin-left: 1rem;
+    padding: 1rem;
+    border-left: 1px solid rgba(64, 64, 64, 0.1);
 
     .sidebar__item {
         font-size: 1.5rem;
         transition: all 0.15s cubic-bezier(0, 0, 0.2, 1);
-        border-radius: 1.25rem;
+        border-radius: 50%;
         width: 48px;
         height: 48px;
         cursor: pointer;

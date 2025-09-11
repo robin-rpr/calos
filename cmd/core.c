@@ -747,13 +747,13 @@ void enter_udss(struct container *c, const char *mount_dir)
                             | MS_RDONLY;  // read-only.
       Z_ (mount(NULL, mount_dir, NULL, flags, NULL));
    }
-   // Overlay a tmpfs if --write-fake. See for useful details:
+   // Overlay a tmpfs if --overlay. See for useful details:
    // https://www.kernel.org/doc/html/v5.11/filesystems/tmpfs.html
    // https://www.kernel.org/doc/html/v5.11/filesystems/overlayfs.html
    if (c->overlay_size != NULL) {
       char *options;
       struct stat st;
-      VERBOSE("overlaying tmpfs for --write-fake (%s)", c->overlay_size);
+      VERBOSE("overlaying tmpfs for --overlay (%s)", c->overlay_size);
       T_ (1 <= asprintf(&options, "size=%s", c->overlay_size));
       Zf (mount(NULL, WF_MNT, "tmpfs", 0, options),
           "cannot mount tmpfs for overlay");
@@ -782,13 +782,13 @@ void enter_udss(struct container *c, const char *mount_dir)
    // Bind-mount default files and directories.
    bind_mounts(BINDS_DEFAULT, mount_dir, MS_RDONLY, NULL);
    // /etc/passwd and /etc/group.
-   if (c->public_passwd)
+   if (c->mount_passwd)
       setup_passwd(c, mount_dir);
-   // Container /tmp.
-   if (c->private_tmp) {
-      tmpfs_mount("/tmp", mount_dir, NULL);
-   } else {
+   // /tmp.
+   if (c->mount_tmp) {
       bind_mount(host_tmp, "/tmp", BD_REQUIRED, mount_dir, 0, NULL);
+   } else {
+      tmpfs_mount("/tmp", mount_dir, NULL);
    }
    // Bind-mount user’s home directory at /home/$USER if requested.
    if (c->host_home) {

@@ -1064,7 +1064,7 @@ Running containers
     enabled ... ${msg_seccomp}
     tested working ... ${test_seccomp}
 
-  writeable overlay (--write-fake): ${have_overlayfs}
+  writeable overlay (--overlay): ${have_overlayfs}
     fully functional ... ${have_tmpfs_xattrs}
 
   inject nVidia GPU libraries: ${have_nvidia}

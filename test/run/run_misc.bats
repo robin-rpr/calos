@@ -1011,9 +1011,9 @@ EOF
         [[ $output =~ $r ]]
     done
 
-    # --private-tmp
+    # --tmp
     rmdir "${img}/tmp"
-    run clearly run --private-tmp "$img" -- /bin/true
+    run clearly run --tmp "$img" -- /bin/true
     mkdir "${img}/tmp"  # restore before test fails for idempotency
     echo "$output"
     [[ $status -eq $CLEARLY_ERR_MISC ]]
@@ -1160,11 +1160,11 @@ EOF
     [[ $output = *'error: the program failed inexplicably'* ]]
 }
 
-@test 'clearly run --write-fake errors' {
+@test 'clearly run --overlay errors' {
     demand-overlayfs
 
     # bad tmpfs size
-    run clearly run --write-fake=foo "$clearly_timg" -- true
+    run clearly run --overlay=foo "$clearly_timg" -- true
     echo "$output"
     [[ $status -eq $CLEARLY_ERR_MISC ]]
     [[ $output == *'cannot mount tmpfs for overlay: Invalid argument'* ]]

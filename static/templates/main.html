@@ -31,14 +31,14 @@
             {% block navigation %}
                 {% include "layout/navigation.html" %}
             {% endblock %}
-            {% block sidebar %}
-                {% include "layout/sidebar.html" %}
-            {% endblock %}
             <div id="content">
                 {% block content %}
                 <!-- Content Here -->
                 {% endblock %}
             </div>
+            {% block sidebar %}
+                {% include "layout/sidebar.html" %}
+            {% endblock %}
         </main>
     </body>
 </html>

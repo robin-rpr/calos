@@ -31,7 +31,7 @@ char *JOIN_TAG_ENV[] = { "SLURM_STEP_ID",
                          NULL };
 
 /* Default overlaid tmpfs size. */
-char *WRITE_FAKE_DEFAULT = "12%";
+char *OVERLAY_SIZE_DEFAULT = "12%";
 
 
 /** Command line options **/
@@ -80,7 +80,7 @@ const struct argp_option options[] = {
                            "overlay read-write tmpfs size on top of image" },
    { "passwd",        -17, 0,                  0, "bind-mount /etc/{passwd,group}" },
    { "pids-max",      -18, "N",                0, "maximum number of PIDs (0-1024)" },
-   { "private-tmp",   't', 0,                  0, "use container-private /tmp" },
+   { "tmp",           't', 0,                  0, "bind-mount /tmp" },
    { "port",          'p', "SRC:DST",          0,
                            "forward host port SRC to container port DST" },
    { "quiet",         'q', 0,                  0, "print less output (can be repeated)" },
@@ -202,10 +202,10 @@ int main(int argc, char *argv[])
                                .join_ct = 0,
                                .join_pid = 0,
                                .join_tag = NULL,
-                               .overlay_size = WRITE_FAKE_DEFAULT,
+                               .overlay_size = OVERLAY_SIZE_DEFAULT,
                                .port_map_strs = list_new(sizeof(char *), 0),
-                               .public_passwd = false,
-                               .private_tmp = false,
+                               .mount_passwd = false,
+                               .mount_tmp = false,
                                .cap_add = list_new(sizeof(char *), 0),
                                .cap_drop = list_new(sizeof(char *), 0),
                                .sysctl_map_strs = list_new(sizeof(char *), 0),
@@ -324,7 +324,7 @@ int main(int argc, char *argv[])
    VERBOSE("container gid: %u", args.c.gid);
    VERBOSE("join: %d %d %s %d", args.c.join, args.c.join_ct, args.c.join_tag,
            args.c.join_pid);
-   VERBOSE("private /tmp: %d", args.c.private_tmp);
+   VERBOSE("private /tmp: %d", args.c.mount_tmp);
    VERBOSE("unsafe: %d", args.unsafe);
 
    containerize(&args.c, args.runtime_dir, args.mount_dir);
@@ -639,7 +639,7 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state)
       args->c.name = arg;
       break;
    case -17: // --passwd
-      args->c.public_passwd = true;
+      args->c.mount_passwd = true;
       break;
    case -18: // --pids-max
       args->c.cgroup_pids_max = parse_int(arg, false, "--pids-max");
@@ -696,7 +696,7 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state)
          args->c.binds[i].dst = dst;
       }
       break;
-   case 'c':  // --cd
+   case 'c': // --cd
       args->initial_dir = arg;
       break;
    case 'd': // --detach
@@ -709,64 +709,64 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state)
       }
       parse_set_env(args, arg, '\n');
       break;
-   case 'g':  // --gid
+   case 'g': // --gid
       i = parse_int(arg, false, "--gid");
       Te (i >= 0, "--gid: must be non-negative");
       args->c.gid = (gid_t) i;
       break;
-   case 'h':  // --host
+   case 'h': // --host
       Ze(arg[0] == '\0', "host mapping can't be empty string");
       list_append((void **)&(args->c.host_map_strs), &arg, sizeof(char *));
       break;
-   case 'i':  // --ip
+   case 'i': // --ip
       Ze(arg[0] == '\0', "ip can't be empty string");
       args->c.ip = arg;
       break;
-   case 'j':  // --join
+   case 'j': // --join
       args->c.join = true;
       break;
-   case 'm':  // --mount
+   case 'm': // --mount
       args->mount_dir = arg;
       if (!path_exists(arg, NULL, false))
          WARNING("mount directory not found: %s", arg);
       break;
-   case 'o':  // --overlay
+   case 'o': // --overlay
       Ze(arg[0] == '\0', "overlay size can't be empty string");
       args->c.overlay_size = arg;
       break;
-   case 'p':  // --port
+   case 'p': // --port
       Ze(arg[0] == '\0', "port mapping can't be empty string");
       list_append((void **)&(args->c.port_map_strs), &arg, sizeof(char *));
       break;
-   case 'q':  // --quiet
+   case 'q': // --quiet
       Te(verbose <= 0, "--quiet incompatible with --verbose");
       verbose--;
       Te(verbose >= -3, "--quiet can be specified at most trice");
       break;
-   case 'r':  // --runtime
+   case 'r': // --runtime
       args->runtime_dir = arg;
       if (!path_exists(arg, NULL, false))
          WARNING("runtime directory not found: %s", arg);
       break;
-   case 's':  // --storage
+   case 's': // --storage
       args->storage_dir = arg;
       if (!path_exists(arg, NULL, false))
          WARNING("storage directory not found: %s", arg);
       break;
-   case 't':  // --private-tmp
-      args->c.private_tmp = true;
+   case 't': // --tmp
+      args->c.mount_tmp = true;
       break;
-   case 'u':  // --uid
+   case 'u': // --uid
       i = parse_int(arg, false, "--uid");
       Te (i >= 0, "--uid: must be non-negative");
       args->c.uid = (uid_t) i;
       break;
-   case 'v':  // --verbose
+   case 'v': // --verbose
       Te(verbose >= 0, "--verbose incompatible with --quiet");
       verbose++;
       Te(verbose <= 3, "--verbose can be specified at most trice");
       break;
-   case 'w':  // --write
+   case 'w': // --write
       args->c.writable = true;
       break;
    case ARGP_KEY_NO_ARGS:

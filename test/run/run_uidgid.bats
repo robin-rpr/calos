@@ -61,7 +61,7 @@ setup () {
         d="${d}/pass"
         echo "verifying: ${d}"
         # shellcheck disable=SC2086
-        clearly run --private-tmp \
+        clearly run \
                $uid_args $gid_args -b "$d:/mnt/0" "$clearly_timg" -- \
                /test/fs_perms.py /mnt/0
     done

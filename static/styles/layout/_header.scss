@@ -5,13 +5,14 @@
     padding: 0 1.5rem;
     column-gap: 1.5rem;
     align-items: center;
+    border-bottom: 1px solid rgba(64, 64, 64, 0.1);
 
     & ~ #main {
         padding-top: unset;
     }
 
     .header__menu {
-        font-size: 1.25rem;
+        font-size: 0.625rem;
         background: none;
         cursor: pointer;
         border-radius: 50%;
@@ -39,16 +40,5 @@
         flex-grow: 1;
         font-weight: 300;
         color: #707070;
-    }
-
-    .header__deploy {
-        font-size: 1rem;
-        background: transparent;
-        box-shadow: rgba(64, 64, 64, 0.16) 0px 0px 0px 1px inset;
-        font-weight: 400;
-        line-height: 1;
-        padding: 0.75rem 1rem;
-        cursor: pointer;
-        border-radius: 1.5rem;
     }
 }

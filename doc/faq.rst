@@ -329,7 +329,7 @@ fails::
   $ clearly run -b /tmp/baz:/mnt/baz /var/tmp/image -- ls /mnt
   clearly run[40498]: error: can't mkdir: /var/tmp/image/mnt/baz: Read-only file system (misc.c:582 30)
 
-That’s fine; we’ll just use :code:`--write-fake` to create a writeable overlay
+That’s fine; we’ll just use :code:`--overlay` to create a writeable overlay
 on the container. Then we can make any mount points we need. Right?
 
 ::
