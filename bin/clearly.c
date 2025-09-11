@@ -35,11 +35,17 @@ int main(int argc, char *argv[])
 	/* Ensure the network bridge exists. */
 	if (!is_bridge_exists("clearly0")) {
 		char *subnet = config_get("Subnet");
-		struct in_addr subnet_ip; int cidr;
-		sscanf(subnet, "%15[^/]/%d", (char[16]){0}, &cidr);
-		inet_pton(AF_INET, subnet, &subnet_ip);
+		int cidr = 0; char ip_str[16];
+		struct in_addr subnet_ip = { .s_addr = 0 };
+		sscanf(subnet, "%15[^/]/%d", ip_str, &cidr);
+		inet_pton(AF_INET, ip_str, &subnet_ip);
 		srand((unsigned int)getpid() ^ (unsigned int)time(NULL));
-		uint32_t ip = ntohl(subnet_ip.s_addr) | ((rand() & 0xFF) << 16) | ((rand() & 0xFF) << 8) | (rand() & 0xFF);
+		uint32_t subnet_base = ntohl(subnet_ip.s_addr);
+		uint32_t host_bits = 32 - cidr;
+		uint32_t host_mask = (1U << host_bits) - 1;
+		uint32_t network_mask = ~host_mask;
+		uint32_t random_host = rand() & host_mask;
+		uint32_t ip = (subnet_base & network_mask) | random_host;
 		struct in_addr bridge_ip = { .s_addr = htonl(ip) };
 		create_bridge("clearly0", &bridge_ip, cidr);
 	}

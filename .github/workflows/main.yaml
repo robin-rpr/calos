@@ -136,7 +136,7 @@ jobs:
           
           # Configure the Subnet.
           RUN sed -i \
-              's/Subnet=10.0.0.0\/8/Subnet=172.16.0.0\/12/' \
+              's/Subnet=10.0.0.0\/8/Subnet=192.168.0.0\/16/' \
               /etc/clearly/clearly.conf
           
           # Set the entrypoint.

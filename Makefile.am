@@ -1,4 +1,4 @@
-SUBDIRS = lib bin cmd etc doc examples misc packaging test static
+SUBDIRS = lib bin cmd data etc doc examples misc packaging test
 
 EXTRA_DIST = LICENSE README.rst VERSION autogen.sh
 
@@ -19,16 +19,16 @@ install-exec-hook:
 			 $(DESTDIR)@datadir@/clearly/common.bash \
 	         $(DESTDIR)@datadir@/clearly/doctest \
 			 $(DESTDIR)@libdir@/clearly/_base.sh \
-			 $(DESTDIR)@systemdsystemunitdir@/clearly.service; \
+			 $(DESTDIR)@libdir@/systemd/system/clearly.service; \
 	do \
 	  if [ -e $$i ]; then \
 	    sed -Ei -e 's|^(clearly_lib ?= ?).+/lib"?$$|\1"@libdir@/clearly"|' \
 				-e 's|^(clearly_libexec ?= ?).+/libexec"?$$|\1"@libexecdir@/clearly"|' \
 	            -e 's|^(TEST_DIR=).+$$|\1@datadir@/clearly|' \
 	            -e 's|^(TEST_EXAMPLES_DIR=).+$$|\1@docdir@/examples|' \
-	            -e 's|@bindir[@]|@bindir@|g' \
 	            -e 's|@libexecdir[@]|@libexecdir@|g' \
 	            -e 's|@sysconfdir[@]|@sysconfdir@|g' \
+				-e 's|@bindir[@]|@bindir@|g' \
                 $$i; \
 	  fi \
 	done

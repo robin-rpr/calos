@@ -324,7 +324,6 @@ int main(int argc, char *argv[])
    VERBOSE("container gid: %u", args.c.gid);
    VERBOSE("join: %d %d %s %d", args.c.join, args.c.join_ct, args.c.join_tag,
            args.c.join_pid);
-   VERBOSE("private /tmp: %d", args.c.mount_tmp);
    VERBOSE("unsafe: %d", args.unsafe);
 
    containerize(&args.c, args.runtime_dir, args.mount_dir);

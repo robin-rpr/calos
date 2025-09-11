@@ -334,8 +334,8 @@ void containerize(
     const char *veth_peer_prefix = "if";
     const char *veth_guest_name = "eth0";
 
-    int cidr;
-    char network_cidr[18];
+    int cidr = 0;
+    char ip_str[16];
     char ifname[IFNAMSIZ] = "clearly0";
 
     struct in_addr subnet_ip = { .s_addr = 0 };
@@ -344,19 +344,8 @@ void containerize(
     
     // Load subnet configuration.
     char *subnet = config_get("Subnet");
-    if (subnet) {
-        char *slash = strchr(subnet, '/');
-        if (slash) {
-            *slash = '\0';
-            inet_pton(AF_INET, subnet, &subnet_ip);
-            cidr = atoi(slash + 1);
-        }
-    } else {
-        cidr = 8;
-    }
-    
-    // Get network CIDR.
-    snprintf(network_cidr, sizeof(network_cidr), "%s/%d", inet_ntoa(subnet_ip), cidr);
+    sscanf(subnet, "%15[^/]/%d", ip_str, &cidr);
+    inet_pton(AF_INET, ip_str, &subnet_ip);
 
     // Get bridge IP.
     get_interface_ipv4(ifname, &bridge_ip);

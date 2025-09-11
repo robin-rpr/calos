@@ -7,5 +7,5 @@
 bin_PROGRAMS = clearly
 
 clearly_SOURCES = clearly.c ../cmd/net.c ../cmd/misc.c
-clearly_CFLAGS = @LIBNL_CFLAGS@ -DCMDDIR="\"$(pkglibexecdir)\"" -I$(top_srcdir)/cmd
+clearly_CFLAGS = @LIBNL_CFLAGS@ -DCMDDIR="\"$(pkglibexecdir)\"" -DSYSCONFDIR="\"$(sysconfdir)/clearly\"" -I$(top_srcdir)/cmd
 clearly_LDADD = @LIBMNL_LIBS@ @LIBNFTNL_LIBS@ @LIBNL_LIBS@

@@ -20,6 +20,10 @@
 #include "config.h"
 #include "misc.h"
 
+#ifndef SYSCONFDIR
+#  define SYSCONFDIR "/usr/local/etc"
+#endif
+
 
 /** Macros **/
 
@@ -890,13 +894,13 @@ void warnings_reprint(void)
    }
 
    if (fflush(stderr))
-      abort();  // can't print an error b/c already trying to do that
+      abort(); // can't print an error b/c already trying to do that
 }
 
 /* Minimal config parser - get value by key */
 char *config_get(const char *key) {
    static char value[256];
-   FILE *fp = fopen("/etc/clearly/clearly.conf", "r");
+   FILE *fp = fopen(SYSCONFDIR "/clearly.conf", "r");
    char line[256];
    
    if (!fp) return NULL;

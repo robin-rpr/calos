@@ -1,6 +1,7 @@
 configdir = $(sysconfdir)/clearly
 config_DATA = clearly.conf
 
-systemdsystemunit_DATA = clearly.service
+systemddir = $(libdir)/systemd/system
+systemd_DATA = clearly.service
 
-EXTRA_DIST = clearly.conf clearly.service.in
+EXTRA_DIST = clearly.conf clearly.service
