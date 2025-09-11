@@ -1,4 +1,4 @@
-/* Copyright © Triad National Security, LLC, and others. */
+/* Copyright © Clearly Systems, Inc, and others. */
 
 #define _GNU_SOURCE
 #include <linux/netfilter/nf_tables.h>

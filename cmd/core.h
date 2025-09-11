@@ -1,4 +1,4 @@
-/* Copyright © Triad National Security, LLC, and others.
+/* Copyright © Clearly Systems, Inc, and others.
 
    This interface contains Clearly's core containerization features. */
 

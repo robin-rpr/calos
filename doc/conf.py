@@ -92,7 +92,7 @@ master_doc = 'index'
 project = u'Clearly'
 
 year = datetime.datetime.now().year
-copyright = u'Copyright {year} Robin Röper'.format(year=year)
+copyright = u'© Clearly Systems, Inc. {year}'.format(year=year)
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
