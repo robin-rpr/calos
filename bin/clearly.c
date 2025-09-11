@@ -4,6 +4,8 @@
 #include <string.h>
 #include <unistd.h>
 #include <time.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
 
 #include "misc.h"
 #include "net.h"
@@ -32,10 +34,14 @@ int main(int argc, char *argv[])
 
 	/* Ensure the network bridge exists. */
 	if (!is_bridge_exists("clearly0")) {
+		char *subnet = config_get("Subnet");
+		struct in_addr subnet_ip; int cidr;
+		sscanf(subnet, "%15[^/]/%d", (char[16]){0}, &cidr);
+		inet_pton(AF_INET, subnet, &subnet_ip);
 		srand((unsigned int)getpid() ^ (unsigned int)time(NULL));
-		uint32_t ip = (10 << 24) | ((rand() & 0xFF) << 16) | ((rand() & 0xFF) << 8) | (rand() & 0xFF);
-		struct in_addr bridge_ip = { .s_addr = htonl(ip) }; // 10.x.x.x
-		create_bridge("clearly0", &bridge_ip, 8);
+		uint32_t ip = ntohl(subnet_ip.s_addr) | ((rand() & 0xFF) << 16) | ((rand() & 0xFF) << 8) | (rand() & 0xFF);
+		struct in_addr bridge_ip = { .s_addr = htonl(ip) };
+		create_bridge("clearly0", &bridge_ip, cidr);
 	}
 
 	/* Ensure the vxlan link exists. */

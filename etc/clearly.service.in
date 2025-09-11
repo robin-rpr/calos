@@ -1,0 +1,38 @@
+[Unit]
+Description=Clearly Daemon
+Documentation=https://clearly.run
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+ExecStart=@libexecdir@/clearly/daemon
+Restart=on-failure
+RestartSec=5
+User=clearly
+Group=clearly
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=clearly
+
+# Security settings
+# ProtectSystem=strict
+# ProtectHome=true
+# ReadWritePaths=/var/lib/clearly
+# ProtectKernelTunables=true
+# ProtectKernelModules=true
+# ProtectControlGroups=true
+# RestrictRealtime=true
+# RestrictSUIDSGID=true
+# NoNewPrivileges=true
+
+# Capability settings
+CapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_RAW
+AmbientCapabilities=CAP_NET_ADMIN CAP_NET_RAW
+
+# Resource limits
+LimitNOFILE=65536
+LimitNPROC=4096
+
+[Install]
+WantedBy=multi-user.target

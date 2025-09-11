@@ -334,13 +334,26 @@ void containerize(
     const char *veth_peer_prefix = "if";
     const char *veth_guest_name = "eth0";
 
-    const int cidr = 8;
+    int cidr;
     char network_cidr[18];
     char ifname[IFNAMSIZ] = "clearly0";
 
-    struct in_addr subnet_ip = { .s_addr = inet_addr("10.0.0.0") };
+    struct in_addr subnet_ip = { .s_addr = 0 };
     struct in_addr bridge_ip = { .s_addr = 0 };
     struct in_addr guest_ip  = { .s_addr = 0 };
+    
+    // Load subnet configuration.
+    char *subnet = config_get("Subnet");
+    if (subnet) {
+        char *slash = strchr(subnet, '/');
+        if (slash) {
+            *slash = '\0';
+            inet_pton(AF_INET, subnet, &subnet_ip);
+            cidr = atoi(slash + 1);
+        }
+    } else {
+        cidr = 8;
+    }
     
     // Get network CIDR.
     snprintf(network_cidr, sizeof(network_cidr), "%s/%d", inet_ntoa(subnet_ip), cidr);
@@ -358,8 +371,13 @@ void containerize(
       srand(time(NULL) ^ getpid());
 
       while (1) {
-         // Generate a random IP address.
-         uint32_t ip = (10U << 24) | (rand() % 0x1000000U);
+         // Generate a random IP address within subnet.
+         uint32_t subnet_base = ntohl(subnet_ip.s_addr);
+         uint32_t subnet_mask = (0xFFFFFFFFU << (32 - cidr));
+         uint32_t host_bits = 32 - cidr;
+         uint32_t max_hosts = (1U << host_bits);
+         uint32_t random_offset = rand() % max_hosts;
+         uint32_t ip = (subnet_base & subnet_mask) | random_offset;
 
          // Convert the IP address to network byte order.
          guest_ip.s_addr = htonl(ip);

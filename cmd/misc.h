@@ -126,6 +126,7 @@ char *argv_to_string(char **argv);
 int buf_strings_count(char *str, size_t s);
 bool buf_zero_p(void *buf, size_t size);
 char *cat(const char *a, const char *b);
+char *config_get(const char *key);
 int dir_ls(const char *path, struct dirent ***namelist);
 int dir_ls_count(const char *path);
 int dir_ls_filter(const struct dirent *e);

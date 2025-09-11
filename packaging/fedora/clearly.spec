@@ -115,49 +115,6 @@ LDFLAGS="$(python3-config --ldflags --embed)"; export LDFLAGS
 # Create required directory
 mkdir -p %{buildroot}/var/lib/clearly
 
-# Create systemd service file
-mkdir -p %{buildroot}%{_unitdir}
-cat > %{buildroot}%{_unitdir}/clearly.service <<EOF
-[Unit]
-Description=Clearly Daemon
-Documentation=https://clearly.run
-After=network.target
-Wants=network.target
-
-[Service]
-Type=simple
-ExecStart=%{_libexecdir}/%{name}/daemon
-Restart=on-failure
-RestartSec=5
-User=clearly
-Group=clearly
-StandardOutput=journal
-StandardError=journal
-SyslogIdentifier=clearly
-
-# Security settings
-# ProtectSystem=strict
-# ProtectHome=true
-# ReadWritePaths=/var/lib/clearly
-# ProtectKernelTunables=true
-# ProtectKernelModules=true
-# ProtectControlGroups=true
-# RestrictRealtime=true
-# RestrictSUIDSGID=true
-# NoNewPrivileges=true
-
-# Capability settings
-CapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_RAW
-AmbientCapabilities=CAP_NET_ADMIN CAP_NET_RAW
-
-# Resource limits
-LimitNOFILE=65536
-LimitNPROC=4096
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
 cat > README.EL7 <<EOF
 For RHEL7 you must increase the number of available user namespaces to a non-
 zero number (note the number below is taken from the default for RHEL8):
@@ -183,7 +140,6 @@ getent passwd clearly >/dev/null 2>&1 || useradd -r -g clearly -d /var/lib/clear
 
 %post
 %systemd_post clearly.service
-su -c "clearly --version" > /dev/null 2>&1
 
 %preun
 %systemd_preun clearly.service
@@ -197,6 +153,7 @@ su -c "clearly --version" > /dev/null 2>&1
 
 %{_bindir}/clearly
 %{_unitdir}/clearly.service
+%config(noreplace) %{_sysconfdir}/clearly/clearly.conf
 
 %dir %attr(0755,clearly,clearly) /var/lib/clearly
 

@@ -892,3 +892,29 @@ void warnings_reprint(void)
    if (fflush(stderr))
       abort();  // can't print an error b/c already trying to do that
 }
+
+/* Minimal config parser - get value by key */
+char *config_get(const char *key) {
+   static char value[256];
+   FILE *fp = fopen("/etc/clearly/clearly.conf", "r");
+   char line[256];
+   
+   if (!fp) return NULL;
+   
+   while (fgets(line, sizeof(line), fp)) {
+      char *p = line;
+      while (isspace(*p)) p++;
+      if (*p == '#' || *p == '\n') continue;
+      
+      if (strncmp(p, key, strlen(key)) == 0 && p[strlen(key)] == '=') {
+         strncpy(value, p + strlen(key) + 1, sizeof(value) - 1);
+         value[sizeof(value) - 1] = '\0';
+         char *end = strchr(value, '\n');
+         if (end) *end = '\0';
+         fclose(fp);
+         return value;
+      }
+   }
+   fclose(fp);
+   return NULL;
+}
