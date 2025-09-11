@@ -41,7 +41,7 @@ try:
     TEMPLATE_DIR = os.path.join(PKGDATADIR, 'templates')
 except NameError:
     # Define STATIC_DIR to be the static directory relative to the current file.
-    STATIC_DIR = os.path.join(os.path.dirname(__file__), '..', 'static')
+    STATIC_DIR = os.path.join(os.path.dirname(__file__), '..', 'data')
     TEMPLATE_DIR = os.path.join(STATIC_DIR, 'templates')
 
 # Runtime

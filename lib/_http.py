@@ -42,7 +42,7 @@ class WebServer:
     """
     
     def __init__(self, host: str = '127.0.0.1', port: int = 8080, 
-                 static_dir: str = 'static', template_dir: str = 'pages'):
+                 static_dir: str = 'data', template_dir: str = 'pages'):
         """
         Initialize the WebServer.
         
