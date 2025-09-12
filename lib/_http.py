@@ -242,49 +242,31 @@ class WebServer:
                 self.target_socket = None
                 self.running = False
             
-            def handle_websocket(self):
-                """Handle WebSocket connection"""
+            def handle_websocket(self, client_handshake: str):
+                """Proxy WebSocket by forwarding the client's handshake to the target,
+                relaying the 101 response, then tunneling frames in both directions."""
                 try:
-                    # Read the WebSocket handshake
-                    request = self.client_socket.recv(1024).decode('utf-8')
-                    
-                    # Extract WebSocket key
-                    ws_key = None
-                    for line in request.split('\r\n'):
-                        if line.startswith('Sec-WebSocket-Key:'):
-                            ws_key = line.split(':', 1)[1].strip()
-                            break
-                    
-                    if not ws_key:
-                        self.client_socket.close()
-                        return
-                    
-                    # Generate accept key
-                    accept_key = base64.b64encode(
-                        hashlib.sha1((ws_key + '258EAFA5-E914-47DA-95CA-C5AB0DC85B11').encode()).digest()
-                    ).decode()
-                    
-                    # Send WebSocket handshake response
-                    response = (
-                        "HTTP/1.1 101 Switching Protocols\r\n"
-                        "Upgrade: websocket\r\n"
-                        "Connection: Upgrade\r\n"
-                        f"Sec-WebSocket-Accept: {accept_key}\r\n"
-                        "\r\n"
-                    )
-                    self.client_socket.send(response.encode())
-                    
                     # Connect to target
                     self.target_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                     self.target_socket.settimeout(30)
                     self.target_socket.connect((self.target_host, self.target_port))
                     
-                    # Forward the WebSocket handshake to target
-                    self.target_socket.send(request.encode())
+                    # Forward the client's handshake to the target
+                    self.target_socket.sendall(client_handshake.encode('utf-8'))
                     
-                    # Read target response
-                    target_response = self.target_socket.recv(1024)
-                    self.client_socket.send(target_response)
+                    # Read target response headers (until CRLF CRLF)
+                    response_data = b""
+                    while b"\r\n\r\n" not in response_data:
+                        chunk = self.target_socket.recv(4096)
+                        if not chunk:
+                            break
+                        response_data += chunk
+                    
+                    if not response_data:
+                        return
+                    
+                    # Relay the response (including any extra bytes already read)
+                    self.client_socket.sendall(response_data)
                     
                     # Start bidirectional forwarding
                     self.running = True
@@ -474,6 +456,35 @@ class WebServer:
                     # Rewrite the path
                     rewritten_path = self._rewrite_path(record, self.path)
                     
+                    # Reconstruct client's WebSocket handshake with rewritten path
+                    request_version = getattr(self, 'request_version', 'HTTP/1.1')
+                    handshake_lines = [f"GET {rewritten_path} {request_version}"]
+                    
+                    # Use target host in Host header
+                    handshake_lines.append(f"Host: {record['host']}:{record['port']}")
+                    
+                    # Forward other headers from the client, except ones we override
+                    for header_name, header_value in self.headers.items():
+                        lower = header_name.lower()
+                        if lower in ['host']:
+                            continue
+                        if lower in ['content-length', 'transfer-encoding']:
+                            continue
+                        handshake_lines.append(f"{header_name}: {header_value}")
+                    
+                    # Optional forwarded headers
+                    try:
+                        client_ip = self.client_address[0]
+                        original_host = self.headers.get('Host', 'localhost')
+                        handshake_lines.append(f"X-Forwarded-For: {client_ip}")
+                        handshake_lines.append(f"X-Real-IP: {client_ip}")
+                        handshake_lines.append(f"X-Forwarded-Host: {original_host}")
+                        handshake_lines.append(f"X-Forwarded-Server: {original_host}")
+                    except Exception:
+                        pass
+                    
+                    handshake = "\r\n".join(handshake_lines) + "\r\n\r\n"
+                    
                     # Create WebSocket handler
                     ws_handler = SocketHandler(
                         self.connection,
@@ -482,9 +493,10 @@ class WebServer:
                         rewritten_path
                     )
                     
-                    # Handle WebSocket in a separate thread
-                    ws_thread = threading.Thread(target=ws_handler.handle_websocket, daemon=True)
+                    # Handle WebSocket in a separate thread and keep this handler alive
+                    ws_thread = threading.Thread(target=ws_handler.handle_websocket, args=(handshake,), daemon=False)
                     ws_thread.start()
+                    ws_thread.join()
                     
                 except Exception as e:
                     logger.error(f"Proxy WebSocket error: {e}")
