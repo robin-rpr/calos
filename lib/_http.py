@@ -453,12 +453,14 @@ class WebServer:
             def _handle_rewrite_websocket(self, record: dict):
                 """Handle WebSocket rewrite connection"""
                 try:
-                    # Rewrite the path
-                    rewritten_path = self._rewrite_path(record, self.path)
+                    # Rewrite the path (preserve query separately to avoid duplication)
+                    orig = urllib.parse.urlsplit(self.path)
+                    rewritten_path = self._rewrite_path(record, orig.path)
+                    ws_path = rewritten_path + (f"?{orig.query}" if orig.query else "")
                     
                     # Reconstruct client's WebSocket handshake with rewritten path
                     request_version = getattr(self, 'request_version', 'HTTP/1.1')
-                    handshake_lines = [f"GET {rewritten_path} {request_version}"]
+                    handshake_lines = [f"GET {ws_path} {request_version}"]
                     
                     # Use target host in Host header
                     handshake_lines.append(f"Host: {record['host']}:{record['port']}")
@@ -514,23 +516,22 @@ class WebServer:
             def _handle_rewrite_request(self, record: dict, method: str):
                 """Handle rewrite request to target rewrite."""
                 try:
-                    # Rewrite the path
-                    rewritten_path = self._rewrite_path(record, self.path)
+                    # Rewrite the path.
+                    orig = urllib.parse.urlsplit(self.path)
+                    rewritten_path = self._rewrite_path(record, orig.path)
                     
-                    # Build target URL
+                    # Build full target URL then parse, matching previous behavior.
                     target_url = f"http://{record['host']}:{record['port']}{rewritten_path}"
-                    if self.path.find('?') >= 0:
-                        target_url += self.path[self.path.find('?'):]
-                    
-                    # Parse the target URL
+                    if orig.query:
+                        target_url += f"?{orig.query}"
                     parsed_url = urllib.parse.urlparse(target_url)
-                    
-                    # Create connection to target
+
+                    # Create connection to target.
                     target_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                     target_socket.settimeout(30)
                     target_socket.connect((record["host"], record["port"]))
                     
-                    # Build HTTP request
+                    # Build HTTP request.
                     request_line = f"{method} {parsed_url.path}"
                     if parsed_url.query:
                         request_line += f"?{parsed_url.query}"
