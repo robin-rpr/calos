@@ -21,8 +21,11 @@ class Proxy:
         if self.thread is not None:
             return
 
-        self.thread = threading.Thread(target=self._serve, daemon=True)
+        self.thread = threading.Thread(target=self._listen, daemon=True)
         self.thread.start()
+
+        while self.sock is None:
+            time.sleep(0.1)
 
         return
 
@@ -41,7 +44,7 @@ class Proxy:
                 client, _ = self.sock.accept()
                 threading.Thread(target=self._handle, args=(client,), daemon=True).start()
             except (OSError, ConnectionError):
-                # Socket was closed
+                # Socket was closed.
                 break
 
     def _handle(self, client_sock):
@@ -51,24 +54,6 @@ class Proxy:
             threading.Thread(target=self._pipe, args=(backend, client_sock)).start()
         except: 
             client_sock.close()
-
-    def _serve(self, timeout):
-            self.sock = socket.socket()
-            self.sock.bind(self.listen)
-            self.sock.listen()
-            self.sock.settimeout(1)
-            while time.time() < timeout:
-                try:
-                    client, _ = self.sock.accept()
-                    threading.Thread(target=self._handle, args=(client,), daemon=True).start()
-                except socket.timeout:
-                    continue
-                except Exception:
-                    break
-            try:
-                self.sock.close()
-            except Exception:
-                pass
 
     def _pipe(self, src, dst):
         try:
