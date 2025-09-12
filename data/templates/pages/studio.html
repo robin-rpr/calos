@@ -28,7 +28,6 @@
                 fetch(`${secure ? 'https' : 'http'}://${window.location.hostname}:${window.proxy}/api/containers`)
                     .then(r => r.json())
                     .then(data => {
-                        console.log(data);
                         if (Object.keys(data.containers).length === 0) {
                             // No containers yet.
                             start({
@@ -57,7 +56,7 @@
                         ws.close();
                     });
             } else {
-                console.error(data.error);
+                console.error(message.error);
                 ws.close();
             }
         };
@@ -88,7 +87,7 @@
                     document.getElementById('sidebar').innerHTML += `
                         <button
                             class="sidebar__item sidebar__item--selected"
-                            onclick="render('${config.id}', ${port}, ${window.proxy})">
+                            onclick="render(${port})">
                                 <i class="fa-kit fa-${config.id}"></i>
                         </button>`;
                 } else {

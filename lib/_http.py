@@ -42,7 +42,8 @@ class WebServer:
     """
     
     def __init__(self, host: str = '127.0.0.1', port: int = 8080, 
-                 static_dir: str = 'data', template_dir: str = 'pages'):
+                 static_dir: str = 'data', template_dir: str = 'pages',
+                 headers: Dict[str, str] = None):
         """
         Initialize the WebServer.
         
@@ -51,6 +52,7 @@ class WebServer:
             port: Server port
             static_dir: Directory for static files
             template_dir: Directory for Jinja2 templates
+            headers: Custom headers to add to all responses
         """
         self.host = host
         self.port = port
@@ -59,6 +61,11 @@ class WebServer:
         self.routes: Dict[str, Dict[str, Callable]] = {}
         self.routes_websocket: Dict[str, Callable] = {}
         self.jinja_env = Environment(loader=FileSystemLoader(template_dir), autoescape=True)
+        
+        # Custom headers.
+        self.headers = {}
+        if headers:
+            self.headers.update(headers)
     
     def route(self, path: str, methods: List[str] = None):
         """Decorator to register a route handler directly on the server."""
@@ -196,6 +203,11 @@ class WebServer:
         
         return None, {}
     
+    def _send_headers(self, handler):
+        """Send custom headers."""
+        for name, value in self.headers.items():
+            handler.send_header(name, value)
+    
     def _handler_class(self):
         """Create the HTTP handler class with all registered routes."""
         
@@ -211,6 +223,17 @@ class WebServer:
             
             def do_DELETE(self):
                 self._handle_request('DELETE')
+            
+            def do_PUT(self):
+                self._handle_request('PUT')
+            
+            def do_PATCH(self):
+                self._handle_request('PATCH')
+            
+            def do_OPTIONS(self):
+                self.send_response(200)
+                self.server.webserver._send_headers(self)
+                self.end_headers()
             
             def _handle_request(self, method):
                 try:
@@ -253,6 +276,7 @@ class WebServer:
                                 self.send_response(200)
                                 self.send_header('Content-type', 'text/html; charset=utf-8')
                                 self.send_header('Cache-Control', f'public, max-age={CACHE_MAX_AGE}')
+                                self.server.webserver._send_headers(self)
                                 self.end_headers()
                                 self.wfile.write(result['content'].encode('utf-8'))
                             else:
@@ -290,6 +314,7 @@ class WebServer:
                     self.send_header('Upgrade', 'websocket')
                     self.send_header('Connection', 'Upgrade')
                     self.send_header('Sec-WebSocket-Accept', accept_key)
+                    self.server.webserver._send_headers(self)
                     self.end_headers()
                 
                     # Call the WebSocket handler with parameters
@@ -306,6 +331,7 @@ class WebServer:
                 self.send_response(200)
                 self.send_header('Content-type', 'text/css')
                 self.send_header('Cache-Control', f'public, max-age={CACHE_MAX_AGE}')
+                self.server.webserver._send_headers(self)
                 self.end_headers()
                 self.wfile.write(styles.encode('utf-8'))
             
@@ -325,6 +351,7 @@ class WebServer:
                             self.send_response(200)
                             self.send_header('Content-type', mimetype or 'application/octet-stream')
                             self.send_header('Cache-Control', f'public, max-age={CACHE_MAX_AGE}')
+                            self.server.webserver._send_headers(self)
                             self.end_headers()
                             self.wfile.write(f.read())
                     except IOError:
@@ -338,6 +365,7 @@ class WebServer:
                 self.send_response(status_code)
                 self.send_header('Content-Type', 'application/json')
                 self.send_header('Content-Length', str(len(response)))
+                self.server.webserver._send_headers(self)
                 self.end_headers()
                 self.wfile.write(response.encode('utf-8'))
             

@@ -61,6 +61,11 @@ webserver = _http.WebServer(
     )))(),
     static_dir=STATIC_DIR,
     template_dir=TEMPLATE_DIR,
+    headers={
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, DELETE, PUT, PATCH, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    }
 )
 
 # Logging
@@ -154,21 +159,31 @@ def get_container_proxy(ws, container_id, port):
         if not ip:
             raise Exception("Container is not running")
         
-        # Create and start proxy
-        proxy = _proxy.Proxy(ip, int(port), "0.0.0.0", 0)
+        # Create and start proxy.
+        proxy = _proxy.Proxy(
+            ip,
+            int(port),
+            (lambda: next(
+            (sys.argv[i+1] for i, v in enumerate(sys.argv)
+                if v == '--host' and i+1 < len(sys.argv)),
+                '127.0.0.1'
+            ))(),
+            0
+        )
         proxy.start()
         
-        # Send proxy information to client
+        # Message proxy information.
         ws._send_message(json.dumps({
             "success": True,
-            "proxy": proxy.socket.getsockname()[1]
+            "proxy": proxy.sock.getsockname()[1]
         }))
         
         try:
             # Keep alive.
             while True:
                 message = ws._receive_message()
-                if message is None: # Connection closed
+                if message is None:
+                    # Connection closed.
                     break
         finally:
             proxy.stop()
