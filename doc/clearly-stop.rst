@@ -41,14 +41,14 @@ Stop a container by name:
 ::
 
   $ clearly stop myapp
-  done
+  myapp
 
 Stop a container by ID:
 
 ::
 
   $ clearly stop abc123def456
-  done
+  abc123def456
 
 Stop a container that doesn't respond to SIGTERM:
 
@@ -56,7 +56,7 @@ Stop a container that doesn't respond to SIGTERM:
 
   $ clearly stop stubborn-app
   container did not stop gracefully. sending SIGKILL...
-  done
+  stubborn-app
 
 
 .. include:: ./bugs.rst

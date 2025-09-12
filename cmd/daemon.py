@@ -1,20 +1,20 @@
 #!/usr/bin/env python3
-
-import sys
-import os
-import logging
+from functools import reduce
+from pathlib import Path
+from time import sleep
 import subprocess
+import threading
+import hashlib
+import logging
+import struct
+import socket
+import fcntl
 import uuid
 import time
-import socket
-import threading
-import fcntl
-import struct
 import yaml
 import json
-from time import sleep
-from pathlib import Path
-from functools import reduce
+import sys
+import os
 
 try:
     # Cython provides PKGLIBDIR.
@@ -26,7 +26,6 @@ except NameError:
     sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../lib'))
 
 import _runtime as _runtime
-import _proxy as _proxy
 import _http as _http
 
 
@@ -148,7 +147,7 @@ def get_container_logs(container_id, payload=None):
         
         return {"success": True, "stdout": result.stdout, "stderr": result.stderr}
     except Exception as e:
-        logger.error(f"Failed to get logs for container {container_id}: {e}")
+        logger.error(f"Failed to get logs for container {container_id}: {e}", exc_info=True)
         return {"error": str(e)}
 
 @webserver.websocket('/api/containers/<container_id>/proxy/<port>')
@@ -159,23 +158,14 @@ def get_container_proxy(ws, container_id, port):
         if not ip:
             raise Exception("Container is not running")
         
-        # Create and start proxy.
-        proxy = _proxy.Proxy(
-            ip,
-            int(port),
-            (lambda: next(
-            (sys.argv[i+1] for i, v in enumerate(sys.argv)
-                if v == '--host' and i+1 < len(sys.argv)),
-                '127.0.0.1'
-            ))(),
-            0
-        )
-        proxy.start()
+        # Insert rewrite.
+        path = f"/proxy/{container_id}/{port}"
+        webserver.insert(path, int(port), ip)
         
-        # Message proxy information.
+        # Send success.
         ws._send_message(json.dumps({
             "success": True,
-            "proxy": proxy.sock.getsockname()[1]
+            "path": path
         }))
         
         try:
@@ -186,10 +176,10 @@ def get_container_proxy(ws, container_id, port):
                     # Connection closed.
                     break
         finally:
-            proxy.stop()
+            webserver.drop(path)
             
     except Exception as e:
-        logger.error(f"Failed to get proxy for {container_id}: {e}")
+        logger.error(f"Failed to get proxy for {container_id}: {e}", exc_info=True)
         try:
             ws._send_message(json.dumps({"error": str(e)}))
         except:
@@ -274,7 +264,7 @@ def start_container(payload=None):
 
         return {"success": True}
     except Exception as e:
-        logger.error(f"Failed to start container {payload.get('name')}: {e}")
+        logger.error(f"Failed to start container {payload.get('name')}: {e}", exc_info=True)
         return {"error": str(e)}
 
 @webserver.delete('/api/containers/<container_id>')
@@ -288,7 +278,7 @@ def stop_container(container_id, payload=None):
         
         return {"success": True}    
     except Exception as e:
-        logger.error(f"Failed to stop container {container_id}: {e}")
+        logger.error(f"Failed to stop container {container_id}: {e}", exc_info=True)
         return {"error": str(e)}
 
 @webserver.get('/api/machines')

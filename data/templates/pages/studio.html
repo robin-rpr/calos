@@ -23,9 +23,9 @@
         ws.onmessage = (event) => {
             const message = JSON.parse(event.data);
             if (message.success) {
-                window.proxy = message.proxy;
+                window.path = message.path;
                 // Fetch /api/containers within the proxy.
-                fetch(`${secure ? 'https' : 'http'}://${window.location.hostname}:${window.proxy}/api/containers`)
+                fetch(`${secure ? 'https' : 'http'}://${window.location.host}${window.path}/api/containers`)
                     .then(r => r.json())
                     .then(data => {
                         if (Object.keys(data.containers).length === 0) {
@@ -76,7 +76,7 @@
 <script>
     function start(config) {
         const secure = window.location.protocol == 'https:';
-        fetch(`${secure ? 'https' : 'http'}://${window.location.hostname}:${window.proxy}/api/containers`, {
+        fetch(`${secure ? 'https' : 'http'}://${window.location.host}${window.path}/api/containers`, {
             method: 'POST',
             body: JSON.stringify(config)
         })
@@ -108,7 +108,7 @@
         ws.onmessage = (event) => {
             const message = JSON.parse(event.data);
             if (message.success) {
-                document.getElementById('iframe').src = `http://${window.location.hostname}:${message.proxy}`;
+                document.getElementById('iframe').src = `http://${window.location.host}${message.path}/`;
             } else {
                 console.error(message.error);
                 ws.close();

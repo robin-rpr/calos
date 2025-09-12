@@ -86,4 +86,4 @@ if kill -0 "$pid" 2>/dev/null; then
     done
 fi
 
-INFO "done"
+INFO "$container_id"

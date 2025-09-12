@@ -218,7 +218,6 @@ getent passwd clearly >/dev/null 2>&1 || useradd -r -g clearly -d /var/lib/clear
 %{_prefix}/lib/%{name}/_image.*.so
 %{_prefix}/lib/%{name}/_irtree.*.so
 %{_prefix}/lib/%{name}/_misc.*.so
-%{_prefix}/lib/%{name}/_proxy.*.so
 %{_prefix}/lib/%{name}/_pull.*.so
 %{_prefix}/lib/%{name}/_push.*.so
 %{_prefix}/lib/%{name}/_reference.*.so

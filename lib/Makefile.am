@@ -12,7 +12,7 @@ mylibdir = $(pkglibdir)
 
 cython_modules = \
   _build _build_cache _clearly _filesystem _force _grammar _http _image \
-  _irtree _misc _proxy _pull _push _reference _registry _runtime _tree 
+  _irtree _misc _pull _push _reference _registry _runtime _tree 
 
 cython_c_files = $(cython_modules:%=%.c)
 cython_so_files = $(cython_modules:%=%@PYEXT_SUFFIX@)
