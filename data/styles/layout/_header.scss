@@ -57,5 +57,13 @@
 
     .header__right {
         justify-self: end;
+
+        .right__button {
+            width: 2.5rem;
+            height: 2.5rem;
+            overflow: hidden;
+            border-radius: 0.75rem;
+            background: rgba(64, 64, 64, 0.07);
+        }
     }
 }
