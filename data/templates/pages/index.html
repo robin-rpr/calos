@@ -102,7 +102,7 @@ Clearly
                 </div>
                 <div class="item__status">
                     <div class="status__icon status__icon--${container.status.toLowerCase()}"></div>
-                    ${container.status.replace('Running', 'Active')}
+                    ${container.status.replace('Running', 'Active').replace('Stopped', 'Inactive')}
                 </div>
                 <div class="item__date">
                     34 minutes ago
