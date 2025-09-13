@@ -28,7 +28,7 @@
     
         .left__name {
             flex-grow: 1;
-            font-weight: 300;
+            font-weight: 350;
             color: #707070;
         }
     }
@@ -42,12 +42,16 @@
             width: 2.5rem;
             height: 2.5rem;
             overflow: hidden;
-            font-size: 1.25rem;
+            font-size: 1.5rem;
             border-radius: 0.75rem;
             background: rgba(64, 64, 64, 0.1);
             cursor: pointer;
             border: none;
             padding: 0;
+
+            &:last-child {
+                background: transparent;
+            }
         }
     }
 

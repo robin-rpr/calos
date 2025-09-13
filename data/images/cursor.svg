@@ -5,7 +5,7 @@
         <path d="M32,55.022L52,43.511L32,32L12,43.511L32,55.022Z" style="fill:url(#_Linear1);fill-rule:nonzero;"/>
         <path d="M52,43.511L52,20.489L32,8.978L32,32L52,43.511Z" style="fill:url(#_Linear2);fill-rule:nonzero;"/>
         <path d="M32,8.978L12,20.489L12,43.511L32,32L32,8.978Z" style="fill:url(#_Linear3);fill-rule:nonzero;"/>
-        <path d="M52,20.489L31.999,55.022L31.999,32L52,20.489Z" style="fill:rgb(183,183,183);fill-rule:nonzero;"/>
+        <path d="M52,20.489L31.999,55.022L31.999,32L52,20.489Z" style="fill:rgb(255,255,255);fill-rule:nonzero;"/>
         <path d="M52,20.489L31.999,32L12,20.489L52,20.489Z" style="fill-rule:nonzero;"/>
     </g>
     <defs>

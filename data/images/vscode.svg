@@ -3,7 +3,7 @@
 <svg width="100%" height="100%" viewBox="0 0 64 64" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
     <g>
         <path d="M40.954,49.419L40.954,14.581L49.5,18.214L49.5,45.786L40.954,49.419Z"/>
-        <path d="M40.954,39.51L40.954,49.419L14.5,23.432L18.131,21.952L40.954,39.51Z" style="fill:rgb(166,166,166);"/>
+        <path d="M40.954,39.51L40.954,49.419L14.5,23.432L18.131,21.952L40.954,39.51Z" style="fill:rgb(158,158,158);"/>
         <path d="M40.954,24.49L18.131,42.048L14.5,40.568L40.954,14.581L40.954,24.49Z"/>
     </g>
 </svg>
