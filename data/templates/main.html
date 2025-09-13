@@ -27,6 +27,7 @@
         {% block header %}
             {% include "layout/header.html" %}
         {% endblock %}
+        
         <main id="main">
             {% block navigation %}
                 {% include "layout/navigation.html" %}
@@ -36,9 +37,6 @@
                 <!-- Content Here -->
                 {% endblock %}
             </div>
-            {% block sidebar %}
-                {% include "layout/sidebar.html" %}
-            {% endblock %}
         </main>
     </body>
 </html>

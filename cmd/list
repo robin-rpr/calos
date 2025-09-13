@@ -55,7 +55,7 @@ if [[ ! -d "$clearly_runtime" ]]; then
   if [[ "$json_output" == "--json" ]]; then
     printf '[]\n'
   else
-    printf '%-20s\t%-20s\t%-20s\t%-10s\t%-15s\t%s\n' "CONTAINER ID" "IMAGE" "IP ADDRESS" "STATUS" "LABELS" "PORTS"
+    printf '%-20s\t%-20s\t%-20s\t%-10s\t%-15s\t%s\n' "CONTAINER ID" "IMAGE" "IP ADDRESS" "STATUS" "PORTS" "LABELS"
   fi
   exit 0
 fi

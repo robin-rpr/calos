@@ -95,7 +95,7 @@ def visit_slider_node(self, node: SliderNode) -> None:
             timer = setInterval(function() {{
                 var next = (current + 1) % slides.length;
                 showSlide(next);
-            }}, 3000);
+            }}, 5000);
         }}
         showSlide(0);
         autoAdvance();

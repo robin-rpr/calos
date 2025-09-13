@@ -8,10 +8,6 @@
 <!-- Empty -->
 {% endblock %}
 
-{% block searchbar %}
-<!-- Empty -->
-{% endblock %}
-
 {% block headers %}
 <script async>
     try {
@@ -38,7 +34,7 @@
                             });
                         } else {
                             // Containers already running.
-                            document.getElementById('sidebar').innerHTML = Object.entries(data.containers)
+                            document.getElementById('sidebar2').innerHTML = Object.entries(data.containers)
                                 .map(([id, container]) => {
                                     //const port = Object.keys(container.ports)[0];
                                     // BUG: with --json port mappping {"8081->8080/tcp": ""} in clearly list command.
@@ -84,7 +80,7 @@
             .then(data => {
                 if (data.success) {
                     const port = Object.keys(config.ports)[0];
-                    document.getElementById('sidebar').innerHTML += `
+                    document.getElementById('sidebar2').innerHTML += `
                         <button
                             class="sidebar__item sidebar__item--selected"
                             onclick="render(${port})">

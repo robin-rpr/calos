@@ -13,6 +13,7 @@
    :steps: |
       [
         {"title": "Step 1", "image": "/_static/screenshot-1.png"},
+        {"title": "Step 2", "image": "/_static/screenshot-2.png"},
       ]
 
 .. calendar::

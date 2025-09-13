@@ -12,7 +12,6 @@ nobase_styles_DATA = \
   styles/base/_variables.scss \
   styles/layout/_header.scss \
   styles/layout/_navigation.scss \
-  styles/layout/_sidebar.scss \
   styles/pages/_index.scss \
   styles/pages/_studio.scss \
   styles/main.scss

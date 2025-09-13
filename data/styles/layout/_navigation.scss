@@ -39,23 +39,23 @@
 
         .list__link,
         .list__button {
-            transition: all 0.15s cubic-bezier(0,0,.2,1);
-            color: inherit;
-            font-size: inherit;
-            font-weight: 400;
-            line-height: 1.75rem;
-            padding: 0.5rem 0.75rem;
-            border-radius: 2rem;
-            text-decoration: none;
-            border: none;
-            color: rgb(112, 112, 112);
-            background: none;
             width: 100%;
-            cursor: pointer;
+            border: none;
             display: flex;
+            color: inherit;
+            cursor: pointer;
+            background: none;
+            font-weight: 400;
             flex-wrap: nowrap;
+            font-size: inherit;
             column-gap: 0.5rem;
             align-items: center;
+            border-radius: 2rem;
+            line-height: 1.75rem;
+            text-decoration: none;
+            padding: 0.5rem 0.75rem;
+            color: rgb(112, 112, 112);
+            transition: all 0.15s cubic-bezier(0,0,.2,1);
 
             &--active,
             &:active {

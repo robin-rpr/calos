@@ -1,14 +1,41 @@
 <header id="header">
-    <button class="header__menu">
-        <i class="fa-kit fa-menu"></i>
-    </button>
-    <div class="header__delimiter"></div>
-    <a class="header__logo" href="/">
-        <img src="/static/images/favicon.svg" width="30" height="30">
-        Studio
-    </a>
-    <div class="header__delimiter"></div>
-    <div class="header__name">
-        {{ id }}
+    <div class="header__left"> 
+        <a class="left__logo" href="/">
+            <img src="/static/images/favicon.svg" width="32" height="32">
+            Studio
+        </a>
+        <div class="left__delimiter"></div>
+        <div class="left__name">
+            {{ id }}
+        </div>
+    </div>
+    <div class="header__center">
+        <button class="center__item">
+            <img src="/static/images/settings.svg" draggable="false" width="100%" height="100%">
+        </button>
+        <button class="center__item">
+            <img src="/static/images/terminal.svg" draggable="false" width="100%" height="100%">
+        </button>
+        <button class="center__item">
+            <img src="/static/images/vscode.svg" onclick="render(8081)" draggable="false" width="100%" height="100%">
+        </button>
+        <button class="center__item">
+            <img src="/static/images/jupyter.svg" draggable="false" width="100%" height="100%">
+        </button>
+        <button class="center__item">
+            <img src="/static/images/tensorboard.svg" draggable="false" width="100%" height="100%">
+        </button>
+        <button class="center__item">
+            <img src="/static/images/cursor.svg" draggable="false" width="100%" height="100%">
+        </button>
+        <button class="center__item">
+            <img src="/static/images/browser.svg" draggable="false" width="100%" height="100%">
+        </button>
+        <button class="center__item">
+            <img src="/static/images/drawer.svg" draggable="false" width="100%" height="100%">
+        </button>
+        {% for i in range(2) %}
+        <button class="center__item"></button>
+        {% endfor %}
     </div>
 </header>
