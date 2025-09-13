@@ -31,6 +31,9 @@
                                 image: 'codercom/code-server:4.101.2-39',
                                 command: ['/usr/bin/entrypoint.sh', '--bind-addr', '0.0.0.0:8080', '.', '--auth', 'none'],
                                 ports: { '8081': '8080' },
+                                environment: {
+                                    'CODER_AGENT_SEARCH_DISABLED': 'true',
+                                },
                             });
                         } else {
                             // Containers already running.

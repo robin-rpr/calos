@@ -2,11 +2,9 @@
     height: 100%;
 
     .studio__content {
-        opacity: 1;
         height: 100%;
         overflow: hidden;
-        border-top-left-radius: 1rem;
-        border-top-right-radius: 1rem;
-        background: rgba(64, 64, 64, 0.045);
+        border-top-left-radius: 0.75rem;
+        border-top-right-radius: 0.75rem;
     }
 }
