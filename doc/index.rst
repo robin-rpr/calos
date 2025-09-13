@@ -1,7 +1,7 @@
 :orphan:
 
 .. hero::
-   :title: From AI Training to Production in One Platform
+   :title: From Notebook to Production in One Platform
    :subtitle: The All-in-One Platform to Build, Package, and Deploy AI at Any Scale — Clearly is self-hosted and secure.
    :buttons: |
       [
