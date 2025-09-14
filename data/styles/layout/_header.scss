@@ -37,6 +37,7 @@
         display: flex;
         justify-self: center;
         column-gap: 0.75rem;
+        align-items: center;
 
         .center__item {
             width: 2.5rem;
@@ -51,6 +52,12 @@
             &:last-child {
                 background: transparent;
             }
+        }
+
+        .center__delimiter {
+            width: 1px;
+            height: 1.5rem;
+            background: rgba(64, 64, 64, 0.15);
         }
     }
 

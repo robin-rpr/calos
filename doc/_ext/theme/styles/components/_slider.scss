@@ -1,7 +1,8 @@
 .slider {
     position: relative;
     border-radius: 2rem;
-    background: rgba(64, 64, 64, 0.06);
+    background: url(/_static/gradient.avif) no-repeat center center;
+    background-size: cover;
     padding: 5rem 6.5rem 0;
     max-width: 96rem;
     margin: 0 auto;
