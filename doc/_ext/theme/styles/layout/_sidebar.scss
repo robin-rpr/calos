@@ -11,7 +11,7 @@
   width: 83.333333%;
 
   @media (min-width: 768px) {
-    top: 82px;
+    top: 8rem;
     z-index: 30;
     padding: 0;
     background: transparent;
@@ -47,18 +47,21 @@
             margin-left: 0;
             margin-top: 0;
             list-style-type: none;
-            padding-left: 1.25rem;
+            padding-left: 1.125rem;
 
             & > li,
             & > p {
-                margin-top: 0.5rem;
                 font-weight: 300;
-                font-size: 17px;
-                color: #657380;
+                margin-top: 0.75rem;
+                font-size: 1.125rem;
+
+                &:first-child:not(ul ul > li:first-child) {
+                    margin-top: 0;
+                }
 
                 &.current {
-                    font-weight: 500;
                     color: unset;
+                    font-weight: 500;
 
                     ul {
                         display: block;

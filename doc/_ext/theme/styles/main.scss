@@ -96,6 +96,7 @@ body {
 
     #main {
         display: flex;
+        max-width: 96rem;
         position: relative;
         flex-direction: column;
 
@@ -109,8 +110,8 @@ body {
             padding: 0 2rem;
             padding-top: 2rem;
             margin: 0 auto;
-            gap: 1.5rem;
             width: 100%;
+            gap: 4rem;
             
             &[orphan] {
                 display: unset;
@@ -151,7 +152,7 @@ hr {
 h1 {
     margin-bottom: 0.5rem;
     font-size: 2.25rem;
-    font-weight: 700;
+    font-weight: 500;
 }
 
 h2 {
@@ -184,6 +185,7 @@ section,
     & > p {
         margin-top: 1.5rem;
         line-height: 1.75;
+        font-weight: 300;
 
         &:first-child {
             margin-top: 0;

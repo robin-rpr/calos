@@ -14,14 +14,30 @@
     }
 
     .header__container {
+        width: 450px;
         display: flex;
+        height: 3.75rem;
         align-items: center;
-        max-width: 450px;
-        background: rgba(237, 237, 237, 0.72);
-        backdrop-filter: blur(24px);
         border-radius: 2rem;
         margin: 1.5rem auto;
-        padding: 0.5rem 1.75rem;
+        padding: 0 1.75rem;
+        backdrop-filter: blur(24px);
+        background: rgba(237, 237, 237, 0.72);
+
+        &--fullwidth {
+            margin: 0;
+            width: 100%;
+            height: 6rem;
+            padding: 0 3rem;
+            border-radius: 0;
+            background: #ffffff;
+            backdrop-filter: none;
+            
+            .container__desktop-menu {
+                display: grid !important;
+                grid-template-columns: 1fr 1fr 1fr;
+            }
+        }
 
         .container__desktop-menu {
             width: 100%;
@@ -36,12 +52,63 @@
                 display: flex;
                 align-items: center;
                 margin-left: -0.25rem;
+                justify-self: start;
+            }
+
+            .desktop-menu__searchbar {
+                background: #f2f2f3;
+                transition: all 0.15s cubic-bezier(0, 0, 0.2, 1);
+                justify-self: center;
+                border-radius: 2rem;
+                position: relative;
+                height: 3.25rem;
+                cursor: pointer;
+                display: flex;
+                width: 100%;
+
+                &:hover {
+                    background: #ececee;
+                }
+
+                input {
+                    width: 100%;
+                    height: 100%;
+                    border: none;
+                    outline: none;
+                    padding: 0 3rem;
+                    font-size: 1rem;
+                    background: transparent;
+
+                    &::placeholder {
+                        color: rgb(173, 173, 173);
+                        -webkit-text-size-adjust: 100%;
+                        font-feature-settings: normal;
+                        -webkit-tap-highlight-color: transparent;
+                        font-family: ui-sans-serif, -apple-system,
+                            system-ui, Segoe UI, Helvetica,
+                            Apple Color Emoji, Arial, sans-serif,
+                            Segoe UI Emoji, Segoe UI Symbol;
+                        font-feature-settings: normal;
+                        font-variation-settings: normal;
+                        font-weight: 350;
+                    }
+                }
+                
+                i {
+                    top: 50%;
+                    left: 1rem;
+                    font-size: 1.25rem;
+                    position: absolute;
+                    transform: translateY(-50%);
+                    pointer-events: none;
+                }
             }
     
             .desktop-menu__navigation {
                 margin-right: -1.188rem;
                 align-items: center;
                 position: relative;
+                justify-self: end;
                 display: flex;
                 gap: 0.5rem;
 

@@ -1,5 +1,5 @@
-Frequently asked questions (FAQ)
-********************************
+FAQs
+****
 
 Errors
 ======

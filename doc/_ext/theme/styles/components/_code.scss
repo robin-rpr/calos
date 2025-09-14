@@ -49,12 +49,9 @@
 code {
     position: relative;
     white-space: nowrap;
-    border-radius: 0.25rem;
-    background-color: var(--muted);
-    padding-left: 0.3em;
-    padding-right: 0.3em;
-    padding-top: 0.2em;
-    padding-bottom: 0.2em;
+    border-radius: 1rem;
+    padding: 0.25rem 0.75rem;
+    background-color: #f2f2f3;
     font-family: "JetBrains Mono", monospace;
     font-optical-sizing: auto;
     font-size: 0.875rem;
@@ -74,8 +71,8 @@ code .ge {
 pre {
     margin-top: 1.5rem;
     overflow-x: auto;
-    border-radius: 0.5rem;
-    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    border: 1px solid rgba(64, 64, 64, 0.1);
     padding-top: 1rem;
     padding-bottom: 1rem;
     font-size: 0.875rem;
@@ -94,6 +91,7 @@ pre.literal-block:hover .copy {
 pre code {
     white-space: pre;
     background-color: transparent;
+    font-weight: 350;
     padding: 0;
 }
 

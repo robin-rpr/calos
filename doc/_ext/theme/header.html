@@ -1,5 +1,7 @@
+{%- set is_orphan = meta and meta.orphan is defined -%}
+
 <header id="header">
-  <div class="header__container">
+  <div class="header__container {% if not is_orphan %}header__container--fullwidth{% endif %}">
     <div class="container__desktop-menu">
       {%- if logo %}
       <a href="{{ pathto(master_doc) }}" class="desktop-menu__logo">
@@ -7,10 +9,23 @@
       </a>
       {%- endif -%}
 
-      <nav class="desktop-menu__navigation"
-           x-data="{ showHidden: false }"
-           :class="{ 'desktop-menu__navigation--show-hidden': showHidden }"
-           @scroll.window="showHidden = pageYOffset > 550">
+      {%- if not is_orphan -%}
+      <div class="desktop-menu__searchbar">
+        <i class="fa-kit fa-search"></i>
+        <input id="searchbar" type="text" placeholder="Search" />
+      </div>
+      {%- endif -%}
+
+      <nav
+        {% if is_orphan %}
+          x-data="{ showHidden: false }"
+          class="desktop-menu__navigation"
+          :class="{ 'desktop-menu__navigation--show-hidden': showHidden }"
+          @scroll.window="showHidden = pageYOffset > 550"
+        {% else %}
+          class="desktop-menu__navigation desktop-menu__navigation--show-hidden"
+        {% endif %}
+      >
         <a href="/install.html" class="navigation__link">Install</a>
         <a href="/tutorial.html" class="navigation__link">Docs</a>
         <a href="/index.html#calendar" class="navigation__link">Book a Demo</a>

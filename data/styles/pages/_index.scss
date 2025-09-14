@@ -25,7 +25,7 @@
             width: 13rem;
             flex-direction: column;
             padding: 0.85rem 1.25rem;
-            background: rgba(64, 64, 64, 0.06);
+            background: #f2f2f3;
             border-radius: 1.25rem;
             row-gap: 0.25rem;
 
@@ -147,7 +147,7 @@
                             width: 2.5rem;
                             height: 2.5rem;
                             flex-shrink: 0;
-                            background: rgba(64, 64, 64, 0.075);
+                            background: #f2f2f3;
                             border-radius: 0.75rem;
                             align-items: center;
                             justify-content: center;        
@@ -167,7 +167,7 @@
                             align-items: center;
                             padding: 0.25rem 0.75rem;
                             font-size: 0.85rem;
-                            background: rgba(64, 64, 64, 0.06);
+                            background: #f2f2f3;
                             border-radius: 1rem;
 
                             i {
@@ -193,7 +193,7 @@
                                 border-radius: 50%;
 
                                 &--running {
-                                    background: #34d399;
+                                    background: currentColor;
                                 }
 
                                 &--stopped {

@@ -44,7 +44,7 @@
             height: 2.5rem;
             font-size: 1.5rem;
             border-radius: 0.75rem;
-            background: rgba(64, 64, 64, 0.075);
+            background: #f2f2f3;
             cursor: pointer;
             border: none;
             padding: 0;
@@ -71,9 +71,14 @@
             height: 2.5rem;
             padding: 0 1.25rem;
             border-radius: 0.75rem;
-            box-shadow: rgba(64, 64, 64, 0.16) 0px 0px 0px 1px inset;
+            box-shadow: rgba(64, 64, 64, 0.24) 0px 0px 0px 1px inset;
+            transition: background 0.15s cubic-bezier(0, 0, 0.2, 1);
             background: transparent;
             border: none;
+
+            &:hover {
+                background: rgba(64, 64, 64, 0.06);
+            }
         }
     }
 }
