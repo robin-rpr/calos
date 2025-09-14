@@ -147,7 +147,7 @@
                             width: 2.5rem;
                             height: 2.5rem;
                             flex-shrink: 0;
-                            background: rgba(64, 64, 64, 0.1);
+                            background: rgba(64, 64, 64, 0.075);
                             border-radius: 0.75rem;
                             align-items: center;
                             justify-content: center;        
@@ -193,7 +193,7 @@
                                 border-radius: 50%;
 
                                 &--running {
-                                    background: currentColor;
+                                    background: #34d399;
                                 }
 
                                 &--stopped {
