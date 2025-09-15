@@ -33,8 +33,14 @@
     </div>
 
     <div class="container__mobile-menu">
+      {%- if logo %}
+      <a href="{{ pathto(master_doc) }}" class="mobile-menu__logo">
+        <img height="32" src="{{ pathto('_static/' + logo, 1) }}" alt="Logo" />
+      </a>
+      {%- endif -%}
+      
       <button class="mobile-menu__button" type="button" @click="showSidebar = true">
-        <i class="fa-sharp fa-light fa-bars"></i>
+        <i class="fa-kit fa-menu"></i>
       </button>
     </div>
   </div>

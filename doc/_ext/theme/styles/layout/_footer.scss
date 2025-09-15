@@ -1,6 +1,10 @@
 #footer {
     background: rgb(20, 20, 20);
 
+    @media (max-width: 768px) {
+        background: transparent;
+    }
+
     &:before {
         content: "";
         width: 100%;
