@@ -46,31 +46,34 @@
 
     nav {
         display: flex;
-        column-gap: 1.25rem;
+        column-gap: 1.75rem;
 
         a {
-            box-shadow: rgba(64, 64, 64, 0.24) 0px 0px 0px 1px inset;
-            transition: background 0.15s cubic-bezier(0,0,.2,1);
-            padding: 0.75rem 1rem;
-            line-height: 1.25rem;
-            border-radius: 2rem;
-            position: relative;
-            column-gap: 0.5rem;
-            align-items: center;
-            font-weight: 500;
-            cursor: pointer;
             display: flex;
+            cursor: pointer;
+            font-weight: 500;
+            align-items: center;
+            column-gap: 0.5rem;
+            position: relative;
+            border-radius: 2rem;
+            line-height: 1.25rem;
+            padding: 0.75rem 1rem;
+            box-shadow: inset 0.5px 0.5px 0px rgba(0, 0, 0, 0.05),
+                        inset -0.5px -0.5px 0px rgba(0, 0, 0, 0.05);
+            transition: background 0.15s cubic-bezier(0,0,.2,1);
+            background: rgba(237, 237, 237, 0.5);
 
             &:hover {
-                background: rgba(64, 64, 64, 0.06);
+                background: rgba(237, 237, 237, 0.85);
             }
 
             &:first-child {
                 background: rgb(20, 20, 20);
                 padding: 0.75rem 1.25rem;
-                box-shadow: none;
                 font-weight: 400;
                 color: #ffffff;
+                box-shadow: inset 0.5px 0.5px 1px rgba(255, 255, 255, 0.5),
+                            inset -0.5px -0.5px 1px rgba(255, 255, 255, 0.5);
             }
 
             i {
