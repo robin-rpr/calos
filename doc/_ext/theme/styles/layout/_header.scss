@@ -17,13 +17,13 @@
         border-radius: 2rem;
         margin: 1.5rem auto;
         padding: 0 1.75rem;
-        box-shadow: inset 0.5px 0.5px 0px rgba(0, 0, 0, 0.05),
-                    inset -0.5px -0.5px 0px rgba(0, 0, 0, 0.05);
-        background: rgba(237, 237, 237, 0.5);
+        box-shadow: inset 0px 0px 3px 1px rgb(255, 255, 255),
+                    0px -0.5px 50px rgba(0, 0, 0, 0.15);
         backdrop-filter: blur(8px);
+        background: #f0f0f0a8;
 
         &--liquid-glass {
-            backdrop-filter: url(#liquid-glass-header) blur(8px);
+            backdrop-filter: url(#liquid-glass-header) blur(4px);
         }
 
         &--fullwidth {
