@@ -17,8 +17,10 @@
         border-radius: 2rem;
         margin: 1.5rem auto;
         padding: 0 1.75rem;
-        backdrop-filter: blur(24px);
-        background: rgba(237, 237, 237, 0.72);
+        box-shadow: inset 0.5px 0.5px 0px rgba(0, 0, 0, 0.05),
+                    inset -0.5px -0.5px 0px rgba(0, 0, 0, 0.05);
+        backdrop-filter: url(#liquid-glass-header) blur(4px);
+        background: rgba(237, 237, 237, 0.5);
 
         &--fullwidth {
             margin: 0;
