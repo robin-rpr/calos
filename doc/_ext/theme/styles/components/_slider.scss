@@ -1,8 +1,8 @@
 .slider {
     position: relative;
     border-radius: 2rem;
-    background: url(/_static/gradient.avif) no-repeat center center;
-    background-size: cover;
+    background: radial-gradient(circle at 30% 30%, #9edcf782, #41117126 60%),
+                radial-gradient(circle at 70% 70%, #e6c5fba6, rgb(242, 242, 243) 60%);
     padding: 5rem 6.5rem 0;
     margin: 0 auto;
     width: 100%;
