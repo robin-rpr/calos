@@ -5,7 +5,7 @@
     top: 0;
 
     @media (max-width: 768px) {
-        padding: 0 0.5rem;
+        padding: 0 1rem;
     }
 
     .header__container {
@@ -19,8 +19,12 @@
         padding: 0 1.75rem;
         box-shadow: inset 0.5px 0.5px 0px rgba(0, 0, 0, 0.05),
                     inset -0.5px -0.5px 0px rgba(0, 0, 0, 0.05);
-        backdrop-filter: url(#liquid-glass-header) blur(4px);
         background: rgba(237, 237, 237, 0.5);
+        backdrop-filter: blur(8px);
+
+        &--liquid-glass {
+            backdrop-filter: url(#liquid-glass-header) blur(8px);
+        }
 
         &--fullwidth {
             margin: 0;

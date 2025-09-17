@@ -10,7 +10,19 @@
       </filter>
     </defs>
   </svg>
-  <div class="header__container {% if not is_orphan %}header__container--fullwidth{% endif %}">
+  <div
+    x-data 
+    x-init="
+      if (!/^((?!chrome|android).)*safari/i.test(navigator.userAgent)) {
+        $el.classList.add('header__container--liquid-glass')
+      }
+    "
+    {% if not is_orphan %}
+    class="header__container header__container--fullwidth"
+    {% else %}
+    class="header__container"
+    {% endif %}
+  >
     <div class="container__desktop-menu">
       {%- if logo %}
       <a href="{{ pathto(master_doc) }}" class="desktop-menu__logo">
