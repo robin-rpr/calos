@@ -17,18 +17,12 @@
         border-radius: 2rem;
         margin: 2rem auto;
         padding: 0 1.75rem;
-        box-shadow: inset 0px 0px 3px 1px white,
-                    0px 3px 40px rgba(0, 0, 0, 0.12);
-        backdrop-filter: blur(8px);
-        background: #f0f0f0a8;
-
-        &--liquid-glass {
-            backdrop-filter: url(#liquid-glass-header) blur(4px);
-        }
+        backdrop-filter: blur(24px);
+        background: #e4e5e875;
 
         &--fullwidth {
             margin: 0;
-            height: 6rem;
+            height: 5rem;
             max-width: 100%;
             padding: 0 3rem;
             border-radius: 0;
@@ -39,6 +33,12 @@
             .container__desktop-menu {
                 display: grid !important;
                 grid-template-columns: 1fr 1fr 1fr;
+
+                .desktop-menu__logo {
+                    img {
+                        height: 34px !important;
+                    }
+                }
             }
         }
 
@@ -56,17 +56,21 @@
                 align-items: center;
                 margin-left: -0.25rem;
                 justify-self: start;
+
+                img {
+                    height: 32px;
+                }
             }
 
             .desktop-menu__searchbar {
-                background: #f2f2f3;
+                background: #e4e5e875;
                 transition: all 0.15s cubic-bezier(0, 0, 0.2, 1);
                 justify-self: center;
                 border-radius: 2rem;
                 position: relative;
-                height: 3.25rem;
                 cursor: pointer;
                 display: flex;
+                height: 3rem;
                 width: 100%;
 
                 &:hover {
@@ -93,7 +97,7 @@
                             Segoe UI Emoji, Segoe UI Symbol;
                         font-feature-settings: normal;
                         font-variation-settings: normal;
-                        font-weight: 350;
+                        font-weight: 400;
                     }
                 }
                 

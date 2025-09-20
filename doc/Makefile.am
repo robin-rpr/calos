@@ -37,7 +37,6 @@ clearly-stop.rst \
 clearly-test.rst \
 conf.py \
 faq.rst \
-favicon.ico \
 favicon.svg \
 index.rst \
 install.rst \

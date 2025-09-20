@@ -3,8 +3,6 @@ stylesdir = $(pkgdatadir)
 templatesdir = $(pkgdatadir)
 
 nobase_images_DATA = \
-  images/favicon-32x32.png \
-  images/favicon-256x256.png \
   images/favicon.svg
 
 nobase_styles_DATA = \

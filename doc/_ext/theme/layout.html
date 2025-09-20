@@ -45,6 +45,8 @@
 
       <!-- Favicons -->
       <link rel="icon" href="{{ pathto('_static/favicon.svg', 1)|e }}" sizes="any" type="image/svg+xml">
+      <link rel="icon" href="{{ pathto('_static/favicon-192x192.png', 1)|e }}" type="image/png" sizes="192x192">
+      <link rel="icon" href="{{ pathto('_static/favicon-32x32.png', 1)|e }}" type="image/png" sizes="32x32">
 
       <!-- CSS -->
       {%- for css in css_files %}
@@ -260,7 +262,7 @@
                     {%- include "sidebar.html" %}
                 {%- endblock sidebar %}
 
-                <div style="padding-right: 15rem;">
+                <div>
                   {{ body }}
                 </div>
             </div>

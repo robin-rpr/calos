@@ -17,6 +17,7 @@ After installing, you can unlock Clearly's full distributed clustering power via
 
    $ service clearly start
 
-This enables Clearly's advanced clustering features and brings up an impressive dashboard at http://localhost:8080, where you can create Workspaces, orchestrate containers and manage your cluster with ease.
+This launches Clearly’s distributed clustering engine. It will automatically discover and join other Clearly nodes, and bring up the dashboard at http://localhost:8080
+From there, you can create Studios, orchestrate containers, manage deployments, and steer your Clearly cluster with ease.
 
 ..  LocalWords:  Werror Flameeyes plougher deps libc’s ericonr

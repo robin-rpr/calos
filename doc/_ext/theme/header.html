@@ -1,32 +1,11 @@
 {%- set is_orphan = meta and meta.orphan is defined -%}
 
 <header id="header">
-  <svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" style="position:absolute">
-    <defs>
-      <filter id="liquid-glass-header" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB">
-        <!-- Updated by JS -->
-        <feImage id="liquid-glass-header-map" preserveAspectRatio="none"></feImage>
-        <feDisplacementMap in="SourceGraphic" in2="liquid-glass-header-map" xChannelSelector="R" yChannelSelector="G" scale="28"></feDisplacementMap>
-      </filter>
-    </defs>
-  </svg>
-  <div
-    x-data 
-    x-init="
-      if (!/^((?!chrome|android).)*safari/i.test(navigator.userAgent)) {
-        $el.classList.add('header__container--liquid-glass')
-      }
-    "
-    {% if not is_orphan %}
-    class="header__container header__container--fullwidth"
-    {% else %}
-    class="header__container"
-    {% endif %}
-  >
+  <div class="header__container {% if not is_orphan %}header__container--fullwidth{% endif %}">
     <div class="container__desktop-menu">
       {%- if logo %}
       <a href="{{ pathto(master_doc) }}" class="desktop-menu__logo">
-        <img height="32" src="{{ pathto('_static/' + logo, 1) }}" alt="Logo" />
+        <img src="{{ pathto('_static/' + logo, 1) }}" alt="Logo" />
       </a>
       {%- endif -%}
 
@@ -66,113 +45,3 @@
     </div>
   </div>
 </header>
-
-<script>
-  (function(){
-    'use strict';
-  
-    const MAP_W = 256;   // canvas displacement width
-    const MAP_H = 128;   // canvas displacement height
-    const SCALE  = 28;   // matches feDisplacementMap scale
-    const SPEED  = 0.25; // animation speed (smaller = slower)
-    const POWER  = 0.45; // displacement power (0..1 typical)
-  
-    const feImg   = document.getElementById('liquid-glass-header-map');
-    const header  = document.querySelector('.header__container');
-  
-    // Offscreen canvas that holds the displacement map (R/G channels)
-    // This is used to create the displacement map for the liquid glass effect
-    const canvas  = document.createElement('canvas');
-    canvas.width  = MAP_W;
-    canvas.height = MAP_H;
-    const ctx     = canvas.getContext('2d', { willReadFrequently: true });
-  
-    // Keep filter region sized reasonably relative to header (helps Safari/WebKit)
-    function syncFilterRegion(){
-      const svgFilter = document.getElementById('liquid-glass-header-map');
-      if (!svgFilter || !header) return;
-      const rect = header.getBoundingClientRect();
-      svgFilter.setAttribute('x', -rect.width * 0.2);
-      svgFilter.setAttribute('y', -rect.height * 0.2);
-      svgFilter.setAttribute('width', rect.width * 1.4);
-      svgFilter.setAttribute('height', rect.height * 1.4);
-    }
-  
-    // Simple, fast “liquid” field — sum of a few moving sin waves.
-    // Returns [dx, dy] in pixels (relative strength; normalized later).
-    function field(u, v, t){
-      // u, v in [0,1]
-      const a = Math.sin( (u*8.0 + t*0.8) ) * Math.cos( (v*6.0 - t*0.7) );
-      const b = Math.sin( (u*5.0 - t*0.6) + Math.cos(v*9.0 + t*0.9) );
-      const c = Math.cos( (u*11.0 + v*7.0) - t*1.2 );
-  
-      // pseudo curl-ish look
-      const dx = ( a - c*0.5 ) * POWER;
-      const dy = ( b + c*0.5 ) * POWER;
-  
-      return [dx, dy];
-    }
-  
-    // Write RG channels for displacement map; B=0, A=255
-    function renderMap(timeSec){
-      const w = MAP_W, h = MAP_H;
-      const data = ctx.createImageData(w, h);
-      let i = 0;
-  
-      // Track max abs for auto-normalization to 0..1 range
-      let maxAbs = 0;
-      const tmp = new Float32Array(w*h*2);
-  
-      for (let y=0; y<h; y++){
-        const v = y / (h-1);
-        for (let x=0; x<w; x++){
-          const u = x / (w-1);
-          const [dx, dy] = field(u, v, timeSec * SPEED);
-          tmp[i++] = dx;
-          tmp[i++] = dy;
-          maxAbs = Math.max(maxAbs, Math.abs(dx), Math.abs(dy));
-        }
-      }
-  
-      // Avoid /0; scale so that +/-maxAbs -> [0,255]
-      const norm = maxAbs > 1e-6 ? (127 / maxAbs) : 127;
-  
-      // Fill pixels
-      let p = 0, q = 0;
-      for (let y=0; y<h; y++){
-        for (let x=0; x<w; x++){
-          const dx = tmp[q++] * norm + 128; // R
-          const dy = tmp[q++] * norm + 128; // G
-          data.data[p++] = dx;  // R
-          data.data[p++] = dy;  // G
-          data.data[p++] = 0;   // B
-          data.data[p++] = 255; // A
-        }
-      }
-  
-      ctx.putImageData(data, 0, 0);
-      // Update feImage href
-      feImg.setAttributeNS('http://www.w3.org/1999/xlink', 'href', canvas.toDataURL());
-      // Keep feImage sized to the header area ratio-wise
-      feImg.setAttribute('width', String(header.clientWidth || MAP_W));
-      feImg.setAttribute('height', String(header.clientHeight || MAP_H));
-      feImg.setAttribute('preserveAspectRatio', 'none');
-    }
-  
-    // Animation loop
-    let start = performance.now();
-    function tick(now){
-      const t = (now - start) / 1000;
-      renderMap(t);
-      requestAnimationFrame(tick);
-    }
-  
-    // Initial sync + start
-    syncFilterRegion();
-    window.addEventListener('resize', syncFilterRegion);
-    // Ensure feDisplacementMap scale matches our constant
-    const feDisp = document.querySelector('#liquid-glass-header feDisplacementMap');
-    if (feDisp) feDisp.setAttribute('scale', String(SCALE));
-    requestAnimationFrame(tick);
-  })();
-</script>
