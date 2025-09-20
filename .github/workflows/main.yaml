@@ -161,18 +161,21 @@ jobs:
         with:
           name: container
           path: ./container
+          retention-days: 1
 
       - name: Upload RPM Artifact
         uses: actions/upload-artifact@v4
         with:
           name: rpms
           path: ./rpms
+          retention-days: 1
 
       - name: Upload HTML Artifact
         uses: actions/upload-artifact@v4
         with:
           name: html
           path: ./html
+          retention-days: 1
 
   test:
     name: Test
@@ -250,7 +253,7 @@ jobs:
         with:
           name: report-${{ matrix.CLEARLY_SUDO_YES }}-${{ matrix.CLEARLY_TEST_PACK_FMT }}
           path: ./clearly
-          retention-days: 7
+          retention-days: 1
 
   publish:
     name: Publish
