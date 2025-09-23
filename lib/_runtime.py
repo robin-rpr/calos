@@ -1,9 +1,7 @@
 from collections import deque
 import subprocess
 import threading
-import requests
 import hashlib
-import logging
 import random
 import socket
 import struct
@@ -12,6 +10,8 @@ import zlib
 import time
 import json
 import os
+
+import _clearly as _clearly
 
 
 ## Constants ##
@@ -24,7 +24,6 @@ GOSSIP_FANOUT = 3      # Number of peers to gossip to per round
 DEPLOY_TTL = 24 * 3600 # Deploy TTL (24 hours)
 MAX_UDP = 60000        # UDP packet body limit (60KB)
 MAX_GOSSIP_AGE = 30.0  # Maximum age of gossip messages to forward
-logger = logging.getLogger(__name__)
 
 
 ## Classes ##
@@ -44,8 +43,7 @@ class Runtime():
         
     """
     def __init__(self, multicast_addr: str = '239.0.0.2', multicast_port: int = 4242,
-                 machine_id: str = open('/etc/machine-id').read().strip(), bridge: str = "clearly0",
-                 api_host: str = "localhost", api_port: int = 8080):
+                 machine_id: str = open('/etc/machine-id').read().strip(), bridge: str = "clearly0"):
         """
         Initialize the Runtime.
         
@@ -54,8 +52,6 @@ class Runtime():
             multicast_port: UDP port for cluster communication.
             machine_id: Unique identifier for this node.
             bridge: Bridge interface name.
-            api_host: API host address.
-            api_port: API port.
         """
 
         self.multicast_addr = multicast_addr
@@ -67,17 +63,16 @@ class Runtime():
         self.interface = Runtime._ifname()
         self.address = Runtime._ipaddr()
         self.lock = threading.RLock()
-        self.seq = 0
-        self.local = {}
         self.cluster = {}
         self.deploys = {}
+        self.local = {}
+        self.seq = 0
         
         # Gossip protocol state.
         self.message_queue = deque(maxlen=1000) # Limit memory usage.
         self.seen_messages = set() # Message deduplication.
         self.last_gossip_round = 0 # Last gossip round.
         self.peer_addresses = {} # Map node IDs to addresses.
-        self.deployment_plans = {} # Map deployment IDs to plans.
         self.ip_reservations = {} # Map IP addresses to reservations.
 
         # Multicast socket.
@@ -95,7 +90,7 @@ class Runtime():
             ids = [self.machine_id]
             now = time.time()
             for n, m in self.cluster.items():
-                if now - m["ts"] <= PEER_TTL:
+                if now - m["timestamp"] <= PEER_TTL:
                     ids.append(n)
         return sorted(set(ids))
 
@@ -149,6 +144,19 @@ class Runtime():
         scored = [(Runtime._blake64(key + n.encode()), n) for n in nodes]
         scored.sort(reverse=True)
         return [n for _, n in scored[:max(1, min(k, len(scored)))]]
+
+    @staticmethod
+    def _get_argv(cmd: str, flag, val=None, sep="=") -> list:
+        """Read argv from variable data structure."""
+        if not val:
+            return cmd
+        if isinstance(val, dict):
+            return cmd + "".join(f" {flag} {k}{sep}{v}" for k,v in val.items())
+        if isinstance(val, (list, tuple, set)):
+            return cmd + "".join(f" {flag} {x}" for x in val)
+        if flag == "--" and isinstance(val, (list, tuple)):
+            return cmd + " -- " + " ".join(map(str, val))
+        return cmd + f" {flag} {val}"
 
     @staticmethod
     def _get_if_mac(ifname: str) -> bytes:
@@ -205,7 +213,7 @@ class Runtime():
             s.settimeout(timeout)
             s.bind((ifname, 0))
         except Exception as e:
-            logger.warning(f"ARP: Failed to create socket: {e}")
+            _clearly.WARNING(f"couldn't create raw socket: {e}")
             return False
 
         try:
@@ -244,9 +252,9 @@ class Runtime():
         return bytes([first]) + h[1:6]
 
     @staticmethod
-    def _deterministic_ip(dep_id: str, service: str, replica: int) -> str:
+    def _deterministic_ip(deployment_id: str, service: str, replica: int) -> str:
         """Generate a deterministic IP within 10.0.0.0/8 avoiding .0 and .255 last octet."""
-        seed = f"{dep_id}:{service}:{replica}".encode()
+        seed = f"{deployment_id}:{service}:{replica}".encode()
         h = hashlib.blake2b(seed, digest_size=4).digest()
         a = 10
         b = h[0]
@@ -256,8 +264,8 @@ class Runtime():
         return f"{a}.{b}.{c}.{d}"
 
     @staticmethod
-    def _candidate_ip(dep_id: str, service: str, replica: int, salt: int) -> str:
-        seed = f"{dep_id}:{service}:{replica}:{salt}".encode()
+    def _candidate_ip(deployment_id: str, service: str, replica: int, salt: int) -> str:
+        seed = f"{deployment_id}:{service}:{replica}:{salt}".encode()
         h = hashlib.blake2b(seed, digest_size=4).digest()
         a = 10
         b = h[0]
@@ -289,25 +297,42 @@ class Runtime():
         try:
             socket.sendto(header + payload, (address, port))
         except Exception as e:
-            logger.warning(f"Failed to send message: {e}")
+            _clearly.WARNING(f"couldn't send message: {e}")
 
     """ Helpers """
 
-    def _reserve_ip(self, ip: str, dep_id: str, service: str, replica: int, ttl: float = 120.0):
+    def _reserve_ip(self, ip: str, deployment_id: str, service: str, replica: int, ttl: float = 120.0):
         now = time.time()
+
         with self.lock:
-            self.ip_reservations[ip] = {"node": self.machine_id, "dep": dep_id, "service": service, "replica": replica, "ts": now, "ttl": ttl}
+            # Reserve IP.
+            self.ip_reservations[ip] = {
+                "node": self.machine_id,
+                "deployment": deployment_id,
+                "service": service,
+                "replica": replica,
+                "timestamp": now,
+                "ttl": ttl
+            }
+
         message = {
-            "t": "RESERVE_IP",
+            "type": "RESERVE_IP",
             "ip": ip,
-            "dep": dep_id,
+            "deployment": deployment_id,
             "service": service,
             "replica": replica,
             "node": self.machine_id,
+            "timestamp": now,
             "ttl": ttl,
-            "ts": now,
-            "id": Runtime._hashsum("RESERVE_IP", {"ip": ip, "dep": dep_id, "service": service, "replica": replica})
+            "id": Runtime._hashsum("RESERVE_IP", {
+                "ip": ip,
+                "deployment": deployment_id,
+                "service": service,
+                "replica": replica
+            })
         }
+
+        # Send message.
         Runtime._socket_send(
             socket=self._send,
             message=message,
@@ -315,45 +340,44 @@ class Runtime():
             port=self.multicast_port
         )
 
-    def _get_plan(self, dep: dict) -> dict:
-        """Build a deterministic plan assigning replicas to nodes and IPs.
-
-        Returns a dict: { service: { replica_index: {"node": node_id, "ip": ip, "name": cname }}}
-        """
+    def _get_plan(self, data: dict) -> dict:
+        """Build a deterministic deployment plan."""
         plan = {}
-        services = dep.get("services", {}) or {}
+        services = data.get("services", {}) or {}
 
         # Build a plan for each service.
         for name, service in services.items():
             replicas = int(service.get("deploy", {}).get("replicas", 1))
-            base_key = f"{dep.get('id')}:{name}".encode()
+            base_key = f"{data.get('id')}:{name}".encode()
             chosen_nodes = self._hrw_topk(base_key, self.nodes, max(1, replicas)) or []
             plan[name] = {}
             for i in range(replicas):
                 owner = chosen_nodes[i % len(chosen_nodes)] if chosen_nodes else self.machine_id
                 cname = name if replicas == 1 else f"{name}-{i}"
-                # Find an available IP: prefer deterministic, fallback with salted candidates
-                sel_ip = None
+                # Pick IP logically.
+                # Our IP Addresses are ARP-able, so we pick them logically.
+                ip = None
                 for salt in range(0, 64):
-                    cand = Runtime._candidate_ip(dep.get("id"), name, i, salt)
+                    cand = Runtime._candidate_ip(data.get("id"), name, i, salt)
                     with self.lock:
                         reserved = self.ip_reservations.get(cand)
                     if reserved and reserved.get("node") != self.machine_id:
                         continue
                     if not Runtime._arp_is_free(cand, self.bridge):
                         continue
-                    sel_ip = cand
+                    ip = cand
                     break
-                if sel_ip is None:
-                    # As a last resort, pick deterministic without checking to proceed
-                    sel_ip = Runtime._deterministic_ip(dep.get("id"), name, i)
+                if ip is None:
+                    # Pick IP deterministically.
+                    # As we couldn't find an IP, this is a best-effort.
+                    ip = Runtime._deterministic_ip(data.get("id"), name, i)
 
-                # Reserve chosen IP (best-effort)
-                self._reserve_ip(sel_ip, dep.get("id"), name, i)
+                # Reserve chosen IP (best-effort).
+                self._reserve_ip(ip, data.get("id"), name, i)
 
                 plan[name][i] = {
                     "node": owner,
-                    "ip": sel_ip,
+                    "ip": ip,
                     "name": cname,
                 }
         return plan
@@ -364,7 +388,7 @@ class Runtime():
             now = time.time()
             active_peers = [
                 node_id for node_id, info in self.cluster.items()
-                if now - info["ts"] <= PEER_TTL and node_id != self.machine_id
+                if now - info["timestamp"] <= PEER_TTL and node_id != self.machine_id
             ]
             
             if len(active_peers) <= count:
@@ -381,7 +405,7 @@ class Runtime():
             s = socket.socket(socket.AF_PACKET, socket.SOCK_RAW, socket.htons(0x0806))
             s.bind((iface, 0))
         except Exception as e:
-            logger.warning(f"ARP responder disabled (raw socket error): {e}")
+            _clearly.WARNING(f"couldn't create raw socket: {e}")
             return
         while True:
             try:
@@ -471,7 +495,7 @@ class Runtime():
                 )
                 snapshot = json.loads(result.stdout)
             except Exception as e:
-                logger.warning(f"Snapshot failed: {e}")
+                _clearly.WARNING(f"couldn't get snapshot: {e}")
                 continue
             
             # Detect incremental changes in container state.
@@ -510,11 +534,11 @@ class Runtime():
                         
                         # Queue for gossip
                         update_msg = {
-                            "t": "UPDATE",
+                            "type": "UPDATE",
                             "node": self.machine_id,
                             "container_id": container_id,
                             "state": state,
-                            "ts": time.time()
+                            "timestamp": time.time()
                         }
                         self.message_queue.append(update_msg)
             
@@ -537,11 +561,11 @@ class Runtime():
                         continue
                         
                     message = {
-                        "t": "GOSSIP",
+                        "type": "GOSSIP",
                         "from": self.machine_id,
                         "updates": updates,
                         "id": Runtime._hashsum("GOSSIP", {"updates": updates}),
-                        "ts": time.time()
+                        "timestamp": time.time()
                     }
                     
                     Runtime._socket_send(
@@ -566,11 +590,11 @@ class Runtime():
             
             # Send lightweight heartbeat instead of full state
             heartbeat = {
-                "t": "HEARTBEAT",
+                "type": "HEARTBEAT",
                 "node": self.machine_id,
                 "addr": self.address,
                 "seq": self.seq,
-                "ts": time.time()
+                "timestamp": time.time()
             }
             
             Runtime._socket_send(
@@ -585,18 +609,18 @@ class Runtime():
         while True:
             time.sleep(5)
             cut = time.time() - PEER_TTL
-            dep_cut = time.time() - DEPLOY_TTL
+            deployment_cut = time.time() - DEPLOY_TTL
             with self.lock:
                 # Purge expired nodes.
                 for n in list(self.cluster.keys()):
-                    if self.cluster[n]["ts"] < cut:
+                    if self.cluster[n]["timestamp"] < cut:
                         del self.cluster[n]
                         if n in self.peer_addresses:
                             del self.peer_addresses[n]
 
                 # Purge expired deployments.
                 for d in list(self.deploys.keys()):
-                    if self.deploys[d]["ts"] < dep_cut:
+                    if self.deploys[d]["timestamp"] < deployment_cut:
                         del self.deploys[d]
 
                 # Purge expired IP reservations.
@@ -605,7 +629,7 @@ class Runtime():
                     entry = self.ip_reservations.get(ip)
                     if not entry:
                         continue
-                    if now - entry.get("ts", 0) > entry.get("ttl", 120.0):
+                    if now - entry.get("timestamp", 0) > entry.get("ttl", 120.0):
                         del self.ip_reservations[ip]
 
     def _receive_loop(self):
@@ -622,23 +646,23 @@ class Runtime():
                 raw = zlib.decompress(body) if enc == "z" else body
                 msg = json.loads(raw.decode())
             except Exception as e:
-                logger.warning(f"Failed to parse message: {e}")
+                _clearly.WARNING(f"couldn't parse message: {e}")
                 continue
             
             # Handle different message types
-            t = msg.get("t")
-            if t == "GOSSIP":
+            type = msg.get("type")
+            if type == "GOSSIP":
                 self._handle_gossip(msg)
-            elif t == "HEARTBEAT":
+            elif type == "HEARTBEAT":
                 self._handle_heartbeat(msg)
-            elif t == "DEPLOY":
+            elif type == "DEPLOY":
                 id = msg.get("id")
                 if id and id in self.seen_messages:
                     continue
                 if id:
                     self.seen_messages.add(id)
                 self.deploy(msg)
-            elif t == "RESERVE_IP":
+            elif type == "RESERVE_IP":
                 id = msg.get("id")
                 if id and id in self.seen_messages:
                     continue
@@ -654,10 +678,10 @@ class Runtime():
                     if not current or current.get("node") == msg.get("node"):
                         self.ip_reservations[ip] = {
                             "node": msg.get("node"),
-                            "dep": msg.get("dep"),
+                            "deployment": msg.get("deployment"),
                             "service": msg.get("service"),
                             "replica": msg.get("replica"),
-                            "ts": time.time(),
+                            "timestamp": time.time(),
                             "ttl": ttl,
                         }
 
@@ -688,10 +712,10 @@ class Runtime():
                 if source_node and source_node != self.machine_id:
                     # Update cluster view
                     if source_node not in self.cluster:
-                        self.cluster[source_node] = {"containers": {}, "ts": time.time()}
+                        self.cluster[source_node] = {"containers": {}, "timestamp": time.time()}
                     
                     self.cluster[source_node]["containers"][container_id] = state
-                    self.cluster[source_node]["ts"] = time.time()
+                    self.cluster[source_node]["timestamp"] = time.time()
         
         # Forward to other peers (with some probability to prevent flooding)
         if random.random() < 0.3: # 30% chance to forward.
@@ -716,9 +740,9 @@ class Runtime():
         now = time.time()
         with self.lock:
             if node_id not in self.cluster:
-                self.cluster[node_id] = {"containers": {}, "ts": now}
+                self.cluster[node_id] = {"containers": {}, "timestamp": now}
             
-            self.cluster[node_id]["ts"] = now
+            self.cluster[node_id]["timestamp"] = now
             self.cluster[node_id]["addr"] = msg.get("addr")
             self.peer_addresses[node_id] = msg.get("addr")
 
@@ -733,30 +757,30 @@ class Runtime():
                 services = deployment.get("services", {})
                 plan = deployment.get("plan")
                 if plan is None:
-                    # Fallback: Construct a local plan (not broadcasted).
+                    # Construct a local plan.
+                    # We are the node that discovered the deployment.
                     plan = self._get_plan({"id": id, "services": services})
                     deployment["plan"] = plan
 
                 for name, replicas in plan.items():
                     service = services.get(name, {})
-                    for i, spec_plan in replicas.items():
-                        owner = spec_plan.get("node")
-                        spec = {
+                    for i, service_plan in replicas.items():
+                        owner = service_plan.get("node")
+                        rows.append((owner, {
                             "id": id,
                             "replica": i,
                             "image": service.get("image"),
                             "command": service.get("command", []),
                             "ports": service.get("ports", []),
                             "environment": service.get("environment", {}),
-                            "ip": spec_plan.get("ip"),
-                            "name": spec_plan.get("name") or (name if len(replicas) == 1 else f"{name}-{i}")
-                        }
-                        rows.append((owner, spec))
+                            "ip": service_plan.get("ip"),
+                            "name": service_plan.get("name") or (name if len(replicas) == 1 else f"{name}-{i}")
+                        }))
 
             # Start containers.
-            for owner, spec in rows:
+            for owner, service in rows:
                 if owner == self.machine_id:
-                    name = f"{spec.get('id')}_{spec.get('name')}"
+                    name = f"{service.get('id')}_{service.get('name')}"
                     want_here.add(name)
                     if name not in self.local or self.local.get(name, {}).get("status") == "stopped":
                         plan = None
@@ -764,27 +788,53 @@ class Runtime():
 
                         # Get deployment plan for this container.
                         with self.lock:
-                            plan = self.deploys.get(spec["id"], {}).get("plan")
+                            plan = self.deploys.get(service["id"], {}).get("plan")
 
                         # Build allow list from entire deployment plan.
                         for _svc, replicas in plan.items():
-                            for _i, spec_plan in replicas.items():
-                                ip = spec_plan.get("ip")
-                                if ip and ip != spec.get("ip"):
+                            for _i, service_plan in replicas.items():
+                                ip = service_plan.get("ip")
+                                if ip and ip != service.get("ip"):
                                     allow.append(ip)
 
-                        # Start container.
-                        requests.post(f"{self.api_host}:{self.api_port}/api/containers", json={
-                            "name": name,
-                            "allow": allow,
-                            **spec
-                        })
+                        command = [
+                            "clearly", "run",
+                            Runtime._get_argv("", service.get("image")),
+                            Runtime._get_argv("", "--name", name),
+                            Runtime._get_argv("", "--detach"),
+                            Runtime._get_argv("", "--ip", service.get("ip")),
+                            Runtime._get_argv("", "--allow", allow),
+                            Runtime._get_argv("", "--sysctl", service.get("sysctls")),
+                            Runtime._get_argv("", "--cap-add", service.get("cap_add")),
+                            Runtime._get_argv("", "--cap-drop", service.get("cap_drop")),
+                            Runtime._get_argv("", "--label", service.get("labels")),
+                            Runtime._get_argv("", "--port", service.get("ports"), sep=":"),
+                            Runtime._get_argv("", "--env", service.get("environment")),
+                            Runtime._get_argv("", "--", service.get("command")),
+                        ]
 
-            # Only stop containers that are part of deployments but shouldn't be here
-            # Don't stop manually started containers that aren't part of any deployment
+                        # Execute command.
+                        process = subprocess.Popen(
+                            command,
+                            stdin=subprocess.DEVNULL,
+                            stdout=None,
+                            stderr=None,
+                            start_new_session=True
+                        )
+
+                        # Check output.
+                        process.wait()
+                        if process.returncode != 0:
+                            raise subprocess.CalledProcessError(
+                                process.returncode,
+                                command
+                            )
+
+            # Only stop containers that are part of deployments but shouldn't be here.
+            # Don't stop manually started containers that aren't part of any deployment.
             current = set([k for k, v in self.local.items() if v["status"] != "removed"])
             
-            # Only consider containers that are part of deployments for stopping
+            # Only consider containers that are part of deployments for stopping.
             deployment_containers = set()
             for _, deployment in self.deploys.items():
                 plan = deployment.get("plan")
@@ -797,29 +847,34 @@ class Runtime():
                     for name in services.keys():
                         deployment_containers.add(name)
             
-            # Only stop containers that are part of deployments but not wanted here
-            containers_to_stop = (current & deployment_containers) - want_here
-            
-            for name in containers_to_stop:
-                requests.delete(f"{self.api_host}:{self.api_port}/api/containers/{name}")
+            # Execute command.
+            for name in (current & deployment_containers) - want_here:
+                subprocess.run(
+                    ["clearly", "stop", name],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    check=True,
+                    text=True,
+                )
 
     """ Main """
 
     def deploy(self, msg: dict):
         """Deploy a group of containers"""
-        deployment = msg.get("deploy") or {}
+        data = msg.get("data") or {}
         plan = msg.get("plan")
 
-        # If no plan provided, originate a plan and broadcast once.
         if plan is None:
-            plan = self._get_plan(deployment)
+            # Construct a local plan.
+            # We are the node that originated the deployment.
+            plan = self._get_plan(data)
             message = {
-                "t": "DEPLOY",
-                "deploy": deployment,
+                "type": "DEPLOY",
+                "data": data,
                 "plan": plan,
-                "ts": time.time(),
+                "timestamp": time.time(),
                 "id": Runtime._hashsum(
-                    "DEPLOY", {"deploy": deployment}
+                    "DEPLOY", {"data": data}
                 )
             }
 
@@ -831,9 +886,9 @@ class Runtime():
             )
 
         with self.lock:
-            self.deploys[deployment.get("id")] = {
-                "ts": time.time(),
-                "services": deployment.get("services", {}),
+            self.deploys[data.get("id")] = {
+                "timestamp": time.time(),
+                "services": data.get("services", {}),
                 "plan": plan
             }
 

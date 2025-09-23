@@ -42,7 +42,6 @@ SUFFIXES = .py .c
 	cython $< \
 		-E PKGLIBDIR="$(pkglibdir)" \
 		-E PKGLIBEXECDIR="$(pkglibexecdir)" \
-		-E PKGDATADIR="$(pkgdatadir)" \
 		--embed \
 		-3 \
 		-o $@

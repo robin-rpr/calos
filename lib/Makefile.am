@@ -11,7 +11,7 @@ mylibdir = $(pkglibdir)
 # shared objects for faster execution.
 
 cython_modules = \
-  _build _build_cache _clearly _filesystem _force _grammar _http _image \
+  _build _build_cache _clearly _filesystem _force _grammar _image \
   _irtree _misc _pull _push _reference _registry _runtime _tree 
 
 cython_c_files = $(cython_modules:%=%.c)
@@ -29,7 +29,6 @@ SUFFIXES = .py .c @PYEXT_SUFFIX@
 	cython \
 	-E PKGLIBDIR="$(pkglibdir)" \
 	-E PKGLIBEXECDIR="$(pkglibexecdir)" \
-	-E PKGDATADIR="$(pkgdatadir)" \
 	-3 -o $@ $<
 
 .c@PYEXT_SUFFIX@:

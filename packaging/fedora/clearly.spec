@@ -35,7 +35,6 @@ BuildRequires: fuse3-devel
 BuildRequires: json-c-devel
 BuildRequires: python3-devel
 BuildRequires: python3-lark-parser
-BuildRequires: python3-requests
 BuildRequires: python3-pyyaml
 BuildRequires: python3-libsass
 BuildRequires: python3-jinja2
@@ -53,7 +52,6 @@ Requires:      fuse3
 Requires:      json-c
 Requires:      python3
 Requires:      python3-lark-parser
-Requires:      python3-requests
 Requires:      python3-pyyaml
 Requires:      python3-libsass
 Requires:      python3-jinja2
@@ -214,7 +212,6 @@ getent passwd clearly >/dev/null 2>&1 || useradd -r -g clearly -d /var/lib/clear
 %{_prefix}/lib/%{name}/_filesystem.*.so
 %{_prefix}/lib/%{name}/_force.*.so
 %{_prefix}/lib/%{name}/_grammar.*.so
-%{_prefix}/lib/%{name}/_http.*.so
 %{_prefix}/lib/%{name}/_image.*.so
 %{_prefix}/lib/%{name}/_irtree.*.so
 %{_prefix}/lib/%{name}/_misc.*.so

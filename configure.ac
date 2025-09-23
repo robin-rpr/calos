@@ -67,7 +67,6 @@ AC_CONFIG_HEADERS([cmd/config.h])
 AC_CONFIG_FILES([Makefile
                  bin/Makefile
                  cmd/Makefile
-                 data/Makefile
                  doc/Makefile
                  etc/Makefile
                  examples/Makefile

@@ -1,4 +1,4 @@
-SUBDIRS = lib bin cmd data etc doc examples misc packaging test
+SUBDIRS = lib bin cmd etc doc examples misc packaging test
 
 EXTRA_DIST = LICENSE README.rst VERSION autogen.sh
 
