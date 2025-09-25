@@ -43,6 +43,7 @@ class Runtime():
         
     """
     def __init__(self, multicast_addr: str = '239.0.0.2', multicast_port: int = 4242,
+                 runtime_dir: str = os.environ.get("CLEARLY_RUNTIME_STORAGE", "/var/lib/clearly/runtime"),
                  machine_id: str = open('/etc/machine-id').read().strip(), bridge: str = "clearly0"):
         """
         Initialize the Runtime.
@@ -50,15 +51,17 @@ class Runtime():
         Args:
             multicast_addr: Multicast group address for cluster communication.
             multicast_port: UDP port for cluster communication.
-            machine_id: Unique identifier for this node.
+            runtime_dir: Path to the runtime directory.
+            machine_id: Unique machine identifier.
             bridge: Bridge interface name.
         """
 
         self.multicast_addr = multicast_addr
         self.multicast_port = multicast_port
+        self.runtime_dir = runtime_dir
         self.machine_id = machine_id
         self.bridge = bridge
-
+        
         # Runtime state.
         self.interface = Runtime._ifname()
         self.address = Runtime._ipaddr()
@@ -382,6 +385,77 @@ class Runtime():
                 }
         return plan
 
+    def _get_snapshot(self) -> list:
+        """Snapshot of state directly from filesystem."""
+        snapshot = []
+        
+        if not os.path.isdir(self.runtime_dir):
+            return snapshot
+            
+        for container_dir in os.listdir(self.runtime_dir):
+            container_path = os.path.join(self.runtime_dir, container_dir)
+            if not os.path.isdir(container_path):
+                continue
+            
+            # Read container metadata files.
+            with open(os.path.join(container_path, "image"), "r") as f:
+                image = f.read().strip()
+            with open(os.path.join(container_path, "ip"), "r") as f:
+                ip = f.read().strip()
+            with open(os.path.join(container_path, "pid"), "r") as f:
+                pid = int(f.read().strip())
+            
+            # Read ports.
+            ports = {}
+            port_file = os.path.join(container_path, "port")
+            if os.path.isfile(port_file) and os.path.getsize(port_file) > 0:
+                with open(port_file, "r") as f:
+                    for line in f:
+                        line = line.strip()
+                        if line and ":" in line:
+                            host_port, container_port = line.split(":", 1)
+                            ports[host_port] = container_port
+                        elif line:
+                            ports[line] = ""
+            
+            # Read labels.
+            labels = {}
+            label_file = os.path.join(container_path, "label")
+            if os.path.isfile(label_file) and os.path.getsize(label_file) > 0:
+                with open(label_file, "r") as f:
+                    for line in f:
+                        line = line.strip()
+                        if line and "=" in line:
+                            key, value = line.split("=", 1)
+                            labels[key] = value
+                        elif line:
+                            labels[line] = ""
+            
+            # Determine status.
+            try:
+                os.kill(pid, 0)  # Check if process exists
+                status = "Running"
+            except (OSError, ProcessLookupError):
+                if not os.path.exists(f"/proc/{pid}"):
+                    status = "Stopped"
+                    ports = {}
+                    ip = ""
+                else:
+                    status = "Unknown"
+                    ports = {}
+                    ip = ""
+            
+            snapshot.append({
+                "id": container_dir,
+                "image": image,
+                "ip": ip,
+                "status": status,
+                "ports": ports,
+                "labels": labels
+            })
+                
+        return snapshot
+
     def _get_random(self, count: int) -> list:
         """Get random subset of known peers for gossip"""
         with self.lock:
@@ -485,20 +559,14 @@ class Runtime():
         while True:
             time.sleep(GOSSIP_INTERVAL)
             
-            # Get current state snapshot.
+            # Snapshot.
             try:
-                result = subprocess.run(
-                    ["clearly", "list", "--json"],
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                    text=True, check=True
-                )
-                snapshot = json.loads(result.stdout)
+                snapshot = self._get_snapshot()
             except Exception as e:
                 _clearly.WARNING(f"couldn't get snapshot: {e}")
                 continue
             
-            # Detect incremental changes in container state.
+            # Detect changes.
             changes = []
             with self.lock:
                 # Check for new/updated containers
@@ -525,36 +593,36 @@ class Runtime():
                         changes.append(('remove', removed_id, {"status": "removed", "ver": self.seq + 1}))
                         self.seq += 1
 
-            # Update local view and queue for gossip.
+            # Update View.
             if changes:
                 with self.lock:
                     for change_type, container_id, state in changes:
-                        # Update local view
                         self.local[container_id] = state
                         
-                        # Queue for gossip
-                        update_msg = {
+                        # Queue for Gossip.
+                        self.message_queue.append({
                             "type": "UPDATE",
                             "node": self.machine_id,
                             "container_id": container_id,
                             "state": state,
                             "timestamp": time.time()
-                        }
-                        self.message_queue.append(update_msg)
+                        })
             
-            # Gossip to random subset of peers.
+            # Perform Gossip.
+            # We use a random subset of peers to prevent flooding.
             peers = self._get_random(GOSSIP_FANOUT)
             if peers and self.message_queue:
-                # Aggregate multiple updates into a single message
+                # Batch multiple updates into a single message.
+                # This is done to reduce the number of messages sent.
                 updates = []
                 with self.lock:
-                    while self.message_queue and len(updates) < 10:  # Limit batch size
+                    while self.message_queue and len(updates) < 10: # Limit batch size
                         updates.append(self.message_queue.popleft())
                 
                 if not updates:
                     return
                 
-                # Send aggregated updates to each peer
+                # Send messages.
                 for peer_id in peers:
                     peer_addr = self.peer_addresses.get(peer_id)
                     if not peer_addr:
@@ -575,7 +643,8 @@ class Runtime():
                         port=self.multicast_port
                     )
             
-            # Clean up old seen messages (prevent memory leaks).
+            # Clean up 'seen' messages.
+            # This is imperative to prevent memory leaks.
             now = time.time()
             cutoff = now - MAX_GOSSIP_AGE
 

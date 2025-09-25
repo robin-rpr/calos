@@ -19,11 +19,8 @@ Description
 ===========
 
 Deploy an application to the Clearly cluster by reading a Docker Compose file
-and sending the services configuration to the Clearly daemon. The daemon will
-handle the deployment across the cluster nodes.
-
-The deploy command requires the Clearly daemon to be running and accessible
-on the default API endpoint (http://127.0.0.1:8080).
+and applying the services configuration. Clearly will handle the deployment
+across the cluster nodes automatically.
 
   :code:`NAME`
     The name of the deployment. This identifier is used by the daemon to

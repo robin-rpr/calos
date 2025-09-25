@@ -6,7 +6,6 @@
 
 cmddir = $(pkglibexecdir)
 cmd_PROGRAMS = check run
-EXTRA_DIST = convert deploy equip test list stop logs version
 
 run_SOURCES = run.c core.h core.c net.h net.c misc.h misc.c
 if HAVE_LIBSQUASHFUSE
@@ -19,10 +18,11 @@ check_SOURCES = check.c misc.h misc.c
 
 ## Shell scripts - distributed as-is
 
-cmd_SCRIPTS = convert deploy equip test list stop logs version
+EXTRA_DIST = convert equip test stop logs version
+cmd_SCRIPTS = convert equip test stop logs version
 
 # Python modules to compile via Cython
-cython_modules = image daemon
+cython_modules = daemon deploy image list
 
 # Generated file lists
 cython_c_files = $(cython_modules:%=%.c)
@@ -31,8 +31,10 @@ cython_c_files = $(cython_modules:%=%.c)
 cmd_PROGRAMS += $(cython_modules)
 
 # Set sources for all Cython programs
-image_SOURCES = image.c
 daemon_SOURCES = daemon.c
+deploy_SOURCES = deploy.c
+image_SOURCES = image.c
+list_SOURCES = list.c
 
 # Cython compilation rules
 SUFFIXES = .py .c
@@ -54,7 +56,9 @@ version: ../configure
 	chmod +x $@
 
 # Link with Python libraries
-image_LDADD = $(PYTHON_LIB)
 daemon_LDADD = $(PYTHON_LIB)
+deploy_LDADD = $(PYTHON_LIB)
+image_LDADD = $(PYTHON_LIB)
+list_LDADD = $(PYTHON_LIB)
 
 CLEANFILES = $(cython_c_files)
