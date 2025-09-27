@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 
 import argparse
-import json
-import os.path
 import socket
 import struct
-import sys
+import random
+import time
 import yaml
+import json
+import sys
+import os
 
 try:
     # Cython provides PKGLIBDIR.
@@ -20,10 +22,16 @@ except NameError:
 import _clearly as _clearly
 
 
+## Constants ##
+
+SOCK_PATH = "/var/lib/clearly"
+SOCK_NONCE = random.randint(0, 1000000)
+
+
 ## Main ##
 
 def main():
-    ap = _clearly.ArgumentParser(
+    ap = argparse.ArgumentParser(
         description="Deploy an application to the cluster.",
         epilog="""The deploy command reads a Docker Compose file and deploys
                   the herein defined services across the cluster.""")
@@ -33,13 +41,7 @@ def main():
     ap.add_argument("name", metavar="NAME", help="application name")
 
     # Parse arguments.
-    if len(sys.argv) < 2:
-        ap.print_help(file=sys.stderr)
-        _clearly.exit(1)
     cli = ap.parse_args()
-
-    # Initialize.
-    _clearly.init(cli)
 
     # Check if compose file exists.
     if not os.path.isfile(cli.file):
@@ -54,9 +56,9 @@ def main():
 
     # Send message to daemon.
     try:
-        SOCK_PATH = "/var/lib/clearly/clearly.sock"
-        sock = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
-        sock.connect(SOCK_PATH)
+        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        sock.connect(SOCK_PATH + "/clearly.sock")
+        id = random.randint(0, 1000000)
         
         msg = {
             "type": "DEPLOY",
@@ -64,25 +66,42 @@ def main():
                 "name": cli.name,
                 "file": compose_data
             },
-            "reply_to": None
+            "id": id
         }
         
-        sock.send(json.dumps(msg).encode('utf-8'))
-        
+        sock.sendall(json.dumps(msg).encode('utf-8'))
+
         # Wait for reply.
-        sock.settimeout(10.0)
-        data, addr = sock.recvfrom(2048)
-        reply = json.loads(data.decode('utf-8'))
+        while True:
+            try:
+                data = sock.recv(4096)
+                if not data:
+                    break
+                msg = json.loads(data.decode('utf-8'))
+
+                # Mandatory fields.
+                payload = msg.get("payload")
+                type = msg.get("type")
+                id = msg.get("id")
+
+                # Handle.
+                if type == "REPLY" and id == id:
+                    break
+            except BlockingIOError:
+                time.sleep(0.1)
+                continue
+            except Exception as e:
+                raise
         
-        if reply.get("status") == "error":
-            _clearly.FATAL("failed: %s" % reply.get("message", "unknown error"))
+        if payload.get("status") == "error":
+            _clearly.FATAL("failed: %s" % payload.get("message"))
         
         _clearly.INFO("done")
         
     except socket.timeout:
-        _clearly.FATAL("connect %s: connection timed out" % SOCK_PATH)
-    except FileNotFoundError:
-        _clearly.FATAL("connect %s: no such file or directory" % SOCK_PATH)
+        _clearly.FATAL("connection to the daemon timed out")
+    except socket.error:
+        _clearly.FATAL("couldn't connect to the daemon")
     except Exception as e:
         _clearly.FATAL("connect %s: %s" % (SOCK_PATH, e))
     finally:

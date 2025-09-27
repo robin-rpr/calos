@@ -62,7 +62,7 @@ class Runtime():
         self.machine_id = machine_id
         self.bridge = bridge
         
-        # Runtime state.
+        # State.
         self.interface = Runtime._ifname()
         self.address = Runtime._ipaddr()
         self.lock = threading.RLock()
@@ -71,24 +71,34 @@ class Runtime():
         self.local = {}
         self.seq = 0
         
-        # Gossip protocol state.
+        # Gossip state.
         self.message_queue = deque(maxlen=1000) # Limit memory usage.
-        self.seen_messages = set() # Message deduplication.
-        self.last_gossip_round = 0 # Last gossip round.
-        self.peer_addresses = {} # Map node IDs to addresses.
-        self.ip_reservations = {} # Map IP addresses to reservations.
+        self.seen_messages = set()              # Message deduplication.
+        self.last_gossip_round = 0              # Last gossip round.
+        self.peer_addresses = {}                # Map node IDs to addresses.
+        self.ip_reservations = {}               # Map IP addresses to reservations.
 
-        # Multicast socket.
+        # Multicast sockets.
         self._send = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
         self._send.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_IF, socket.inet_aton(self.address))
         self._send.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_LOOP, 0) # Disable Loopback.
-        self._send.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 1) # TTL = 1.
+        self._send.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 1)  # TTL = 1.
+
+        # Main Event Loops.
+        # These are the heart of the runtime.
+        threading.Thread(target=self._arp_loop, daemon=True).start()
+        threading.Thread(target=self._igmp_loop, daemon=True).start()
+        threading.Thread(target=self._gossip_loop, daemon=True).start()
+        threading.Thread(target=self._announce_loop, daemon=True).start()
+        threading.Thread(target=self._receive_loop, daemon=True).start()
+        threading.Thread(target=self._reconcile_loop, daemon=True).start()
+        threading.Thread(target=self._purge_loop, daemon=True).start()
 
     """ Getters """
 
     @property
     def nodes(self) -> list:
-        """List all nodes in the cluster"""
+        """List all nodes in the cluster."""
         with self.lock:
             ids = [self.machine_id]
             now = time.time()
@@ -101,7 +111,7 @@ class Runtime():
 
     @staticmethod
     def _ipaddr() -> str:
-        """IP address (4 byte-packed)"""
+        """IP address (4 byte-packed)."""
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         try:
             s.connect(("1.1.1.1", 80)) # Doesn't send.
@@ -111,7 +121,7 @@ class Runtime():
 
     @staticmethod
     def _ifname() -> str:
-        """Interface name (default route)"""
+        """Interface name (default route)."""
         with open("/proc/net/route") as f:
             for line in f.readlines()[1:]:
                 iface, dest, _ = line.split()[:3]
@@ -121,7 +131,7 @@ class Runtime():
 
     @staticmethod
     def _checksum(data: bytes) -> int:
-        """Checksum function (RFC 1071)"""
+        """Checksum function (RFC 1071)."""
         s = 0
         for i in range(0, len(data), 2):
             w = data[i] << 8 | (data[i+1] if i+1 < len(data) else 0)
@@ -132,18 +142,18 @@ class Runtime():
 
     @staticmethod
     def _hashsum(msg_type: str, content: dict) -> str:
-        """Generate a unique message ID for deduplication"""
+        """Generate a unique message ID for deduplication."""
         content_str = json.dumps(content, separators=(",", ":"), sort_keys=True)
         return hashlib.blake2b(f"{msg_type}:{content_str}".encode(), digest_size=16).hexdigest()
 
     @staticmethod
     def _blake64(b: bytes) -> int:
-        """Blake2b hash function"""
+        """Blake2b hash function."""
         return int.from_bytes(hashlib.blake2b(b, digest_size=8).digest(), "big", signed=False)
 
     @staticmethod
     def _hrw_topk(key: bytes, nodes: list, k: int) -> list:
-        """HRW top-k algorithm"""
+        """HRW top-k algorithm."""
         scored = [(Runtime._blake64(key + n.encode()), n) for n in nodes]
         scored.sort(reverse=True)
         return [n for _, n in scored[:max(1, min(k, len(scored)))]]
@@ -193,12 +203,12 @@ class Runtime():
         src_mac = Runtime._get_if_mac(ifname)
         src_ip = socket.inet_aton(Runtime._get_if_ipv4(ifname))
 
-        # Ethernet frame header
+        # Ethernet frame header.
         eth_dst = b"\xff\xff\xff\xff\xff\xff" # Destination MAC address (broadcast).
         eth_src = src_mac                     # Source MAC address.
         eth_type = struct.pack('!H', 0x0806)  # EtherType (ARP).
 
-        # ARP payload (request)
+        # ARP payload (request).
         htype = struct.pack('!H', 1)          # Hardware type (Ethernet).
         ptype = struct.pack('!H', 0x0800)     # Protocol type (IPv4).
         hlen  = struct.pack('!B', 6)          # Hardware address length.
@@ -251,7 +261,7 @@ class Runtime():
     def _virtual_mac_for_ip(ip: str) -> bytes:
         """Derive a stable, locally administered unicast MAC from an IP string."""
         h = hashlib.blake2b(ip.encode(), digest_size=6).digest()
-        first = (h[0] & 0b11111100) | 0b00000010 # local admin, unicast
+        first = (h[0] & 0b11111100) | 0b00000010 # Local admin, unicast.
         return bytes([first]) + h[1:6]
 
     @staticmethod
@@ -262,12 +272,13 @@ class Runtime():
         a = 10
         b = h[0]
         c = h[1]
-        # map last octet to 2..254
+        # Map last octet to '2..254'.
         d = (h[2] % 253) + 2
         return f"{a}.{b}.{c}.{d}"
 
     @staticmethod
     def _candidate_ip(deployment_id: str, service: str, replica: int, salt: int) -> str:
+        """Generate a candidate IP address within 10.0.0.0/8."""
         seed = f"{deployment_id}:{service}:{replica}:{salt}".encode()
         h = hashlib.blake2b(seed, digest_size=4).digest()
         a = 10
@@ -278,7 +289,7 @@ class Runtime():
 
     @staticmethod
     def _socket_receive(address: str, port: int, via_address: str) -> socket.socket:
-        """Create a socket for receiving multicast messages"""
+        """Create a socket for receiving multicast messages."""
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.bind(("", port))
@@ -291,7 +302,7 @@ class Runtime():
 
     @staticmethod
     def _socket_send(socket: socket.socket, message: dict, address: str, port: int) -> None:
-        """Send message to specific target or multicast"""
+        """Send message to specific target or multicast."""
         raw = json.dumps(message, separators=(",", ":")).encode()
         comp = zlib.compress(raw, 6)
         payload, enc = (comp, "z") if len(comp) <= MAX_UDP else (raw, "raw")
@@ -308,7 +319,7 @@ class Runtime():
         now = time.time()
 
         with self.lock:
-            # Reserve IP.
+            # Reserve IP Address.
             self.ip_reservations[ip] = {
                 "node": self.machine_id,
                 "deployment": deployment_id,
@@ -433,14 +444,17 @@ class Runtime():
             
             # Determine status.
             try:
-                os.kill(pid, 0)  # Check if process exists
+                # Probe.
+                os.kill(pid, 0)
                 status = "Running"
             except (OSError, ProcessLookupError):
                 if not os.path.exists(f"/proc/{pid}"):
+                    # Stopped.
                     status = "Stopped"
                     ports = {}
                     ip = ""
                 else:
+                    # Unknown.
                     status = "Unknown"
                     ports = {}
                     ip = ""
@@ -457,7 +471,7 @@ class Runtime():
         return snapshot
 
     def _get_random(self, count: int) -> list:
-        """Get random subset of known peers for gossip"""
+        """Get random subset of known peers for gossip."""
         with self.lock:
             now = time.time()
             active_peers = [
@@ -486,13 +500,13 @@ class Runtime():
                 pkt = s.recv(65535)
             except Exception:
                 continue
-            # Minimum ARP over Ethernet frame size
+            # Minimum ARP over Ethernet frame size.
             if len(pkt) < 42:
                 continue
-            # EtherType ARP
+            # EtherType ARP.
             if pkt[12:14] != b"\x08\x06":
                 continue
-            # Parse ARP request
+            # Parse ARP request.
             arp = pkt[14:]
             if len(arp) < 28:
                 continue
@@ -508,7 +522,7 @@ class Runtime():
                 reserved = self.ip_reservations.get(target_ip)
             if not reserved:
                 continue
-            # Craft reply
+            # Construct a reply.
             src_mac = Runtime._virtual_mac_for_ip(target_ip)
             eth = sha           # dest = sender MAC.
             eth += src_mac      # src = our virtual mac.
@@ -555,7 +569,7 @@ class Runtime():
             sock.sendto(pkt, dst)
 
     def _gossip_loop(self):
-        """Efficient gossip-based state propagation"""
+        """Efficient gossip-based state propagation."""
         while True:
             time.sleep(GOSSIP_INTERVAL)
             
@@ -569,7 +583,7 @@ class Runtime():
             # Detect changes.
             changes = []
             with self.lock:
-                # Check for new/updated containers
+                # Check for new/updated containers.
                 containers = {c.get('id'): c for c in snapshot}
                 for container_id, container_info in containers.items():
                     old_info = self.local.get(container_id, {})
@@ -579,13 +593,15 @@ class Runtime():
                     }
 
                     for key, value in new_state.items():
-                        if key == 'ver': continue # Version is not part of the state.
+                        if key == 'ver':
+                            # Version is not part of the state.
+                            continue
                         if old_info.get(key) != value:
                             changes.append(('update', container_id, new_state))
                             self.seq += 1
                             break
                 
-                # Check for removed containers
+                # Check for removed containers.
                 current_ids = set(containers.keys())
                 old_ids = set(self.local.keys())
                 for removed_id in old_ids - current_ids:
@@ -593,13 +609,13 @@ class Runtime():
                         changes.append(('remove', removed_id, {"status": "removed", "ver": self.seq + 1}))
                         self.seq += 1
 
-            # Update View.
+            # Update local view.
             if changes:
                 with self.lock:
                     for change_type, container_id, state in changes:
                         self.local[container_id] = state
                         
-                        # Queue for Gossip.
+                        # Queue for gossip.
                         self.message_queue.append({
                             "type": "UPDATE",
                             "node": self.machine_id,
@@ -616,7 +632,7 @@ class Runtime():
                 # This is done to reduce the number of messages sent.
                 updates = []
                 with self.lock:
-                    while self.message_queue and len(updates) < 10: # Limit batch size
+                    while self.message_queue and len(updates) < 10: # Limit batch size.
                         updates.append(self.message_queue.popleft())
                 
                 if not updates:
@@ -655,9 +671,11 @@ class Runtime():
     def _announce_loop(self):
         """Announce heartbeat to the cluster."""
         while True:
-            time.sleep(GOSSIP_INTERVAL * 2)  # Less frequent heartbeats
+            # Pause.
+            time.sleep(GOSSIP_INTERVAL * 2)
             
-            # Send lightweight heartbeat instead of full state
+            # Send lightweight heartbeat instead of full state.
+            # We don't send the full state to prevent flooding.
             heartbeat = {
                 "type": "HEARTBEAT",
                 "node": self.machine_id,
@@ -666,6 +684,7 @@ class Runtime():
                 "timestamp": time.time()
             }
             
+            # Send heartbeat.
             Runtime._socket_send(
                 socket=self._send,
                 message=heartbeat,
@@ -674,7 +693,7 @@ class Runtime():
             )
 
     def _purge_loop(self):
-        """Purge expired nodes and deployments"""
+        """Purge expired nodes and deployments."""
         while True:
             time.sleep(5)
             cut = time.time() - PEER_TTL
@@ -702,7 +721,7 @@ class Runtime():
                         del self.ip_reservations[ip]
 
     def _receive_loop(self):
-        """Receive messages from the cluster"""
+        """Receive messages from the cluster."""
         r = self._socket_receive(self.multicast_addr, self.multicast_port, self.address)
         while True:
             try:
@@ -715,16 +734,19 @@ class Runtime():
                 raw = zlib.decompress(body) if enc == "z" else body
                 msg = json.loads(raw.decode())
             except Exception as e:
-                _clearly.WARNING(f"couldn't parse message: {e}")
+                _clearly.WARNING(f"couldn't parse: {e}")
                 continue
             
-            # Handle different message types
+            # Handle.
             type = msg.get("type")
             if type == "GOSSIP":
+                # Gossiping.
                 self._handle_gossip(msg)
             elif type == "HEARTBEAT":
+                # Heartbeat.
                 self._handle_heartbeat(msg)
-            elif type == "DEPLOY":
+            elif type == "DEPLOYMENT":
+                # Deployment.
                 id = msg.get("id")
                 if id and id in self.seen_messages:
                     continue
@@ -732,6 +754,7 @@ class Runtime():
                     self.seen_messages.add(id)
                 self.deploy(msg)
             elif type == "RESERVE_IP":
+                # Reserve IP.
                 id = msg.get("id")
                 if id and id in self.seen_messages:
                     continue
@@ -743,7 +766,7 @@ class Runtime():
                     continue
                 with self.lock:
                     current = self.ip_reservations.get(ip)
-                    # Only record if unreserved or same owner; ignore conflicting owners
+                    # Only record if unreserved or same owner.
                     if not current or current.get("node") == msg.get("node"):
                         self.ip_reservations[ip] = {
                             "node": msg.get("node"),
@@ -753,9 +776,13 @@ class Runtime():
                             "timestamp": time.time(),
                             "ttl": ttl,
                         }
+            else:
+                # Unknown.
+                _clearly.WARNING(f"unknown: {msg.get('type')}")
+                continue
 
     def _reconcile_loop(self):
-        """Periodic reconciliation to ensure state consistency"""
+        """Periodic reconciliation to ensure consistency."""
         while True:
             time.sleep(10)
             self._handle_reconcile()
@@ -763,7 +790,7 @@ class Runtime():
     """ Handlers """
 
     def _handle_gossip(self, message: dict):
-        """Handle incoming gossip messages"""
+        """Handle incoming gossip messages."""
         id = message.get("id")
         if not id or id in self.seen_messages:
             return # Already seen this message
@@ -779,7 +806,7 @@ class Runtime():
                 source_node = update.get("node")
                 
                 if source_node and source_node != self.machine_id:
-                    # Update cluster view
+                    # Update cluster view.
                     if source_node not in self.cluster:
                         self.cluster[source_node] = {"containers": {}, "timestamp": time.time()}
                     
@@ -801,7 +828,7 @@ class Runtime():
                         )
 
     def _handle_heartbeat(self, msg: dict):
-        """Handle heartbeat messages for membership"""
+        """Handle heartbeat messages for membership."""
         node_id = msg.get("node")
         if not node_id or node_id == self.machine_id:
             return
@@ -816,7 +843,7 @@ class Runtime():
             self.peer_addresses[node_id] = msg.get("addr")
 
     def _handle_reconcile(self):
-        """Reconcile the local view with the cluster state"""
+        """Reconcile the local view with the cluster view."""
         rows = []
         want_here = set()
 
@@ -866,38 +893,11 @@ class Runtime():
                                 if ip and ip != service.get("ip"):
                                     allow.append(ip)
 
-                        command = [
-                            "clearly", "run",
-                            Runtime._get_argv("", service.get("image")),
-                            Runtime._get_argv("", "--name", name),
-                            Runtime._get_argv("", "--detach"),
-                            Runtime._get_argv("", "--ip", service.get("ip")),
-                            Runtime._get_argv("", "--allow", allow),
-                            Runtime._get_argv("", "--sysctl", service.get("sysctls")),
-                            Runtime._get_argv("", "--cap-add", service.get("cap_add")),
-                            Runtime._get_argv("", "--cap-drop", service.get("cap_drop")),
-                            Runtime._get_argv("", "--label", service.get("labels")),
-                            Runtime._get_argv("", "--port", service.get("ports"), sep=":"),
-                            Runtime._get_argv("", "--env", service.get("environment")),
-                            Runtime._get_argv("", "--", service.get("command")),
-                        ]
-
-                        # Execute command.
-                        process = subprocess.Popen(
-                            command,
-                            stdin=subprocess.DEVNULL,
-                            stdout=None,
-                            stderr=None,
-                            start_new_session=True
-                        )
-
-                        # Check output.
-                        process.wait()
-                        if process.returncode != 0:
-                            raise subprocess.CalledProcessError(
-                                process.returncode,
-                                command
-                            )
+                        self.start({
+                            "name": name,
+                            "allow": allow,
+                            **service
+                        })
 
             # Only stop containers that are part of deployments but shouldn't be here.
             # Don't stop manually started containers that aren't part of any deployment.
@@ -910,26 +910,22 @@ class Runtime():
                 services = deployment.get("services", {})
                 if plan:
                     for name, replicas in plan.items():
-                        for i, spec_plan in replicas.items():
-                            deployment_containers.add(spec_plan.get("name") or (name if len(replicas) == 1 else f"{name}-{i}"))
+                        for i, replica_plan in replicas.items():
+                            deployment_containers.add(
+                                replica_plan.get("name") or (name if len(replicas) == 1 else f"{name}-{i}")
+                            )
                 else:
                     for name in services.keys():
                         deployment_containers.add(name)
             
             # Execute command.
             for name in (current & deployment_containers) - want_here:
-                subprocess.run(
-                    ["clearly", "stop", name],
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL,
-                    check=True,
-                    text=True,
-                )
+                self.stop(name)
 
     """ Main """
 
-    def deploy(self, msg: dict):
-        """Deploy a group of containers"""
+    def deploy(self, msg: dict) -> None:
+        """Deploy a set of defined resources."""
         data = msg.get("data") or {}
         plan = msg.get("plan")
 
@@ -938,12 +934,12 @@ class Runtime():
             # We are the node that originated the deployment.
             plan = self._get_plan(data)
             message = {
-                "type": "DEPLOY",
+                "type": "DEPLOYMENT",
                 "data": data,
                 "plan": plan,
                 "timestamp": time.time(),
                 "id": Runtime._hashsum(
-                    "DEPLOY", {"data": data}
+                    "DEPLOYMENT", {"data": data}
                 )
             }
 
@@ -962,14 +958,75 @@ class Runtime():
             }
 
         # Reconcile.
+        # Necessary to ensure deployment works.
         self._handle_reconcile()
 
-    def start(self):
-        """Start the runtime"""
-        threading.Thread(target=self._arp_loop, daemon=True).start()
-        threading.Thread(target=self._igmp_loop, daemon=True).start()
-        threading.Thread(target=self._gossip_loop, daemon=True).start()
-        threading.Thread(target=self._announce_loop, daemon=True).start()
-        threading.Thread(target=self._receive_loop, daemon=True).start()
-        threading.Thread(target=self._reconcile_loop, daemon=True).start()
-        threading.Thread(target=self._purge_loop, daemon=True).start()
+    def list(self) -> dict:
+        """List all containers."""
+        containers = {}
+        now = time.time()
+        with self.lock:
+            for machine_id, metadata in self.cluster.items():
+                # Skip expired nodes.
+                if now - metadata["timestamp"] > self.PEER_TTL: 
+                    continue
+                # Loop through containers.
+                for k, v in metadata["containers"].items():
+                    # Skip removed containers.
+                    if v.get("status") != "removed":
+                        containers[k] = {
+                            "node": machine_id,
+                            **v
+                        }
+            for k, v in self.local.items():
+                # Skip removed containers.
+                if v.get("status") != "removed":
+                    containers[k] = {
+                        "node": self.machine_id,
+                        **v
+                    }
+        return containers
+
+    def stop(self, name: str) -> None:
+        """Stop a container."""
+        subprocess.run(
+            ["clearly", "stop", name],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=True,
+            text=True,
+        )
+    
+    def start(self, service: dict) -> None:
+        """Start a container."""
+        command = [
+            "clearly", "run", service.get("image"),
+            Runtime._get_argv("", "--ip", service.get("ip")),
+            Runtime._get_argv("", "--name", service.get("name")),
+            Runtime._get_argv("", "--allow", service.get("allow")),
+            Runtime._get_argv("", "--sysctl", service.get("sysctls")),
+            Runtime._get_argv("", "--cap-add", service.get("cap_add")),
+            Runtime._get_argv("", "--cap-drop", service.get("cap_drop")),
+            Runtime._get_argv("", "--port", service.get("ports"), sep=":"),
+            Runtime._get_argv("", "--env", service.get("environment")),
+            Runtime._get_argv("", "--label", service.get("labels")),
+            Runtime._get_argv("", "--detach"),
+            "--", service.get("command"),
+        ]
+
+        # Execute command.
+        process = subprocess.Popen(
+            command,
+            stdin=subprocess.DEVNULL,
+            stdout=None,
+            stderr=None,
+            start_new_session=True
+        )
+
+        # Check output.
+        process.wait()
+        if process.returncode != 0:
+            raise subprocess.CalledProcessError(
+                process.returncode,
+                command
+            )

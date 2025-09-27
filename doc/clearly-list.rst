@@ -3,7 +3,7 @@
 
 .. only:: not man
 
-   List all containers managed by the Clearly runtime.
+   List all containers managed by the runtime.
 
 
 Synopsis

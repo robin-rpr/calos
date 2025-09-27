@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 
 import argparse
-import json
 import os.path
+import random
 import socket
 import struct
+import time
+import json
 import sys
 
 try:
@@ -19,52 +21,68 @@ except NameError:
 import _clearly as _clearly
 
 
+## Constants ##
+
+SOCK_PATH = "/var/lib/clearly"
+
+
 ## Main ##
 
 def main():
-    ap = _clearly.ArgumentParser(
+    ap = argparse.ArgumentParser(
         description="List containers.",
         epilog="""The list command shows all containers currently managed by the Clearly
                   runtime, including their container ID, image, IP address, and current status.""")
 
     ap.add_argument("--format", metavar="FORMAT", 
-                    default="table {{.ID}}\t{{.Image}}\t{{.IP}}\t{{.Status}}\t{{.Ports}}",
+                    default="table {{.ID}}\t\t{{.Image}}\t\t{{.IP}}\t\t{{.Status}}\t\t{{.Ports}}",
                     help="format output using a Go template (default: table format)")
     ap.add_argument("--no-trunc", action="store_true",
                     help="don't truncate output")
 
     # Parse arguments.
-    if len(sys.argv) < 2:
-        ap.print_help(file=sys.stderr)
-        _clearly.exit(1)
     cli = ap.parse_args()
-
-    # Initialize.
-    _clearly.init(cli)
 
     # Send message to daemon.
     try:
-        SOCK_PATH = "/var/lib/clearly/clearly.sock"
-        sock = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
-        sock.connect(SOCK_PATH)
-        
+        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        sock.connect(SOCK_PATH + "/clearly.sock")
+        id = random.randint(0, 1000000)
+
         msg = {
             "type": "LIST",
             "payload": {},
-            "reply_to": None
+            "id": id
         }
         
-        sock.send(json.dumps(msg).encode('utf-8'))
-        
+        sock.sendall(json.dumps(msg).encode('utf-8'))
+
         # Wait for reply.
-        sock.settimeout(10.0)
-        data, addr = sock.recvfrom(2048)
-        reply = json.loads(data.decode('utf-8'))
+        while True:
+            try:
+                data = sock.recv(4096)
+                if not data:
+                    break
+                msg = json.loads(data.decode('utf-8'))
+
+                # Mandatory fields.
+                payload = msg.get("payload")
+                type = msg.get("type")
+                id = msg.get("id")
+
+                # Handle.
+                if type == "REPLY" and id == id:
+                    break
+            except BlockingIOError:
+                time.sleep(0.1)
+                continue
+            except Exception as e:
+                raise
         
-        if reply.get("status") == "error":
-            _clearly.FATAL("failed: %s" % reply.get("message", "unknown error"))
+        if payload.get("status") == "error":
+            _clearly.FATAL("failed: %s" % payload.get("message"))
         
-        containers = reply.get("message", {})
+        containers = payload.get("message", {})
         
         # Format and display output
         if cli.format.startswith("table "):
@@ -73,11 +91,11 @@ def main():
             _display_custom(containers, cli.format, cli.no_trunc)
         
     except socket.timeout:
-        _clearly.FATAL("connect %s: connection timed out" % SOCK_PATH)
-    except FileNotFoundError:
-        _clearly.FATAL("connect %s: no such file or directory" % SOCK_PATH)
+        _clearly.FATAL("connection to the daemon timed out")
+    except socket.error:
+        _clearly.FATAL("couldn't connect to the daemon")
     except Exception as e:
-        _clearly.FATAL("connect %s: %s" % (SOCK_PATH, e))
+        _clearly.FATAL(str(e))
     finally:
         sock.close()
 
@@ -88,8 +106,6 @@ def main():
 
 def _display_table(containers, format_template, no_trunc):
     """Display containers in table format."""
-    if not containers:
-        return
     
     # Parse format template
     fields = []
@@ -102,19 +118,28 @@ def _display_table(containers, format_template, no_trunc):
     
     # Calculate column widths
     widths = {}
-    for container_id, container in containers.items():
-        for i, field in enumerate(fields):
-            if field in ['ID', 'Image', 'IP', 'Status', 'Ports', 'Labels', 'Node']:
+    for i, field in enumerate(fields):
+        if field in ['ID', 'Image', 'IP', 'Status', 'Ports', 'Labels', 'Node']:
+            # Start with header width
+            if field == 'ID':
+                header = 'CONTAINER ID'
+            else:
+                header = field.upper()
+            widths[i] = len(header)
+            
+            # Check container data widths
+            for container_id, container in containers.items():
                 value = _get_field_value(container, field, no_trunc)
-                widths[i] = max(widths.get(i, 0), len(value))
+                widths[i] = max(widths[i], len(value))
     
     # Print header
     header_parts = []
     for i, field in enumerate(fields):
         if field in ['ID', 'Image', 'IP', 'Status', 'Ports', 'Labels', 'Node']:
-            header = field.upper()
             if field == 'ID':
                 header = 'CONTAINER ID'
+            else:
+                header = field.upper()
             width = widths.get(i, len(header))
             header_parts.append(f"%-{width}s" % header)
         else:

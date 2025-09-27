@@ -42,6 +42,7 @@ jobs:
             python3-devel \
             python3-setuptools \
             python3-lark-parser \
+            python3-websockets \
             python3-sphinx \
             python3-libsass \
             python3-pyyaml \

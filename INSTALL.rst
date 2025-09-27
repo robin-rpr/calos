@@ -70,6 +70,7 @@ After enabling the CRB repository, install the following packages:
   * :code:`json-c-devel`: Development files for json-c, providing JSON parsing.
   * :code:`python3-lark-parser`: Python 3 Lark parser library, used for parsing
     and processing Dockerfile as well as docker-compose.yml files.
+  * :code:`python3-websockets`: Python 3 WebSockets library, used for websocket talk.
   * :code:`python3-sphinx`: Python 3 Sphinx library, used for building the documentation.
   * :code:`python3-libsass`: Python 3 LibSass library, used for CSS preprocessing.
   * :code:`python3-jinja2`: Python 3 Jinja2 library, used for templating.

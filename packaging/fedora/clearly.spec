@@ -35,6 +35,7 @@ BuildRequires: fuse3-devel
 BuildRequires: json-c-devel
 BuildRequires: python3-devel
 BuildRequires: python3-lark-parser
+BuildRequires: python3-websockets
 BuildRequires: python3-pyyaml
 BuildRequires: python3-libsass
 BuildRequires: python3-jinja2
@@ -52,6 +53,7 @@ Requires:      fuse3
 Requires:      json-c
 Requires:      python3
 Requires:      python3-lark-parser
+Requires:      python3-websockets
 Requires:      python3-pyyaml
 Requires:      python3-libsass
 Requires:      python3-jinja2
