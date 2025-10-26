@@ -1,8 +1,8 @@
 Clearly
 =======
 
-Clearly is a lightweight container orchestrator designed for high-performance
-computing (HPC) environments.
+Clearly is a lightweight (~26k LoC) container orchestrator designed for 
+high-performance computing (HPC) environments.
 
 It enables users to flexibly deploy application suites defined in a
 ``docker-compose.yml`` file within specific resource allocations, while keeping
