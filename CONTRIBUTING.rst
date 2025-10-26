@@ -4,9 +4,6 @@ Contributor’s guide
 This section is notes on contributing to Clearly's development. Currently,
 it is messy and incomplete. Patches welcome!
 
-It documents public stuff only. If you are on the core team at LANL, also
-consult the internal documentation and other resources.
-
 .. contents::
    :depth: 2
    :local:
