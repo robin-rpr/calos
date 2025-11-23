@@ -1,7 +1,7 @@
-Clearly
-=======
+Calos
+=====
 
-Clearly is a lightweight (~26k LoC) container orchestrator designed for 
+Calos is a lightweight (~26k LoC) container orchestrator designed for 
 high-performance computing (HPC) environments.
 
 It enables users to flexibly deploy application suites defined in a
@@ -16,4 +16,4 @@ Additionally, focus on reducing noise is particularly critical for
 performance-sensitive workloads such as OSU Allreduce, where even small 
 levels of interference can significantly degrade results.
 
-Copyright 2025 (C) Clearly Systems, Inc.
+Copyright 2025 (C) Calos Systems, Inc.
