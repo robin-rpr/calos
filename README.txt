@@ -16,4 +16,4 @@ Additionally, focus on reducing noise is particularly critical for
 performance-sensitive workloads such as OSU Allreduce, where even small 
 levels of interference can significantly degrade results.
 
-Copyright 2025 (C) Calos Systems, Inc.
+Copyright 2025 (C) Robin Röper
